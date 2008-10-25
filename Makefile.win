@@ -11,6 +11,8 @@ LDFLAGS = -mwindows -lopengl32 -lglu32 -lglaux -lkernel32 -luser32 -lgdi32 -lwin
 # Parts
 OBJ  = main.o OZMAV_private.res
 
+all: $(PROJECT)
+
 $(PROJECT): $(OBJ)
 	$(CC) -o $(PROJECT) $(CFLAGS) $(OBJ) $(LDFLAGS)
 

@@ -443,6 +443,8 @@ int Viewer_OpenMapScene()
 	} else {
 		MessageBox(hwnd, "Error: Selected file is not a ZMap file!", "Error", MB_OK | MB_ICONERROR);
 	}
+	
+	return 0;
 }
 
 /* VIEWER_GETMAPHEADERLIST - IF THE LOADED MAP FILE CONTAINS MULTIPLE MAP HEADERS, STORE THE HEADER LIST FOR LATER USE */
@@ -683,7 +685,7 @@ int Viewer_GetDisplayLists(unsigned long Fsize)
 			if ((Readout_CurrentByte1 == F3DEX2_RDPHALF_1) && (Readout_CurrentByte2 == 0x00)) {
 				if((Readout_CurrentByte3 == 0x00) && (Readout_CurrentByte4 == 0x00)) {
 					if((Readout_CurrentByte5 == 0x03)) {
-						sprintf(StatusMsg, "Warning: Display List call via F3DEX2_RDPHALF_1 found at 0x%08X. Display list is at 0x%08X\n\nThis type of call is not being handled properly. Adding to regular DList offset list...", DListScanPosition * 4, TempOffset);
+						sprintf(StatusMsg, "Warning: Display List call via F3DEX2_RDPHALF_1 found at 0x%08X. Display list is at 0x%08X\n\nThis type of call is not being handled properly. Adding to regular DList offset list...", DListScanPosition * 4, (unsigned int)TempOffset);
 						MessageBox(hwnd, StatusMsg, "Message", MB_OK | MB_ICONEXCLAMATION);
 						
 						TempOffset = Readout_CurrentByte6 << 16;
@@ -739,37 +741,37 @@ int Viewer_RenderMap(int SingleDLNumber)
 				switch(Readout_CurrentByte1) {
 				case F3DEX2_VTX:
 					sprintf(CurrentGFXCmd, "F3DEX2_VTX           ");
-					sprintf(CurrentGFXCmdNote, "");
+					sprintf(CurrentGFXCmdNote, "-");
 					HelperFunc_GFXLogCommand();
 					Viewer_RenderMap_CMDVertexList();
 					break;
 				case F3DEX2_TRI1:
 					sprintf(CurrentGFXCmd, "F3DEX2_TRI1          ");
-					sprintf(CurrentGFXCmdNote, "");
+					sprintf(CurrentGFXCmdNote, "-");
 					HelperFunc_GFXLogCommand();
 					Viewer_RenderMap_CMDDrawTri1();
 					break;
 				case F3DEX2_TRI2:
 					sprintf(CurrentGFXCmd, "F3DEX2_TRI2          ");
-					sprintf(CurrentGFXCmdNote, "");
+					sprintf(CurrentGFXCmdNote, "-");
 					HelperFunc_GFXLogCommand();
 					Viewer_RenderMap_CMDDrawTri2();
 					break;
 				case F3DEX2_TEXTURE:
 					sprintf(CurrentGFXCmd, "F3DEX2_TEXTURE       ");
-					sprintf(CurrentGFXCmdNote, "");
+					sprintf(CurrentGFXCmdNote, "-");
 					HelperFunc_GFXLogCommand();
 					Viewer_RenderMap_CMDTexture();
 					break;
 				case G_SETTIMG:
 					sprintf(CurrentGFXCmd, "G_SETTIMG            ");
-					sprintf(CurrentGFXCmdNote, "");
+					sprintf(CurrentGFXCmdNote, "-");
 					HelperFunc_GFXLogCommand();
 					Viewer_RenderMap_CMDSetTImage();
 					break;
 				case G_SETTILE:
 					sprintf(CurrentGFXCmd, "G_SETTILE            ");
-					sprintf(CurrentGFXCmdNote, "");
+					sprintf(CurrentGFXCmdNote, "-");
 					HelperFunc_GFXLogCommand();
 					Viewer_RenderMap_CMDSetTile();
 					break;
@@ -781,28 +783,28 @@ int Viewer_RenderMap(int SingleDLNumber)
 					break;
 				case G_SETTILESIZE:
 					sprintf(CurrentGFXCmd, "G_SETTILESIZE        ");
-					sprintf(CurrentGFXCmdNote, "");
+					sprintf(CurrentGFXCmdNote, "-");
 					HelperFunc_GFXLogCommand();
 					Viewer_RenderMap_CMDSetTileSize();
 					break;
 				case G_RDPFULLSYNC:
 					sprintf(CurrentGFXCmd, "G_RDPFULLSYNC        ");
-					sprintf(CurrentGFXCmdNote, "");
+					sprintf(CurrentGFXCmdNote, "-");
 					HelperFunc_GFXLogCommand();
 					break;
 				case G_RDPTILESYNC:
 					sprintf(CurrentGFXCmd, "G_RDPTILESYNC        ");
-					sprintf(CurrentGFXCmdNote, "");
+					sprintf(CurrentGFXCmdNote, "-");
 					HelperFunc_GFXLogCommand();
 					break;
 				case G_RDPPIPESYNC:
 					sprintf(CurrentGFXCmd, "G_RDPPIPESYNC        ");
-					sprintf(CurrentGFXCmdNote, "");
+					sprintf(CurrentGFXCmdNote, "-");
 					HelperFunc_GFXLogCommand();
 					break;
 				case G_RDPLOADSYNC:
 					sprintf(CurrentGFXCmd, "G_RDPLOADSYNC        ");
-					sprintf(CurrentGFXCmdNote, "");
+					sprintf(CurrentGFXCmdNote, "-");
 					HelperFunc_GFXLogCommand();
 					break;
 				case F3DEX2_GEOMETRYMODE:
@@ -828,7 +830,7 @@ int Viewer_RenderMap(int SingleDLNumber)
 					break;
 				case G_SETFOGCOLOR:
 					sprintf(CurrentGFXCmd, "G_SETFOGCOLOR        ");
-					sprintf(CurrentGFXCmdNote, "");
+					sprintf(CurrentGFXCmdNote, "-");
 					HelperFunc_GFXLogCommand();
 					Viewer_RenderMap_CMDSetFogColor();
 					break;
@@ -840,13 +842,13 @@ int Viewer_RenderMap(int SingleDLNumber)
 					break;
 				case F3DEX2_ENDDL:
 					sprintf(CurrentGFXCmd, "F3DEX2_ENDDL         ");
-					sprintf(CurrentGFXCmdNote, "");
+					sprintf(CurrentGFXCmdNote, "-");
 					HelperFunc_GFXLogCommand();
 					DListHasEnded = true;
 					break;
 				default:
 					sprintf(CurrentGFXCmd, "<unknown>            ");
-					sprintf(CurrentGFXCmdNote, "");
+					sprintf(CurrentGFXCmdNote, "-");
 					HelperFunc_GFXLogCommand();
 					break;
 				}
@@ -994,7 +996,7 @@ int Viewer_RenderMap_CMDDrawTri1()
 		TempU = (float) CurrentH1_3 * Textures[TextureInfo_Current].S_Scale / 32 / Textures[TextureInfo_Current].WidthRender;
 		TempV = (float) CurrentV1_3 * Textures[TextureInfo_Current].T_Scale / 32 / Textures[TextureInfo_Current].HeightRender;
 		glTexCoord2f(TempU, TempV);
-		if(!Renderer_EnableLighting) { glColor4ub (CurrentR1_3, CurrentG1_3, CurrentB1_3, CurrentA1_2); }
+		if(!Renderer_EnableLighting) { glColor4ub (CurrentR1_3, CurrentG1_3, CurrentB1_3, CurrentA1_3); }
 		glNormal3f (CurrentR1_3 / 255.0f, CurrentG1_3 / 255.0f, CurrentB1_3 / 255.0f);
 		glVertex3d(CurrentX1_3, CurrentY1_3, CurrentZ1_3);
 	glEnd();
@@ -1086,7 +1088,7 @@ int Viewer_RenderMap_CMDDrawTri2()
 		TempU = (float) CurrentH1_3 * Textures[TextureInfo_Current].S_Scale / 32 / Textures[TextureInfo_Current].WidthRender;
 		TempV = (float) CurrentV1_3 * Textures[TextureInfo_Current].T_Scale / 32 / Textures[TextureInfo_Current].HeightRender;
 		glTexCoord2f(TempU, TempV);
-		if(!Renderer_EnableLighting) { glColor4ub (CurrentR1_3, CurrentG1_3, CurrentB1_3, CurrentA1_2); }
+		if(!Renderer_EnableLighting) { glColor4ub (CurrentR1_3, CurrentG1_3, CurrentB1_3, CurrentA1_3); }
 		glNormal3f (CurrentR1_3 / 255.0f, CurrentG1_3 / 255.0f, CurrentB1_3 / 255.0f);
 		glVertex3d(CurrentX1_3, CurrentY1_3, CurrentZ1_3);
 		
@@ -1575,17 +1577,17 @@ int Viewer_RenderMap_CMDRDPHalf1()
 		switch(Readout_CurrentByte1) {
 		case F3DEX2_VTX:
 			sprintf(CurrentGFXCmd, "F3DEX2_VTX           ");
-			sprintf(CurrentGFXCmdNote, "");
+			sprintf(CurrentGFXCmdNote, "-");
 			Viewer_RenderMap_CMDVertexList();
 			break;
 		case F3DEX2_TRI1:
 			sprintf(CurrentGFXCmd, "F3DEX2_TRI1          ");
-			sprintf(CurrentGFXCmdNote, "");
+			sprintf(CurrentGFXCmdNote, "-");
 			Viewer_RenderMap_CMDDrawTri1();
 			break;
 		case F3DEX2_TRI2:
 			sprintf(CurrentGFXCmd, "F3DEX2_TRI2          ");
-			sprintf(CurrentGFXCmdNote, "");
+			sprintf(CurrentGFXCmdNote, "-");
 			Viewer_RenderMap_CMDDrawTri2();
 			break;
 		case F3DEX2_TEXTURE:
@@ -1595,12 +1597,12 @@ int Viewer_RenderMap_CMDRDPHalf1()
 			break;
 		case G_SETTIMG:
 			sprintf(CurrentGFXCmd, "G_SETTIMG            ");
-			sprintf(CurrentGFXCmdNote, "");
+			sprintf(CurrentGFXCmdNote, "-");
 			Viewer_RenderMap_CMDSetTImage();
 			break;
 		case G_SETTILE:
 			sprintf(CurrentGFXCmd, "G_SETTILE            ");
-			sprintf(CurrentGFXCmdNote, "");
+			sprintf(CurrentGFXCmdNote, "-");
 			Viewer_RenderMap_CMDSetTile();
 			break;
 		case G_LOADBLOCK:
@@ -1610,7 +1612,7 @@ int Viewer_RenderMap_CMDRDPHalf1()
 			break;
 		case G_SETTILESIZE:
 			sprintf(CurrentGFXCmd, "G_SETTILESIZE        ");
-			sprintf(CurrentGFXCmdNote, "");
+			sprintf(CurrentGFXCmdNote, "-");
 			Viewer_RenderMap_CMDSetTileSize();
 			break;
 		case G_RDPFULLSYNC:
@@ -1631,7 +1633,7 @@ int Viewer_RenderMap_CMDRDPHalf1()
 			break;
 		case F3DEX2_GEOMETRYMODE:
 			sprintf(CurrentGFXCmd, "F3DEX2_GEOMETRYMODE  ");
-			sprintf(CurrentGFXCmdNote, "");
+			sprintf(CurrentGFXCmdNote, "-");
 			Viewer_RenderMap_CMDGeometryMode();
 			break;
 		case F3DEX2_CULLDL:
@@ -1648,12 +1650,12 @@ int Viewer_RenderMap_CMDRDPHalf1()
 			break;
 		case G_SETFOGCOLOR:
 			sprintf(CurrentGFXCmd, "G_SETFOGCOLOR        ");
-			sprintf(CurrentGFXCmdNote, "");
+			sprintf(CurrentGFXCmdNote, "-");
 			Viewer_RenderMap_CMDSetFogColor();
 			break;
 		case F3DEX2_ENDDL:
 			sprintf(CurrentGFXCmd, "F3DEX2_ENDDL         ");
-			sprintf(CurrentGFXCmdNote, "");
+			sprintf(CurrentGFXCmdNote, "-");
 			Sub_DListHasEnded = true;
 			break;
 		default:
@@ -1663,7 +1665,7 @@ int Viewer_RenderMap_CMDRDPHalf1()
 		}
 		
 		sprintf(GFXLogMsg, "   - 0x%08X:\t%s\t\t[%02X%02X%02X%02X %02X%02X%02X%02X] %s\n",
-			Sub_DLTempPosition * 4, CurrentGFXCmd,
+			(unsigned int)Sub_DLTempPosition * 4, CurrentGFXCmd,
 			Readout_CurrentByte1, Readout_CurrentByte2, Readout_CurrentByte3, Readout_CurrentByte4,
 			Readout_CurrentByte5, Readout_CurrentByte6, Readout_CurrentByte7, Readout_CurrentByte8,
 			CurrentGFXCmdNote);
@@ -1780,7 +1782,7 @@ int HelperFunc_GFXLogMessage(char Message[])
 int HelperFunc_GFXLogCommand()
 {				
 	sprintf(GFXLogMsg, " - 0x%08X:\t%s\t\t[%02X%02X%02X%02X %02X%02X%02X%02X] %s\n",
-		DLTempPosition * 4, CurrentGFXCmd,
+		(unsigned int)DLTempPosition * 4, CurrentGFXCmd,
 		Readout_CurrentByte1, Readout_CurrentByte2, Readout_CurrentByte3, Readout_CurrentByte4,
 		Readout_CurrentByte5, Readout_CurrentByte6, Readout_CurrentByte7, Readout_CurrentByte8,
 		CurrentGFXCmdNote);
@@ -2170,7 +2172,6 @@ void Dialog_OpenZMap(HWND hwnd)
 {
 	char			filter[]="Zelda Map files (*.zmap)\0;*.zmap\0";
 	OPENFILENAME	ofn;
-	int				hh,index;
 	
 	memset(&ofn,0,sizeof(ofn));
 	ofn.lStructSize=sizeof(OPENFILENAME);
@@ -2190,7 +2191,6 @@ void Dialog_OpenZScene(HWND hwnd)
 {
 	char			filter[]="Zelda Scene files (*.zscene)\0*.zscene\0";
 	OPENFILENAME	ofn;
-	int				hh,index;
 	
 	memset(&ofn,0,sizeof(ofn));
 	ofn.lStructSize=sizeof(OPENFILENAME);
@@ -2324,7 +2324,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 						if(DListInfo_DListToRender == -1) {
 							sprintf(StatusMsg, "Display List: rendering all");
 						} else {
-							sprintf(StatusMsg, "Display List: #%d", DListInfo_DListToRender + 1);
+							sprintf(StatusMsg, "Display List: #%d", (int)DListInfo_DListToRender + 1);
 						}
 					}
 					if (System_KbdKeys[VK_F2]) {
@@ -2334,7 +2334,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 							MapLoaded = false;
 							Viewer_RenderMap(DListInfo_DListToRender);
 						}
-						sprintf(StatusMsg, "Display List: #%d", DListInfo_DListToRender + 1);
+						sprintf(StatusMsg, "Display List: #%d", (int)DListInfo_DListToRender + 1);
 					}
 					if (System_KbdKeys[VK_F3]) {
 						System_KbdKeys[VK_F3] = false;
