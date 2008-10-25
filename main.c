@@ -17,9 +17,9 @@
 #include <windows.h>
 #include <windowsx.h>
 #include <commctrl.h>
-#include <gl/gl.h>
-#include <gl/glu.h>
-#include <gl/glext.h>
+#include <GL/gl.h>
+#include <GL/glu.h>
+#include <GL/glext.h>
 
 #include <math.h>
 #include <stdio.h>
