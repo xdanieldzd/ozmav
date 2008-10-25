@@ -1849,10 +1849,10 @@ int InitGL(void)
 
 int Thread_DrawGLCaller(void)
 {
-	while(DrawScene) {
-		DrawGLScene();
-		SwapBuffers(hDC_ogl);
-	}
+drawloop:
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	Sleep( 100 );
+	goto drawloop;
 	
 	return 0;
 }
@@ -2476,9 +2476,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 			}
 			
 			DrawScene = true;
-			
-//			DrawGLScene();
-//			SwapBuffers(hDC_ogl);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		}
 	}
 	KillGLTarget();
@@ -2497,7 +2495,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			} else {
 				WndActive = false;
 			}
-			break;
+		break;
 			
 		case WM_SIZE: ;
 			HWND hogl;
@@ -2513,8 +2511,8 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			StatusBarHeight = rcStatus.bottom - rcStatus.top;
 			
 			ReSizeGLScene(rcClient.right, rcClient.bottom);
-//			DrawGLScene();
-//			SwapBuffers(hDC_ogl);
+			DrawScene = true;
+		break;
 			
 		case WM_COMMAND:
 			switch(LOWORD(wParam))
@@ -2588,33 +2586,33 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 					MessageBox(hwnd, AboutMsg, "About", MB_OK | MB_ICONINFORMATION);
 					break;
 			}
-			break;
+		break;
 			
 		case WM_CLOSE:
 			ExitProgram = true;
-			break;
+		break;
 			
 		case WM_DESTROY:
 			PostQuitMessage(0);
-			break;
+		break;
 			
 		case WM_KEYDOWN:
 			System_KbdKeys[wParam] = true;
-			break;
+		break;
 			
 		case WM_KEYUP:
 			System_KbdKeys[wParam] = false;
-			break;
+		break;
 			
 		case WM_LBUTTONDOWN:
 			MouseButtonDown = true;
 			MouseCenterX = (signed int)LOWORD(lParam);
 			MouseCenterY = (signed int)HIWORD(lParam);
-			break;
+		break;
 			
 		case WM_LBUTTONUP:
 			MouseButtonDown = false;
-			break;
+		break;
 			
 		case WM_MOUSEMOVE:
 			if((MouseButtonDown) && (WndActive)) {
@@ -2623,7 +2621,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 				Camera_MouseMove(MousePosX, MousePosY);
 				GLUTCamera_Orientation(CamAngleX, CamAngleY);
 			}
-			break;
+		break;
 			
 		default:
 			return DefWindowProc(hwnd, message, wParam, lParam);
