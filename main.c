@@ -17,11 +17,10 @@
 #include <windows.h>
 #include <windowsx.h>
 #include <commctrl.h>
-#include <gl\gl.h>
-#include <gl\glu.h>
-#include <gl\glext.h>
+#include <gl/gl.h>
+#include <gl/glu.h>
+#include <gl/glext.h>
 
-#include <glib.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -29,8 +28,8 @@
 #include "ucode.h"
 #include "resource.h"
 
-typedef gboolean bool;
-enum { true = TRUE, false = FALSE };
+typedef int bool;
+enum { true = 1, false = 0 };
 
 /*	------------------------------------------------------------
 	DEFINES

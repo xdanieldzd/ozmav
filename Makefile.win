@@ -5,8 +5,8 @@ CC = gcc
 LD = ld
 
 # Flags
-CFLAGS = -mwindows -mms-bitfields -g -std=gnu99 -O3 `pkg-config --cflags glib-2.0` -Wall
-LDFLAGS = -mwindows -lopengl32 -lglu32 -lglaux -lkernel32 -luser32 -lgdi32 -lwinspool -lcomdlg32 -ladvapi32 -lshell32 -lole32 -loleaut32 -luuid -lodbc32 -lodbccp32 -lcomctl32 `pkg-config --libs glib-2.0`  
+CFLAGS = -mwindows -mms-bitfields -g -std=gnu99 -O3 -Wall -I.
+LDFLAGS = -mwindows -lopengl32 -lglu32 -lglaux -lkernel32 -luser32 -lgdi32 -lwinspool -lcomdlg32 -ladvapi32 -lshell32 -lole32 -loleaut32 -luuid -lodbc32 -lodbccp32 -lcomctl32
 
 # Parts
 OBJ  = main.o OZMAV_private.res
