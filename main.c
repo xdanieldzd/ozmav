@@ -127,17 +127,12 @@ bool			MapLoaded = false;
 bool			WndActive = true;
 bool			ExitProgram = false;
 
-bool			DrawScene = true;
-
 char			CurrentGFXCmd[256] = "";
 char			CurrentGFXCmdNote[256] = "";
 char			GFXLogMsg[256] = "";
 
 int				OGLTargetWidth;
 int				OGLTargetHeight;
-
-/* THREAD VARIABLES */
-HANDLE			Handle_RenderThread = 0;
 
 /* CAMERA / VIEWPOINT VARIABLES */
 float			CamAngleX, CamAngleY;
@@ -1847,16 +1842,6 @@ int InitGL(void)
 	return true;
 }
 
-int Thread_DrawGLCaller(void)
-{
-drawloop:
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	Sleep( 100 );
-	goto drawloop;
-	
-	return 0;
-}
-
 /* DRAWGLSCENE - DRAW THE CURRENT SCENE USING THE MAP AND ACTOR DATA GATHERED BEFORE */
 int DrawGLScene(void)
 {
@@ -2310,8 +2295,6 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 	
 	ShowWindow(hwnd, nFunsterStil);
 	
-	Handle_RenderThread = CreateThread(NULL, 0, Thread_DrawGLCaller, NULL, 0, NULL);
-	
 	while(!ExitProgram) {
 		if(PeekMessage (&messages, NULL, 0, 0, PM_REMOVE)) {
 			if (messages.message == WM_CLOSE) {
@@ -2475,8 +2458,8 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 				}
 			}
 			
-			DrawScene = true;
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			DrawGLScene();
+			SwapBuffers(hDC_ogl);
 		}
 	}
 	KillGLTarget();
@@ -2495,7 +2478,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			} else {
 				WndActive = false;
 			}
-		break;
+			break;
 			
 		case WM_SIZE: ;
 			HWND hogl;
@@ -2511,8 +2494,8 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			StatusBarHeight = rcStatus.bottom - rcStatus.top;
 			
 			ReSizeGLScene(rcClient.right, rcClient.bottom);
-			DrawScene = true;
-		break;
+			DrawGLScene();
+			SwapBuffers(hDC_ogl);
 			
 		case WM_COMMAND:
 			switch(LOWORD(wParam))
@@ -2586,33 +2569,33 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 					MessageBox(hwnd, AboutMsg, "About", MB_OK | MB_ICONINFORMATION);
 					break;
 			}
-		break;
+			break;
 			
 		case WM_CLOSE:
 			ExitProgram = true;
-		break;
+			break;
 			
 		case WM_DESTROY:
 			PostQuitMessage(0);
-		break;
+			break;
 			
 		case WM_KEYDOWN:
 			System_KbdKeys[wParam] = true;
-		break;
+			break;
 			
 		case WM_KEYUP:
 			System_KbdKeys[wParam] = false;
-		break;
+			break;
 			
 		case WM_LBUTTONDOWN:
 			MouseButtonDown = true;
 			MouseCenterX = (signed int)LOWORD(lParam);
 			MouseCenterY = (signed int)HIWORD(lParam);
-		break;
+			break;
 			
 		case WM_LBUTTONUP:
 			MouseButtonDown = false;
-		break;
+			break;
 			
 		case WM_MOUSEMOVE:
 			if((MouseButtonDown) && (WndActive)) {
@@ -2621,7 +2604,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 				Camera_MouseMove(MousePosX, MousePosY);
 				GLUTCamera_Orientation(CamAngleX, CamAngleY);
 			}
-		break;
+			break;
 			
 		default:
 			return DefWindowProc(hwnd, message, wParam, lParam);
