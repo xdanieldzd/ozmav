@@ -19,15 +19,18 @@
 #include <commctrl.h>
 #include <gl\gl.h>
 #include <gl\glu.h>
-#include <gl\glaux.h>
 #include <gl\glext.h>
 
+#include <glib.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdarg.h>
 
 #include "ucode.h"
 #include "resource.h"
+
+typedef gboolean bool;
+enum { true = TRUE, false = FALSE };
 
 /*	------------------------------------------------------------
 	DEFINES
@@ -71,15 +74,15 @@ int HelperFunc_GFXLogMessage(char[]);
 int HelperFunc_GFXLogCommand();
 int HelperFunc_CalculateFPS();
 
-int InitGL(GLvoid);
-int DrawGLScene(GLvoid);
-GLvoid KillGLTarget(GLvoid);
+int InitGL(void);
+int DrawGLScene(void);
+void KillGLTarget(void);
 BOOL CreateGLTarget(int, int, int);
-GLvoid BuildFont(GLvoid);
-GLvoid KillFont(GLvoid);
-GLvoid glPrint(const char *, ...);
+void BuildFont(void);
+void KillFont(void);
+void glPrint(const char *, ...);
 
-void GLUTCamera_Orientation(float);
+void GLUTCamera_Orientation(float,float);
 void GLUTCamera_Movement(int);
 void Camera_MouseMove(int, int);
 
@@ -1458,7 +1461,7 @@ int Viewer_RenderMap_CMDGeometryMode()
 {
 	int Convert;
 	int Counter, Counter2;
-	bool Binary[3];
+	bool Binary[4];
 	
 	/* ---- FOG, LIGHTING, AUTOMATIC TEXTURE MAPPING (SPHERICAL + LINEAR) ---- */
 	Convert = Readout_CurrentByte2;
@@ -1535,10 +1538,10 @@ int Viewer_RenderMap_CMDGeometryMode()
 
 int Viewer_RenderMap_CMDSetFogColor()
 {
-	FogColor[1] = (Readout_CurrentByte5 / 255.0f);
-	FogColor[2] = (Readout_CurrentByte6 / 255.0f);
-	FogColor[3] = (Readout_CurrentByte7 / 255.0f);
-	FogColor[4] = (Readout_CurrentByte8 / 255.0f);
+	FogColor[0] = (Readout_CurrentByte5 / 255.0f);
+	FogColor[1] = (Readout_CurrentByte6 / 255.0f);
+	FogColor[2] = (Readout_CurrentByte7 / 255.0f);
+	FogColor[3] = (Readout_CurrentByte8 / 255.0f);
 	
 	glFogfv(GL_FOG_COLOR, FogColor);
 	
@@ -1806,7 +1809,7 @@ int HelperFunc_CalculateFPS()
 /*	------------------------------------------------------------ */
 
 /* INITGL - INITIALIZE OPENGL RENDERING SYSTEM */
-int InitGL(GLvoid)
+int InitGL(void)
 {
 	glShadeModel(GL_SMOOTH);
 	glEnable(GL_POINT_SMOOTH);
@@ -1841,7 +1844,7 @@ int InitGL(GLvoid)
 }
 
 /* DRAWGLSCENE - DRAW THE CURRENT SCENE USING THE MAP AND ACTOR DATA GATHERED BEFORE */
-int DrawGLScene(GLvoid)
+int DrawGLScene(void)
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	
@@ -1962,7 +1965,7 @@ int DrawGLScene(GLvoid)
 }
 
 /* RESIZEGLSCENE - RESIZES THE OPENGL RENDERING TARGET ALONG WITH THE MAIN WINDOW */
-GLvoid ReSizeGLScene(GLsizei width, GLsizei height)
+void ReSizeGLScene(GLsizei width, GLsizei height)
 {
 	if (height==0)
 	{
@@ -1984,7 +1987,7 @@ GLvoid ReSizeGLScene(GLsizei width, GLsizei height)
 }
 
 /* KILLGLTARGET - DESTROYS THE OPENGL RENDERING TARGET FOR PROPER EXITING */
-GLvoid KillGLTarget(GLvoid)
+void KillGLTarget(void)
 {
 	if (hRC)
 	{
@@ -2022,7 +2025,7 @@ BOOL CreateGLTarget(int width, int height, int bits)
 		PFD_SUPPORT_OPENGL |						// Format Must Support OpenGL
 		PFD_DOUBLEBUFFER,							// Must Support Double Buffering
 		PFD_TYPE_RGBA,								// Request An RGBA Format
-		bits,										// Select Our Color Depth
+		0,										// Select Our Color Depth
 		0, 0, 0, 0, 0, 0,							// Color Bits Ignored
 		0,											// No Alpha Buffer
 		0,											// Shift Bit Ignored
@@ -2035,6 +2038,7 @@ BOOL CreateGLTarget(int width, int height, int bits)
 		0,											// Reserved
 		0, 0, 0										// Layer Masks Ignored
 	};
+	pfd.cColorBits = bits;
 	
 	if (!(hDC_ogl=GetDC(hogl)))							// Did We Get A Device Context?
 	{
@@ -2081,7 +2085,7 @@ BOOL CreateGLTarget(int width, int height, int bits)
 	return TRUE;									// Success
 }
 
-GLvoid BuildFont(GLvoid)								// Build Our Bitmap Font
+void BuildFont(void)								// Build Our Bitmap Font
 {
 	HFONT	font;										// Windows Font ID
 	HFONT	oldfont;									// Used For Good House Keeping
@@ -2109,12 +2113,12 @@ GLvoid BuildFont(GLvoid)								// Build Our Bitmap Font
 	DeleteObject(font);									// Delete The Font
 }
 
-GLvoid KillFont(GLvoid)									// Delete The Font List
+void KillFont(void)									// Delete The Font List
 {
 	glDeleteLists(GLFontBase, 96);						// Delete All 96 Characters
 }
 
-GLvoid glPrint(const char *fmt, ...)					// Custom GL "Print" Routine
+void glPrint(const char *fmt, ...)					// Custom GL "Print" Routine
 {
 	char		text[256];								// Holds Our String
 	va_list		ap;										// Pointer To List Of Arguments
@@ -2477,7 +2481,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			}
 			break;
 			
-		case WM_SIZE:
+		case WM_SIZE: ;
 			HWND hogl;
 			RECT rcClient;
 			GetClientRect(hwnd, &rcClient);
@@ -2560,7 +2564,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 				case IDM_CAMERA_RESETCOORDS:
 					System_KbdKeys[VK_TAB] = true;
 					break;
-				case IDM_HELP_ABOUT:
+				case IDM_HELP_ABOUT: ;
 					char AboutMsg[256] = "";
 					sprintf(AboutMsg, "%s %s (Build '%s') - OpenGL Zelda Map Viewer\n\nWritten in October 2008 by xdaniel\nhttp://magicstone.de/dzd/", AppTitle, AppVersion, AppBuildName);
 					MessageBox(hwnd, AboutMsg, "About", MB_OK | MB_ICONINFORMATION);
