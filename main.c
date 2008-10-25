@@ -127,12 +127,17 @@ bool			MapLoaded = false;
 bool			WndActive = true;
 bool			ExitProgram = false;
 
+bool			DrawScene = true;
+
 char			CurrentGFXCmd[256] = "";
 char			CurrentGFXCmdNote[256] = "";
 char			GFXLogMsg[256] = "";
 
 int				OGLTargetWidth;
 int				OGLTargetHeight;
+
+/* THREAD VARIABLES */
+HANDLE			Handle_RenderThread = 0;
 
 /* CAMERA / VIEWPOINT VARIABLES */
 float			CamAngleX, CamAngleY;
@@ -1842,6 +1847,16 @@ int InitGL(void)
 	return true;
 }
 
+int Thread_DrawGLCaller(void)
+{
+	while(DrawScene) {
+		DrawGLScene();
+		SwapBuffers(hDC_ogl);
+	}
+	
+	return 0;
+}
+
 /* DRAWGLSCENE - DRAW THE CURRENT SCENE USING THE MAP AND ACTOR DATA GATHERED BEFORE */
 int DrawGLScene(void)
 {
@@ -2295,6 +2310,8 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 	
 	ShowWindow(hwnd, nFunsterStil);
 	
+	Handle_RenderThread = CreateThread(NULL, 0, Thread_DrawGLCaller, NULL, 0, NULL);
+	
 	while(!ExitProgram) {
 		if(PeekMessage (&messages, NULL, 0, 0, PM_REMOVE)) {
 			if (messages.message == WM_CLOSE) {
@@ -2458,8 +2475,10 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 				}
 			}
 			
-			DrawGLScene();
-			SwapBuffers(hDC_ogl);
+			DrawScene = true;
+			
+//			DrawGLScene();
+//			SwapBuffers(hDC_ogl);
 		}
 	}
 	KillGLTarget();
@@ -2494,8 +2513,8 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			StatusBarHeight = rcStatus.bottom - rcStatus.top;
 			
 			ReSizeGLScene(rcClient.right, rcClient.bottom);
-			DrawGLScene();
-			SwapBuffers(hDC_ogl);
+//			DrawGLScene();
+//			SwapBuffers(hDC_ogl);
 			
 		case WM_COMMAND:
 			switch(LOWORD(wParam))
