@@ -64,6 +64,7 @@ int Viewer_RenderMap_CMDSetTileSize();
 GLuint Viewer_LoadTexture();
 int Viewer_RenderMap_CMDGeometryMode();
 int Viewer_RenderMap_CMDSetFogColor();
+int Viewer_RenderMap_CMDSetPrimColor();
 int Viewer_RenderMap_CMDRDPHalf1();
 
 int Viewer_RenderActor(int, GLshort, GLshort, GLshort, GLshort, GLshort, GLshort, bool);
@@ -147,15 +148,23 @@ bool			MouseButtonDown = false;
 /* FILE HANDLING VARIABLES */
 FILE			* FileZMap;
 FILE			* FileZScene;
+FILE			* FileGameplayKeep;
+FILE			* FileGameplayFDKeep;
 
 unsigned int	* ZMapBuffer;
 unsigned int	* ZSceneBuffer;
+unsigned int	* GameplayKeepBuffer;
+unsigned int	* GameplayFDKeepBuffer;
 
 unsigned long	ZMapFilesize = 0;
 unsigned long	ZSceneFilesize = 0;
+unsigned long	GameplayKeepFilesize = 0;
+unsigned long	GameplayFDKeepFilesize = 0;
 
-char			Filename_ZMap[256] = "";
-char			Filename_ZScene[256] = "";
+char			Filename_ZMap[256] = "spot04_room_0.zmap";
+char			Filename_ZScene[256] = "spot04_scene.zscene";
+char			Filename_GameplayKeep[256] = "gameplay_keep.zdata";
+char			Filename_GameplayFDKeep[256] = "gameplay_dangeon_keep.zdata";
 
 FILE			* FileGFXLog;
 
@@ -234,11 +243,12 @@ char			Renderer_CoordDisp[256] = "";
 
 bool			Renderer_EnableLighting = true;
 
-GLfloat			LightAmbient[]= { 0.5f, 0.5f, 0.5f, 1.0f };
+GLfloat			LightAmbient[]= { 0.0f, 0.0f, 0.0f, 1.0f };
 GLfloat			LightDiffuse[]= { 1.0f, 1.0f, 1.0f, 1.0f };
-GLfloat			LightPosition[]= { 0.0f, 0.0f, 2.0f, 1.0f };
+GLfloat			LightPosition[]= { 1.0f, 1.0f, 1.0f, 1.0f };
 
 GLfloat			FogColor[]= { 0.0f, 0.0f, 0.0f, 0.5f };
+GLfloat			PrimColor[]= { 0.0f, 0.0f, 0.0f, 0.0f };
 
 bool			Renderer_EnableMapActors = true;
 bool			Renderer_EnableSceneActors = false;
@@ -388,6 +398,30 @@ int Viewer_OpenMapScene()
 	Result = fread(ZSceneBuffer,1,ZSceneFilesize,FileZScene);
 	/* CLOSE FILE */
 	fclose(FileZScene);
+	
+	/* OPEN FILE */
+	FileGameplayKeep = fopen(Filename_GameplayKeep, "r+b");
+	/* GET FILESIZE */
+	fseek(FileGameplayKeep, 0, SEEK_END);
+	GameplayKeepFilesize = ftell(FileGameplayKeep);
+	rewind(FileGameplayKeep);
+	/* LOAD FILE INTO BUFFER */
+	GameplayKeepBuffer = (unsigned int*) malloc (sizeof(int)*GameplayKeepFilesize);
+	Result = fread(GameplayKeepBuffer,1,GameplayKeepFilesize,FileGameplayKeep);
+	/* CLOSE FILE */
+	fclose(FileGameplayKeep);
+	
+	/* OPEN FILE */
+	FileGameplayFDKeep = fopen(Filename_GameplayFDKeep, "r+b");
+	/* GET FILESIZE */
+	fseek(FileGameplayFDKeep, 0, SEEK_END);
+	GameplayFDKeepFilesize = ftell(FileGameplayFDKeep);
+	rewind(FileGameplayFDKeep);
+	/* LOAD FILE INTO BUFFER */
+	GameplayFDKeepBuffer = (unsigned int*) malloc (sizeof(int)*GameplayFDKeepFilesize);
+	Result = fread(GameplayFDKeepBuffer,1,GameplayFDKeepFilesize,FileGameplayFDKeep);
+	/* CLOSE FILE */
+	fclose(FileGameplayFDKeep);
 	
 	memcpy(&Readout_Current1, &ZMapBuffer[0], 4);
 	memcpy(&Readout_Current2, &ZMapBuffer[0 + 1], 4);
@@ -834,6 +868,12 @@ int Viewer_RenderMap(int SingleDLNumber)
 					HelperFunc_GFXLogCommand();
 					Viewer_RenderMap_CMDSetFogColor();
 					break;
+				case G_SETPRIMCOLOR:
+					sprintf(CurrentGFXCmd, "G_SETPRIMCOLOR       ");
+					sprintf(CurrentGFXCmdNote, "-");
+					HelperFunc_GFXLogCommand();
+					Viewer_RenderMap_CMDSetPrimColor();
+					break;
 				case F3DEX2_RDPHALF_1:
 					sprintf(CurrentGFXCmd, "F3DEX2_RDPHALF_1     ");
 					sprintf(CurrentGFXCmdNote, "<broken>");
@@ -979,7 +1019,7 @@ int Viewer_RenderMap_CMDDrawTri1()
 	float TempV = 0;
 	
 	glBegin(GL_TRIANGLES);
-		glColor4ub (0xFF, 0xFF, 0xFF, 0xFF);
+		glColor4f (PrimColor[0], PrimColor[1], PrimColor[2], PrimColor[3]);
 		
 		TempU = (float) CurrentH1_1 * Textures[TextureInfo_Current].S_Scale / 32 / Textures[TextureInfo_Current].WidthRender;
 		TempV = (float) CurrentV1_1 * Textures[TextureInfo_Current].T_Scale / 32 / Textures[TextureInfo_Current].HeightRender;
@@ -1071,7 +1111,7 @@ int Viewer_RenderMap_CMDDrawTri2()
 	float TempV = 0;
 	
 	glBegin(GL_TRIANGLES);
-		glColor4ub (0xFF, 0xFF, 0xFF, 0xFF);
+		glColor4f(PrimColor[0], PrimColor[1], PrimColor[2], PrimColor[3]);
 		
 		TempU = (float) CurrentH1_1 * Textures[TextureInfo_Current].S_Scale / 32 / Textures[TextureInfo_Current].WidthRender;
 		TempV = (float) CurrentV1_1 * Textures[TextureInfo_Current].T_Scale / 32 / Textures[TextureInfo_Current].HeightRender;
@@ -1251,6 +1291,24 @@ GLuint Viewer_LoadTexture()
 	
 	int i, j, k = 0;
 	
+	switch(Textures[TextureInfo_Current].DataSource) {
+	case 0x02:
+		memcpy(TextureData_N64, &ZSceneBuffer[Textures[TextureInfo_Current].Offset / 4], TextureDataSize);
+		break;
+	case 0x03:
+		memcpy(TextureData_N64, &ZMapBuffer[Textures[TextureInfo_Current].Offset / 4], TextureDataSize);
+		break;
+	case 0x04:
+		memcpy(TextureData_N64, &GameplayKeepBuffer[Textures[TextureInfo_Current].Offset / 4], TextureDataSize);
+		break;
+	case 0x05:
+		memcpy(TextureData_N64, &GameplayFDKeepBuffer[Textures[TextureInfo_Current].Offset / 4], TextureDataSize);
+		break;
+	default:
+		memcpy(TextureData_N64, EmptyTexture, TextureDataSize);
+		break;
+	}
+	
 	switch(Textures[TextureInfo_Current].Format_N64) {
 	/* RGBA FORMAT */
 	case 0x00:
@@ -1258,18 +1316,6 @@ GLuint Viewer_LoadTexture()
 	case 0x10:
 		/* STATUS: seems to be fully correct */
 		{
-		switch(Textures[TextureInfo_Current].DataSource) {
-		case 0x02:
-			memcpy(TextureData_N64, &ZSceneBuffer[Textures[TextureInfo_Current].Offset / 4], TextureDataSize);
-			break;
-		case 0x03:
-			memcpy(TextureData_N64, &ZMapBuffer[Textures[TextureInfo_Current].Offset / 4], TextureDataSize);
-			break;
-		default:
-			memcpy(TextureData_N64, EmptyTexture, TextureDataSize);
-			break;
-		}
-		
 		unsigned int LoadRGBA_RGBA5551 = 0;
 		
 		unsigned int LoadRGBA_RExtract = 0;
@@ -1308,6 +1354,7 @@ GLuint Viewer_LoadTexture()
 				LoadRGBA_InTexturePosition_OGL += 4;
 			}
 		}
+		
 		break;
 		}
 	/* CI FORMAT */
@@ -1316,18 +1363,6 @@ GLuint Viewer_LoadTexture()
 	case 0x50:
 		/* STATUS: unfinished, currently writing semi-garbage data */
 		{
-		switch(Textures[TextureInfo_Current].DataSource) {
-		case 0x02:
-			memcpy(TextureData_N64, &ZSceneBuffer[Textures[TextureInfo_Current].Offset / 4], TextureDataSize);
-			break;
-		case 0x03:
-			memcpy(TextureData_N64, &ZMapBuffer[Textures[TextureInfo_Current].Offset / 4], TextureDataSize);
-			break;
-		default:
-			memcpy(TextureData_N64, EmptyTexture, TextureDataSize);
-			break;
-		}
-		
 		unsigned char Nibble_1;
 		unsigned char Nibble_2;
 		
@@ -1346,6 +1381,7 @@ GLuint Viewer_LoadTexture()
 			
 			k += 8;
 		}
+		
 		break;
 		}
 	/* IA FORMAT */
@@ -1354,18 +1390,6 @@ GLuint Viewer_LoadTexture()
 	case 0x70:
 		/* STATUS: looking good, converting loop might need an overhaul like the RGBA format's */
 		{
-		switch(Textures[TextureInfo_Current].DataSource) {
-		case 0x02:
-			memcpy(TextureData_N64, &ZSceneBuffer[Textures[TextureInfo_Current].Offset / 4], TextureDataSize);
-			break;
-		case 0x03:
-			memcpy(TextureData_N64, &ZMapBuffer[Textures[TextureInfo_Current].Offset / 4], TextureDataSize);
-			break;
-		default:
-			memcpy(TextureData_N64, EmptyTexture, TextureDataSize);
-			break;
-		}
-		
 		unsigned char Brightness;
 		unsigned char Alpha;
 		
@@ -1392,18 +1416,6 @@ GLuint Viewer_LoadTexture()
 	case 0x90:
 		/* STATUS: looking good, minus missing alpha on the pathways, need to check how that works */
 		{
-		switch(Textures[TextureInfo_Current].DataSource) {
-		case 0x02:
-			memcpy(TextureData_N64, &ZSceneBuffer[Textures[TextureInfo_Current].Offset / 4], TextureDataSize);
-			break;
-		case 0x03:
-			memcpy(TextureData_N64, &ZMapBuffer[Textures[TextureInfo_Current].Offset / 4], TextureDataSize);
-			break;
-		default:
-			memcpy(TextureData_N64, EmptyTexture, TextureDataSize);
-			break;
-		}
-		
 		unsigned char Brightness;
 		
 		for(i = 0; i < (Textures[TextureInfo_Current].Width * Textures[TextureInfo_Current].Height) / 2; i++) {
@@ -1422,6 +1434,7 @@ GLuint Viewer_LoadTexture()
 			TextureData_OGL[i * 8 + 6] = Brightness * 0x11;
 			TextureData_OGL[i * 8 + 7] = 0xFF;
 		}
+		
 		break;
 		}
 	/* FALLBACK - gives us an empty texture */
@@ -1545,6 +1558,27 @@ int Viewer_RenderMap_CMDSetFogColor()
 	FogColor[3] = (Readout_CurrentByte8 / 255.0f);
 	
 	glFogfv(GL_FOG_COLOR, FogColor);
+	
+	return 0;
+}
+
+int Viewer_RenderMap_CMDSetPrimColor()
+{
+	/* implementation likely incorrect, looks alright though */
+	
+	PrimColor[0] = (Readout_CurrentByte5 / 255.0f);
+	PrimColor[1] = (Readout_CurrentByte6 / 255.0f);
+	PrimColor[2] = (Readout_CurrentByte7 / 255.0f);
+	PrimColor[3] = (Readout_CurrentByte8 / 255.0f);
+	
+	if(PrimColor[3] < 1.0f) {
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glEnable(GL_BLEND);
+	    glAlphaFunc(GL_GREATER, 0.1);
+	} else {
+		glDisable(GL_BLEND);
+		glAlphaFunc(GL_GEQUAL, 0.5);
+	}
 	
 	return 0;
 }
@@ -1839,6 +1873,9 @@ int InitGL(void)
 	glFogf(GL_FOG_START, 1.0f);
 	glFogf(GL_FOG_END, 15.0f);
 	
+	glEnable(GL_COLOR_MATERIAL);
+	glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+	
 	BuildFont();
 	
 	return true;
@@ -1855,21 +1892,21 @@ int DrawGLScene(void)
 		sprintf(Renderer_CoordDisp, "Cam X: %4.2f, Y: %4.2f, Z: %4.2f", CamX, CamY, CamZ);
 		SendMessage(hstatus, SB_SETTEXT, 1, (LPARAM)Renderer_CoordDisp);
 		
-		if(Renderer_EnableMapActors) {
+/*		if(Renderer_EnableMapActors) {
 			glLoadIdentity();
 			glTranslatef(-0.5f, 0.32f, -1.0f);
 			
-			if (MapHeader[MapHeader_Current].Actor_Count > 0) {
+			if (!MapHeader[MapHeader_Current].Actor_Count == 0) {
 				sprintf(MapActorMsg, "Map Actor: #%d, Type %04X, Variable %04X, X: %d, Y: %d, Z: %d", ActorInfo_Selected, Actors[ActorInfo_Selected].Number, Actors[ActorInfo_Selected].Variable, Actors[ActorInfo_Selected].X_Position, Actors[ActorInfo_Selected].Y_Position, Actors[ActorInfo_Selected].Z_Position);
 			} else {
-				sprintf(SceneActorMsg, "No Map Actors found.");
+				sprintf(MapActorMsg, "No Map Actors found.");
 			}
 			
-			glColor3f(0.0f, 0.0f, 0.0f);
+			glColor4f(0.0f, 0.0f, 0.0f, 1.0f);
 			glRasterPos2f(0.003f, -0.003f);
 			glPrint("%s", MapActorMsg);
 			
-			glColor3f(1.0f, 1.0f, 1.0f);
+			glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 			glRasterPos2f(0.0f, 0.0f);
 			glPrint("%s", MapActorMsg);
 		} else {
@@ -1880,23 +1917,23 @@ int DrawGLScene(void)
 			glLoadIdentity();
 			glTranslatef(-0.5f, 0.32f, -1.0f);
 			
-			if (SceneHeader[SceneHeader_Current].ScActor_Count > 0) {
+			if (!SceneHeader[SceneHeader_Current].ScActor_Count == 0) {
 				sprintf(SceneActorMsg, "Scene Actor: #%d, Type %04X, Variable %04X, X: %d, Y: %d, Z: %d", ScActorInfo_Selected, ScActors[ScActorInfo_Selected].Number, ScActors[ScActorInfo_Selected].Variable, ScActors[ScActorInfo_Selected].X_Position, ScActors[ScActorInfo_Selected].Y_Position, ScActors[ScActorInfo_Selected].Z_Position);
 			} else {
 				sprintf(SceneActorMsg, "No Scene Actors found.");
 			}
 		
-			glColor3f(0.0f, 0.0f, 0.0f);
+			glColor4f(0.0f, 0.0f, 0.0f, 1.0f);
 			glRasterPos2f(0.003f, -0.028f);
 			glPrint("%s", SceneActorMsg);
 			
-			glColor3f(1.0f, 1.0f, 1.0f);
+			glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 			glRasterPos2f(0.0f, -0.025f);
 			glPrint("%s", SceneActorMsg);
 		} else {
 			//
 		}
-		
+*/		
 		glLoadIdentity();
 		
 		gluLookAt(CamX, CamY, CamZ, 
@@ -1911,7 +1948,7 @@ int DrawGLScene(void)
 		ActorInfo_CurrentCount = 0;
 		ScActorInfo_CurrentCount = 0;
 		
-		if (Renderer_EnableMapActors) {
+		if(Renderer_EnableMapActors) {
 			if (MapHeader[MapHeader_Current].Actor_Count > 0) {
 				glDisable(GL_TEXTURE_2D);
 				glDisable(GL_FOG);
@@ -1936,7 +1973,7 @@ int DrawGLScene(void)
 			}
 		}
 		
-		if (Renderer_EnableSceneActors) {
+		if(Renderer_EnableSceneActors) {
 			if (SceneHeader[SceneHeader_Current].ScActor_Count > 0) {
 				glDisable(GL_TEXTURE_2D);
 				glDisable(GL_FOG);
