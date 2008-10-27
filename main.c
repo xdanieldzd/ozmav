@@ -166,6 +166,9 @@ char			Filename_ZScene[256] = "spot04_scene.zscene";
 char			Filename_GameplayKeep[256] = "gameplay_keep.zdata";
 char			Filename_GameplayFDKeep[256] = "gameplay_dangeon_keep.zdata";
 
+bool			ZMapExists = false;
+bool			ZSceneExists = false;
+
 FILE			* FileGFXLog;
 
 /* DATA READOUT VARIABLES */
@@ -742,7 +745,7 @@ int Viewer_GetDisplayLists(unsigned long Fsize)
 /* VIEWER_RENDERMAP - SCAN EITHER ALL OR A GIVEN DISPLAY LIST(S), INTERPRET ITS COMMANDS AND PREPARE AN OPENGL DISPLAY LIST */
 int Viewer_RenderMap(int SingleDLNumber)
 {
-	if(MapLoaded == false) FileGFXLog = fopen("log.txt", "w");
+	if(!MapLoaded) FileGFXLog = fopen("log.txt", "w");
 	
 	int DLToRender = 0;
 	int DListInfo_CurrentCount_Render = 0;
@@ -2218,7 +2221,10 @@ void Dialog_OpenZMap(HWND hwnd)
 	ofn.lpstrFile=Filename_ZMap;
 	ofn.nMaxFile=256;
 	ofn.Flags=OFN_EXPLORER|OFN_PATHMUSTEXIST|OFN_FILEMUSTEXIST|OFN_HIDEREADONLY;
-	GetOpenFileName(&ofn);
+	
+	ZMapExists = false;
+	
+	if(GetOpenFileName(&ofn)) ZMapExists = true;
 	
 	return;
 }
@@ -2237,7 +2243,10 @@ void Dialog_OpenZScene(HWND hwnd)
 	ofn.lpstrFile=Filename_ZScene;
 	ofn.nMaxFile=256;
 	ofn.Flags=OFN_EXPLORER|OFN_PATHMUSTEXIST|OFN_FILEMUSTEXIST|OFN_HIDEREADONLY;
-	GetOpenFileName(&ofn);
+	
+	ZSceneExists = false;
+	
+	if(GetOpenFileName(&ofn)) ZSceneExists = true;
 	
 	return;
 }
@@ -2482,12 +2491,6 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 						CamLX = 0.0f, CamLY = 0.0f, CamLZ = -1.0f;
 					}
 					
-					if (System_KbdKeys['1']) {
-						DListInfo_DListToRender = 28;
-						MapLoaded = false;
-						Viewer_RenderMap(DListInfo_DListToRender);
-					}
-					
 					SendMessage(hstatus, SB_SETTEXT, 1, (LPARAM)Renderer_CoordDisp);
 					SendMessage(hstatus, SB_SETTEXT, 2, (LPARAM)StatusMsg);
 					
@@ -2539,8 +2542,8 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			{
 				case IDM_FILE_OPEN:
 					Dialog_OpenZMap(hwnd);
-					Dialog_OpenZScene(hwnd);
-					Viewer_Initialize();
+					if(ZMapExists) Dialog_OpenZScene(hwnd);
+					if(ZSceneExists) Viewer_Initialize();
 					break;
 				case IDM_FILE_SAVE:
 					break;
