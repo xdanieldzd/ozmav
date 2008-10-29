@@ -115,7 +115,7 @@ GLuint			GLFontBase;
 bool			System_KbdKeys[256];
 
 char			AppTitle[256] = "OZMAV";
-char			AppVersion[256] = "V0.3";
+char			AppVersion[256] = "V0.3b";
 char			AppBuildName[256] = "Timotei";
 char			WindowTitle[256] = "";
 char			StatusMsg[256] = "";
@@ -161,8 +161,8 @@ unsigned long	ZSceneFilesize = 0;
 unsigned long	GameplayKeepFilesize = 0;
 unsigned long	GameplayFDKeepFilesize = 0;
 
-char			Filename_ZMap[256] = "spot04_room_0.zmap";
-char			Filename_ZScene[256] = "spot04_scene.zscene";
+char			Filename_ZMap[256] = "";
+char			Filename_ZScene[256] = "";
 char			Filename_GameplayKeep[256] = "gameplay_keep.zdata";
 char			Filename_GameplayFDKeep[256] = "gameplay_dangeon_keep.zdata";
 
@@ -212,8 +212,6 @@ unsigned int	LBUpper_Y;
 unsigned int	LBUpper_X;
 unsigned int	ScanlineChange_Y;
 unsigned int	LowerRight_X;
-
-unsigned int	LineSize;
 
 /* ZELDA MAP & SCENE HEADER HANDLING VARIABLES */
 bool			MapHeader_MultiHeaderMap = false;
@@ -333,11 +331,11 @@ struct {
 	unsigned int Format_N64;
 	GLuint Format_OGL;
 	unsigned int Format_OGLPixel;
-	unsigned int BPP;
 	unsigned int Y_Parameter;
 	unsigned int X_Parameter;
 	signed short S_Scale;
 	signed short T_Scale;
+	unsigned int LineSize;
 } Textures[256];
 
 /*	------------------------------------------------------------ */
@@ -1167,7 +1165,7 @@ int Viewer_RenderMap_CMDTexture()
 	return 0;
 }
 
-/* VIEWER_RENDERMAP_CMDSETTIMAGE - G_SETTIMG - GET TEXTURE OFFSET AND FORMAT AND STORE FOR FUTURE USE */
+/* VIEWER_RENDERMAP_CMDSETTIMAGE - G_SETTIMG - GET TEXTURE OFFSET AND STORE FOR FUTURE USE */
 int Viewer_RenderMap_CMDSetTImage()
 {
 	Textures[TextureInfo_Current].DataSource = Readout_CurrentByte5;
@@ -1176,11 +1174,6 @@ int Viewer_RenderMap_CMDSetTImage()
 	Textures[TextureInfo_Current].Offset = Textures[TextureInfo_Current].Offset + (Readout_CurrentByte7 << 8);
 	Textures[TextureInfo_Current].Offset = Textures[TextureInfo_Current].Offset + Readout_CurrentByte8;
 	
-	Textures[TextureInfo_Current].Format_N64 = Readout_CurrentByte2;
-	
-	Textures[TextureInfo_Current].Format_OGL = GL_RGBA;
-	Textures[TextureInfo_Current].Format_OGLPixel = GL_RGBA;
-	
 	return 0;
 }
 
@@ -1188,8 +1181,6 @@ int Viewer_RenderMap_CMDSetTImage()
 int Viewer_RenderMap_CMDSetTile()
 {
 	unsigned char TempXParameter = Readout_CurrentByte7 * 0x10;
-	
-	LineSize = Readout_CurrentByte3 / 2;
 	
 	switch(Readout_CurrentByte6) {
 	case 0x01:
@@ -1218,6 +1209,38 @@ int Viewer_RenderMap_CMDSetTile()
 		break;
 	default:
 		Textures[TextureInfo_Current].X_Parameter = 1;
+		break;
+	}
+	
+	Textures[TextureInfo_Current].LineSize = Readout_CurrentByte3 / 2;
+	
+	Textures[TextureInfo_Current].Format_N64 = Readout_CurrentByte2;
+	
+	switch(Textures[TextureInfo_Current].Format_N64) {
+	/* RGBA FORMAT */
+	case 0x00:
+	case 0x08:
+	case 0x10:
+		Textures[TextureInfo_Current].Format_OGL = GL_RGBA;
+		Textures[TextureInfo_Current].Format_OGLPixel = GL_RGBA;
+		break;
+	/* IA FORMAT */
+	case 0x60:
+	case 0x68:
+	case 0x70:
+		Textures[TextureInfo_Current].Format_OGL = GL_LUMINANCE_ALPHA;
+		Textures[TextureInfo_Current].Format_OGLPixel = GL_LUMINANCE_ALPHA;
+		break;
+	/* I FORMAT */
+	case 0x80:
+	case 0x88:
+	case 0x90:
+		Textures[TextureInfo_Current].Format_OGL = GL_LUMINANCE;
+		Textures[TextureInfo_Current].Format_OGLPixel = GL_LUMINANCE;
+		break;
+	default:
+		Textures[TextureInfo_Current].Format_OGL = GL_RGBA;
+		Textures[TextureInfo_Current].Format_OGLPixel = GL_RGBA;
 		break;
 	}
 	
@@ -1257,8 +1280,8 @@ int Viewer_RenderMap_CMDSetTileSize()
 	unsigned int LRS = (TileSize_Temp2 & 0xFFF000) >> 14;
 	unsigned int LRT = (TileSize_Temp2 & 0x000FFF) >> 2;
 	
-	Textures[TextureInfo_Current].Width  = ((LRS - ULS) + 1);// * Textures[TextureInfo_Current].S_Scale;
-	Textures[TextureInfo_Current].Height = ((LRT - ULT) + 1);// * Textures[TextureInfo_Current].T_Scale;
+	Textures[TextureInfo_Current].Width  = ((LRS - ULS) + 1);
+	Textures[TextureInfo_Current].Height = ((LRT - ULT) + 1);
 	
 	if(Textures[TextureInfo_Current].Width > 256) {
 		Textures[TextureInfo_Current].WidthRender  = Textures[TextureInfo_Current].Width - 64;
@@ -1280,171 +1303,281 @@ int Viewer_RenderMap_CMDSetTileSize()
 /* VIEWER_LOADTEXTURE - CALLED FROM VIEWER_RENDERMAP_CMDSETTILESIZE, FETCH THE TEXTURE DATA AND CREATE AN OGL TEXTURE */
 GLuint Viewer_LoadTexture()
 {
-	unsigned long TextureDataSize = (Textures[TextureInfo_Current].Width * Textures[TextureInfo_Current].Height) * 4;
-	
-	TextureData_OGL = (unsigned char *) malloc ((Textures[TextureInfo_Current].Width * Textures[TextureInfo_Current].Height) * 4);
-	TextureData_N64 = (unsigned char *) malloc ((Textures[TextureInfo_Current].Width * Textures[TextureInfo_Current].Height) * 4);
-	
-	memset(TextureData_OGL, 0x00, TextureDataSize);
-	memset(TextureData_N64, 0x00, TextureDataSize);
-	
-	unsigned char * EmptyTexture;
-	EmptyTexture = (unsigned char *) malloc (TextureDataSize);
-	memset(EmptyTexture, 0xFF, TextureDataSize);
-	
 	int i, j, k = 0;
+	
+	unsigned long TextureBufferSize = 0x8000;
+	
+	bool UnhandledTextureSource = false;
+	
+	TextureData_OGL = (unsigned char *) malloc (TextureBufferSize);
+	TextureData_N64 = (unsigned char *) malloc (TextureBufferSize);
+	
+	memset(TextureData_OGL, 0x00, TextureBufferSize);
+	memset(TextureData_N64, 0x00, TextureBufferSize);
+	
+	/* create solid red texture for unsupported stuff, such as kakariko windows */
+	unsigned char * EmptyTexture;
+	EmptyTexture = (unsigned char *) malloc (TextureBufferSize);
+	for(i = 0; i < TextureBufferSize; i+=4) {
+		EmptyTexture[i]		= 0xFF;
+		EmptyTexture[i + 1]	= 0x00;
+		EmptyTexture[i + 2]	= 0x00;
+		EmptyTexture[i + 3]	= 0xFF;
+	}
 	
 	switch(Textures[TextureInfo_Current].DataSource) {
 	case 0x02:
-		memcpy(TextureData_N64, &ZSceneBuffer[Textures[TextureInfo_Current].Offset / 4], TextureDataSize);
+		memcpy(TextureData_N64, &ZSceneBuffer[Textures[TextureInfo_Current].Offset / 4], TextureBufferSize);
 		break;
 	case 0x03:
-		memcpy(TextureData_N64, &ZMapBuffer[Textures[TextureInfo_Current].Offset / 4], TextureDataSize);
+		memcpy(TextureData_N64, &ZMapBuffer[Textures[TextureInfo_Current].Offset / 4], TextureBufferSize);
 		break;
-	case 0x04:
-		memcpy(TextureData_N64, &GameplayKeepBuffer[Textures[TextureInfo_Current].Offset / 4], TextureDataSize);
+/*	case 0x04:
+		memcpy(TextureData_N64, &GameplayKeepBuffer[Textures[TextureInfo_Current].Offset / 4], TextureBufferSize);
 		break;
 	case 0x05:
-		memcpy(TextureData_N64, &GameplayFDKeepBuffer[Textures[TextureInfo_Current].Offset / 4], TextureDataSize);
+		memcpy(TextureData_N64, &GameplayFDKeepBuffer[Textures[TextureInfo_Current].Offset / 4], TextureBufferSize);
 		break;
-	default:
-		memcpy(TextureData_N64, EmptyTexture, TextureDataSize);
+*/	default:
+		UnhandledTextureSource = true;
+		Textures[TextureInfo_Current].Format_OGL = GL_RGBA;
+		Textures[TextureInfo_Current].Format_OGLPixel = GL_RGBA;
+		memcpy(TextureData_OGL, EmptyTexture, TextureBufferSize);
 		break;
 	}
 	
-	switch(Textures[TextureInfo_Current].Format_N64) {
-	/* RGBA FORMAT */
-	case 0x00:
-	case 0x08:
-	case 0x10:
-		/* STATUS: seems to be fully correct */
-		{
-		unsigned int LoadRGBA_RGBA5551 = 0;
-		
-		unsigned int LoadRGBA_RExtract = 0;
-		unsigned int LoadRGBA_GExtract = 0;
-		unsigned int LoadRGBA_BExtract = 0;
-		unsigned int LoadRGBA_AExtract = 0;
-		
-		unsigned int LoadRGBA_InTexturePosition_N64 = 0;
-		unsigned int LoadRGBA_InTexturePosition_OGL = 0;
-		
-		for(j = 0; j < Textures[TextureInfo_Current].Height; j++) {
-			for(i = 0; i < Textures[TextureInfo_Current].Width; i++) {
-				LoadRGBA_RGBA5551 = (TextureData_N64[LoadRGBA_InTexturePosition_N64] * 0x100) + TextureData_N64[LoadRGBA_InTexturePosition_N64 + 1];
-				
-				LoadRGBA_RExtract = (LoadRGBA_RGBA5551 & 0xF800);
-				LoadRGBA_RExtract >>= 8;
-				LoadRGBA_GExtract = (LoadRGBA_RGBA5551 & 0x07C0);
-				LoadRGBA_GExtract <<= 5;
-				LoadRGBA_GExtract >>= 8;
-				LoadRGBA_BExtract = (LoadRGBA_RGBA5551 & 0x003E);
-				LoadRGBA_BExtract <<= 18;
-				LoadRGBA_BExtract >>= 16;
-				
-				if((LoadRGBA_RGBA5551 & 0x0001)) {
-					LoadRGBA_AExtract = 0xFF;
-				} else {
-					LoadRGBA_AExtract = 0x00;
+	if(!UnhandledTextureSource) {
+		switch(Textures[TextureInfo_Current].Format_N64) {
+		/* RGBA FORMAT */
+		case 0x00:
+//		case 0x08:
+		case 0x10:
+			{
+			unsigned int LoadRGBA_RGBA5551 = 0;
+			
+			unsigned int LoadRGBA_RExtract = 0;
+			unsigned int LoadRGBA_GExtract = 0;
+			unsigned int LoadRGBA_BExtract = 0;
+			unsigned int LoadRGBA_AExtract = 0;
+			
+			unsigned int LoadRGBA_InTexturePosition_N64 = 0;
+			unsigned int LoadRGBA_InTexturePosition_OGL = 0;
+			
+			for(j = 0; j < Textures[TextureInfo_Current].Height; j++) {
+				for(i = 0; i < Textures[TextureInfo_Current].Width; i++) {
+					LoadRGBA_RGBA5551 = (TextureData_N64[LoadRGBA_InTexturePosition_N64] * 0x100) + TextureData_N64[LoadRGBA_InTexturePosition_N64 + 1];
+					
+					LoadRGBA_RExtract = (LoadRGBA_RGBA5551 & 0xF800);
+					LoadRGBA_RExtract >>= 8;
+					LoadRGBA_GExtract = (LoadRGBA_RGBA5551 & 0x07C0);
+					LoadRGBA_GExtract <<= 5;
+					LoadRGBA_GExtract >>= 8;
+					LoadRGBA_BExtract = (LoadRGBA_RGBA5551 & 0x003E);
+					LoadRGBA_BExtract <<= 18;
+					LoadRGBA_BExtract >>= 16;
+					
+					if((LoadRGBA_RGBA5551 & 0x0001)) {
+						LoadRGBA_AExtract = 0xFF;
+					} else {
+						LoadRGBA_AExtract = 0x00;
+					}
+					
+					TextureData_OGL[LoadRGBA_InTexturePosition_OGL]     = LoadRGBA_RExtract;
+					TextureData_OGL[LoadRGBA_InTexturePosition_OGL + 1] = LoadRGBA_GExtract;
+					TextureData_OGL[LoadRGBA_InTexturePosition_OGL + 2] = LoadRGBA_BExtract;
+					TextureData_OGL[LoadRGBA_InTexturePosition_OGL + 3] = LoadRGBA_AExtract;
+					
+					LoadRGBA_InTexturePosition_N64 += 2;
+					LoadRGBA_InTexturePosition_OGL += 4;
 				}
-				
-				TextureData_OGL[LoadRGBA_InTexturePosition_OGL]     = LoadRGBA_RExtract;
-				TextureData_OGL[LoadRGBA_InTexturePosition_OGL + 1] = LoadRGBA_GExtract;
-				TextureData_OGL[LoadRGBA_InTexturePosition_OGL + 2] = LoadRGBA_BExtract;
-				TextureData_OGL[LoadRGBA_InTexturePosition_OGL + 3] = LoadRGBA_AExtract;
-				
-				LoadRGBA_InTexturePosition_N64 += 2;
-				LoadRGBA_InTexturePosition_OGL += 4;
+				LoadRGBA_InTexturePosition_N64 += Textures[TextureInfo_Current].LineSize * 4 - Textures[TextureInfo_Current].Width;
 			}
-		}
-		
-		break;
-		}
-	/* CI FORMAT */
-	case 0x40:
-	case 0x48:
-	case 0x50:
-		/* STATUS: unfinished, currently writing semi-garbage data */
-		{
-		unsigned char Nibble_1;
-		unsigned char Nibble_2;
-		
-		for(i = 0; i < (Textures[TextureInfo_Current].Width * Textures[TextureInfo_Current].Height); i += 2) {
-			Nibble_1 = TextureData_N64[i / 2] >> 4;
-			Nibble_2 = TextureData_N64[i / 2] << 4;
-			Nibble_2 >>= 4;
-			TextureData_OGL[k] = Nibble_1 * 0x88;
-			TextureData_OGL[k + 1] = Nibble_1 * 0x88;
-			TextureData_OGL[k + 2] = Nibble_1 * 0x88;
-			TextureData_OGL[k + 3] = 0xFF;
-			TextureData_OGL[k + 4] = Nibble_2 * 0x88;
-			TextureData_OGL[k + 5] = Nibble_2 * 0x88;
-			TextureData_OGL[k + 6] = Nibble_2 * 0x88;
-			TextureData_OGL[k + 7] = 0xFF;
 			
-			k += 8;
-		}
-		
-		break;
-		}
-	/* IA FORMAT */
-	case 0x60:
-	case 0x68:
-	case 0x70:
-		/* STATUS: looking good, converting loop might need an overhaul like the RGBA format's */
-		{
-		unsigned char Brightness;
-		unsigned char Alpha;
-		
-		for(i = 0; i < (Textures[TextureInfo_Current].Width * Textures[TextureInfo_Current].Height) / 2; i++) {
-			Brightness = TextureData_N64[i] / 0x10;
-			Alpha = TextureData_N64[i] * 0x10;
-			Alpha /= 0x10;
-			TextureData_OGL[i * 8] = Brightness * 0x11;
-			TextureData_OGL[i * 8 + 1] = Brightness * 0x11;
-			TextureData_OGL[i * 8 + 2] = Brightness * 0x11;
-			TextureData_OGL[i * 8 + 3] = Alpha * 0x88;
+			break;
+			}
+		/* CI FORMAT */
+		case 0x40:
+		case 0x48:
+		case 0x50:
+			/* STATUS: unfinished, currently writing semi-garbage data */
+			{
+			unsigned char Nibble_1;
+			unsigned char Nibble_2;
 			
-			TextureData_OGL[i * 8 + 4] = Brightness * 0x11;
-			TextureData_OGL[i * 8 + 5] = Brightness * 0x11;
-			TextureData_OGL[i * 8 + 6] = Brightness * 0x11;
-			TextureData_OGL[i * 8 + 7] = Alpha * 0x88;
-		}
-		
-		break;
-		}
-	/* I FORMAT */
-	case 0x80:
-	case 0x88:
-	case 0x90:
-		/* STATUS: looking good, minus missing alpha on the pathways, need to check how that works */
-		{
-		unsigned char Brightness;
-		
-		for(i = 0; i < (Textures[TextureInfo_Current].Width * Textures[TextureInfo_Current].Height) / 2; i++) {
-			Brightness = TextureData_N64[i];
-			Brightness >>= 4;
-			TextureData_OGL[i * 8] = Brightness * 0x11;
-			TextureData_OGL[i * 8 + 1] = Brightness * 0x11;
-			TextureData_OGL[i * 8 + 2] = Brightness * 0x11;
-			TextureData_OGL[i * 8 + 3] = 0xFF;
+			for(i = 0; i < (Textures[TextureInfo_Current].Width * Textures[TextureInfo_Current].Height); i += 2) {
+				Nibble_1 = TextureData_N64[i / 2] >> 4;
+				Nibble_2 = TextureData_N64[i / 2] << 4;
+				Nibble_2 >>= 4;
+				TextureData_OGL[k] = Nibble_1 * 0x88;
+				TextureData_OGL[k + 1] = Nibble_1 * 0x88;
+				TextureData_OGL[k + 2] = Nibble_1 * 0x88;
+				TextureData_OGL[k + 3] = 0xFF;
+				TextureData_OGL[k + 4] = Nibble_2 * 0x88;
+				TextureData_OGL[k + 5] = Nibble_2 * 0x88;
+				TextureData_OGL[k + 6] = Nibble_2 * 0x88;
+				TextureData_OGL[k + 7] = 0xFF;
+				
+				k += 8;
+			}
 			
-			Brightness = TextureData_N64[i];
-			Brightness <<= 4;
-			Brightness >>= 4;
-			TextureData_OGL[i * 8 + 4] = Brightness * 0x11;
-			TextureData_OGL[i * 8 + 5] = Brightness * 0x11;
-			TextureData_OGL[i * 8 + 6] = Brightness * 0x11;
-			TextureData_OGL[i * 8 + 7] = 0xFF;
-		}
-		
-		break;
-		}
-	/* FALLBACK - gives us an empty texture */
-	default:
-		{
-		memcpy(TextureData_N64, EmptyTexture, TextureDataSize);
-		break;
+			break;
+			}
+		/* IA FORMAT */
+		case 0x60:
+			{
+			unsigned int LoadIA_IAData = 0;
+			
+			unsigned int LoadIA_IExtract1 = 0;
+			unsigned int LoadIA_AExtract1 = 0;
+			unsigned int LoadIA_IExtract2 = 0;
+			unsigned int LoadIA_AExtract2 = 0;
+			
+			unsigned int LoadIA_InTexturePosition_N64 = 0;
+			unsigned int LoadIA_InTexturePosition_OGL = 0;
+			
+			for(j = 0; j < Textures[TextureInfo_Current].Height; j++) {
+				for(i = 0; i < Textures[TextureInfo_Current].Width / 2; i++) {
+					LoadIA_IAData = (TextureData_N64[LoadIA_InTexturePosition_N64] & 0xF0) >> 4;
+					LoadIA_IExtract1 = (LoadIA_IAData & 0x0E) << 4;
+					if((LoadIA_IAData & 0x01)) { LoadIA_AExtract1 = 0xFF; } else { LoadIA_AExtract1 = 0x00; }
+					
+					LoadIA_IAData = (TextureData_N64[LoadIA_InTexturePosition_N64] & 0x0F);
+					LoadIA_IExtract2 = (LoadIA_IAData & 0x0E) << 4;
+					if((LoadIA_IAData & 0x01)) { LoadIA_AExtract2 = 0xFF; } else { LoadIA_AExtract2 = 0x00; }
+					
+					TextureData_OGL[LoadIA_InTexturePosition_OGL]     = LoadIA_IExtract1;
+					TextureData_OGL[LoadIA_InTexturePosition_OGL + 1] = LoadIA_AExtract1;
+					TextureData_OGL[LoadIA_InTexturePosition_OGL + 2] = LoadIA_IExtract2;
+					TextureData_OGL[LoadIA_InTexturePosition_OGL + 3] = LoadIA_AExtract2;
+					
+					LoadIA_InTexturePosition_N64 += 1;
+					LoadIA_InTexturePosition_OGL += 4;
+				}
+				LoadIA_InTexturePosition_N64 += Textures[TextureInfo_Current].LineSize * 8 - (Textures[TextureInfo_Current].Width / 2);
+			}
+			
+			break;
+			}
+		case 0x68:
+			{
+			unsigned int LoadIA_IAData = 0;
+			
+			unsigned int LoadIA_IExtract = 0;
+			unsigned int LoadIA_AExtract = 0;
+			
+			unsigned int LoadIA_InTexturePosition_N64 = 0;
+			unsigned int LoadIA_InTexturePosition_OGL = 0;
+			
+			for(j = 0; j < Textures[TextureInfo_Current].Height; j++) {
+				for(i = 0; i < Textures[TextureInfo_Current].Width; i++) {
+					LoadIA_IAData = TextureData_N64[LoadIA_InTexturePosition_N64];
+					LoadIA_IExtract = (LoadIA_IAData & 0xFE);
+					if((LoadIA_IAData & 0x01)) { LoadIA_AExtract = 0xFF; } else { LoadIA_AExtract = 0x00; }
+					
+					TextureData_OGL[LoadIA_InTexturePosition_OGL]     = LoadIA_IExtract;
+					TextureData_OGL[LoadIA_InTexturePosition_OGL + 1] = LoadIA_AExtract;
+					
+					LoadIA_InTexturePosition_N64 += 1;
+					LoadIA_InTexturePosition_OGL += 2;
+				}
+				LoadIA_InTexturePosition_N64 += Textures[TextureInfo_Current].LineSize * 8 - Textures[TextureInfo_Current].Width;
+			}
+			
+			break;
+			}
+		case 0x70:
+			{
+			unsigned int LoadIA_IAData = 0;
+			
+			unsigned int LoadIA_IExtract = 0;
+			unsigned int LoadIA_AExtract = 0;
+			
+			unsigned int LoadIA_InTexturePosition_N64 = 0;
+			unsigned int LoadIA_InTexturePosition_OGL = 0;
+			
+			for(j = 0; j < Textures[TextureInfo_Current].Height; j++) {
+				for(i = 0; i < Textures[TextureInfo_Current].Width; i++) {
+					LoadIA_IAData = TextureData_N64[LoadIA_InTexturePosition_N64];
+					LoadIA_IExtract = LoadIA_IAData;
+					
+					LoadIA_IAData = TextureData_N64[LoadIA_InTexturePosition_N64 + 1];
+					LoadIA_AExtract = LoadIA_IAData;
+					
+					TextureData_OGL[LoadIA_InTexturePosition_OGL]     = LoadIA_IExtract;
+					TextureData_OGL[LoadIA_InTexturePosition_OGL + 1] = LoadIA_AExtract;
+					
+					LoadIA_InTexturePosition_N64 += 2;
+					LoadIA_InTexturePosition_OGL += 2;
+				}
+				LoadIA_InTexturePosition_N64 += Textures[TextureInfo_Current].LineSize * 4 - Textures[TextureInfo_Current].Width;
+			}
+			
+			break;
+			}
+		/* I FORMAT */
+		case 0x80:
+		case 0x90:
+			{
+			/* 4bit - spot00 pathways, castle town walls, treeline near kokiri entrance, besitu blue patterned walls */
+			unsigned int LoadIA_IAData = 0;
+			
+			unsigned int LoadIA_IExtract1 = 0;
+			unsigned int LoadIA_IExtract2 = 0;
+			
+			unsigned int LoadIA_InTexturePosition_N64 = 0;
+			unsigned int LoadIA_InTexturePosition_OGL = 0;
+			
+			for(j = 0; j < Textures[TextureInfo_Current].Height; j++) {
+				for(i = 0; i < Textures[TextureInfo_Current].Width / 2; i++) {
+					LoadIA_IAData = (TextureData_N64[LoadIA_InTexturePosition_N64] & 0xF0) >> 4;
+					LoadIA_IExtract1 = (LoadIA_IAData & 0x0F) << 4;
+					
+					LoadIA_IAData = (TextureData_N64[LoadIA_InTexturePosition_N64] & 0x0F);
+					LoadIA_IExtract2 = (LoadIA_IAData & 0x0F) << 4;
+					
+					TextureData_OGL[LoadIA_InTexturePosition_OGL]     = LoadIA_IExtract1;
+					TextureData_OGL[LoadIA_InTexturePosition_OGL + 1] = LoadIA_IExtract2;
+					
+					LoadIA_InTexturePosition_N64 += 1;
+					LoadIA_InTexturePosition_OGL += 2;
+				}
+				LoadIA_InTexturePosition_N64 += Textures[TextureInfo_Current].LineSize * 8 - (Textures[TextureInfo_Current].Width / 2);
+			}
+			
+			break;
+			}
+		case 0x88:
+			{
+			/* 8bit - Bmori_0 l/r side walls */
+			unsigned int LoadI_IData = 0;
+			
+			unsigned int LoadI_InTexturePosition_N64 = 0;
+			unsigned int LoadI_InTexturePosition_OGL = 0;
+			
+			for(j = 0; j < Textures[TextureInfo_Current].Height; j++) {
+				for(i = 0; i < Textures[TextureInfo_Current].Width; i++) {
+					LoadI_IData = TextureData_N64[LoadI_InTexturePosition_N64];
+					
+					TextureData_OGL[LoadI_InTexturePosition_OGL] = LoadI_IData;
+					
+					LoadI_InTexturePosition_N64 += 1;
+					LoadI_InTexturePosition_OGL += 1;
+				}
+				LoadI_InTexturePosition_N64 += Textures[TextureInfo_Current].LineSize * 8 - Textures[TextureInfo_Current].Width;
+			}
+			
+			break;
+			}
+		/* FALLBACK - gives us an empty texture */
+		default:
+			{
+			sprintf(ErrorMsg, "Unhandled Texture Type 0x%02X!", Textures[TextureInfo_Current].Format_N64);
+			MessageBox(hwnd, ErrorMsg, "Error", MB_OK | MB_ICONERROR);
+			Textures[TextureInfo_Current].Format_OGL = GL_RGBA;
+			Textures[TextureInfo_Current].Format_OGLPixel = GL_RGBA;
+			memcpy(TextureData_OGL, EmptyTexture, TextureBufferSize);
+			break;
+			}
 		}
 	}
 	
@@ -1462,10 +1595,11 @@ GLuint Viewer_LoadTexture()
 		default: glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); break;
 	}
 	
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	
-	glTexImage2D(GL_TEXTURE_2D, 0, Textures[TextureInfo_Current].Format_OGL, Textures[TextureInfo_Current].WidthRender, Textures[TextureInfo_Current].HeightRender, 0, Textures[TextureInfo_Current].Format_OGLPixel, GL_UNSIGNED_BYTE, TextureData_OGL);
+//	glTexImage2D(GL_TEXTURE_2D, 0, Textures[TextureInfo_Current].Format_OGL, Textures[TextureInfo_Current].WidthRender, Textures[TextureInfo_Current].HeightRender, 0, Textures[TextureInfo_Current].Format_OGLPixel, GL_UNSIGNED_BYTE, TextureData_OGL);
+	gluBuild2DMipmaps(GL_TEXTURE_2D, Textures[TextureInfo_Current].Format_OGL, Textures[TextureInfo_Current].WidthRender, Textures[TextureInfo_Current].HeightRender, Textures[TextureInfo_Current].Format_OGLPixel, GL_UNSIGNED_BYTE, TextureData_OGL);
 	
 	free(TextureData_N64);
 	free(TextureData_OGL);
@@ -2222,8 +2356,6 @@ void Dialog_OpenZMap(HWND hwnd)
 	ofn.nMaxFile=256;
 	ofn.Flags=OFN_EXPLORER|OFN_PATHMUSTEXIST|OFN_FILEMUSTEXIST|OFN_HIDEREADONLY;
 	
-	ZMapExists = false;
-	
 	if(GetOpenFileName(&ofn)) ZMapExists = true;
 	
 	return;
@@ -2243,8 +2375,6 @@ void Dialog_OpenZScene(HWND hwnd)
 	ofn.lpstrFile=Filename_ZScene;
 	ofn.nMaxFile=256;
 	ofn.Flags=OFN_EXPLORER|OFN_PATHMUSTEXIST|OFN_FILEMUSTEXIST|OFN_HIDEREADONLY;
-	
-	ZSceneExists = false;
 	
 	if(GetOpenFileName(&ofn)) ZSceneExists = true;
 	
@@ -2541,7 +2671,11 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			switch(LOWORD(wParam))
 			{
 				case IDM_FILE_OPEN:
+					ZMapExists = false;
+					ZSceneExists = false;
+					
 					Dialog_OpenZMap(hwnd);
+					
 					if(ZMapExists) Dialog_OpenZScene(hwnd);
 					if(ZSceneExists) Viewer_Initialize();
 					break;
