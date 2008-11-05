@@ -44,7 +44,6 @@ Major=0
 Minor=1
 Release=1
 Build=1
-LanguageID=1033
 CharsetID=1252
 CompanyName=
 FileVersion=
@@ -80,16 +79,6 @@ BuildCmd=
 FileName=ucode.h
 CompileCpp=1
 Folder=
-Compile=1
-Link=1
-Priority=1000
-OverrideBuildCmd=0
-BuildCmd=
-
-[Unit7]
-FileName=CCamera.h
-CompileCpp=1
-Folder=OZMAV
 Compile=1
 Link=1
 Priority=1000

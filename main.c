@@ -11,6 +11,25 @@
 	------------------------------------------------------------ */
 
 /*	------------------------------------------------------------
+	NOTES - NOTES - NOTES - NOTES - NOTES - NOTES - NOTES - NOTE
+	------------------------------------------------------------
+	Majora's Mask's Map/Scene headers are incompatible with
+	OZMAV, which is why MM maps crash the viewer when trying to
+	open them in this state. To temporary be able to open and
+	render some of them, disable the calls to...
+		Viewer_GetMapHeader
+		Viewer_GetSceneHeader
+		Viewer_GetMapActors
+		Viewer_GetSceneActors
+	...inside Viewer_OpenMapScene. Also, set the HACKS_ENABLED
+	switch to true, so that "sub DLists" - the ones called by
+	F3DEX2_RDPHALF_1 - are added to the regular DList list. This
+	allows rendering of Termina Field (scene: 0x0258C000 -
+	0x025C4580, map: 0x025C5000 - 0x025ED860), albeit with many
+	texturing issues.
+	------------------------------------------------------------ */
+
+/*	------------------------------------------------------------
 	INCLUDES
 	------------------------------------------------------------ */
 
@@ -50,6 +69,7 @@ int Viewer_GetSceneHeader(int);
 int Viewer_GetMapActors(int);
 int Viewer_GetSceneActors(int);
 int Viewer_GetDisplayLists(unsigned long);
+
 int Viewer_RenderMap(int);
 
 int Viewer_RenderMap_CMDVertexList();
@@ -67,7 +87,7 @@ int Viewer_RenderMap_CMDLoadTLUT();
 
 GLuint Viewer_LoadTexture();
 
-int Viewer_RenderActor(int, GLshort, GLshort, GLshort, GLshort, GLshort, GLshort, bool);
+int Viewer_RenderActor(int, GLshort, GLshort, GLshort, signed int, signed int, signed int, bool);
 
 void HelperFunc_SplitCurrentVals(bool, bool);
 int HelperFunc_GFXLogMessage(char[]);
@@ -206,14 +226,12 @@ unsigned long	Sub_DLTempPosition;
 unsigned char	* TextureData_OGL;
 unsigned char	* TextureData_N64;
 
-unsigned int	LBUpper_Y;
-unsigned int	LBUpper_X;
-unsigned int	ScanlineChange_Y;
-unsigned int	LowerRight_X;
-
 unsigned char	* PaletteData;
 
-unsigned long	PrevTextureOffset;
+unsigned int	TextureID = -1;
+unsigned int	LastCITextureID = 0;
+unsigned int	LastCIPaletteID = 0;
+bool			NoChangeCIPalette = false;
 
 /* ZELDA MAP & SCENE HEADER HANDLING VARIABLES */
 bool			MapHeader_MultiHeaderMap = false;
@@ -339,14 +357,14 @@ struct {
 	signed short T_Scale;
 	unsigned int LineSize;
 	unsigned int Palette;
-} Texture;
+} Texture[1024];
 
 struct {
 	unsigned char R;
 	unsigned char G;
 	unsigned char B;
 	unsigned char A;
-} Palette[256];
+} Palette[512];
 
 /*	------------------------------------------------------------ */
 
@@ -473,6 +491,8 @@ int Viewer_OpenMapScene()
 		memset(Actors, 0x00, sizeof(Actors));
 		memset(ScActors, 0x00, sizeof(ScActors));
 		memset(Vertex, 0x00, sizeof(Vertex));
+		
+		PaletteData = (unsigned char *) malloc (1024);
 		
 		Viewer_GetMapHeader(MapHeader_Current);
 		Viewer_GetSceneHeader(SceneHeader_Current);
@@ -935,6 +955,11 @@ int Viewer_RenderMap(int SingleDLNumber)
 	
 	MapLoaded = true;
 	
+	TextureID = -1;
+	LastCITextureID = 0;
+	LastCIPaletteID = 0;
+	NoChangeCIPalette = false;
+	
 	fclose(FileGFXLog);
 	
 	return 0;
@@ -1052,20 +1077,20 @@ int Viewer_RenderMap_CMDDrawTri1()
 	glBegin(GL_TRIANGLES);
 		glColor4f(PrimColor[0], PrimColor[1], PrimColor[2], PrimColor[3]);
 		
-		TempU = (float) CurrentH1_1 * Texture.S_Scale / 32 / Texture.WidthRender;
-		TempV = (float) CurrentV1_1 * Texture.T_Scale / 32 / Texture.HeightRender;
+		TempU = (float) CurrentH1_1 * Texture[TextureID].S_Scale / 32 / Texture[TextureID].WidthRender;
+		TempV = (float) CurrentV1_1 * Texture[TextureID].T_Scale / 32 / Texture[TextureID].HeightRender;
 		glTexCoord2f(TempU, TempV);
 		if(!Renderer_EnableLighting) { glColor4ub (CurrentR1_1, CurrentG1_1, CurrentB1_1, CurrentA1_1); }
 		glNormal3f (CurrentR1_1 / 255.0f, CurrentG1_1 / 255.0f, CurrentB1_1 / 255.0f);
 		glVertex3d(CurrentX1_1, CurrentY1_1, CurrentZ1_1);
-		TempU = (float) CurrentH1_2 * Texture.S_Scale / 32 / Texture.WidthRender;
-		TempV = (float) CurrentV1_2 * Texture.T_Scale / 32 / Texture.HeightRender;
+		TempU = (float) CurrentH1_2 * Texture[TextureID].S_Scale / 32 / Texture[TextureID].WidthRender;
+		TempV = (float) CurrentV1_2 * Texture[TextureID].T_Scale / 32 / Texture[TextureID].HeightRender;
 		glTexCoord2f(TempU, TempV);
 		if(!Renderer_EnableLighting) { glColor4ub (CurrentR1_2, CurrentG1_2, CurrentB1_2, CurrentA1_2); }
 		glNormal3f (CurrentR1_2 / 255.0f, CurrentG1_2 / 255.0f, CurrentB1_2 / 255.0f);
 		glVertex3d(CurrentX1_2, CurrentY1_2, CurrentZ1_2);
-		TempU = (float) CurrentH1_3 * Texture.S_Scale / 32 / Texture.WidthRender;
-		TempV = (float) CurrentV1_3 * Texture.T_Scale / 32 / Texture.HeightRender;
+		TempU = (float) CurrentH1_3 * Texture[TextureID].S_Scale / 32 / Texture[TextureID].WidthRender;
+		TempV = (float) CurrentV1_3 * Texture[TextureID].T_Scale / 32 / Texture[TextureID].HeightRender;
 		glTexCoord2f(TempU, TempV);
 		if(!Renderer_EnableLighting) { glColor4ub (CurrentR1_3, CurrentG1_3, CurrentB1_3, CurrentA1_3); }
 		glNormal3f (CurrentR1_3 / 255.0f, CurrentG1_3 / 255.0f, CurrentB1_3 / 255.0f);
@@ -1144,39 +1169,39 @@ int Viewer_RenderMap_CMDDrawTri2()
 	glBegin(GL_TRIANGLES);
 		glColor4f(PrimColor[0], PrimColor[1], PrimColor[2], PrimColor[3]);
 		
-		TempU = (float) CurrentH1_1 * Texture.S_Scale / 32 / Texture.WidthRender;
-		TempV = (float) CurrentV1_1 * Texture.T_Scale / 32 / Texture.HeightRender;
+		TempU = (float) CurrentH1_1 * Texture[TextureID].S_Scale / 32 / Texture[TextureID].WidthRender;
+		TempV = (float) CurrentV1_1 * Texture[TextureID].T_Scale / 32 / Texture[TextureID].HeightRender;
 		glTexCoord2f(TempU, TempV);
 		if(!Renderer_EnableLighting) { glColor4ub (CurrentR1_1, CurrentG1_1, CurrentB1_1, CurrentA1_1); }
 		glNormal3f (CurrentR1_1 / 255.0f, CurrentG1_1 / 255.0f, CurrentB1_1 / 255.0f);
 		glVertex3d(CurrentX1_1, CurrentY1_1, CurrentZ1_1);
-		TempU = (float) CurrentH1_2 * Texture.S_Scale / 32 / Texture.WidthRender;
-		TempV = (float) CurrentV1_2 * Texture.T_Scale / 32 / Texture.HeightRender;
+		TempU = (float) CurrentH1_2 * Texture[TextureID].S_Scale / 32 / Texture[TextureID].WidthRender;
+		TempV = (float) CurrentV1_2 * Texture[TextureID].T_Scale / 32 / Texture[TextureID].HeightRender;
 		glTexCoord2f(TempU, TempV);
 		if(!Renderer_EnableLighting) { glColor4ub (CurrentR1_2, CurrentG1_2, CurrentB1_2, CurrentA1_2); }
 		glNormal3f (CurrentR1_2 / 255.0f, CurrentG1_2 / 255.0f, CurrentB1_2 / 255.0f);
 		glVertex3d(CurrentX1_2, CurrentY1_2, CurrentZ1_2);
-		TempU = (float) CurrentH1_3 * Texture.S_Scale / 32 / Texture.WidthRender;
-		TempV = (float) CurrentV1_3 * Texture.T_Scale / 32 / Texture.HeightRender;
+		TempU = (float) CurrentH1_3 * Texture[TextureID].S_Scale / 32 / Texture[TextureID].WidthRender;
+		TempV = (float) CurrentV1_3 * Texture[TextureID].T_Scale / 32 / Texture[TextureID].HeightRender;
 		glTexCoord2f(TempU, TempV);
 		if(!Renderer_EnableLighting) { glColor4ub (CurrentR1_3, CurrentG1_3, CurrentB1_3, CurrentA1_3); }
 		glNormal3f (CurrentR1_3 / 255.0f, CurrentG1_3 / 255.0f, CurrentB1_3 / 255.0f);
 		glVertex3d(CurrentX1_3, CurrentY1_3, CurrentZ1_3);
 		
-		TempU = (float) CurrentH2_1 * Texture.S_Scale / 32 / Texture.WidthRender;
-		TempV = (float) CurrentV2_1 * Texture.T_Scale / 32 / Texture.HeightRender;
+		TempU = (float) CurrentH2_1 * Texture[TextureID].S_Scale / 32 / Texture[TextureID].WidthRender;
+		TempV = (float) CurrentV2_1 * Texture[TextureID].T_Scale / 32 / Texture[TextureID].HeightRender;
 		glTexCoord2f(TempU, TempV);
 		if(!Renderer_EnableLighting) { glColor4ub (CurrentR2_1, CurrentG2_1, CurrentB2_1, CurrentA2_1); }
 		glNormal3f (CurrentR2_1 / 255.0f, CurrentG2_1 / 255.0f, CurrentB2_1 / 255.0f);
 		glVertex3d(CurrentX2_1, CurrentY2_1, CurrentZ2_1);
-		TempU = (float) CurrentH2_2 * Texture.S_Scale / 32 / Texture.WidthRender;
-		TempV = (float) CurrentV2_2 * Texture.T_Scale / 32 / Texture.HeightRender;
+		TempU = (float) CurrentH2_2 * Texture[TextureID].S_Scale / 32 / Texture[TextureID].WidthRender;
+		TempV = (float) CurrentV2_2 * Texture[TextureID].T_Scale / 32 / Texture[TextureID].HeightRender;
 		glTexCoord2f(TempU, TempV);
 		if(!Renderer_EnableLighting) { glColor4ub (CurrentR2_2, CurrentG2_2, CurrentB2_2, CurrentA2_2); } 
 		glNormal3f (CurrentR2_2 / 255.0f, CurrentG2_2 / 255.0f, CurrentB2_2 / 255.0f);
 		glVertex3d(CurrentX2_2, CurrentY2_2, CurrentZ2_2);
-		TempU = (float) CurrentH2_3 * Texture.S_Scale / 32 / Texture.WidthRender;
-		TempV = (float) CurrentV2_3 * Texture.T_Scale / 32 / Texture.HeightRender;
+		TempU = (float) CurrentH2_3 * Texture[TextureID].S_Scale / 32 / Texture[TextureID].WidthRender;
+		TempV = (float) CurrentV2_3 * Texture[TextureID].T_Scale / 32 / Texture[TextureID].HeightRender;
 		glTexCoord2f(TempU, TempV);
 		if(!Renderer_EnableLighting) { glColor4ub (CurrentR2_3, CurrentG2_3, CurrentB2_3, CurrentA2_3); }
 		glNormal3f (CurrentR2_3 / 255.0f, CurrentG2_3 / 255.0f, CurrentB2_3 / 255.0f);
@@ -1189,8 +1214,10 @@ int Viewer_RenderMap_CMDDrawTri2()
 /* VIEWER_RENDERMAP_CMDTEXTURE - F3DEX2_TEXTURE */
 int Viewer_RenderMap_CMDTexture()
 {
-	Texture.S_Scale = ((Readout_CurrentByte5 * 0x100) + Readout_CurrentByte6) + 2;
-	Texture.T_Scale = ((Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8) + 2;
+	TextureID++;
+	
+	Texture[TextureID].S_Scale = ((Readout_CurrentByte5 * 0x100) + Readout_CurrentByte6) + 2;
+	Texture[TextureID].T_Scale = ((Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8) + 2;
 	
 	return 0;
 }
@@ -1198,13 +1225,11 @@ int Viewer_RenderMap_CMDTexture()
 /* VIEWER_RENDERMAP_CMDSETTIMAGE - G_SETTIMG - GET TEXTURE OFFSET AND STORE FOR FUTURE USE */
 int Viewer_RenderMap_CMDSetTImage()
 {
-	Texture.DataSource = Readout_CurrentByte5;
+	Texture[TextureID].DataSource = Readout_CurrentByte5;
 	
-	Texture.Offset = Readout_CurrentByte6 << 16;
-	Texture.Offset = Texture.Offset + (Readout_CurrentByte7 << 8);
-	Texture.Offset = Texture.Offset + Readout_CurrentByte8;
-	
-	PrevTextureOffset = Texture.Offset;
+	Texture[TextureID].Offset = Readout_CurrentByte6 << 16;
+	Texture[TextureID].Offset = Texture[TextureID].Offset + (Readout_CurrentByte7 << 8);
+	Texture[TextureID].Offset = Texture[TextureID].Offset + Readout_CurrentByte8;
 	
 	return 0;
 }
@@ -1216,71 +1241,73 @@ int Viewer_RenderMap_CMDSetTile()
 	
 	switch(Readout_CurrentByte6) {
 	case 0x01:
-		Texture.Y_Parameter = 1;
+		Texture[TextureID].Y_Parameter = 1;
 		break;
 	case 0x09:
-		Texture.Y_Parameter = 2;
+		Texture[TextureID].Y_Parameter = 2;
 		break;
 	case 0x05:
-		Texture.Y_Parameter = 3;
+		Texture[TextureID].Y_Parameter = 3;
 		break;
 	default:
-		Texture.Y_Parameter = 1;
+		Texture[TextureID].Y_Parameter = 1;
 		break;
 	}
 	
 	switch(TempXParameter) {
 	case 0x00:
-		Texture.X_Parameter = 1;
+		Texture[TextureID].X_Parameter = 1;
 		break;
 	case 0x20:
-		Texture.X_Parameter = 2;
+		Texture[TextureID].X_Parameter = 2;
 		break;
 	case 0x10:
-		Texture.X_Parameter = 3;
+		Texture[TextureID].X_Parameter = 3;
 		break;
 	default:
-		Texture.X_Parameter = 1;
+		Texture[TextureID].X_Parameter = 1;
 		break;
 	}
 	
-	Texture.LineSize = Readout_CurrentByte3 / 2;
+	Texture[TextureID].LineSize = Readout_CurrentByte3 / 2;
 	
-	Texture.Format_N64 = Readout_CurrentByte2;
-	Texture.Palette = (Readout_Current1 >> 20) & 0x0F;
+	Texture[TextureID].Format_N64 = Readout_CurrentByte2;
+	Texture[TextureID].Palette = (Readout_Current1 >> 20) & 0x0F;
 	
-	switch(Texture.Format_N64) {
+	switch(Texture[TextureID].Format_N64) {
 	/* RGBA FORMAT */
 	case 0x00:
 	case 0x08:
 	case 0x10:
-		Texture.Format_OGL = GL_RGBA;
-		Texture.Format_OGLPixel = GL_RGBA;
+		Texture[TextureID].Format_OGL = GL_RGBA;
+		Texture[TextureID].Format_OGLPixel = GL_RGBA;
+		LastCIPaletteID = TextureID;
 		break;
 	/* CI FORMAT */
 	case 0x40:
 	case 0x48:
 	case 0x50:
-		Texture.Format_OGL = GL_RGBA;
-		Texture.Format_OGLPixel = GL_RGBA;
+		Texture[TextureID].Format_OGL = GL_RGBA;
+		Texture[TextureID].Format_OGLPixel = GL_RGBA;
+		LastCITextureID = TextureID;
 		break;
 	/* IA FORMAT */
 	case 0x60:
 	case 0x68:
 	case 0x70:
-		Texture.Format_OGL = GL_LUMINANCE_ALPHA;
-		Texture.Format_OGLPixel = GL_LUMINANCE_ALPHA;
+		Texture[TextureID].Format_OGL = GL_LUMINANCE_ALPHA;
+		Texture[TextureID].Format_OGLPixel = GL_LUMINANCE_ALPHA;
 		break;
 	/* I FORMAT */
 	case 0x80:
 	case 0x88:
 	case 0x90:
-		Texture.Format_OGL = GL_LUMINANCE;
-		Texture.Format_OGLPixel = GL_LUMINANCE;
+		Texture[TextureID].Format_OGL = GL_LUMINANCE;
+		Texture[TextureID].Format_OGLPixel = GL_LUMINANCE;
 		break;
 	default:
-		Texture.Format_OGL = GL_RGBA;
-		Texture.Format_OGLPixel = GL_RGBA;
+		Texture[TextureID].Format_OGL = GL_RGBA;
+		Texture[TextureID].Format_OGLPixel = GL_RGBA;
 		break;
 	}
 	
@@ -1298,19 +1325,19 @@ int Viewer_RenderMap_CMDSetTileSize()
 	unsigned int LRS = (TileSize_Temp2 & 0xFFF000) >> 14;
 	unsigned int LRT = (TileSize_Temp2 & 0x000FFF) >> 2;
 	
-	Texture.Width  = ((LRS - ULS) + 1);
-	Texture.Height = ((LRT - ULT) + 1);
+	Texture[TextureID].Width  = ((LRS - ULS) + 1);
+	Texture[TextureID].Height = ((LRT - ULT) + 1);
 	
-	if(Texture.Width > 256) {
-		Texture.WidthRender  = Texture.Width - 64;
+	if(Texture[TextureID].Width > 256) {
+		Texture[TextureID].WidthRender  = Texture[TextureID].Width - 64;
 	} else {
-		Texture.WidthRender  = Texture.Width;
+		Texture[TextureID].WidthRender  = Texture[TextureID].Width;
 	}
 	
-	if(Texture.Height > 256) {
-		Texture.HeightRender = Texture.Height - 64;
+	if(Texture[TextureID].Height > 256) {
+		Texture[TextureID].HeightRender = Texture[TextureID].Height - 64;
 	} else {
-		Texture.HeightRender = Texture.Height;
+		Texture[TextureID].HeightRender = Texture[TextureID].Height;
 	}
 	
 	Viewer_LoadTexture();
@@ -1436,72 +1463,81 @@ int Viewer_RenderMap_CMDSetPrimColor()
 /* VIEWER_RENDERMAP_CMDLOADTLUT - G_LOADTLUT - GET PALETTE FOR CI TEXTURES FROM PREVIOUS TEXTURE OFFSET */
 int Viewer_RenderMap_CMDLoadTLUT()
 {
-	/* currently forcing palette size of 256 */
-	unsigned int PaletteDataSize = 256;
-	
-	/* allocate buffer for raw palette data */
-	PaletteData = (unsigned char *) malloc (PaletteDataSize * 2);
-	
-	/* copy raw palette into buffer */
-	switch(Texture.DataSource) {
-	case 0x02:
-		/* palette comes from scene file */
-		memcpy(PaletteData, &ZSceneBuffer[PrevTextureOffset / 4], PaletteDataSize * 2);
-		break;
-	case 0x03:
-		/* palette comes from map file */
-		memcpy(PaletteData, &ZMapBuffer[PrevTextureOffset / 4], PaletteDataSize * 2);
-		break;
-	case 0x04:
-		/* palette comes from gameplay_keep */
-		memcpy(PaletteData, &GameplayKeepBuffer[PrevTextureOffset / 4], PaletteDataSize * 2);
-		break;
-	case 0x05:
-		/* palette comes from gameplay_dangeon_keep */
-		/* (gameplay_field_keep is not handled yet, always loading in file specified in Filename_GameplayFDKeep */
-		memcpy(PaletteData, &GameplayFDKeepBuffer[PrevTextureOffset / 4], PaletteDataSize * 2);
-		break;
-	default:
-		/* fallback if source is not handled / no valid source was found */
-		memset(PaletteData, 0xFF, PaletteDataSize);
-		break;
-	}
-	
-	/* initialize variables for palette conversion */
-	unsigned int CurrentPaletteEntry = 0;
-	unsigned int SourcePaletteData = 0;
-	unsigned int InPalettePosition = 0;
-	
-	unsigned int RExtract = 0;
-	unsigned int GExtract = 0;
-	unsigned int BExtract = 0;
-	unsigned int AExtract = 0;
-	
-	for(int i = 0; i < PaletteDataSize; i++) {
-		/* get raw rgba5551 data */
-		SourcePaletteData = (PaletteData[InPalettePosition] * 0x100) + PaletteData[InPalettePosition + 1];
+	if(!NoChangeCIPalette) {
+		/* clear the palette buffer */
+		memset(PaletteData, 0x00, sizeof(PaletteData));
 		
-		/* extract r, g, b and a elements */
-		RExtract = (SourcePaletteData & 0xF800);
-		RExtract >>= 8;
-		GExtract = (SourcePaletteData & 0x07C0);
-		GExtract <<= 5;
-		GExtract >>= 8;
-		BExtract = (SourcePaletteData & 0x003E);
-		BExtract <<= 18;
-		BExtract >>= 16;
+		/* calculate palette size, 16 or 256, from parameters */
+		unsigned int TempPaletteSize = (Readout_CurrentByte6 * 0x10000) + (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
+		unsigned int PaletteSize = ((TempPaletteSize & 0xFFF000) >> 14) + 1;
 		
-		if((SourcePaletteData & 0x0001)) { AExtract = 0xFF; } else { AExtract = 0x00; }
+		/* copy raw palette into buffer */
+		switch(Texture[LastCIPaletteID].DataSource) {
+		case 0x02:
+			/* palette comes from scene file */
+			memcpy(PaletteData, &ZSceneBuffer[Texture[LastCIPaletteID].Offset / 4], PaletteSize * 2);
+			break;
+		case 0x03:
+			/* palette comes from map file */
+			memcpy(PaletteData, &ZMapBuffer[Texture[LastCIPaletteID].Offset / 4], PaletteSize * 2);
+			break;
+		case 0x04:
+			/* palette comes from gameplay_keep */
+			memcpy(PaletteData, &GameplayKeepBuffer[Texture[LastCIPaletteID].Offset / 4], PaletteSize * 2);
+			break;
+		case 0x05:
+			/* palette comes from gameplay_dangeon_keep */
+			/* (gameplay_field_keep is not handled yet, always loading in file specified in Filename_GameplayFDKeep */
+			memcpy(PaletteData, &GameplayFDKeepBuffer[Texture[LastCIPaletteID].Offset / 4], PaletteSize * 2);
+			break;
+		default:
+			/* fallback if source is not handled / no valid source was found */
+			memset(PaletteData, 0xFF, PaletteSize * 2);
+			break;
+		}
 		
-		/* set the current ci palette index to the rgba values from above */
-		Palette[CurrentPaletteEntry].R = RExtract;
-		Palette[CurrentPaletteEntry].G = GExtract;
-		Palette[CurrentPaletteEntry].B = BExtract;
-		Palette[CurrentPaletteEntry].A = AExtract;
+		/* initialize variables for palette conversion */
+		unsigned int CurrentPaletteEntry = 0;
+		unsigned int SourcePaletteData = 0;
+		unsigned int InPalettePosition = 0;
 		
-		/* go on */
-		CurrentPaletteEntry++;
-		InPalettePosition += 2;
+		unsigned int PalLoop = 0;
+		
+		unsigned int RExtract = 0;
+		unsigned int GExtract = 0;
+		unsigned int BExtract = 0;
+		unsigned int AExtract = 0;
+		
+		for(PalLoop = 0; PalLoop < PaletteSize; PalLoop++) {
+			/* get raw rgba5551 data */
+			SourcePaletteData = (PaletteData[InPalettePosition] * 0x100) + PaletteData[InPalettePosition + 1];
+			
+			/* extract r, g, b and a elements */
+			RExtract = (SourcePaletteData & 0xF800);
+			RExtract >>= 8;
+			GExtract = (SourcePaletteData & 0x07C0);
+			GExtract <<= 5;
+			GExtract >>= 8;
+			BExtract = (SourcePaletteData & 0x003E);
+			BExtract <<= 18;
+			BExtract >>= 16;
+			
+			if((SourcePaletteData & 0x0001)) { AExtract = 0xFF; } else { AExtract = 0x00; }
+			
+			/* set the current ci palette index to the rgba values from above */
+			Palette[CurrentPaletteEntry].R = RExtract;
+			Palette[CurrentPaletteEntry].G = GExtract;
+			Palette[CurrentPaletteEntry].B = BExtract;
+			Palette[CurrentPaletteEntry].A = AExtract;
+			
+			/* go on */
+			CurrentPaletteEntry++;
+			InPalettePosition += 2;
+		}
+		
+		NoChangeCIPalette = true;
+	} else {
+		//
 	}
 	
 	return 0;
@@ -1515,6 +1551,7 @@ GLuint Viewer_LoadTexture()
 	int i, j = 0;
 	
 	unsigned long TextureBufferSize = 0x8000;
+	unsigned int TemporaryTextureID = 0;
 	
 	bool UnhandledTextureSource = false;
 	
@@ -1534,29 +1571,43 @@ GLuint Viewer_LoadTexture()
 		EmptyTexture[i + 3]	= 0xFF;
 	}
 	
-	switch(Texture.DataSource) {
+	switch(Texture[TextureID].Format_N64) {
+	case 0x40:
+	case 0x48:
+	case 0x50:
+//		MessageBox(hwnd, "CITEX", "", 0);
+		TemporaryTextureID = LastCITextureID;
+		break;
+	default:
+//		sprintf(StatusMsg, "texture type %x", Texture[TextureID].Format_N64);
+//		MessageBox(hwnd, StatusMsg, "", 0);
+		TemporaryTextureID = TextureID;
+		break;
+	}
+	
+	switch(Texture[TemporaryTextureID].DataSource) {
 	case 0x02:
-		memcpy(TextureData_N64, &ZSceneBuffer[Texture.Offset / 4], TextureBufferSize);
+		memcpy(TextureData_N64, &ZSceneBuffer[Texture[TemporaryTextureID].Offset / 4], TextureBufferSize);
 		break;
 	case 0x03:
-		memcpy(TextureData_N64, &ZMapBuffer[Texture.Offset / 4], TextureBufferSize);
+		memcpy(TextureData_N64, &ZMapBuffer[Texture[TemporaryTextureID].Offset / 4], TextureBufferSize);
 		break;
 	case 0x04:
-		memcpy(TextureData_N64, &GameplayKeepBuffer[Texture.Offset / 4], TextureBufferSize);
+		memcpy(TextureData_N64, &GameplayKeepBuffer[Texture[TemporaryTextureID].Offset / 4], TextureBufferSize);
 		break;
 	case 0x05:
-		memcpy(TextureData_N64, &GameplayFDKeepBuffer[Texture.Offset / 4], TextureBufferSize);
+		memcpy(TextureData_N64, &GameplayFDKeepBuffer[Texture[TemporaryTextureID].Offset / 4], TextureBufferSize);
 		break;
 	default:
 		UnhandledTextureSource = true;
-		Texture.Format_OGL = GL_RGBA;
-		Texture.Format_OGLPixel = GL_RGBA;
+		Texture[TemporaryTextureID].Format_OGL = GL_RGBA;
+		Texture[TemporaryTextureID].Format_OGLPixel = GL_RGBA;
 		memcpy(TextureData_OGL, EmptyTexture, TextureBufferSize);
 		break;
 	}
 	
 	if(!UnhandledTextureSource) {
-		switch(Texture.Format_N64) {
+		switch(Texture[TemporaryTextureID].Format_N64) {
 		/* RGBA FORMAT */
 		case 0x00:
 //		case 0x08:
@@ -1572,8 +1623,8 @@ GLuint Viewer_LoadTexture()
 			unsigned int LoadRGBA_InTexturePosition_N64 = 0;
 			unsigned int LoadRGBA_InTexturePosition_OGL = 0;
 			
-			for(j = 0; j < Texture.Height; j++) {
-				for(i = 0; i < Texture.Width; i++) {
+			for(j = 0; j < Texture[TemporaryTextureID].Height; j++) {
+				for(i = 0; i < Texture[TemporaryTextureID].Width; i++) {
 					LoadRGBA_RGBA5551 = (TextureData_N64[LoadRGBA_InTexturePosition_N64] * 0x100) + TextureData_N64[LoadRGBA_InTexturePosition_N64 + 1];
 					
 					LoadRGBA_RExtract = (LoadRGBA_RGBA5551 & 0xF800);
@@ -1599,7 +1650,7 @@ GLuint Viewer_LoadTexture()
 					LoadRGBA_InTexturePosition_N64 += 2;
 					LoadRGBA_InTexturePosition_OGL += 4;
 				}
-				LoadRGBA_InTexturePosition_N64 += Texture.LineSize * 4 - Texture.Width;
+				LoadRGBA_InTexturePosition_N64 += Texture[TemporaryTextureID].LineSize * 4 - Texture[TemporaryTextureID].Width;
 			}
 			
 			break;
@@ -1614,8 +1665,8 @@ GLuint Viewer_LoadTexture()
 			unsigned int LoadCI_InTexturePosition_N64 = 0;
 			unsigned int LoadCI_InTexturePosition_OGL = 0;
 			
-			for(j = 0; j < Texture.Height; j++) {
-				for(i = 0; i < Texture.Width / 2; i++) {
+			for(j = 0; j < Texture[TemporaryTextureID].Height; j++) {
+				for(i = 0; i < Texture[TemporaryTextureID].Width / 2; i++) {
 					LoadCI_CIData1 = (TextureData_N64[LoadCI_InTexturePosition_N64] & 0xF0) >> 4;
 					LoadCI_CIData2 = TextureData_N64[LoadCI_InTexturePosition_N64] & 0x0F;
 					
@@ -1631,7 +1682,7 @@ GLuint Viewer_LoadTexture()
 					LoadCI_InTexturePosition_N64 += 1;
 					LoadCI_InTexturePosition_OGL += 8;
 				}
-				LoadCI_InTexturePosition_N64 += Texture.LineSize * 8 - (Texture.Width / 2);
+				LoadCI_InTexturePosition_N64 += Texture[TemporaryTextureID].LineSize * 8 - (Texture[TemporaryTextureID].Width / 2);
 			}
 			
 			break;
@@ -1643,8 +1694,8 @@ GLuint Viewer_LoadTexture()
 			unsigned int LoadCI_InTexturePosition_N64 = 0;
 			unsigned int LoadCI_InTexturePosition_OGL = 0;
 			
-			for(j = 0; j < Texture.Height; j++) {
-				for(i = 0; i < Texture.Width; i++) {
+			for(j = 0; j < Texture[TemporaryTextureID].Height; j++) {
+				for(i = 0; i < Texture[TemporaryTextureID].Width; i++) {
 					LoadCI_CIData = TextureData_N64[LoadCI_InTexturePosition_N64];
 					
 					TextureData_OGL[LoadCI_InTexturePosition_OGL]     = Palette[LoadCI_CIData].R;
@@ -1655,7 +1706,7 @@ GLuint Viewer_LoadTexture()
 					LoadCI_InTexturePosition_N64 += 1;
 					LoadCI_InTexturePosition_OGL += 4;
 				}
-				LoadCI_InTexturePosition_N64 += Texture.LineSize * 8 - Texture.Width;
+				LoadCI_InTexturePosition_N64 += Texture[TemporaryTextureID].LineSize * 8 - Texture[TemporaryTextureID].Width;
 			}
 			
 			break;
@@ -1673,8 +1724,8 @@ GLuint Viewer_LoadTexture()
 			unsigned int LoadIA_InTexturePosition_N64 = 0;
 			unsigned int LoadIA_InTexturePosition_OGL = 0;
 			
-			for(j = 0; j < Texture.Height; j++) {
-				for(i = 0; i < Texture.Width / 2; i++) {
+			for(j = 0; j < Texture[TemporaryTextureID].Height; j++) {
+				for(i = 0; i < Texture[TemporaryTextureID].Width / 2; i++) {
 					LoadIA_IAData = (TextureData_N64[LoadIA_InTexturePosition_N64] & 0xF0) >> 4;
 					LoadIA_IExtract1 = (LoadIA_IAData & 0x0E) << 4;
 					if((LoadIA_IAData & 0x01)) { LoadIA_AExtract1 = 0xFF; } else { LoadIA_AExtract1 = 0x00; }
@@ -1691,7 +1742,7 @@ GLuint Viewer_LoadTexture()
 					LoadIA_InTexturePosition_N64 += 1;
 					LoadIA_InTexturePosition_OGL += 4;
 				}
-				LoadIA_InTexturePosition_N64 += Texture.LineSize * 8 - (Texture.Width / 2);
+				LoadIA_InTexturePosition_N64 += Texture[TemporaryTextureID].LineSize * 8 - (Texture[TemporaryTextureID].Width / 2);
 			}
 			
 			break;
@@ -1706,8 +1757,8 @@ GLuint Viewer_LoadTexture()
 			unsigned int LoadIA_InTexturePosition_N64 = 0;
 			unsigned int LoadIA_InTexturePosition_OGL = 0;
 			
-			for(j = 0; j < Texture.Height; j++) {
-				for(i = 0; i < Texture.Width; i++) {
+			for(j = 0; j < Texture[TemporaryTextureID].Height; j++) {
+				for(i = 0; i < Texture[TemporaryTextureID].Width; i++) {
 					LoadIA_IAData = TextureData_N64[LoadIA_InTexturePosition_N64];
 					LoadIA_IExtract = (LoadIA_IAData & 0xFE);
 					if((LoadIA_IAData & 0x01)) { LoadIA_AExtract = 0xFF; } else { LoadIA_AExtract = 0x00; }
@@ -1718,7 +1769,7 @@ GLuint Viewer_LoadTexture()
 					LoadIA_InTexturePosition_N64 += 1;
 					LoadIA_InTexturePosition_OGL += 2;
 				}
-				LoadIA_InTexturePosition_N64 += Texture.LineSize * 8 - Texture.Width;
+				LoadIA_InTexturePosition_N64 += Texture[TemporaryTextureID].LineSize * 8 - Texture[TemporaryTextureID].Width;
 			}
 			
 			break;
@@ -1733,8 +1784,8 @@ GLuint Viewer_LoadTexture()
 			unsigned int LoadIA_InTexturePosition_N64 = 0;
 			unsigned int LoadIA_InTexturePosition_OGL = 0;
 			
-			for(j = 0; j < Texture.Height; j++) {
-				for(i = 0; i < Texture.Width; i++) {
+			for(j = 0; j < Texture[TemporaryTextureID].Height; j++) {
+				for(i = 0; i < Texture[TemporaryTextureID].Width; i++) {
 					LoadIA_IAData = TextureData_N64[LoadIA_InTexturePosition_N64];
 					LoadIA_IExtract = LoadIA_IAData;
 					
@@ -1747,7 +1798,7 @@ GLuint Viewer_LoadTexture()
 					LoadIA_InTexturePosition_N64 += 2;
 					LoadIA_InTexturePosition_OGL += 2;
 				}
-				LoadIA_InTexturePosition_N64 += Texture.LineSize * 4 - Texture.Width;
+				LoadIA_InTexturePosition_N64 += Texture[TemporaryTextureID].LineSize * 4 - Texture[TemporaryTextureID].Width;
 			}
 			
 			break;
@@ -1765,8 +1816,8 @@ GLuint Viewer_LoadTexture()
 			unsigned int LoadIA_InTexturePosition_N64 = 0;
 			unsigned int LoadIA_InTexturePosition_OGL = 0;
 			
-			for(j = 0; j < Texture.Height; j++) {
-				for(i = 0; i < Texture.Width / 2; i++) {
+			for(j = 0; j < Texture[TemporaryTextureID].Height; j++) {
+				for(i = 0; i < Texture[TemporaryTextureID].Width / 2; i++) {
 					LoadIA_IAData = (TextureData_N64[LoadIA_InTexturePosition_N64] & 0xF0) >> 4;
 					LoadIA_IExtract1 = (LoadIA_IAData & 0x0F) << 4;
 					
@@ -1779,7 +1830,7 @@ GLuint Viewer_LoadTexture()
 					LoadIA_InTexturePosition_N64 += 1;
 					LoadIA_InTexturePosition_OGL += 2;
 				}
-				LoadIA_InTexturePosition_N64 += Texture.LineSize * 8 - (Texture.Width / 2);
+				LoadIA_InTexturePosition_N64 += Texture[TemporaryTextureID].LineSize * 8 - (Texture[TemporaryTextureID].Width / 2);
 			}
 			
 			break;
@@ -1792,8 +1843,8 @@ GLuint Viewer_LoadTexture()
 			unsigned int LoadI_InTexturePosition_N64 = 0;
 			unsigned int LoadI_InTexturePosition_OGL = 0;
 			
-			for(j = 0; j < Texture.Height; j++) {
-				for(i = 0; i < Texture.Width; i++) {
+			for(j = 0; j < Texture[TemporaryTextureID].Height; j++) {
+				for(i = 0; i < Texture[TemporaryTextureID].Width; i++) {
 					LoadI_IData = TextureData_N64[LoadI_InTexturePosition_N64];
 					
 					TextureData_OGL[LoadI_InTexturePosition_OGL] = LoadI_IData;
@@ -1801,7 +1852,7 @@ GLuint Viewer_LoadTexture()
 					LoadI_InTexturePosition_N64 += 1;
 					LoadI_InTexturePosition_OGL += 1;
 				}
-				LoadI_InTexturePosition_N64 += Texture.LineSize * 8 - Texture.Width;
+				LoadI_InTexturePosition_N64 += Texture[TemporaryTextureID].LineSize * 8 - Texture[TemporaryTextureID].Width;
 			}
 			
 			break;
@@ -1809,35 +1860,35 @@ GLuint Viewer_LoadTexture()
 		/* FALLBACK - gives us an empty texture */
 		default:
 			{
-			sprintf(ErrorMsg, "Unhandled Texture Type 0x%02X!", Texture.Format_N64);
+			sprintf(ErrorMsg, "Unhandled Texture Type 0x%02X!", Texture[TemporaryTextureID].Format_N64);
 			MessageBox(hwnd, ErrorMsg, "Error", MB_OK | MB_ICONERROR);
-			Texture.Format_OGL = GL_RGBA;
-			Texture.Format_OGLPixel = GL_RGBA;
+			Texture[TemporaryTextureID].Format_OGL = GL_RGBA;
+			Texture[TemporaryTextureID].Format_OGLPixel = GL_RGBA;
 			memcpy(TextureData_OGL, EmptyTexture, TextureBufferSize);
 			break;
 			}
 		}
 	}
 	
-	switch(Texture.Y_Parameter) {
+	switch(Texture[TemporaryTextureID].Y_Parameter) {
 		case 1:  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT); break;
 		case 2:  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP); break;
 		case 3:  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT_ARB); break;
 		default: glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT); break;
 	}
 	
-	switch(Texture.X_Parameter) {
+	switch(Texture[TemporaryTextureID].X_Parameter) {
 		case 1:  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); break;
 		case 2:  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP); break;
 		case 3:  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT_ARB); break;
 		default: glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); break;
 	}
 	
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	
-//	glTexImage2D(GL_TEXTURE_2D, 0, Texture.Format_OGL, Texture.WidthRender, Texture.HeightRender, 0, Texture.Format_OGLPixel, GL_UNSIGNED_BYTE, TextureData_OGL);
-	gluBuild2DMipmaps(GL_TEXTURE_2D, Texture.Format_OGL, Texture.WidthRender, Texture.HeightRender, Texture.Format_OGLPixel, GL_UNSIGNED_BYTE, TextureData_OGL);
+//	glTexImage2D(GL_TEXTURE_2D, 0, Texture[TemporaryTextureID].Format_OGL, Texture[TemporaryTextureID].WidthRender, Texture[TemporaryTextureID].HeightRender, 0, Texture[TemporaryTextureID].Format_OGLPixel, GL_UNSIGNED_BYTE, TextureData_OGL);
+	gluBuild2DMipmaps(GL_TEXTURE_2D, Texture[TemporaryTextureID].Format_OGL, Texture[TemporaryTextureID].WidthRender, Texture[TemporaryTextureID].HeightRender, Texture[TemporaryTextureID].Format_OGLPixel, GL_UNSIGNED_BYTE, TextureData_OGL);
 	
 	free(TextureData_N64);
 	free(TextureData_OGL);
@@ -1848,9 +1899,15 @@ GLuint Viewer_LoadTexture()
 /*	------------------------------------------------------------ */
 
 /* VIEWER_RENDERACTOR - RENDERS AN INFAMOUS 'ACTOR CUBE' AT THE SPECIFIED LOCATION ON THE MAP */
-int Viewer_RenderActor(int ActorToRender, GLshort X, GLshort Y, GLshort Z, GLshort X_Rot, GLshort Y_Rot, GLshort Z_Rot, bool IsMapActor)
+int Viewer_RenderActor(int ActorToRender, GLshort X, GLshort Y, GLshort Z, signed int X_Rot, signed int Y_Rot, signed int Z_Rot, bool IsMapActor)
 {
-	/* rotation values are being ignored at the moment */
+	glPushMatrix();
+	
+	glTranslated(X, Y, Z);
+	glRotatef((X_Rot / 180), 1, 0, 0);
+	glRotatef((Y_Rot / 180), 0, 1, 0);
+	glRotatef((Z_Rot / 180), 0, 0, 1);
+	
 	glBegin(GL_QUADS);
 		/* CHECK IF ACTOR IS MAP ACTOR OR SCENE ACTOR */
 		if(IsMapActor) {
@@ -1867,37 +1924,41 @@ int Viewer_RenderActor(int ActorToRender, GLshort X, GLshort Y, GLshort Z, GLsho
 			}
 		}
 		
-		glVertex3s( 15 + X, 15 + Y, 15 + Z);   //V2
-		glVertex3s( 15 + X,-15 + Y, 15 + Z);   //V1
-		glVertex3s( 15 + X,-15 + Y,-15 + Z);   //V3
-		glVertex3s( 15 + X, 15 + Y,-15 + Z);   //V4
+		glVertex3s( 12, 12, 12);   //V2
+		glVertex3s( 12,-12, 12);   //V1
+		glVertex3s( 12,-12,-12);   //V3
+		glVertex3s( 12, 12,-12);   //V4
 		
-		glVertex3s( 15 + X, 15 + Y,-15 + Z);   //V4
-		glVertex3s( 15 + X,-15 + Y,-15 + Z);   //V3
-		glVertex3s(-15 + X,-15 + Y,-15 + Z);   //V5
-		glVertex3s(-15 + X, 15 + Y,-15 + Z);   //V6
+		glVertex3s( 12, 12,-12);   //V4
+		glVertex3s( 12,-12,-12);   //V3
+		glVertex3s(-12,-12,-12);   //V5
+		glVertex3s(-12, 12,-12);   //V6
 		
-		glVertex3s(-15 + X, 15 + Y,-15 + Z);   //V6
-		glVertex3s(-15 + X,-15 + Y,-15 + Z);   //V5
-		glVertex3s(-15 + X,-15 + Y, 15 + Z);   //V7
-		glVertex3s(-15 + X, 15 + Y, 15 + Z);   //V8
+		glVertex3s(-12, 12,-12);   //V6
+		glVertex3s(-12,-12,-12);   //V5
+		glVertex3s(-12,-12, 12);   //V7
+		glVertex3s(-12, 12, 12);   //V8
 		
-		glVertex3s(-15 + X, 15 + Y,-15 + Z);   //V6
-		glVertex3s(-15 + X, 15 + Y, 15 + Z);   //V8
-		glVertex3s( 15 + X, 15 + Y, 15 + Z);   //V2
-		glVertex3s( 15 + X, 15 + Y,-15 + Z);   //V4
+		glVertex3s(-12, 12,-12);   //V6
+		glVertex3s(-12, 12, 12);   //V8
+		glVertex3s( 12, 12, 12);   //V2
+		glVertex3s( 12, 12,-12);   //V4
 		
-		glVertex3s(-15 + X,-15 + Y, 15 + Z);   //V7
-		glVertex3s(-15 + X,-15 + Y,-15 + Z);   //V5
-		glVertex3s( 15 + X,-15 + Y,-15 + Z);   //V3
-		glVertex3s( 15 + X,-15 + Y, 15 + Z);   //V1
+		glVertex3s(-12,-12, 12);   //V7
+		glVertex3s(-12,-12,-12);   //V5
+		glVertex3s( 12,-12,-12);   //V3
+		glVertex3s( 12,-12, 12);   //V1
 		
 		//front
-		glVertex3s(-15 + X, 15 + Y, 15 + Z);   //V8
-		glVertex3s(-15 + X,-15 + Y, 15 + Z);   //V7
-		glVertex3s( 15 + X,-15 + Y, 15 + Z);   //V1
-		glVertex3s( 15 + X, 15 + Y, 15 + Z);   //V2
+		glColor3f(1.0f, 1.0f, 1.0f);
+		
+		glVertex3s(-12, 12, 12);   //V8
+		glVertex3s(-12,-12, 12);   //V7
+		glVertex3s( 12,-12, 12);   //V1
+		glVertex3s( 12, 12, 12);   //V2
 	glEnd();
+	
+	glPopMatrix();
 	
 	return 0;
 }
@@ -2021,7 +2082,7 @@ int DrawGLScene(void)
 			glTranslatef(-0.5f, 0.32f, -1.0f);
 			
 			if (!MapHeader[MapHeader_Current].Actor_Count == 0) {
-				sprintf(MapActorMsg, "Map Actor: #%d, Type %04X, Variable %04X, X: %d, Y: %d, Z: %d", ActorInfo_Selected, Actors[ActorInfo_Selected].Number, Actors[ActorInfo_Selected].Variable, Actors[ActorInfo_Selected].X_Position, Actors[ActorInfo_Selected].Y_Position, Actors[ActorInfo_Selected].Z_Position);
+				sprintf(MapActorMsg, "Map Actor: #%d, Type %04X, Variable %04X, X: %d, Y: %d, Z: %d, X Rot: %d, Y Rot: %d, Z Rot: %d", ActorInfo_Selected, Actors[ActorInfo_Selected].Number, Actors[ActorInfo_Selected].Variable, Actors[ActorInfo_Selected].X_Position, Actors[ActorInfo_Selected].Y_Position, Actors[ActorInfo_Selected].Z_Position, Actors[ActorInfo_Selected].X_Rotation, Actors[ActorInfo_Selected].Y_Rotation, Actors[ActorInfo_Selected].Z_Rotation);
 			} else {
 				sprintf(MapActorMsg, "No Map Actors found.");
 			}
@@ -2065,6 +2126,59 @@ int DrawGLScene(void)
 				0.0f, 1.0f, 0.0f);
 		
 		glScalef(0.005, 0.005, 0.005);
+		
+		ActorInfo_CurrentCount = 0;
+		ScActorInfo_CurrentCount = 0;
+		
+		if(Renderer_EnableMapActors) {
+			if (MapHeader[MapHeader_Current].Actor_Count > 0) {
+				glDisable(GL_TEXTURE_2D);
+				glDisable(GL_FOG);
+				
+				while (!(ActorInfo_CurrentCount == MapHeader[MapHeader_Current].Actor_Count)) {
+					glEnable(GL_LIGHT1);
+					glDisable(GL_LIGHTING);
+					glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+					Viewer_RenderActor(ActorInfo_CurrentCount, Actors[ActorInfo_CurrentCount].X_Position, Actors[ActorInfo_CurrentCount].Y_Position, Actors[ActorInfo_CurrentCount].Z_Position, Actors[ActorInfo_CurrentCount].X_Rotation, Actors[ActorInfo_CurrentCount].Y_Rotation, Actors[ActorInfo_CurrentCount].Z_Rotation, true);
+					glEnable(GL_LIGHTING);
+					glDisable(GL_LIGHT1);
+					glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+					glEnable(GL_POLYGON_OFFSET_LINE);
+					glPolygonOffset(-1.0f,-1.0f);
+					glColor3f(1.0f, 1.0f, 1.0f);
+					Viewer_RenderActor(ActorInfo_CurrentCount, Actors[ActorInfo_CurrentCount].X_Position, Actors[ActorInfo_CurrentCount].Y_Position, Actors[ActorInfo_CurrentCount].Z_Position, Actors[ActorInfo_CurrentCount].X_Rotation, Actors[ActorInfo_CurrentCount].Y_Rotation, Actors[ActorInfo_CurrentCount].Z_Rotation ,true);
+					glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+					glEnable(GL_LIGHT1);
+					glDisable(GL_LIGHTING);
+					ActorInfo_CurrentCount++;
+				}
+			}
+		}
+		
+		if(Renderer_EnableSceneActors) {
+			if (SceneHeader[SceneHeader_Current].ScActor_Count > 0) {
+				glDisable(GL_TEXTURE_2D);
+				glDisable(GL_FOG);
+				
+				while (!(ScActorInfo_CurrentCount == SceneHeader[SceneHeader_Current].ScActor_Count)) {
+					glEnable(GL_LIGHT1);
+					glDisable(GL_LIGHTING);
+					glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+					Viewer_RenderActor(ScActorInfo_CurrentCount, ScActors[ScActorInfo_CurrentCount].X_Position, ScActors[ScActorInfo_CurrentCount].Y_Position, ScActors[ScActorInfo_CurrentCount].Z_Position, ScActors[ScActorInfo_CurrentCount].X_Rotation, ScActors[ScActorInfo_CurrentCount].Y_Rotation, ScActors[ScActorInfo_CurrentCount].Z_Rotation, false);
+					glEnable(GL_LIGHTING);
+					glDisable(GL_LIGHT1);
+					glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+					glEnable(GL_POLYGON_OFFSET_LINE);
+					glPolygonOffset(-1.0f,-1.0f);
+					glColor3f(1.0f, 1.0f, 1.0f);
+					Viewer_RenderActor(ScActorInfo_CurrentCount, ScActors[ScActorInfo_CurrentCount].X_Position, ScActors[ScActorInfo_CurrentCount].Y_Position, ScActors[ScActorInfo_CurrentCount].Z_Position, ScActors[ScActorInfo_CurrentCount].X_Rotation, ScActors[ScActorInfo_CurrentCount].Y_Rotation, ScActors[ScActorInfo_CurrentCount].Z_Rotation, false);
+					glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+					glEnable(GL_LIGHT1);
+					glDisable(GL_LIGHTING);
+					ScActorInfo_CurrentCount++;
+				}
+			}
+		}
 		
 		glEnable(GL_TEXTURE_2D);
 		glCallList(Renderer_GLDisplayList);
