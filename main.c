@@ -54,7 +54,7 @@ enum { true = 1, false = 0 };
 	DEFINES
 	------------------------------------------------------------ */
 
-#define	HACKS_ENABLED	false				/* EN-/DISABLE MISC HACKS ("SUB-DLISTS" ETC) */
+#define	HACKS_ENABLED	false				/* EN-/DISABLE MISC HACKS (not used at the moment) */
 
 /*	------------------------------------------------------------
 	SYSTEM FUNCTIONS - OPENGL & WINDOWS
@@ -71,6 +71,7 @@ int Viewer_GetSceneActors(int);
 int Viewer_GetDisplayLists(unsigned long);
 
 int Viewer_RenderMap(int);
+int Viewer_RenderMap_DListParser(bool, unsigned int, unsigned long);
 
 int Viewer_RenderMap_CMDVertexList();
 int Viewer_GetVertexList(unsigned long, int, unsigned int);
@@ -84,14 +85,15 @@ int Viewer_RenderMap_CMDGeometryMode();
 int Viewer_RenderMap_CMDSetFogColor();
 int Viewer_RenderMap_CMDSetPrimColor();
 int Viewer_RenderMap_CMDLoadTLUT();
+int Viewer_RenderMap_CMDRDPHalf1();
 
 GLuint Viewer_LoadTexture();
 
 int Viewer_RenderActor(int, GLshort, GLshort, GLshort, signed int, signed int, signed int, bool);
 
-void HelperFunc_SplitCurrentVals(bool, bool);
+void HelperFunc_SplitCurrentVals(bool);
 int HelperFunc_GFXLogMessage(char[]);
-int HelperFunc_GFXLogCommand();
+int HelperFunc_GFXLogCommand(unsigned int);
 int HelperFunc_CalculateFPS();
 
 int InitGL(void);
@@ -191,6 +193,8 @@ bool			ZSceneExists = false;
 
 FILE			* FileGFXLog;
 
+bool			IsMajoraData = false;				/* set to true to skip header and actor analyzing, makes MM maps load up */
+
 /* DATA READOUT VARIABLES */
 unsigned long	Readout_Current1 = 0;
 unsigned long	Readout_Current2 = 0;
@@ -203,24 +207,16 @@ unsigned int	Readout_CurrentByte6 = 0;
 unsigned int	Readout_CurrentByte7 = 0;
 unsigned int	Readout_CurrentByte8 = 0;
 
-unsigned long	Readout_Current1_Backup = 0;
-unsigned long	Readout_Current2_Backup = 0;
-unsigned int	Readout_CurrentByte1_Backup = 0;
-unsigned int	Readout_CurrentByte2_Backup = 0;
-unsigned int	Readout_CurrentByte3_Backup = 0;
-unsigned int	Readout_CurrentByte4_Backup = 0;
-unsigned int	Readout_CurrentByte5_Backup = 0;
-unsigned int	Readout_CurrentByte6_Backup = 0;
-unsigned int	Readout_CurrentByte7_Backup = 0;
-unsigned int	Readout_CurrentByte8_Backup = 0;
-
 /* F3DZEX DISPLAY LIST HANDLING VARIABLES */
 unsigned long	DLists[2048];
 signed long		DListInfo_CurrentCount;
 signed long		DListInfo_DListToRender;
 unsigned long	DLTempPosition;
 
-unsigned long	Sub_DLTempPosition;
+unsigned int	DLToRender = 0;
+bool			DListHasEnded = false;
+
+bool			SubDLCall = false;
 
 /* F3DZEX TEXTURE HANDLING VARIABLES */
 unsigned char	* TextureData_OGL;
@@ -456,7 +452,7 @@ int Viewer_OpenMapScene()
 	
 	memcpy(&Readout_Current1, &ZMapBuffer[0], 4);
 	memcpy(&Readout_Current2, &ZMapBuffer[0 + 1], 4);
-	HelperFunc_SplitCurrentVals(true, false);
+	HelperFunc_SplitCurrentVals(true);
 	
 	if((Readout_CurrentByte1 == 0x08) || (Readout_CurrentByte1 == 0x16) || (Readout_CurrentByte1 == 0x18)) {
 		if((Readout_CurrentByte1 == 0x18)) {
@@ -469,7 +465,7 @@ int Viewer_OpenMapScene()
 		
 		memcpy(&Readout_Current1, &ZSceneBuffer[0], 4);
 		memcpy(&Readout_Current2, &ZSceneBuffer[0 + 1], 4);
-		HelperFunc_SplitCurrentVals(true, false);
+		HelperFunc_SplitCurrentVals(true);
 		
 		if((Readout_CurrentByte1 == 0x18)) {
 			SceneHeader_MultiHeaderMap = true;
@@ -494,10 +490,13 @@ int Viewer_OpenMapScene()
 		
 		PaletteData = (unsigned char *) malloc (1024);
 		
-		Viewer_GetMapHeader(MapHeader_Current);
-		Viewer_GetSceneHeader(SceneHeader_Current);
-		Viewer_GetMapActors(MapHeader_Current);
-		Viewer_GetSceneActors(SceneHeader_Current);
+		if(!IsMajoraData) {
+			Viewer_GetMapHeader(MapHeader_Current);
+			Viewer_GetSceneHeader(SceneHeader_Current);
+			Viewer_GetMapActors(MapHeader_Current);
+			Viewer_GetSceneActors(SceneHeader_Current);
+		}
+		
 		Viewer_GetDisplayLists(ZMapFilesize);
 		
 		CamAngleX = 0.0f, CamAngleY = 0.0f;
@@ -525,7 +524,7 @@ int Viewer_GetMapHeaderList(int HeaderListPos)
 	while (!EndOfList) {
 		memcpy(&Readout_Current1, &ZMapBuffer[HeaderListPos], 4);
 		
-		HelperFunc_SplitCurrentVals(false, false);
+		HelperFunc_SplitCurrentVals(false);
 		
 		if ((Readout_CurrentByte1 == 0x03)) {
 			MapHeader_List[MapHeader_TotalCount] = (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
@@ -551,7 +550,7 @@ int Viewer_GetMapHeader(int CurrentHeader)
 		memcpy(&Readout_Current1, &ZMapBuffer[InHeaderPos], 4);
 		memcpy(&Readout_Current2, &ZMapBuffer[InHeaderPos + 1], 4);
 		
-		HelperFunc_SplitCurrentVals(true, false);
+		HelperFunc_SplitCurrentVals(true);
 		
 		switch(Readout_CurrentByte1) {
 		case 0x16:
@@ -599,7 +598,7 @@ int Viewer_GetSceneHeaderList(int HeaderListPos)
 	while (!EndOfList) {
 		memcpy(&Readout_Current1, &ZSceneBuffer[HeaderListPos], 4);
 		
-		HelperFunc_SplitCurrentVals(false, false);
+		HelperFunc_SplitCurrentVals(false);
 		
 		if ((Readout_CurrentByte1 == 0x02)) {
 			SceneHeader_List[SceneHeader_TotalCount] = (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
@@ -625,7 +624,7 @@ int Viewer_GetSceneHeader(int CurrentHeader)
 		memcpy(&Readout_Current1, &ZSceneBuffer[InHeaderPos], 4);
 		memcpy(&Readout_Current2, &ZSceneBuffer[InHeaderPos + 1], 4);
 		
-		HelperFunc_SplitCurrentVals(true, false);
+		HelperFunc_SplitCurrentVals(true);
 		
 		switch(Readout_CurrentByte1) {
 		case 0x00:
@@ -656,7 +655,7 @@ int Viewer_GetMapActors(int CurrentHeader)
 			memcpy(&Readout_Current1, &ZMapBuffer[InActorDataPos], 4);
 			memcpy(&Readout_Current2, &ZMapBuffer[InActorDataPos + 1], 4);
 			
-			HelperFunc_SplitCurrentVals(true, false);
+			HelperFunc_SplitCurrentVals(true);
 			
 			Actors[ActorInfo_CurrentCount].Number = (Readout_CurrentByte1 * 0x100) + Readout_CurrentByte2;
 			Actors[ActorInfo_CurrentCount].X_Position = (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
@@ -666,7 +665,7 @@ int Viewer_GetMapActors(int CurrentHeader)
 			memcpy(&Readout_Current1, &ZMapBuffer[InActorDataPos + 2], 4);
 			memcpy(&Readout_Current2, &ZMapBuffer[InActorDataPos + 3], 4);
 			
-			HelperFunc_SplitCurrentVals(true, false);
+			HelperFunc_SplitCurrentVals(true);
 			
 			Actors[ActorInfo_CurrentCount].X_Rotation = (Readout_CurrentByte1 * 0x100) + Readout_CurrentByte2;
 			Actors[ActorInfo_CurrentCount].Y_Rotation = (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
@@ -694,7 +693,7 @@ int Viewer_GetSceneActors(int CurrentHeader)
 			memcpy(&Readout_Current1, &ZSceneBuffer[InScActorDataPos], 4);
 			memcpy(&Readout_Current2, &ZSceneBuffer[InScActorDataPos + 1], 4);
 			
-			HelperFunc_SplitCurrentVals(true, false);
+			HelperFunc_SplitCurrentVals(true);
 			
 			ScActors[ScActorInfo_CurrentCount].Number = (Readout_CurrentByte1 * 0x100) + Readout_CurrentByte2;
 			ScActors[ScActorInfo_CurrentCount].X_Position = (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
@@ -704,7 +703,7 @@ int Viewer_GetSceneActors(int CurrentHeader)
 			memcpy(&Readout_Current1, &ZMapBuffer[InScActorDataPos + 2], 4);
 			memcpy(&Readout_Current2, &ZMapBuffer[InScActorDataPos + 3], 4);
 			
-			HelperFunc_SplitCurrentVals(true, false);
+			HelperFunc_SplitCurrentVals(true);
 			
 			ScActors[ScActorInfo_CurrentCount].X_Rotation = (Readout_CurrentByte1 * 0x100) + Readout_CurrentByte2;
 			ScActors[ScActorInfo_CurrentCount].Y_Rotation = (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
@@ -730,7 +729,7 @@ int Viewer_GetDisplayLists(unsigned long Fsize)
 		memcpy(&Readout_Current1, &ZMapBuffer[DListScanPosition], 4);
 		memcpy(&Readout_Current2, &ZMapBuffer[DListScanPosition + 1], 4);
 		
-		HelperFunc_SplitCurrentVals(true, false);
+		HelperFunc_SplitCurrentVals(true);
 		
 		if ((Readout_CurrentByte1 == F3DEX2_DL) && (Readout_CurrentByte2 == 0x00)) {
 			if((Readout_CurrentByte3 == 0x00) && (Readout_CurrentByte4 == 0x00)) {
@@ -746,7 +745,7 @@ int Viewer_GetDisplayLists(unsigned long Fsize)
 		}
 		
 		/* HACK: ADD DLISTS CALLED BY RDPHALF_1 TO DLIST OFFSET LIST SO THAT THEY'RE DISPLAYED */
-		if(HACKS_ENABLED) {
+/*		if(HACKS_ENABLED) {
 			if ((Readout_CurrentByte1 == F3DEX2_RDPHALF_1) && (Readout_CurrentByte2 == 0x00)) {
 				if((Readout_CurrentByte3 == 0x00) && (Readout_CurrentByte4 == 0x00)) {
 					if((Readout_CurrentByte5 == 0x03)) {
@@ -763,7 +762,7 @@ int Viewer_GetDisplayLists(unsigned long Fsize)
 				}
 			}
 		}
-		
+		*/
 		DListScanPosition += 2;
 	}
 	
@@ -775,7 +774,6 @@ int Viewer_RenderMap(int SingleDLNumber)
 {
 	if(!MapLoaded) FileGFXLog = fopen("log.txt", "w");
 	
-	int DLToRender = 0;
 	int DListInfo_CurrentCount_Render = 0;
 	
 	if((SingleDLNumber == -1)) {
@@ -786,166 +784,14 @@ int Viewer_RenderMap(int SingleDLNumber)
 		DListInfo_CurrentCount_Render = SingleDLNumber + 1;
 	}
 	
-	bool DListHasEnded = false;
-	
 	if(Renderer_GLDisplayList != 0) {
 		glNewList(Renderer_GLDisplayList, GL_COMPILE);
 		while (!(DLToRender == DListInfo_CurrentCount_Render)) {
 			DLTempPosition = DLists[DLToRender] / 4;
 			
-			sprintf(GFXLogMsg, "Display List #%d (0x%08X):\n", DLToRender + 1, (unsigned int)DLTempPosition * 4);
-			HelperFunc_GFXLogMessage(GFXLogMsg);
+			SubDLCall = false;
+			Viewer_RenderMap_DListParser(false, DLToRender, DLTempPosition);
 			
-			while (!DListHasEnded) {
-				memcpy(&Readout_Current1, &ZMapBuffer[DLTempPosition], 4);
-				memcpy(&Readout_Current2, &ZMapBuffer[DLTempPosition + 1], 4);
-				
-				HelperFunc_SplitCurrentVals(true, false);
-				
-				switch(Readout_CurrentByte1) {
-				case F3DEX2_VTX:
-					sprintf(CurrentGFXCmd, "F3DEX2_VTX           ");
-					sprintf(CurrentGFXCmdNote, "-");
-					HelperFunc_GFXLogCommand();
-					Viewer_RenderMap_CMDVertexList();
-					break;
-				case F3DEX2_TRI1:
-					sprintf(CurrentGFXCmd, "F3DEX2_TRI1          ");
-					sprintf(CurrentGFXCmdNote, "-");
-					HelperFunc_GFXLogCommand();
-					Viewer_RenderMap_CMDDrawTri1();
-					break;
-				case F3DEX2_TRI2:
-					sprintf(CurrentGFXCmd, "F3DEX2_TRI2          ");
-					sprintf(CurrentGFXCmdNote, "-");
-					HelperFunc_GFXLogCommand();
-					Viewer_RenderMap_CMDDrawTri2();
-					break;
-				case F3DEX2_TEXTURE:
-					sprintf(CurrentGFXCmd, "F3DEX2_TEXTURE       ");
-					sprintf(CurrentGFXCmdNote, "-");
-					HelperFunc_GFXLogCommand();
-					Viewer_RenderMap_CMDTexture();
-					break;
-				case G_SETTIMG:
-					sprintf(CurrentGFXCmd, "G_SETTIMG            ");
-					sprintf(CurrentGFXCmdNote, "-");
-					HelperFunc_GFXLogCommand();
-					Viewer_RenderMap_CMDSetTImage();
-					break;
-				case G_SETTILE:
-					sprintf(CurrentGFXCmd, "G_SETTILE            ");
-					sprintf(CurrentGFXCmdNote, "-");
-					HelperFunc_GFXLogCommand();
-					Viewer_RenderMap_CMDSetTile();
-					break;
-				case G_LOADBLOCK:
-					sprintf(CurrentGFXCmd, "G_LOADBLOCK          ");
-					sprintf(CurrentGFXCmdNote, "<unemulated>");
-					HelperFunc_GFXLogCommand();
-					break;
-				case G_SETTILESIZE:
-					sprintf(CurrentGFXCmd, "G_SETTILESIZE        ");
-					sprintf(CurrentGFXCmdNote, "-");
-					HelperFunc_GFXLogCommand();
-					Viewer_RenderMap_CMDSetTileSize();
-					break;
-				case G_RDPFULLSYNC:
-					sprintf(CurrentGFXCmd, "G_RDPFULLSYNC        ");
-					sprintf(CurrentGFXCmdNote, "-");
-					HelperFunc_GFXLogCommand();
-					break;
-				case G_RDPTILESYNC:
-					sprintf(CurrentGFXCmd, "G_RDPTILESYNC        ");
-					sprintf(CurrentGFXCmdNote, "-");
-					HelperFunc_GFXLogCommand();
-					break;
-				case G_RDPPIPESYNC:
-					sprintf(CurrentGFXCmd, "G_RDPPIPESYNC        ");
-					sprintf(CurrentGFXCmdNote, "-");
-					HelperFunc_GFXLogCommand();
-					break;
-				case G_RDPLOADSYNC:
-					sprintf(CurrentGFXCmd, "G_RDPLOADSYNC        ");
-					sprintf(CurrentGFXCmdNote, "-");
-					HelperFunc_GFXLogCommand();
-					break;
-				case F3DEX2_GEOMETRYMODE:
-					sprintf(CurrentGFXCmd, "F3DEX2_GEOMETRYMODE  ");
-					sprintf(CurrentGFXCmdNote, "<partially handled>");
-					HelperFunc_GFXLogCommand();
-					Viewer_RenderMap_CMDGeometryMode();
-					break;
-				case F3DEX2_CULLDL:
-					sprintf(CurrentGFXCmd, "F3DEX2_CULLDL        ");
-					sprintf(CurrentGFXCmdNote, "<unemulated>");
-					HelperFunc_GFXLogCommand();
-					break;
-				case F3DEX2_SETOTHERMODE_H:
-					sprintf(CurrentGFXCmd, "F3DEX2_SETOTHERMODE_H");
-					sprintf(CurrentGFXCmdNote, "<unemulated>");
-					HelperFunc_GFXLogCommand();
-					break;
-				case F3DEX2_SETOTHERMODE_L:
-					sprintf(CurrentGFXCmd, "F3DEX2_SETOTHERMODE_L");
-					sprintf(CurrentGFXCmdNote, "<unemulated>");
-					HelperFunc_GFXLogCommand();
-					break;
-				case G_SETFOGCOLOR:
-					sprintf(CurrentGFXCmd, "G_SETFOGCOLOR        ");
-					sprintf(CurrentGFXCmdNote, "-");
-					HelperFunc_GFXLogCommand();
-					Viewer_RenderMap_CMDSetFogColor();
-					break;
-				case G_SETPRIMCOLOR:
-					sprintf(CurrentGFXCmd, "G_SETPRIMCOLOR       ");
-					sprintf(CurrentGFXCmdNote, "-");
-					HelperFunc_GFXLogCommand();
-					Viewer_RenderMap_CMDSetPrimColor();
-					break;
-				case F3DEX2_RDPHALF_1:
-					sprintf(CurrentGFXCmd, "F3DEX2_RDPHALF_1     ");
-					sprintf(CurrentGFXCmdNote, "<unemulated>");
-					HelperFunc_GFXLogCommand();
-					break;
-				case G_LOADTLUT:
-					sprintf(CurrentGFXCmd, "G_LOADTLUT           ");
-					sprintf(CurrentGFXCmdNote, "-");
-					HelperFunc_GFXLogCommand();
-					Viewer_RenderMap_CMDLoadTLUT();
-					break;
-				case G_SETCOMBINE:
-					sprintf(CurrentGFXCmd, "G_SETCOMBINE         ");
-					sprintf(CurrentGFXCmdNote, "<unemulated>");
-					HelperFunc_GFXLogCommand();
-					break;
-				case F3DEX2_DL:
-					sprintf(CurrentGFXCmd, "F3DEX2_DL            ");
-					sprintf(CurrentGFXCmdNote, "<unemulated>");
-					HelperFunc_GFXLogCommand();
-					break;
-				case F3DEX2_BRANCH_Z:
-					sprintf(CurrentGFXCmd, "F3DEX2_BRANCH_Z      ");
-					sprintf(CurrentGFXCmdNote, "<unemulated>");
-					HelperFunc_GFXLogCommand();
-					break;
-				case F3DEX2_ENDDL:
-					sprintf(CurrentGFXCmd, "F3DEX2_ENDDL         ");
-					sprintf(CurrentGFXCmdNote, "-");
-					HelperFunc_GFXLogCommand();
-					DListHasEnded = true;
-					break;
-				default:
-					sprintf(CurrentGFXCmd, "<unknown>            ");
-					sprintf(CurrentGFXCmdNote, "-");
-					HelperFunc_GFXLogCommand();
-					break;
-				}
-				
-				if(DListHasEnded == true) HelperFunc_GFXLogMessage("\n");
-				
-				DLTempPosition+=2;
-			}
 			DLToRender++;
 			DListHasEnded = false;
 		}
@@ -966,6 +812,183 @@ int Viewer_RenderMap(int SingleDLNumber)
 }
 
 /*	------------------------------------------------------------ */
+
+int Viewer_RenderMap_DListParser(bool CalledFromRDPHalf, unsigned int DLToRender, unsigned long Position)
+{
+	if(CalledFromRDPHalf) {
+		sprintf(GFXLogMsg, "  [DList called via RDPHALF_1 (0x%08X)]\n", (unsigned int)Position * 4);
+		HelperFunc_GFXLogMessage(GFXLogMsg);
+	} else {
+		sprintf(GFXLogMsg, "Display List #%d (0x%08X):\n", DLToRender + 1, (unsigned int)Position * 4);
+		HelperFunc_GFXLogMessage(GFXLogMsg);
+	}
+	
+	while (!DListHasEnded) {
+		memcpy(&Readout_Current1, &ZMapBuffer[Position], 4);
+		memcpy(&Readout_Current2, &ZMapBuffer[Position + 1], 4);
+		
+		HelperFunc_SplitCurrentVals(true);
+		
+		if(CalledFromRDPHalf) HelperFunc_GFXLogMessage(" ");
+		
+		switch(Readout_CurrentByte1) {
+		case F3DEX2_VTX:
+			sprintf(CurrentGFXCmd, "F3DEX2_VTX           ");
+			sprintf(CurrentGFXCmdNote, "-");
+			HelperFunc_GFXLogCommand(Position);
+			Viewer_RenderMap_CMDVertexList();
+			break;
+		case F3DEX2_TRI1:
+			sprintf(CurrentGFXCmd, "F3DEX2_TRI1          ");
+			sprintf(CurrentGFXCmdNote, "-");
+			HelperFunc_GFXLogCommand(Position);
+			Viewer_RenderMap_CMDDrawTri1();
+			break;
+		case F3DEX2_TRI2:
+			sprintf(CurrentGFXCmd, "F3DEX2_TRI2          ");
+			sprintf(CurrentGFXCmdNote, "-");
+			HelperFunc_GFXLogCommand(Position);
+			Viewer_RenderMap_CMDDrawTri2();
+			break;
+		case F3DEX2_TEXTURE:
+			sprintf(CurrentGFXCmd, "F3DEX2_TEXTURE       ");
+			sprintf(CurrentGFXCmdNote, "-");
+			HelperFunc_GFXLogCommand(Position);
+			Viewer_RenderMap_CMDTexture();
+			break;
+		case G_SETTIMG:
+			sprintf(CurrentGFXCmd, "G_SETTIMG            ");
+			sprintf(CurrentGFXCmdNote, "-");
+			HelperFunc_GFXLogCommand(Position);
+			Viewer_RenderMap_CMDSetTImage();
+			break;
+		case G_SETTILE:
+			sprintf(CurrentGFXCmd, "G_SETTILE            ");
+			sprintf(CurrentGFXCmdNote, "-");
+			HelperFunc_GFXLogCommand(Position);
+			Viewer_RenderMap_CMDSetTile();
+			break;
+		case G_LOADBLOCK:
+			sprintf(CurrentGFXCmd, "G_LOADBLOCK          ");
+			sprintf(CurrentGFXCmdNote, "<unemulated>");
+			HelperFunc_GFXLogCommand(Position);
+			break;
+		case G_SETTILESIZE:
+			sprintf(CurrentGFXCmd, "G_SETTILESIZE        ");
+			sprintf(CurrentGFXCmdNote, "-");
+			HelperFunc_GFXLogCommand(Position);
+			Viewer_RenderMap_CMDSetTileSize();
+			break;
+		case G_RDPFULLSYNC:
+			sprintf(CurrentGFXCmd, "G_RDPFULLSYNC        ");
+			sprintf(CurrentGFXCmdNote, "-");
+			HelperFunc_GFXLogCommand(Position);
+			break;
+		case G_RDPTILESYNC:
+			sprintf(CurrentGFXCmd, "G_RDPTILESYNC        ");
+			sprintf(CurrentGFXCmdNote, "-");
+			HelperFunc_GFXLogCommand(Position);
+			break;
+		case G_RDPPIPESYNC:
+			sprintf(CurrentGFXCmd, "G_RDPPIPESYNC        ");
+			sprintf(CurrentGFXCmdNote, "-");
+			HelperFunc_GFXLogCommand(Position);
+			break;
+		case G_RDPLOADSYNC:
+			sprintf(CurrentGFXCmd, "G_RDPLOADSYNC        ");
+			sprintf(CurrentGFXCmdNote, "-");
+			HelperFunc_GFXLogCommand(Position);
+			break;
+		case F3DEX2_GEOMETRYMODE:
+			sprintf(CurrentGFXCmd, "F3DEX2_GEOMETRYMODE  ");
+			sprintf(CurrentGFXCmdNote, "<partially handled>");
+			HelperFunc_GFXLogCommand(Position);
+			Viewer_RenderMap_CMDGeometryMode();
+			break;
+		case F3DEX2_CULLDL:
+			sprintf(CurrentGFXCmd, "F3DEX2_CULLDL        ");
+			sprintf(CurrentGFXCmdNote, "<unemulated>");
+			HelperFunc_GFXLogCommand(Position);
+			break;
+		case F3DEX2_SETOTHERMODE_H:
+			sprintf(CurrentGFXCmd, "F3DEX2_SETOTHERMODE_H");
+			sprintf(CurrentGFXCmdNote, "<unemulated>");
+			HelperFunc_GFXLogCommand(Position);
+			break;
+		case F3DEX2_SETOTHERMODE_L:
+			sprintf(CurrentGFXCmd, "F3DEX2_SETOTHERMODE_L");
+			sprintf(CurrentGFXCmdNote, "<unemulated>");
+			HelperFunc_GFXLogCommand(Position);
+			break;
+		case G_SETFOGCOLOR:
+			sprintf(CurrentGFXCmd, "G_SETFOGCOLOR        ");
+			sprintf(CurrentGFXCmdNote, "-");
+			HelperFunc_GFXLogCommand(Position);
+			Viewer_RenderMap_CMDSetFogColor();
+			break;
+		case G_SETPRIMCOLOR:
+			sprintf(CurrentGFXCmd, "G_SETPRIMCOLOR       ");
+			sprintf(CurrentGFXCmdNote, "-");
+			HelperFunc_GFXLogCommand(Position);
+			Viewer_RenderMap_CMDSetPrimColor();
+			break;
+		case F3DEX2_RDPHALF_1:
+			sprintf(CurrentGFXCmd, "F3DEX2_RDPHALF_1     ");
+			sprintf(CurrentGFXCmdNote, "<unemulated>");
+			HelperFunc_GFXLogCommand(Position);
+			Viewer_RenderMap_CMDRDPHalf1();
+			break;
+		case G_LOADTLUT:
+			sprintf(CurrentGFXCmd, "G_LOADTLUT           ");
+			sprintf(CurrentGFXCmdNote, "-");
+			HelperFunc_GFXLogCommand(Position);
+			Viewer_RenderMap_CMDLoadTLUT();
+			break;
+		case G_SETCOMBINE:
+			sprintf(CurrentGFXCmd, "G_SETCOMBINE         ");
+			sprintf(CurrentGFXCmdNote, "<unemulated>");
+			HelperFunc_GFXLogCommand(Position);
+			break;
+		case F3DEX2_DL:
+			sprintf(CurrentGFXCmd, "F3DEX2_DL            ");
+			sprintf(CurrentGFXCmdNote, "<unemulated>");
+			HelperFunc_GFXLogCommand(Position);
+			break;
+		case F3DEX2_BRANCH_Z:
+			sprintf(CurrentGFXCmd, "F3DEX2_BRANCH_Z      ");
+			sprintf(CurrentGFXCmdNote, "<unemulated>");
+			HelperFunc_GFXLogCommand(Position);
+			break;
+		case F3DEX2_ENDDL:
+			sprintf(CurrentGFXCmd, "F3DEX2_ENDDL         ");
+			sprintf(CurrentGFXCmdNote, "-");
+			HelperFunc_GFXLogCommand(Position);
+			DListHasEnded = true;
+			break;
+		default:
+			sprintf(CurrentGFXCmd, "<unknown>            ");
+			sprintf(CurrentGFXCmdNote, "-");
+			HelperFunc_GFXLogCommand(Position);
+			break;
+		}
+		
+		if(DListHasEnded) {
+			if(CalledFromRDPHalf) {
+				HelperFunc_GFXLogMessage("  [Return to original DList]\n");
+			} else {
+				HelperFunc_GFXLogMessage("\n");
+			}
+		}
+		
+		Position+=2;
+	}
+	
+	if(CalledFromRDPHalf) DListHasEnded = false;
+	
+	SubDLCall = false;
+	
+	return 0;
+}
 
 /* VIEWER_RENDERMAP_CMDVERTEXLIST - F3DEX2_VTX - GET OFFSET, AMOUNT & VERTEX BUFFER POSITION OF VERTICES TO USE */
 int Viewer_RenderMap_CMDVertexList()
@@ -1225,6 +1248,8 @@ int Viewer_RenderMap_CMDTexture()
 /* VIEWER_RENDERMAP_CMDSETTIMAGE - G_SETTIMG - GET TEXTURE OFFSET AND STORE FOR FUTURE USE */
 int Viewer_RenderMap_CMDSetTImage()
 {
+	if(SubDLCall) TextureID++;
+	
 	Texture[TextureID].DataSource = Readout_CurrentByte5;
 	
 	Texture[TextureID].Offset = Readout_CurrentByte6 << 16;
@@ -1543,6 +1568,22 @@ int Viewer_RenderMap_CMDLoadTLUT()
 	return 0;
 }
 
+int Viewer_RenderMap_CMDRDPHalf1()
+{
+	if(Readout_CurrentByte5 == 0x03) {
+		unsigned long TempOffset;
+		
+		TempOffset = Readout_CurrentByte6 << 16;
+		TempOffset = TempOffset + (Readout_CurrentByte7 << 8);
+		TempOffset = TempOffset + Readout_CurrentByte8;
+		
+		SubDLCall = true;
+		Viewer_RenderMap_DListParser(true, 0, TempOffset / 4);
+	}
+	
+	return 0;
+}
+
 /*	------------------------------------------------------------ */
 
 /* VIEWER_LOADTEXTURE - CALLED FROM VIEWER_RENDERMAP_CMDSETTILESIZE, FETCH THE TEXTURE DATA AND CREATE AN OGL TEXTURE */
@@ -1575,12 +1616,9 @@ GLuint Viewer_LoadTexture()
 	case 0x40:
 	case 0x48:
 	case 0x50:
-//		MessageBox(hwnd, "CITEX", "", 0);
 		TemporaryTextureID = LastCITextureID;
 		break;
 	default:
-//		sprintf(StatusMsg, "texture type %x", Texture[TextureID].Format_N64);
-//		MessageBox(hwnd, StatusMsg, "", 0);
 		TemporaryTextureID = TextureID;
 		break;
 	}
@@ -1966,7 +2004,7 @@ int Viewer_RenderActor(int ActorToRender, GLshort X, GLshort Y, GLshort Z, signe
 /*	------------------------------------------------------------ */
 
 /* HELPERFUNC_SPLITCURRENTVALS - TAKES THE 4 BYTES OF THE LONG VARIABLE(S) USED FOR DATA FETCHING AND SPLITS THEM APART */
-void HelperFunc_SplitCurrentVals(bool SplitDual, bool CreateBackup)
+void HelperFunc_SplitCurrentVals(bool SplitDual)
 {
 	Readout_CurrentByte1 = Readout_Current1 << 24;
 	Readout_CurrentByte1 = Readout_CurrentByte1 >> 24;
@@ -1998,10 +2036,10 @@ int HelperFunc_GFXLogMessage(char Message[])
 }
 
 /* HELPERFUNC_GFXLOGCOMMAND - WRITES INFORMATION ABOUT CURRENTLY PROCESSED COMMAND INTO LOG FILE */
-int HelperFunc_GFXLogCommand()
+int HelperFunc_GFXLogCommand(unsigned int Position)
 {				
-	sprintf(GFXLogMsg, " - 0x%08X:\t%s\t\t[%02X%02X%02X%02X %02X%02X%02X%02X] %s\n",
-		(unsigned int)DLTempPosition * 4, CurrentGFXCmd,
+	sprintf(GFXLogMsg, "  0x%08X:\t%s\t\t[%02X%02X%02X%02X %02X%02X%02X%02X] %s\n",
+		Position * 4, CurrentGFXCmd,
 		Readout_CurrentByte1, Readout_CurrentByte2, Readout_CurrentByte3, Readout_CurrentByte4,
 		Readout_CurrentByte5, Readout_CurrentByte6, Readout_CurrentByte7, Readout_CurrentByte8,
 		CurrentGFXCmdNote);
@@ -2077,6 +2115,8 @@ int DrawGLScene(void)
 		sprintf(Renderer_CoordDisp, "Cam X: %4.2f, Y: %4.2f, Z: %4.2f", CamX, CamY, CamZ);
 		SendMessage(hstatus, SB_SETTEXT, 1, (LPARAM)Renderer_CoordDisp);
 		
+		glLoadIdentity();
+		
 /*		if(Renderer_EnableMapActors) {
 			glLoadIdentity();
 			glTranslatef(-0.5f, 0.32f, -1.0f);
@@ -2119,8 +2159,6 @@ int DrawGLScene(void)
 			//
 		}
 */		
-		glLoadIdentity();
-		
 		gluLookAt(CamX, CamY, CamZ, 
 				CamX + CamLX, CamY + CamLY, CamZ + CamLZ,
 				0.0f, 1.0f, 0.0f);
