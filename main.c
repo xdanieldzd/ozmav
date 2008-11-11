@@ -1,32 +1,8 @@
 /*	------------------------------------------------------------
 	OZMAV - OpenGL Zelda Map Viewer
 	
-	Written in October 2008 by xdaniel
-	http://magicstone.de/dzd/
-	
-	Partially based on my 'Experimental N64 Object Viewer'
-	
-	Pieces of code from	NeHe OpenGL tutorials (init, etc.),
-						various Win32 API samples
-	------------------------------------------------------------ */
-
-/*	------------------------------------------------------------
-	NOTES - NOTES - NOTES - NOTES - NOTES - NOTES - NOTES - NOTE
-	------------------------------------------------------------
-	Majora's Mask's Map/Scene headers are incompatible with
-	OZMAV, which is why MM maps crash the viewer when trying to
-	open them in this state. To temporary be able to open and
-	render some of them, disable the calls to...
-		Viewer_GetMapHeader
-		Viewer_GetSceneHeader
-		Viewer_GetMapActors
-		Viewer_GetSceneActors
-	...inside Viewer_OpenMapScene. Also, set the HACKS_ENABLED
-	switch to true, so that "sub DLists" - the ones called by
-	F3DEX2_RDPHALF_1 - are added to the regular DList list. This
-	allows rendering of Termina Field (scene: 0x0258C000 -
-	0x025C4580, map: 0x025C5000 - 0x025ED860), albeit with many
-	texturing issues.
+	Written in October/November 2008 by xdaniel & contributors
+	http://ozmav.googlecode.com/
 	------------------------------------------------------------ */
 
 /*	------------------------------------------------------------
@@ -34,7 +10,6 @@
 	------------------------------------------------------------ */
 
 #include <windows.h>
-#include <windowsx.h>
 #include <commctrl.h>
 #include <GL/gl.h>
 #include <GL/glu.h>
@@ -54,7 +29,7 @@ enum { true = 1, false = 0 };
 	DEFINES
 	------------------------------------------------------------ */
 
-#define	HACKS_ENABLED	false				/* EN-/DISABLE MISC HACKS (not used at the moment) */
+#define HACKS_ENABLED   false				/* EN-/DISABLE MISC HACKS (not used at the moment) */
 
 /*	------------------------------------------------------------
 	SYSTEM FUNCTIONS - OPENGL & WINDOWS
@@ -89,10 +64,11 @@ int Viewer_RenderMap_CMDRDPHalf1();
 
 GLuint Viewer_LoadTexture();
 
-int Viewer_RenderActor(int, GLshort, GLshort, GLshort, signed int, signed int, signed int, bool);
+int Viewer_RenderAllActors();
+int Viewer_RenderActorCube(int, GLshort, GLshort, GLshort, signed int, signed int, signed int, bool);
 
 void HelperFunc_SplitCurrentVals(bool);
-int HelperFunc_GFXLogMessage(char[]);
+int HelperFunc_LogMessage(int, char[]);
 int HelperFunc_GFXLogCommand(unsigned int);
 int HelperFunc_CalculateFPS();
 
@@ -100,9 +76,6 @@ int InitGL(void);
 int DrawGLScene(void);
 void KillGLTarget(void);
 BOOL CreateGLTarget(int, int, int);
-void BuildFont(void);
-void KillFont(void);
-void glPrint(const char *, ...);
 
 void GLUTCamera_Orientation(float,float);
 void GLUTCamera_Movement(int);
@@ -123,7 +96,6 @@ HWND			hwnd = NULL;
 HMENU			hmenu = NULL;
 HWND			hogl = NULL;
 HWND			hstatus = NULL;
-int				StatusBarHeight;
 
 HDC				hDC_ogl = NULL;
 HGLRC			hRC = NULL;
@@ -137,7 +109,7 @@ GLuint			GLFontBase;
 bool			System_KbdKeys[256];
 
 char			AppTitle[256] = "OZMAV";
-char			AppVersion[256] = "V0.4";
+char			AppVersion[256] = "V0.4b";
 char			AppBuildName[256] = "Welcome to the Project!";
 char			WindowTitle[256] = "";
 char			StatusMsg[256] = "";
@@ -153,9 +125,9 @@ bool			ExitProgram = false;
 char			CurrentGFXCmd[256] = "";
 char			CurrentGFXCmdNote[256] = "";
 char			GFXLogMsg[256] = "";
+char			SystemLogMsg[256] = "";
 
-int				OGLTargetWidth;
-int				OGLTargetHeight;
+bool			GFXLogOpened = false;
 
 /* CAMERA / VIEWPOINT VARIABLES */
 float			CamAngleX, CamAngleY;
@@ -192,8 +164,7 @@ bool			ZMapExists = false;
 bool			ZSceneExists = false;
 
 FILE			* FileGFXLog;
-
-bool			IsMajoraData = false;				/* set to true to skip header and actor analyzing, makes MM maps load up */
+FILE			* FileSystemLog;
 
 /* DATA READOUT VARIABLES */
 unsigned long	Readout_Current1 = 0;
@@ -281,9 +252,9 @@ struct {
 	unsigned long MapTime;
 	unsigned char TimeFlow;
 	unsigned long MeshDataHeader;
-	char Group_Count;
+	unsigned char Group_Count;
 	unsigned long Group_DataOffset;
-	char Actor_Count;
+	unsigned char Actor_Count;
 	unsigned long Actor_DataOffset;
 } MapHeader[256];
 
@@ -293,7 +264,7 @@ struct {
 	unsigned long Unknown3;
 	unsigned long Unknown4;
 	unsigned long Unknown5;
-	char ScActor_Count;
+	unsigned char ScActor_Count;
 	unsigned long ScActor_DataOffset;
 	unsigned long Unknown7;
 	unsigned long Unknown8;
@@ -355,6 +326,7 @@ struct {
 	unsigned int Palette;
 } Texture[1024];
 
+/* CI TEXTURE PALETTE STRUCTURE */
 struct {
 	unsigned char R;
 	unsigned char G;
@@ -367,11 +339,13 @@ struct {
 /* VIEWER_INITIALIZE - CALLED AFTER SELECTING THE MAP AND SCENE FILES */
 int Viewer_Initialize()
 {
+	FileSystemLog = fopen("log.txt", "w");
+	
 	Viewer_OpenMapScene();
 	
 	Renderer_GLDisplayList = glGenLists(1);
 	Viewer_RenderMap(DListInfo_DListToRender);
-	/* render again, crude bugfix for some disappearing polys */
+	/* render again, crude hack that fixes missing CI textures, proper fix would be fixing the texturing... */
 	Viewer_RenderMap(DListInfo_DListToRender);
 	
 	EnableMenuItem(hmenu, IDM_CAMERA_RESETCOORDS, MF_BYCOMMAND | MF_ENABLED);
@@ -490,13 +464,10 @@ int Viewer_OpenMapScene()
 		
 		PaletteData = (unsigned char *) malloc (1024);
 		
-		if(!IsMajoraData) {
-			Viewer_GetMapHeader(MapHeader_Current);
-			Viewer_GetSceneHeader(SceneHeader_Current);
-			Viewer_GetMapActors(MapHeader_Current);
-			Viewer_GetSceneActors(SceneHeader_Current);
-		}
-		
+		Viewer_GetMapHeader(MapHeader_Current);
+		Viewer_GetSceneHeader(SceneHeader_Current);
+		Viewer_GetMapActors(MapHeader_Current);
+		Viewer_GetSceneActors(SceneHeader_Current);
 		Viewer_GetDisplayLists(ZMapFilesize);
 		
 		CamAngleX = 0.0f, CamAngleY = 0.0f;
@@ -544,24 +515,23 @@ int Viewer_GetMapHeaderList(int HeaderListPos)
 /* VIEWER_GETMAPHEADER - READ THE CURRENTLY SELECTED MAP HEADER AND STORE ITS INFORMATION IN THE MAPHEADER STRUCT */
 int Viewer_GetMapHeader(int CurrentHeader)
 {
+	bool EndOfHeader = false;
+	
 	int InHeaderPos = MapHeader_List[CurrentHeader] / 4;
 	
-	while(!(Readout_Current1 == 0x00000014) || (Readout_Current2 == 0x00000014)) {
+	sprintf(SystemLogMsg, "Map Header #%d (0x%08X):\n", CurrentHeader + 1, InHeaderPos * 4);
+	HelperFunc_LogMessage(2, SystemLogMsg);
+	
+	while(!EndOfHeader) {
 		memcpy(&Readout_Current1, &ZMapBuffer[InHeaderPos], 4);
 		memcpy(&Readout_Current2, &ZMapBuffer[InHeaderPos + 1], 4);
 		
 		HelperFunc_SplitCurrentVals(true);
 		
 		switch(Readout_CurrentByte1) {
-		case 0x16:
-			MapHeader[CurrentHeader].EchoLevel = Readout_CurrentByte8;
-			break;
-		case 0x12:
-			MapHeader[CurrentHeader].Skybox = Readout_CurrentByte5;
-			break;
-		case 0x10:
-			MapHeader[CurrentHeader].MapTime = (Readout_CurrentByte5 * 0x100) + Readout_CurrentByte6;
-			MapHeader[CurrentHeader].TimeFlow = Readout_CurrentByte7;
+		case 0x01:
+			MapHeader[CurrentHeader].Actor_Count = Readout_CurrentByte2;
+			MapHeader[CurrentHeader].Actor_DataOffset = ((Readout_CurrentByte6 * 0x10000) + Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
 			break;
 		case 0x0A:
 			MapHeader[CurrentHeader].MeshDataHeader = ((Readout_CurrentByte6 * 0x10000) + Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
@@ -570,9 +540,25 @@ int Viewer_GetMapHeader(int CurrentHeader)
 			MapHeader[CurrentHeader].Group_Count = Readout_CurrentByte2;
 			MapHeader[CurrentHeader].Group_DataOffset = ((Readout_CurrentByte6 * 0x10000) + Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
 			break;
-		case 0x01:
-			MapHeader[CurrentHeader].Actor_Count = Readout_CurrentByte2;
-			MapHeader[CurrentHeader].Actor_DataOffset = ((Readout_CurrentByte6 * 0x10000) + Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
+		case 0x10:
+			MapHeader[CurrentHeader].MapTime = (Readout_CurrentByte5 * 0x100) + Readout_CurrentByte6;
+			MapHeader[CurrentHeader].TimeFlow = Readout_CurrentByte7;
+			break;
+		case 0x12:
+			MapHeader[CurrentHeader].Skybox = Readout_CurrentByte5;
+			break;
+		case 0x14:
+			EndOfHeader = true;
+			break;
+		case 0x16:
+			MapHeader[CurrentHeader].EchoLevel = Readout_CurrentByte8;
+			break;
+		default:
+			sprintf(SystemLogMsg, "  0x%08X:\tUnknown header option\t\t [%02X%02X%02X%02X %02X%02X%02X%02X]\n",
+				InHeaderPos * 4,
+				Readout_CurrentByte1, Readout_CurrentByte2, Readout_CurrentByte3, Readout_CurrentByte4,
+				Readout_CurrentByte5, Readout_CurrentByte6, Readout_CurrentByte7, Readout_CurrentByte8);
+			HelperFunc_LogMessage(2, SystemLogMsg);
 			break;
 		}
 		
@@ -581,6 +567,8 @@ int Viewer_GetMapHeader(int CurrentHeader)
 	
 	Readout_Current1 = 0x00;
 	Readout_Current2 = 0x00;
+	
+	HelperFunc_LogMessage(2, "\n");
 	
 	return 0;
 }
@@ -618,9 +606,14 @@ int Viewer_GetSceneHeaderList(int HeaderListPos)
 /* VIEWER_GETSCENEHEADER - READ THE CURRENT SCENE HEADER AND STORE ITS INFORMATION IN THE SCENEHEADER STRUCT */
 int Viewer_GetSceneHeader(int CurrentHeader)
 {
+	bool EndOfHeader = false;
+	
 	int InHeaderPos = SceneHeader_List[CurrentHeader] / 4;
 	
-	while(!(Readout_Current1 == 0x00000014) || (Readout_Current2 == 0x00000014)) {
+	sprintf(SystemLogMsg, "Scene Header #%d (0x%08X):\n", CurrentHeader + 1, InHeaderPos * 4);
+	HelperFunc_LogMessage(2, SystemLogMsg);
+	
+	while(!EndOfHeader) {
 		memcpy(&Readout_Current1, &ZSceneBuffer[InHeaderPos], 4);
 		memcpy(&Readout_Current2, &ZSceneBuffer[InHeaderPos + 1], 4);
 		
@@ -631,6 +624,16 @@ int Viewer_GetSceneHeader(int CurrentHeader)
 			SceneHeader[CurrentHeader].ScActor_Count = Readout_CurrentByte2;
 			SceneHeader[CurrentHeader].ScActor_DataOffset = ((Readout_CurrentByte6 * 0x10000) + Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
 			break;
+		case 0x14:
+			EndOfHeader = true;
+			break;
+		default:
+			sprintf(SystemLogMsg, "  0x%08X:\tUnknown header option\t\t [%02X%02X%02X%02X %02X%02X%02X%02X]\n",
+				InHeaderPos * 4,
+				Readout_CurrentByte1, Readout_CurrentByte2, Readout_CurrentByte3, Readout_CurrentByte4,
+				Readout_CurrentByte5, Readout_CurrentByte6, Readout_CurrentByte7, Readout_CurrentByte8);
+			HelperFunc_LogMessage(2, SystemLogMsg);
+			break;
 		}
 		
 		InHeaderPos += 2;
@@ -638,6 +641,8 @@ int Viewer_GetSceneHeader(int CurrentHeader)
 	
 	Readout_Current1 = 0x00;
 	Readout_Current2 = 0x00;
+	
+	HelperFunc_LogMessage(2, "\n");
 	
 	return 0;
 }
@@ -744,35 +749,16 @@ int Viewer_GetDisplayLists(unsigned long Fsize)
 			}
 		}
 		
-		/* HACK: ADD DLISTS CALLED BY RDPHALF_1 TO DLIST OFFSET LIST SO THAT THEY'RE DISPLAYED */
-/*		if(HACKS_ENABLED) {
-			if ((Readout_CurrentByte1 == F3DEX2_RDPHALF_1) && (Readout_CurrentByte2 == 0x00)) {
-				if((Readout_CurrentByte3 == 0x00) && (Readout_CurrentByte4 == 0x00)) {
-					if((Readout_CurrentByte5 == 0x03)) {
-						sprintf(StatusMsg, "Warning: Display List call via F3DEX2_RDPHALF_1 found at 0x%08X. Display list is at 0x%08X\n\nThis type of call is not being handled properly. Adding to regular DList offset list...", DListScanPosition * 4, (unsigned int)TempOffset);
-						MessageBox(hwnd, StatusMsg, "Message", MB_OK | MB_ICONEXCLAMATION);
-						
-						TempOffset = Readout_CurrentByte6 << 16;
-						TempOffset = TempOffset + (Readout_CurrentByte7 << 8);
-						TempOffset = TempOffset + Readout_CurrentByte8;
-						
-						DListInfo_CurrentCount++;
-						DLists[DListInfo_CurrentCount] = TempOffset;
-					}
-				}
-			}
-		}
-		*/
 		DListScanPosition += 2;
 	}
 	
 	return 0;
 }
 
-/* VIEWER_RENDERMAP - SCAN EITHER ALL OR A GIVEN DISPLAY LIST(S), INTERPRET ITS COMMANDS AND PREPARE AN OPENGL DISPLAY LIST */
+/* VIEWER_RENDERMAP - MAIN FUNCTION FOR DISPLAY LIST HANDLING TO RENDER MAPS, FOR EITHER ALL OR A GIVEN DISPLAY LIST(S) */
 int Viewer_RenderMap(int SingleDLNumber)
 {
-	if(!MapLoaded) FileGFXLog = fopen("log.txt", "w");
+	if(!GFXLogOpened) FileGFXLog = fopen("gfxlog.txt", "w"); GFXLogOpened = true;
 	
 	int DListInfo_CurrentCount_Render = 0;
 	
@@ -806,21 +792,23 @@ int Viewer_RenderMap(int SingleDLNumber)
 	LastCIPaletteID = 0;
 	NoChangeCIPalette = false;
 	
-	fclose(FileGFXLog);
+	fclose(FileGFXLog); GFXLogOpened = false;
+	fclose(FileSystemLog);
 	
 	return 0;
 }
 
 /*	------------------------------------------------------------ */
 
+/* VIEWER_RENDERMAP_DLISTPARSER - DLIST INTERPRETER MAIN LOOP, SCANS AND EXECUTES DLIST COMMANDS */
 int Viewer_RenderMap_DListParser(bool CalledFromRDPHalf, unsigned int DLToRender, unsigned long Position)
 {
 	if(CalledFromRDPHalf) {
 		sprintf(GFXLogMsg, "  [DList called via RDPHALF_1 (0x%08X)]\n", (unsigned int)Position * 4);
-		HelperFunc_GFXLogMessage(GFXLogMsg);
+		HelperFunc_LogMessage(1, GFXLogMsg);
 	} else {
 		sprintf(GFXLogMsg, "Display List #%d (0x%08X):\n", DLToRender + 1, (unsigned int)Position * 4);
-		HelperFunc_GFXLogMessage(GFXLogMsg);
+		HelperFunc_LogMessage(1, GFXLogMsg);
 	}
 	
 	while (!DListHasEnded) {
@@ -829,7 +817,7 @@ int Viewer_RenderMap_DListParser(bool CalledFromRDPHalf, unsigned int DLToRender
 		
 		HelperFunc_SplitCurrentVals(true);
 		
-		if(CalledFromRDPHalf) HelperFunc_GFXLogMessage(" ");
+		if(CalledFromRDPHalf) HelperFunc_LogMessage(1, " ");
 		
 		switch(Readout_CurrentByte1) {
 		case F3DEX2_VTX:
@@ -974,9 +962,9 @@ int Viewer_RenderMap_DListParser(bool CalledFromRDPHalf, unsigned int DLToRender
 		
 		if(DListHasEnded) {
 			if(CalledFromRDPHalf) {
-				HelperFunc_GFXLogMessage("  [Return to original DList]\n");
+				HelperFunc_LogMessage(1, "  [Return to original DList]\n");
 			} else {
-				HelperFunc_GFXLogMessage("\n");
+				HelperFunc_LogMessage(1, "\n");
 			}
 		}
 		
@@ -1446,7 +1434,40 @@ int Viewer_RenderMap_CMDGeometryMode()
 		glEnable(GL_CULL_FACE); glCullFace(GL_BACK); }
 	if(Binary[3]) {
 		/*UNUSED?*/ }
-		
+	
+	/* ---- VERTEX COLOR SHADING, Z-BUFFERING ---- */
+	Convert = Readout_CurrentByte4;
+	Counter = 0, Counter2 = 4;
+	for(Counter = 0; Counter < 4; Counter++) {
+		Binary[Counter] = Convert % 2;
+		Convert = Convert / 2;
+	}
+	if(!Binary[0]) {
+		/*UNUSED?*/ }
+	if(!Binary[1]) {
+		/*disable vertex color shading*/ }
+	if(!Binary[2]) {
+		/*disable z-buffering*/
+		glDisable(GL_DEPTH_TEST); }
+	if(!Binary[3]) {
+		/*UNUSED?*/ }
+	
+	Convert = Readout_CurrentByte8;
+	Counter = 0, Counter2 = 4;
+	for(Counter = 0; Counter < 4; Counter++) {
+		Binary[Counter] = Convert % 2;
+		Convert = Convert / 2;
+	}
+	if(Binary[0]) {
+		/*UNUSED?*/ }
+	if(Binary[1]) {
+		/*enable vertex color shading*/ }
+	if(Binary[2]) {
+		/*enable z-buffering*/
+		glEnable(GL_DEPTH_TEST); }
+	if(Binary[3]) {
+		/*UNUSED?*/ }
+	
 	return 0;
 }
 
@@ -1466,12 +1487,13 @@ int Viewer_RenderMap_CMDSetFogColor()
 /* VIEWER_RENDERMAP_CMDSETPRIMCOLOR - G_SETPRIMCOLOR - SET THE PRIMARY COLOR */
 int Viewer_RenderMap_CMDSetPrimColor()
 {
-	/* implementation likely incorrect, looks alright though */
-	
 	PrimColor[0] = (Readout_CurrentByte5 / 255.0f);
 	PrimColor[1] = (Readout_CurrentByte6 / 255.0f);
 	PrimColor[2] = (Readout_CurrentByte7 / 255.0f);
 	PrimColor[3] = (Readout_CurrentByte8 / 255.0f);
+	
+	/* HACK: AUTOMATICALLY ENABLE ALPHA BLENDING WHEN ALPHA VALUE IS SMALLER THAN 1 */
+	/* ----  ALLOWS FOR EX. TRANSPARENT WATER WITHOUT PROPER COMBINER EMULATION */
 	
 	if(PrimColor[3] < 1.0f) {
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -1562,12 +1584,13 @@ int Viewer_RenderMap_CMDLoadTLUT()
 		
 		NoChangeCIPalette = true;
 	} else {
-		//
+		//ignore since palette shouldn't be changed
 	}
 	
 	return 0;
 }
 
+/* VIEWER_RENDERMAP_CMDRDPHALF1 - F3DEX2_RDPHALF_1 - CALL AND RENDER ADDITIONAL DISPLAY LISTS FROM INSIDE OTHERS */
 int Viewer_RenderMap_CMDRDPHalf1()
 {
 	if(Readout_CurrentByte5 == 0x03) {
@@ -1648,7 +1671,7 @@ GLuint Viewer_LoadTexture()
 		switch(Texture[TemporaryTextureID].Format_N64) {
 		/* RGBA FORMAT */
 		case 0x00:
-//		case 0x08:
+		case 0x08:
 		case 0x10:
 			{
 			unsigned int LoadRGBA_RGBA5551 = 0;
@@ -1925,7 +1948,6 @@ GLuint Viewer_LoadTexture()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	
-//	glTexImage2D(GL_TEXTURE_2D, 0, Texture[TemporaryTextureID].Format_OGL, Texture[TemporaryTextureID].WidthRender, Texture[TemporaryTextureID].HeightRender, 0, Texture[TemporaryTextureID].Format_OGLPixel, GL_UNSIGNED_BYTE, TextureData_OGL);
 	gluBuild2DMipmaps(GL_TEXTURE_2D, Texture[TemporaryTextureID].Format_OGL, Texture[TemporaryTextureID].WidthRender, Texture[TemporaryTextureID].HeightRender, Texture[TemporaryTextureID].Format_OGLPixel, GL_UNSIGNED_BYTE, TextureData_OGL);
 	
 	free(TextureData_N64);
@@ -1936,8 +1958,64 @@ GLuint Viewer_LoadTexture()
 
 /*	------------------------------------------------------------ */
 
-/* VIEWER_RENDERACTOR - RENDERS AN INFAMOUS 'ACTOR CUBE' AT THE SPECIFIED LOCATION ON THE MAP */
-int Viewer_RenderActor(int ActorToRender, GLshort X, GLshort Y, GLshort Z, signed int X_Rot, signed int Y_Rot, signed int Z_Rot, bool IsMapActor)
+/* VIEWER_RENDERALLACTORS - RENDERS THE CURRENT MAP'S MAP AND/OR SCENE ACTORS */
+int Viewer_RenderAllActors()
+{
+	if(Renderer_EnableMapActors) {
+		if (MapHeader[MapHeader_Current].Actor_Count > 0) {
+			glDisable(GL_TEXTURE_2D);
+			glDisable(GL_FOG);
+			
+			while (!(ActorInfo_CurrentCount == MapHeader[MapHeader_Current].Actor_Count)) {
+				glEnable(GL_LIGHT1);
+				glDisable(GL_LIGHTING);
+				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+				Viewer_RenderActorCube(ActorInfo_CurrentCount, Actors[ActorInfo_CurrentCount].X_Position, Actors[ActorInfo_CurrentCount].Y_Position, Actors[ActorInfo_CurrentCount].Z_Position, Actors[ActorInfo_CurrentCount].X_Rotation, Actors[ActorInfo_CurrentCount].Y_Rotation, Actors[ActorInfo_CurrentCount].Z_Rotation, true);
+				glEnable(GL_LIGHTING);
+				glDisable(GL_LIGHT1);
+				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+				glEnable(GL_POLYGON_OFFSET_LINE);
+				glPolygonOffset(-1.0f,-1.0f);
+				glColor3f(1.0f, 1.0f, 1.0f);
+				Viewer_RenderActorCube(ActorInfo_CurrentCount, Actors[ActorInfo_CurrentCount].X_Position, Actors[ActorInfo_CurrentCount].Y_Position, Actors[ActorInfo_CurrentCount].Z_Position, Actors[ActorInfo_CurrentCount].X_Rotation, Actors[ActorInfo_CurrentCount].Y_Rotation, Actors[ActorInfo_CurrentCount].Z_Rotation ,true);
+				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+				glEnable(GL_LIGHT1);
+				glDisable(GL_LIGHTING);
+				ActorInfo_CurrentCount++;
+			}
+		}
+	}
+	
+	if(Renderer_EnableSceneActors) {
+		if (SceneHeader[SceneHeader_Current].ScActor_Count > 0) {
+			glDisable(GL_TEXTURE_2D);
+			glDisable(GL_FOG);
+			
+			while (!(ScActorInfo_CurrentCount == SceneHeader[SceneHeader_Current].ScActor_Count)) {
+				glEnable(GL_LIGHT1);
+				glDisable(GL_LIGHTING);
+				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+				Viewer_RenderActorCube(ScActorInfo_CurrentCount, ScActors[ScActorInfo_CurrentCount].X_Position, ScActors[ScActorInfo_CurrentCount].Y_Position, ScActors[ScActorInfo_CurrentCount].Z_Position, ScActors[ScActorInfo_CurrentCount].X_Rotation, ScActors[ScActorInfo_CurrentCount].Y_Rotation, ScActors[ScActorInfo_CurrentCount].Z_Rotation, false);
+				glEnable(GL_LIGHTING);
+				glDisable(GL_LIGHT1);
+				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+				glEnable(GL_POLYGON_OFFSET_LINE);
+				glPolygonOffset(-1.0f,-1.0f);
+				glColor3f(1.0f, 1.0f, 1.0f);
+				Viewer_RenderActorCube(ScActorInfo_CurrentCount, ScActors[ScActorInfo_CurrentCount].X_Position, ScActors[ScActorInfo_CurrentCount].Y_Position, ScActors[ScActorInfo_CurrentCount].Z_Position, ScActors[ScActorInfo_CurrentCount].X_Rotation, ScActors[ScActorInfo_CurrentCount].Y_Rotation, ScActors[ScActorInfo_CurrentCount].Z_Rotation, false);
+				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+				glEnable(GL_LIGHT1);
+				glDisable(GL_LIGHTING);
+				ScActorInfo_CurrentCount++;
+			}
+		}
+	}
+	
+	return 0;
+}
+
+/* VIEWER_RENDERACTORCUBE - RENDERS AN INFAMOUS 'ACTOR CUBE' AT THE SPECIFIED LOCATION ON THE MAP */
+int Viewer_RenderActorCube(int ActorToRender, GLshort X, GLshort Y, GLshort Z, signed int X_Rot, signed int Y_Rot, signed int Z_Rot, bool IsMapActor)
 {
 	glPushMatrix();
 	
@@ -2027,11 +2105,17 @@ void HelperFunc_SplitCurrentVals(bool SplitDual)
 	}
 }
 
-/* HELPERFUNC_GFXLOGMESSAGE - WRITES GIVEN STRING INTO PREVIOUSLY OPENED LOG FILE */
-int HelperFunc_GFXLogMessage(char Message[])
+/* HELPERFUNC_LOGMESSAGE - WRITES GIVEN STRING INTO PREVIOUSLY OPENED LOG FILE */
+int HelperFunc_LogMessage(int LogType, char Message[])
 {
-	fprintf(FileGFXLog, Message);
-	
+	switch(LogType) {
+	case 1:
+		fprintf(FileGFXLog, Message);
+		break;
+	case 2:
+		fprintf(FileSystemLog, Message);
+		break;
+	}
 	return 0;
 }
 
@@ -2043,7 +2127,7 @@ int HelperFunc_GFXLogCommand(unsigned int Position)
 		Readout_CurrentByte1, Readout_CurrentByte2, Readout_CurrentByte3, Readout_CurrentByte4,
 		Readout_CurrentByte5, Readout_CurrentByte6, Readout_CurrentByte7, Readout_CurrentByte8,
 		CurrentGFXCmdNote);
-	HelperFunc_GFXLogMessage(GFXLogMsg);
+	HelperFunc_LogMessage(1, GFXLogMsg);
 	
 	return 0;
 }
@@ -2094,12 +2178,10 @@ int InitGL(void)
 	glFogf(GL_FOG_DENSITY, 0.15f);
 	glHint(GL_FOG_HINT, GL_DONT_CARE);
 	glFogf(GL_FOG_START, 1.0f);
-	glFogf(GL_FOG_END, 15.0f);
+	glFogf(GL_FOG_END, 75.0f);
 	
 	glEnable(GL_COLOR_MATERIAL);
 	glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
-	
-	BuildFont();
 	
 	return true;
 }
@@ -2113,52 +2195,9 @@ int DrawGLScene(void)
 		HelperFunc_CalculateFPS();
 		
 		sprintf(Renderer_CoordDisp, "Cam X: %4.2f, Y: %4.2f, Z: %4.2f", CamX, CamY, CamZ);
-		SendMessage(hstatus, SB_SETTEXT, 1, (LPARAM)Renderer_CoordDisp);
 		
 		glLoadIdentity();
 		
-/*		if(Renderer_EnableMapActors) {
-			glLoadIdentity();
-			glTranslatef(-0.5f, 0.32f, -1.0f);
-			
-			if (!MapHeader[MapHeader_Current].Actor_Count == 0) {
-				sprintf(MapActorMsg, "Map Actor: #%d, Type %04X, Variable %04X, X: %d, Y: %d, Z: %d, X Rot: %d, Y Rot: %d, Z Rot: %d", ActorInfo_Selected, Actors[ActorInfo_Selected].Number, Actors[ActorInfo_Selected].Variable, Actors[ActorInfo_Selected].X_Position, Actors[ActorInfo_Selected].Y_Position, Actors[ActorInfo_Selected].Z_Position, Actors[ActorInfo_Selected].X_Rotation, Actors[ActorInfo_Selected].Y_Rotation, Actors[ActorInfo_Selected].Z_Rotation);
-			} else {
-				sprintf(MapActorMsg, "No Map Actors found.");
-			}
-			
-			glColor4f(0.0f, 0.0f, 0.0f, 1.0f);
-			glRasterPos2f(0.003f, -0.003f);
-			glPrint("%s", MapActorMsg);
-			
-			glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-			glRasterPos2f(0.0f, 0.0f);
-			glPrint("%s", MapActorMsg);
-		} else {
-			//
-		}
-		
-		if(Renderer_EnableSceneActors) {
-			glLoadIdentity();
-			glTranslatef(-0.5f, 0.32f, -1.0f);
-			
-			if (!SceneHeader[SceneHeader_Current].ScActor_Count == 0) {
-				sprintf(SceneActorMsg, "Scene Actor: #%d, Type %04X, Variable %04X, X: %d, Y: %d, Z: %d", ScActorInfo_Selected, ScActors[ScActorInfo_Selected].Number, ScActors[ScActorInfo_Selected].Variable, ScActors[ScActorInfo_Selected].X_Position, ScActors[ScActorInfo_Selected].Y_Position, ScActors[ScActorInfo_Selected].Z_Position);
-			} else {
-				sprintf(SceneActorMsg, "No Scene Actors found.");
-			}
-		
-			glColor4f(0.0f, 0.0f, 0.0f, 1.0f);
-			glRasterPos2f(0.003f, -0.028f);
-			glPrint("%s", SceneActorMsg);
-			
-			glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-			glRasterPos2f(0.0f, -0.025f);
-			glPrint("%s", SceneActorMsg);
-		} else {
-			//
-		}
-*/		
 		gluLookAt(CamX, CamY, CamZ, 
 				CamX + CamLX, CamY + CamLY, CamZ + CamLZ,
 				0.0f, 1.0f, 0.0f);
@@ -2167,112 +2206,14 @@ int DrawGLScene(void)
 		
 		ActorInfo_CurrentCount = 0;
 		ScActorInfo_CurrentCount = 0;
-		
-		if(Renderer_EnableMapActors) {
-			if (MapHeader[MapHeader_Current].Actor_Count > 0) {
-				glDisable(GL_TEXTURE_2D);
-				glDisable(GL_FOG);
-				
-				while (!(ActorInfo_CurrentCount == MapHeader[MapHeader_Current].Actor_Count)) {
-					glEnable(GL_LIGHT1);
-					glDisable(GL_LIGHTING);
-					glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-					Viewer_RenderActor(ActorInfo_CurrentCount, Actors[ActorInfo_CurrentCount].X_Position, Actors[ActorInfo_CurrentCount].Y_Position, Actors[ActorInfo_CurrentCount].Z_Position, Actors[ActorInfo_CurrentCount].X_Rotation, Actors[ActorInfo_CurrentCount].Y_Rotation, Actors[ActorInfo_CurrentCount].Z_Rotation, true);
-					glEnable(GL_LIGHTING);
-					glDisable(GL_LIGHT1);
-					glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-					glEnable(GL_POLYGON_OFFSET_LINE);
-					glPolygonOffset(-1.0f,-1.0f);
-					glColor3f(1.0f, 1.0f, 1.0f);
-					Viewer_RenderActor(ActorInfo_CurrentCount, Actors[ActorInfo_CurrentCount].X_Position, Actors[ActorInfo_CurrentCount].Y_Position, Actors[ActorInfo_CurrentCount].Z_Position, Actors[ActorInfo_CurrentCount].X_Rotation, Actors[ActorInfo_CurrentCount].Y_Rotation, Actors[ActorInfo_CurrentCount].Z_Rotation ,true);
-					glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-					glEnable(GL_LIGHT1);
-					glDisable(GL_LIGHTING);
-					ActorInfo_CurrentCount++;
-				}
-			}
-		}
-		
-		if(Renderer_EnableSceneActors) {
-			if (SceneHeader[SceneHeader_Current].ScActor_Count > 0) {
-				glDisable(GL_TEXTURE_2D);
-				glDisable(GL_FOG);
-				
-				while (!(ScActorInfo_CurrentCount == SceneHeader[SceneHeader_Current].ScActor_Count)) {
-					glEnable(GL_LIGHT1);
-					glDisable(GL_LIGHTING);
-					glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-					Viewer_RenderActor(ScActorInfo_CurrentCount, ScActors[ScActorInfo_CurrentCount].X_Position, ScActors[ScActorInfo_CurrentCount].Y_Position, ScActors[ScActorInfo_CurrentCount].Z_Position, ScActors[ScActorInfo_CurrentCount].X_Rotation, ScActors[ScActorInfo_CurrentCount].Y_Rotation, ScActors[ScActorInfo_CurrentCount].Z_Rotation, false);
-					glEnable(GL_LIGHTING);
-					glDisable(GL_LIGHT1);
-					glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-					glEnable(GL_POLYGON_OFFSET_LINE);
-					glPolygonOffset(-1.0f,-1.0f);
-					glColor3f(1.0f, 1.0f, 1.0f);
-					Viewer_RenderActor(ScActorInfo_CurrentCount, ScActors[ScActorInfo_CurrentCount].X_Position, ScActors[ScActorInfo_CurrentCount].Y_Position, ScActors[ScActorInfo_CurrentCount].Z_Position, ScActors[ScActorInfo_CurrentCount].X_Rotation, ScActors[ScActorInfo_CurrentCount].Y_Rotation, ScActors[ScActorInfo_CurrentCount].Z_Rotation, false);
-					glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-					glEnable(GL_LIGHT1);
-					glDisable(GL_LIGHTING);
-					ScActorInfo_CurrentCount++;
-				}
-			}
-		}
+		Viewer_RenderAllActors();
 		
 		glEnable(GL_TEXTURE_2D);
 		glCallList(Renderer_GLDisplayList);
 		
 		ActorInfo_CurrentCount = 0;
 		ScActorInfo_CurrentCount = 0;
-		
-		if(Renderer_EnableMapActors) {
-			if (MapHeader[MapHeader_Current].Actor_Count > 0) {
-				glDisable(GL_TEXTURE_2D);
-				glDisable(GL_FOG);
-				
-				while (!(ActorInfo_CurrentCount == MapHeader[MapHeader_Current].Actor_Count)) {
-					glEnable(GL_LIGHT1);
-					glDisable(GL_LIGHTING);
-					glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-					Viewer_RenderActor(ActorInfo_CurrentCount, Actors[ActorInfo_CurrentCount].X_Position, Actors[ActorInfo_CurrentCount].Y_Position, Actors[ActorInfo_CurrentCount].Z_Position, Actors[ActorInfo_CurrentCount].X_Rotation, Actors[ActorInfo_CurrentCount].Y_Rotation, Actors[ActorInfo_CurrentCount].Z_Rotation, true);
-					glEnable(GL_LIGHTING);
-					glDisable(GL_LIGHT1);
-					glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-					glEnable(GL_POLYGON_OFFSET_LINE);
-					glPolygonOffset(-1.0f,-1.0f);
-					glColor3f(1.0f, 1.0f, 1.0f);
-					Viewer_RenderActor(ActorInfo_CurrentCount, Actors[ActorInfo_CurrentCount].X_Position, Actors[ActorInfo_CurrentCount].Y_Position, Actors[ActorInfo_CurrentCount].Z_Position, Actors[ActorInfo_CurrentCount].X_Rotation, Actors[ActorInfo_CurrentCount].Y_Rotation, Actors[ActorInfo_CurrentCount].Z_Rotation ,true);
-					glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-					glEnable(GL_LIGHT1);
-					glDisable(GL_LIGHTING);
-					ActorInfo_CurrentCount++;
-				}
-			}
-		}
-		
-		if(Renderer_EnableSceneActors) {
-			if (SceneHeader[SceneHeader_Current].ScActor_Count > 0) {
-				glDisable(GL_TEXTURE_2D);
-				glDisable(GL_FOG);
-				
-				while (!(ScActorInfo_CurrentCount == SceneHeader[SceneHeader_Current].ScActor_Count)) {
-					glEnable(GL_LIGHT1);
-					glDisable(GL_LIGHTING);
-					glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-					Viewer_RenderActor(ScActorInfo_CurrentCount, ScActors[ScActorInfo_CurrentCount].X_Position, ScActors[ScActorInfo_CurrentCount].Y_Position, ScActors[ScActorInfo_CurrentCount].Z_Position, ScActors[ScActorInfo_CurrentCount].X_Rotation, ScActors[ScActorInfo_CurrentCount].Y_Rotation, ScActors[ScActorInfo_CurrentCount].Z_Rotation, false);
-					glEnable(GL_LIGHTING);
-					glDisable(GL_LIGHT1);
-					glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-					glEnable(GL_POLYGON_OFFSET_LINE);
-					glPolygonOffset(-1.0f,-1.0f);
-					glColor3f(1.0f, 1.0f, 1.0f);
-					Viewer_RenderActor(ScActorInfo_CurrentCount, ScActors[ScActorInfo_CurrentCount].X_Position, ScActors[ScActorInfo_CurrentCount].Y_Position, ScActors[ScActorInfo_CurrentCount].Z_Position, ScActors[ScActorInfo_CurrentCount].X_Rotation, ScActors[ScActorInfo_CurrentCount].Y_Rotation, ScActors[ScActorInfo_CurrentCount].Z_Rotation, false);
-					glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-					glEnable(GL_LIGHT1);
-					glDisable(GL_LIGHTING);
-					ScActorInfo_CurrentCount++;
-				}
-			}
-		}
+		Viewer_RenderAllActors();
 	}
 	
 	return true;
@@ -2281,23 +2222,17 @@ int DrawGLScene(void)
 /* RESIZEGLSCENE - RESIZES THE OPENGL RENDERING TARGET ALONG WITH THE MAIN WINDOW */
 void ReSizeGLScene(GLsizei width, GLsizei height)
 {
-	if (height==0)
-	{
-		height=1;
-	}
+	if (height == 0) height = 1;
 	
 	glViewport(0, 0, width, height);
 	
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	
-	gluPerspective(45.0f,(GLfloat)width/(GLfloat)height,0.1f,100.0f);
+	gluPerspective(45.0f, (GLfloat)width / (GLfloat)height, 0.1f, 100.0f);
 	
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	
-	OGLTargetWidth = width;
-	OGLTargetHeight = height;
 }
 
 /* KILLGLTARGET - DESTROYS THE OPENGL RENDERING TARGET FOR PROPER EXITING */
@@ -2305,25 +2240,16 @@ void KillGLTarget(void)
 {
 	if (hRC)
 	{
-		if (!wglMakeCurrent(NULL,NULL))
-		{
-			MessageBox(NULL,"Release Of DC And RC Failed.","SHUTDOWN ERROR",MB_OK | MB_ICONINFORMATION);
-		}
-
-		if (!wglDeleteContext(hRC))
-		{
-			MessageBox(NULL,"Release Rendering Context Failed.","SHUTDOWN ERROR",MB_OK | MB_ICONINFORMATION);
-		}
-		hRC=NULL;
+		if (!wglMakeCurrent(NULL, NULL)) MessageBox(NULL, "Release of DC and RC failed!", "Error", MB_OK | MB_ICONERROR);
+		if (!wglDeleteContext(hRC)) MessageBox(NULL, "Release of Rendering Context failed!", "Error", MB_OK | MB_ICONERROR);
+		hRC = NULL;
 	}
 	
-	if (hDC_ogl && !ReleaseDC(hwnd,hDC_ogl))
+	if (hDC_ogl && !ReleaseDC(hwnd, hDC_ogl))
 	{
-		MessageBox(NULL,"Release Device Context Failed.","SHUTDOWN ERROR",MB_OK | MB_ICONINFORMATION);
-		hDC_ogl=NULL;
+		MessageBox(NULL, "Release of Device Context failed!", "Error", MB_OK | MB_ICONERROR);
+		hDC_ogl = NULL;
 	}
-	
-	KillFont();
 }
 
 /* CREATEGLTARGET - CREATE AN OPENGL RENDERING TARGET WITH THE SPECIFIED PARAMETERS */
@@ -2333,121 +2259,70 @@ BOOL CreateGLTarget(int width, int height, int bits)
 	
 	static	PIXELFORMATDESCRIPTOR pfd=
 	{
-		sizeof(PIXELFORMATDESCRIPTOR),				// Size Of This Pixel Format Descriptor
-		1,											// Version Number
-		PFD_DRAW_TO_WINDOW |						// Format Must Support Window
-		PFD_SUPPORT_OPENGL |						// Format Must Support OpenGL
-		PFD_DOUBLEBUFFER,							// Must Support Double Buffering
-		PFD_TYPE_RGBA,								// Request An RGBA Format
-		0,										// Select Our Color Depth
-		0, 0, 0, 0, 0, 0,							// Color Bits Ignored
-		0,											// No Alpha Buffer
-		0,											// Shift Bit Ignored
-		0,											// No Accumulation Buffer
-		0, 0, 0, 0,									// Accumulation Bits Ignored
-		16,											// 16Bit Z-Buffer (Depth Buffer)  
-		0,											// No Stencil Buffer
-		0,											// No Auxiliary Buffer
-		PFD_MAIN_PLANE,								// Main Drawing Layer
-		0,											// Reserved
-		0, 0, 0										// Layer Masks Ignored
+		sizeof(PIXELFORMATDESCRIPTOR),
+		1,
+		PFD_DRAW_TO_WINDOW |
+		PFD_SUPPORT_OPENGL |
+		PFD_DOUBLEBUFFER,
+		PFD_TYPE_RGBA,
+		0,
+		0, 0, 0, 0, 0, 0,
+		0,
+		0,
+		0,
+		0,
+		16,
+		0,
+		0,
+		PFD_MAIN_PLANE,
+		0,
+		0, 0, 0
 	};
 	pfd.cColorBits = bits;
 	
-	if (!(hDC_ogl=GetDC(hogl)))							// Did We Get A Device Context?
+	if (!(hDC_ogl = GetDC(hogl)))
 	{
-		KillGLTarget();								// Reset The Display
-		MessageBox(NULL,"Can't Create A GL Device Context.","ERROR",MB_OK|MB_ICONEXCLAMATION);
-		return FALSE;								// Return FALSE
+		KillGLTarget();
+		MessageBox(NULL, "Can't create OpenGL Device Context!", "Error", MB_OK | MB_ICONEXCLAMATION);
+		return FALSE;
 	}
 	
-	if (!(PixelFormat=ChoosePixelFormat(hDC_ogl,&pfd)))	// Did Windows Find A Matching Pixel Format?
+	if (!(PixelFormat = ChoosePixelFormat(hDC_ogl, &pfd)))
 	{
-		KillGLTarget();								// Reset The Display
-		MessageBox(NULL,"Can't Find A Suitable PixelFormat.","ERROR",MB_OK|MB_ICONEXCLAMATION);
-		return FALSE;								// Return FALSE
+		KillGLTarget();
+		MessageBox(NULL, "Can't find suitable PixelFormat!", "Error", MB_OK | MB_ICONEXCLAMATION);
+		return FALSE;
 	}
 	
-	if(!SetPixelFormat(hDC_ogl,PixelFormat,&pfd))		// Are We Able To Set The Pixel Format?
+	if(!SetPixelFormat(hDC_ogl, PixelFormat, &pfd))
 	{
-		KillGLTarget();								// Reset The Display
-		MessageBox(NULL,"Can't Set The PixelFormat.","ERROR",MB_OK|MB_ICONEXCLAMATION);
-		return FALSE;								// Return FALSE
+		KillGLTarget();
+		MessageBox(NULL,"Can't set PixelFormat!", "Error", MB_OK | MB_ICONEXCLAMATION);
+		return FALSE;
 	}
 	
-	if (!(hRC=wglCreateContext(hDC_ogl)))				// Are We Able To Get A Rendering Context?
+	if (!(hRC = wglCreateContext(hDC_ogl)))
 	{
-		KillGLTarget();								// Reset The Display
-		MessageBox(NULL,"Can't Create A GL Rendering Context.","ERROR",MB_OK|MB_ICONEXCLAMATION);
-		return FALSE;								// Return FALSE
+		KillGLTarget();
+		MessageBox(NULL, "Can't create OpenGL Rendering Context!", "Error", MB_OK | MB_ICONEXCLAMATION);
+		return FALSE;
 	}
 	
-	if(!wglMakeCurrent(hDC_ogl,hRC))					// Try To Activate The Rendering Context
+	if(!wglMakeCurrent(hDC_ogl, hRC))
 	{
-		KillGLTarget();								// Reset The Display
-		MessageBox(NULL,"Can't Activate The GL Rendering Context.","ERROR",MB_OK|MB_ICONEXCLAMATION);
-		return FALSE;								// Return FALSE
+		KillGLTarget();
+		MessageBox(NULL, "Can't activate OpenGL Rendering Context!", "Error", MB_OK | MB_ICONEXCLAMATION);
+		return FALSE;
 	}
 	
-	if (!InitGL())									// Initialize Our Newly Created GL Window
+	if (!InitGL())
 	{
-		KillGLTarget();								// Reset The Display
-		MessageBox(NULL,"Initialization Failed.","ERROR",MB_OK|MB_ICONEXCLAMATION);
-		return FALSE;								// Return FALSE
+		KillGLTarget();
+		MessageBox(NULL, "Initialization failed!", "Error", MB_OK | MB_ICONEXCLAMATION);
+		return FALSE;
 	}
 	
-	return TRUE;									// Success
-}
-
-void BuildFont(void)								// Build Our Bitmap Font
-{
-	HFONT	font;										// Windows Font ID
-	HFONT	oldfont;									// Used For Good House Keeping
-	
-	GLFontBase = glGenLists(96);						// Storage For 96 Characters
-	
-	font = CreateFont(	-12,							// Height Of Font
-						0,								// Width Of Font
-						0,								// Angle Of Escapement
-						0,								// Orientation Angle
-						FALSE,							// Font Weight
-						FALSE,							// Italic
-						FALSE,							// Underline
-						FALSE,							// Strikeout
-						ANSI_CHARSET,					// Character Set Identifier
-						OUT_TT_PRECIS,					// Output Precision
-						CLIP_DEFAULT_PRECIS,			// Clipping Precision
-						ANTIALIASED_QUALITY,			// Output Quality
-						FF_DONTCARE|DEFAULT_PITCH,		// Family And Pitch
-						"Arial");						// Font Name
-	
-	oldfont = (HFONT)SelectObject(hDC_ogl, font);           // Selects The Font We Want
-	wglUseFontBitmaps(hDC_ogl, 32, 96, GLFontBase);			// Builds 96 Characters Starting At Character 32
-	SelectObject(hDC_ogl, oldfont);							// Selects The Font We Want
-	DeleteObject(font);									// Delete The Font
-}
-
-void KillFont(void)									// Delete The Font List
-{
-	glDeleteLists(GLFontBase, 96);						// Delete All 96 Characters
-}
-
-void glPrint(const char *fmt, ...)					// Custom GL "Print" Routine
-{
-	char		text[256];								// Holds Our String
-	va_list		ap;										// Pointer To List Of Arguments
-	
-	if (fmt == NULL)									// If There's No Text
-		return;											// Do Nothing
-	
-	va_start(ap, fmt);									// Parses The String For Variables
-		vsprintf(text, fmt, ap);						// And Converts Symbols To Actual Numbers
-	va_end(ap);											// Results Are Stored In Text
-	
-	glPushAttrib(GL_LIST_BIT);							// Pushes The Display List Bits
-	glListBase(GLFontBase - 32);						// Sets The Base Character to 32
-	glCallLists(strlen(text), GL_UNSIGNED_BYTE, text);	// Draws The Display List Text
-	glPopAttrib();										// Pops The Display List Bits
+	return TRUE;
 }
 
 /*	------------------------------------------------------------ */
@@ -2483,17 +2358,17 @@ void Camera_MouseMove(int x, int y)
 /* DIALOG_OPENZMAP - COMMON DIALOG USED FOR SELECTING THE MAP FILE */
 void Dialog_OpenZMap(HWND hwnd)
 {
-	char			filter[]="Zelda Map files (*.zmap)\0;*.zmap\0";
+	char			filter[] = "Zelda Map files (*.zmap)\0;*.zmap\0";
 	OPENFILENAME	ofn;
 	
-	memset(&ofn,0,sizeof(ofn));
-	ofn.lStructSize=sizeof(OPENFILENAME);
-	ofn.hwndOwner=hwnd;
-	ofn.lpstrFilter=filter;
-	ofn.nFilterIndex=1;
-	ofn.lpstrFile=Filename_ZMap;
-	ofn.nMaxFile=256;
-	ofn.Flags=OFN_EXPLORER|OFN_PATHMUSTEXIST|OFN_FILEMUSTEXIST|OFN_HIDEREADONLY;
+	memset(&ofn, 0, sizeof(ofn));
+	ofn.lStructSize		= sizeof(OPENFILENAME);
+	ofn.hwndOwner		= hwnd;
+	ofn.lpstrFilter		= filter;
+	ofn.nFilterIndex	= 1;
+	ofn.lpstrFile		= Filename_ZMap;
+	ofn.nMaxFile		= 256;
+	ofn.Flags			= OFN_EXPLORER | OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
 	
 	if(GetOpenFileName(&ofn)) ZMapExists = true;
 	
@@ -2503,17 +2378,17 @@ void Dialog_OpenZMap(HWND hwnd)
 /* DIALOG_OPENZSCENE - COMMON DIALOG USED FOR SELECTING THE SCENE FILE */
 void Dialog_OpenZScene(HWND hwnd)
 {
-	char			filter[]="Zelda Scene files (*.zscene)\0*.zscene\0";
+	char			filter[] = "Zelda Scene files (*.zscene)\0*.zscene\0";
 	OPENFILENAME	ofn;
 	
-	memset(&ofn,0,sizeof(ofn));
-	ofn.lStructSize=sizeof(OPENFILENAME);
-	ofn.hwndOwner=hwnd;
-	ofn.lpstrFilter=filter;
-	ofn.nFilterIndex=1;
-	ofn.lpstrFile=Filename_ZScene;
-	ofn.nMaxFile=256;
-	ofn.Flags=OFN_EXPLORER|OFN_PATHMUSTEXIST|OFN_FILEMUSTEXIST|OFN_HIDEREADONLY;
+	memset(&ofn, 0, sizeof(ofn));
+	ofn.lStructSize		= sizeof(OPENFILENAME);
+	ofn.hwndOwner		= hwnd;
+	ofn.lpstrFilter		= filter;
+	ofn.nFilterIndex	= 1;
+	ofn.lpstrFile		= Filename_ZScene;
+	ofn.nMaxFile		= 256;
+	ofn.Flags			= OFN_EXPLORER | OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
 	
 	if(GetOpenFileName(&ofn)) ZSceneExists = true;
 	
@@ -2542,11 +2417,10 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 	wincl.hIcon = LoadIcon (NULL, IDI_APPLICATION);
 	wincl.hIconSm = LoadIcon (NULL, IDI_APPLICATION);
 	wincl.hCursor = LoadCursor (NULL, IDC_ARROW);
-	wincl.lpszMenuName = NULL;
+	wincl.lpszMenuName = MAKEINTRESOURCE(IDM_MAINMENU);
 	wincl.cbClsExtra = 0;
 	wincl.cbWndExtra = 0;
 	wincl.hbrBackground = (HBRUSH) COLOR_BACKGROUND;
-	wincl.lpszMenuName = MAKEINTRESOURCE(IDM_MAINMENU);
 	
 	if (!RegisterClassEx (&wincl))
 		return 0;
@@ -2656,8 +2530,10 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 						if(!(MapHeader_TotalCount == 0)) {
 							if(!(MapHeader_Current == 0)) {
 								MapHeader_Current--;
+								FileSystemLog = fopen("log.txt", "w");
 								Viewer_GetMapHeader(MapHeader_Current);
 								Viewer_GetMapActors(MapHeader_Current);
+								fclose(FileSystemLog);
 							}
 							sprintf(StatusMsg, "Map Header: #%d", MapHeader_Current);
 						}
@@ -2667,8 +2543,10 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 						if(!(MapHeader_TotalCount == 0)) {
 							if(!(MapHeader_Current == MapHeader_TotalCount - 1)) {
 								MapHeader_Current++;
+								FileSystemLog = fopen("log.txt", "w");
 								Viewer_GetMapHeader(MapHeader_Current);
 								Viewer_GetMapActors(MapHeader_Current);
+								fclose(FileSystemLog);
 							}
 							sprintf(StatusMsg, "Map Header: #%d", MapHeader_Current);
 						}
@@ -2699,8 +2577,10 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 						if(!(SceneHeader_TotalCount == 0)) {
 							if(!(SceneHeader_Current == 0)) {
 								SceneHeader_Current--;
+								FileSystemLog = fopen("log.txt", "w");
 								Viewer_GetSceneHeader(SceneHeader_Current);
 								Viewer_GetSceneActors(SceneHeader_Current);
+								fclose(FileSystemLog);
 							}
 							sprintf(StatusMsg, "Scene Header: #%d", SceneHeader_Current);
 						}
@@ -2710,8 +2590,10 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 						if(!(SceneHeader_TotalCount == 0)) {
 							if(!(SceneHeader_Current == SceneHeader_TotalCount - 1)) {
 								SceneHeader_Current++;
+								FileSystemLog = fopen("log.txt", "w");
 								Viewer_GetSceneHeader(SceneHeader_Current);
 								Viewer_GetSceneActors(SceneHeader_Current);
+								fclose(FileSystemLog);
 							}
 							sprintf(StatusMsg, "Scene Header: #%d", SceneHeader_Current);
 						}
@@ -2779,15 +2661,15 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 {
 	switch(message)
 	{
-		case WM_ACTIVATE:
+		case WM_ACTIVATE: {
 			if (!HIWORD(wParam)) {
 				WndActive = true;
 			} else {
 				WndActive = false;
 			}
 			break;
-			
-		case WM_SIZE: ;
+		}
+		case WM_SIZE: {
 			HWND hogl;
 			RECT rcClient;
 			GetClientRect(hwnd, &rcClient);
@@ -2798,13 +2680,13 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			GetDlgItem(hwnd, IDC_MAIN_STATUSBAR);
 			SendMessage(hstatus, WM_SIZE, 0, 0);
 			GetWindowRect(hstatus, &rcStatus);
-			StatusBarHeight = rcStatus.bottom - rcStatus.top;
 			
 			ReSizeGLScene(rcClient.right, rcClient.bottom);
 			DrawGLScene();
 			SwapBuffers(hDC_ogl);
-			
-		case WM_COMMAND:
+			break;
+		}
+		case WM_COMMAND: {
 			switch(LOWORD(wParam))
 			{
 				case IDM_FILE_OPEN:
@@ -2881,34 +2763,34 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 					break;
 			}
 			break;
-			
-		case WM_CLOSE:
+		}
+		case WM_CLOSE: {
 			ExitProgram = true;
 			break;
-			
-		case WM_DESTROY:
+		}
+		case WM_DESTROY: {
 			PostQuitMessage(0);
 			break;
-			
-		case WM_KEYDOWN:
+		}
+		case WM_KEYDOWN: {
 			System_KbdKeys[wParam] = true;
 			break;
-			
-		case WM_KEYUP:
+		}
+		case WM_KEYUP: {
 			System_KbdKeys[wParam] = false;
 			break;
-			
-		case WM_LBUTTONDOWN:
+		}
+		case WM_LBUTTONDOWN: {
 			MouseButtonDown = true;
 			MouseCenterX = (signed int)LOWORD(lParam);
 			MouseCenterY = (signed int)HIWORD(lParam);
 			break;
-			
-		case WM_LBUTTONUP:
+		}
+		case WM_LBUTTONUP: {
 			MouseButtonDown = false;
 			break;
-			
-		case WM_MOUSEMOVE:
+		}
+		case WM_MOUSEMOVE: {
 			if((MouseButtonDown) && (WndActive)) {
 				MousePosX = (signed int)LOWORD(lParam);
 				MousePosY = (signed int)HIWORD(lParam);
@@ -2916,9 +2798,8 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 				GLUTCamera_Orientation(CamAngleX, CamAngleY);
 			}
 			break;
-			
-		default:
-			return DefWindowProc(hwnd, message, wParam, lParam);
+		}
+		default: return DefWindowProc(hwnd, message, wParam, lParam);
 	}
 	
 	return 0;
