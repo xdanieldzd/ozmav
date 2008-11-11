@@ -2758,7 +2758,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 					break;
 				case IDM_HELP_ABOUT: ;
 					char AboutMsg[256] = "";
-					sprintf(AboutMsg, "%s %s (Build '%s') - OpenGL Zelda Map Viewer\n\nWritten in October 2008 by xdaniel\nhttp://magicstone.de/dzd/", AppTitle, AppVersion, AppBuildName);
+					sprintf(AboutMsg, "%s %s (Build '%s') - OpenGL Zelda Map Viewer\n\nWritten in October/November 2008 by xdaniel & contributors\nhttp://ozmav.googlecode.com/", AppTitle, AppVersion, AppBuildName);
 					MessageBox(hwnd, AboutMsg, "About", MB_OK | MB_ICONINFORMATION);
 					break;
 			}
