@@ -55,6 +55,7 @@ OriginalFilename=
 ProductName=
 ProductVersion=
 AutoIncBuildNr=0
+LanguageID=1033
 
 [Unit2]
 FileName=resource.rc
@@ -76,9 +77,9 @@ OverrideBuildCmd=0
 BuildCmd=
 
 [Unit4]
-FileName=ucode.h
+FileName=n64.h
 CompileCpp=1
-Folder=
+Folder=OZMAV
 Compile=1
 Link=1
 Priority=1000
