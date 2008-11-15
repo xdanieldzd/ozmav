@@ -45,7 +45,7 @@ int Viewer_GetMapActors(int);
 int Viewer_GetSceneActors(int);
 int Viewer_GetDisplayLists(unsigned long);
 
-int Viewer_RenderMap(int);
+int Viewer_RenderMap();
 int Viewer_RenderMap_DListParser(bool, unsigned int, unsigned long);
 
 int Viewer_RenderMap_CMDVertexList();
@@ -59,7 +59,7 @@ int Viewer_RenderMap_CMDSetTileSize();
 int Viewer_RenderMap_CMDGeometryMode();
 int Viewer_RenderMap_CMDSetFogColor();
 int Viewer_RenderMap_CMDSetPrimColor();
-int Viewer_RenderMap_CMDLoadTLUT();
+int Viewer_RenderMap_CMDLoadTLUT(unsigned int, unsigned long);
 int Viewer_RenderMap_CMDRDPHalf1();
 int Viewer_RenderMap_CMDSetOtherModeL();
 
@@ -156,8 +156,8 @@ unsigned long	ZSceneFilesize = 0;
 unsigned long	GameplayKeepFilesize = 0;
 unsigned long	GameplayFDKeepFilesize = 0;
 
-char			Filename_ZMap[256] = "";
-char			Filename_ZScene[256] = "";
+char			Filename_ZMap[256] = "besitu_room_0.zmap";
+char			Filename_ZScene[256] = "besitu_scene.zscene";
 char			Filename_GameplayKeep[256] = "gameplay_keep.zdata";
 char			Filename_GameplayFDKeep[256] = "gameplay_dangeon_keep.zdata";
 
@@ -179,11 +179,13 @@ unsigned int	Readout_CurrentByte6 = 0;
 unsigned int	Readout_CurrentByte7 = 0;
 unsigned int	Readout_CurrentByte8 = 0;
 
+unsigned long	Readout_NextGFXCommand1 = 0;
+
 /* F3DZEX DISPLAY LIST HANDLING VARIABLES */
 unsigned long	DLists[2048];
-signed long		DListInfo_CurrentCount;
-signed long		DListInfo_DListToRender;
-unsigned long	DLTempPosition;
+signed long		DListInfo_CurrentCount = 0;
+signed long		DListInfo_DListToRender = 0;
+unsigned long	DLTempPosition = 0;
 
 unsigned int	DLToRender = 0;
 bool			DListHasEnded = false;
@@ -195,11 +197,6 @@ unsigned char	* TextureData_OGL;
 unsigned char	* TextureData_N64;
 
 unsigned char	* PaletteData;
-
-unsigned int	TextureID = -1;
-unsigned int	LastCITextureID = 0;
-unsigned int	LastCIPaletteID = 0;
-bool			NoChangeCIPalette = false;
 
 /* ZELDA MAP & SCENE HEADER HANDLING VARIABLES */
 bool			MapHeader_MultiHeaderMap = false;
@@ -223,6 +220,7 @@ int				ScActorInfo_Selected = 0;
 
 /* GENERAL RENDERER VARIABLES */
 GLuint			Renderer_GLDisplayList = 0;
+GLuint			Renderer_GLDisplayList_Current = 0;
 
 DWORD			Renderer_LastFPS = 0;
 int				Renderer_FPS, Renderer_FrameNo = 0;
@@ -319,7 +317,9 @@ struct {
 	unsigned int Width;
 	unsigned int WidthRender;
 	unsigned int DataSource;
+	unsigned int PalDataSource;
 	unsigned long Offset;
+	unsigned long PalOffset;
 	unsigned int Format_N64;
 	GLuint Format_OGL;
 	unsigned int Format_OGLPixel;
@@ -329,7 +329,7 @@ struct {
 	signed short T_Scale;
 	unsigned int LineSize;
 	unsigned int Palette;
-} Texture[2048];
+} Texture;
 
 /* CI TEXTURE PALETTE STRUCTURE */
 struct {
@@ -348,10 +348,7 @@ int Viewer_Initialize()
 	
 	Viewer_OpenMapScene();
 	
-	Renderer_GLDisplayList = glGenLists(1);
-	Viewer_RenderMap(DListInfo_DListToRender);
-	/* render again, crude hack that fixes missing CI textures, proper fix would be fixing the texturing... */
-	Viewer_RenderMap(DListInfo_DListToRender);
+	Viewer_RenderMap();
 	
 	EnableMenuItem(hmenu, IDM_CAMERA_RESETCOORDS, MF_BYCOMMAND | MF_ENABLED);
 	EnableMenuItem(hmenu, IDM_MAP_PREVDLIST, MF_BYCOMMAND | MF_ENABLED);
@@ -395,8 +392,8 @@ int Viewer_OpenMapScene()
 	ZMapFilesize = ftell(FileZMap);
 	rewind(FileZMap);
 	/* LOAD FILE INTO BUFFER */
-	ZMapBuffer = (unsigned int*) malloc (sizeof(int)*ZMapFilesize);
-	Result = fread(ZMapBuffer,1,ZMapFilesize,FileZMap);
+	ZMapBuffer = (unsigned int*) malloc (sizeof(int) * ZMapFilesize);
+	Result = fread(ZMapBuffer, 1, ZMapFilesize, FileZMap);
 	/* CLOSE FILE */
 	fclose(FileZMap);
 	
@@ -407,8 +404,8 @@ int Viewer_OpenMapScene()
 	ZSceneFilesize = ftell(FileZScene);
 	rewind(FileZScene);
 	/* LOAD FILE INTO BUFFER */
-	ZSceneBuffer = (unsigned int*) malloc (sizeof(int)*ZSceneFilesize);
-	Result = fread(ZSceneBuffer,1,ZSceneFilesize,FileZScene);
+	ZSceneBuffer = (unsigned int*) malloc (sizeof(int) * ZSceneFilesize);
+	Result = fread(ZSceneBuffer, 1, ZSceneFilesize, FileZScene);
 	/* CLOSE FILE */
 	fclose(FileZScene);
 	
@@ -419,8 +416,8 @@ int Viewer_OpenMapScene()
 	GameplayKeepFilesize = ftell(FileGameplayKeep);
 	rewind(FileGameplayKeep);
 	/* LOAD FILE INTO BUFFER */
-	GameplayKeepBuffer = (unsigned int*) malloc (sizeof(int)*GameplayKeepFilesize);
-	Result = fread(GameplayKeepBuffer,1,GameplayKeepFilesize,FileGameplayKeep);
+	GameplayKeepBuffer = (unsigned int*) malloc (sizeof(int) * GameplayKeepFilesize);
+	Result = fread(GameplayKeepBuffer, 1, GameplayKeepFilesize, FileGameplayKeep);
 	/* CLOSE FILE */
 	fclose(FileGameplayKeep);
 	
@@ -431,8 +428,8 @@ int Viewer_OpenMapScene()
 	GameplayFDKeepFilesize = ftell(FileGameplayFDKeep);
 	rewind(FileGameplayFDKeep);
 	/* LOAD FILE INTO BUFFER */
-	GameplayFDKeepBuffer = (unsigned int*) malloc (sizeof(int)*GameplayFDKeepFilesize);
-	Result = fread(GameplayFDKeepBuffer,1,GameplayFDKeepFilesize,FileGameplayFDKeep);
+	GameplayFDKeepBuffer = (unsigned int*) malloc (sizeof(int) * GameplayFDKeepFilesize);
+	Result = fread(GameplayFDKeepBuffer, 1, GameplayFDKeepFilesize, FileGameplayFDKeep);
 	/* CLOSE FILE */
 	fclose(FileGameplayFDKeep);
 	
@@ -475,6 +472,7 @@ int Viewer_OpenMapScene()
 		memset(Vertex, 0x00, sizeof(Vertex));
 		
 		PaletteData = (unsigned char *) malloc (1024);
+		memset(PaletteData, 0x00, sizeof(PaletteData));
 		
 		Viewer_GetMapHeader(MapHeader_Current);
 		Viewer_GetSceneHeader(SceneHeader_Current);
@@ -742,7 +740,7 @@ int Viewer_GetDisplayLists(unsigned long Fsize)
 	DListInfo_CurrentCount = -1;
 	unsigned long TempOffset = 0;
 	
-	while ((DListScanPosition < Fsize)) {
+	while ((DListScanPosition < Fsize / 4)) {
 		memcpy(&Readout_Current1, &ZMapBuffer[DListScanPosition], 4);
 		memcpy(&Readout_Current2, &ZMapBuffer[DListScanPosition + 1], 4);
 		
@@ -768,49 +766,49 @@ int Viewer_GetDisplayLists(unsigned long Fsize)
 }
 
 /* VIEWER_RENDERMAP - MAIN FUNCTION FOR DISPLAY LIST HANDLING TO RENDER MAPS, FOR EITHER ALL OR A GIVEN DISPLAY LIST(S) */
-int Viewer_RenderMap(int SingleDLNumber)
+int Viewer_RenderMap()
 {
+	/* OPEN GFX COMMAND LOG */
 	if(!GFXLogOpened) FileGFXLog = fopen("gfxlog.txt", "w"); GFXLogOpened = true;
 	
-	int DListInfo_CurrentCount_Render = 0;
+	/* IF GL DLISTS EXIST, DELETE THEM ALL */
+	if(Renderer_GLDisplayList != 0) { glDeleteLists(Renderer_GLDisplayList, 256); }
+	/* REGENERATE GL DLISTS */
+	Renderer_GLDisplayList = glGenLists(256);
 	
-	if((SingleDLNumber == -1)) {
-		DLToRender = 0;
-		DListInfo_CurrentCount_Render = DListInfo_CurrentCount + 1;
-	} else {
-		DLToRender = SingleDLNumber;
-		DListInfo_CurrentCount_Render = SingleDLNumber + 1;
-	}
+	/* SET GL DLIST BASE */
+	glListBase(Renderer_GLDisplayList);
 	
-	if(Renderer_GLDisplayList != 0) {
-		glNewList(Renderer_GLDisplayList, GL_COMPILE);
-		while (!(DLToRender == DListInfo_CurrentCount_Render)) {
-			DLTempPosition = DLists[DLToRender] / 4;
-			
-			SubDLCall = false;
-			Viewer_RenderMap_DListParser(false, DLToRender, DLTempPosition);
-			
-			DLToRender++;
-			DListHasEnded = false;
+	/* RESET SOME VALUES FOR DLIST READING/BUILDING */
+	Renderer_GLDisplayList_Current = Renderer_GLDisplayList;
+	DLToRender = 0;
+	
+	while(!(Renderer_GLDisplayList_Current == Renderer_GLDisplayList + (DListInfo_CurrentCount + 1))) {
+		if(Renderer_GLDisplayList_Current != 0) {
+			glNewList(Renderer_GLDisplayList_Current, GL_COMPILE);
+				DLTempPosition = DLists[DLToRender] / 4;
+				
+				SubDLCall = false;
+				Viewer_RenderMap_DListParser(false, DLToRender, DLTempPosition);
+				
+				PrimColor[0] = 0.0f;
+				PrimColor[1] = 0.0f;
+				PrimColor[2] = 0.0f;
+				PrimColor[3] = 1.0f;
+				
+				Blender_Cycle1 = 0x00;
+				Blender_Cycle2 = 0x00;
+				
+				DListHasEnded = false;
+			glEndList();
+			HelperFunc_LogMessage(2, "end of dlist\n");
 		}
-		glEndList();
-		DLToRender = 0;
+		
+		Renderer_GLDisplayList_Current++;
+		DLToRender++;
 	}
 	
 	MapLoaded = true;
-	
-	PrimColor[0] = 0.0f;
-	PrimColor[1] = 0.0f;
-	PrimColor[2] = 0.0f;
-	PrimColor[3] = 1.0f;
-	
-	TextureID = -1;
-	LastCITextureID = 0;
-	LastCIPaletteID = 0;
-	NoChangeCIPalette = false;
-	
-	Blender_Cycle1 = 0x00;
-	Blender_Cycle2 = 0x00;
 	
 	fclose(FileGFXLog); GFXLogOpened = false;
 	fclose(FileSystemLog);
@@ -834,6 +832,8 @@ int Viewer_RenderMap_DListParser(bool CalledFromRDPHalf, unsigned int DLToRender
 	while (!DListHasEnded) {
 		memcpy(&Readout_Current1, &ZMapBuffer[Position], 4);
 		memcpy(&Readout_Current2, &ZMapBuffer[Position + 1], 4);
+		
+		memcpy(&Readout_NextGFXCommand1, &ZMapBuffer[Position + 2], 4);
 		
 		HelperFunc_SplitCurrentVals(true);
 		
@@ -951,7 +951,7 @@ int Viewer_RenderMap_DListParser(bool CalledFromRDPHalf, unsigned int DLToRender
 			sprintf(CurrentGFXCmd, "G_LOADTLUT           ");
 			sprintf(CurrentGFXCmdNote, "-");
 			HelperFunc_GFXLogCommand(Position);
-			Viewer_RenderMap_CMDLoadTLUT();
+			Viewer_RenderMap_CMDLoadTLUT(Texture.PalDataSource, Texture.PalOffset);
 			break;
 		case G_SETCOMBINE:
 			sprintf(CurrentGFXCmd, "G_SETCOMBINE         ");
@@ -1002,6 +1002,8 @@ int Viewer_RenderMap_DListParser(bool CalledFromRDPHalf, unsigned int DLToRender
 /* VIEWER_RENDERMAP_CMDVERTEXLIST - F3DEX2_VTX - GET OFFSET, AMOUNT & VERTEX BUFFER POSITION OF VERTICES TO USE */
 int Viewer_RenderMap_CMDVertexList()
 {
+	Viewer_LoadTexture();
+	
 	unsigned long TempVertListOffset = 0;
 	int TempVertCount = 0;
 	unsigned int TempVertListStartEntry = 0;
@@ -1109,20 +1111,20 @@ int Viewer_RenderMap_CMDDrawTri1()
 	glBegin(GL_TRIANGLES);
 		glColor4f(PrimColor[0], PrimColor[1], PrimColor[2], PrimColor[3]);
 		
-		TempU = (float) CurrentH1_1 * Texture[TextureID].S_Scale / 32 / Texture[TextureID].WidthRender;
-		TempV = (float) CurrentV1_1 * Texture[TextureID].T_Scale / 32 / Texture[TextureID].HeightRender;
+		TempU = (float) CurrentH1_1 * Texture.S_Scale / 32 / Texture.WidthRender;
+		TempV = (float) CurrentV1_1 * Texture.T_Scale / 32 / Texture.HeightRender;
 		glTexCoord2f(TempU, TempV);
 		if(!Renderer_EnableLighting) { glColor4ub (CurrentR1_1, CurrentG1_1, CurrentB1_1, CurrentA1_1); }
 		glNormal3f (CurrentR1_1 / 255.0f, CurrentG1_1 / 255.0f, CurrentB1_1 / 255.0f);
 		glVertex3d(CurrentX1_1, CurrentY1_1, CurrentZ1_1);
-		TempU = (float) CurrentH1_2 * Texture[TextureID].S_Scale / 32 / Texture[TextureID].WidthRender;
-		TempV = (float) CurrentV1_2 * Texture[TextureID].T_Scale / 32 / Texture[TextureID].HeightRender;
+		TempU = (float) CurrentH1_2 * Texture.S_Scale / 32 / Texture.WidthRender;
+		TempV = (float) CurrentV1_2 * Texture.T_Scale / 32 / Texture.HeightRender;
 		glTexCoord2f(TempU, TempV);
 		if(!Renderer_EnableLighting) { glColor4ub (CurrentR1_2, CurrentG1_2, CurrentB1_2, CurrentA1_2); }
 		glNormal3f (CurrentR1_2 / 255.0f, CurrentG1_2 / 255.0f, CurrentB1_2 / 255.0f);
 		glVertex3d(CurrentX1_2, CurrentY1_2, CurrentZ1_2);
-		TempU = (float) CurrentH1_3 * Texture[TextureID].S_Scale / 32 / Texture[TextureID].WidthRender;
-		TempV = (float) CurrentV1_3 * Texture[TextureID].T_Scale / 32 / Texture[TextureID].HeightRender;
+		TempU = (float) CurrentH1_3 * Texture.S_Scale / 32 / Texture.WidthRender;
+		TempV = (float) CurrentV1_3 * Texture.T_Scale / 32 / Texture.HeightRender;
 		glTexCoord2f(TempU, TempV);
 		if(!Renderer_EnableLighting) { glColor4ub (CurrentR1_3, CurrentG1_3, CurrentB1_3, CurrentA1_3); }
 		glNormal3f (CurrentR1_3 / 255.0f, CurrentG1_3 / 255.0f, CurrentB1_3 / 255.0f);
@@ -1201,39 +1203,39 @@ int Viewer_RenderMap_CMDDrawTri2()
 	glBegin(GL_TRIANGLES);
 		glColor4f(PrimColor[0], PrimColor[1], PrimColor[2], PrimColor[3]);
 		
-		TempU = (float) CurrentH1_1 * Texture[TextureID].S_Scale / 32 / Texture[TextureID].WidthRender;
-		TempV = (float) CurrentV1_1 * Texture[TextureID].T_Scale / 32 / Texture[TextureID].HeightRender;
+		TempU = (float) CurrentH1_1 * Texture.S_Scale / 32 / Texture.WidthRender;
+		TempV = (float) CurrentV1_1 * Texture.T_Scale / 32 / Texture.HeightRender;
 		glTexCoord2f(TempU, TempV);
 		if(!Renderer_EnableLighting) { glColor4ub (CurrentR1_1, CurrentG1_1, CurrentB1_1, CurrentA1_1); }
 		glNormal3f (CurrentR1_1 / 255.0f, CurrentG1_1 / 255.0f, CurrentB1_1 / 255.0f);
 		glVertex3d(CurrentX1_1, CurrentY1_1, CurrentZ1_1);
-		TempU = (float) CurrentH1_2 * Texture[TextureID].S_Scale / 32 / Texture[TextureID].WidthRender;
-		TempV = (float) CurrentV1_2 * Texture[TextureID].T_Scale / 32 / Texture[TextureID].HeightRender;
+		TempU = (float) CurrentH1_2 * Texture.S_Scale / 32 / Texture.WidthRender;
+		TempV = (float) CurrentV1_2 * Texture.T_Scale / 32 / Texture.HeightRender;
 		glTexCoord2f(TempU, TempV);
 		if(!Renderer_EnableLighting) { glColor4ub (CurrentR1_2, CurrentG1_2, CurrentB1_2, CurrentA1_2); }
 		glNormal3f (CurrentR1_2 / 255.0f, CurrentG1_2 / 255.0f, CurrentB1_2 / 255.0f);
 		glVertex3d(CurrentX1_2, CurrentY1_2, CurrentZ1_2);
-		TempU = (float) CurrentH1_3 * Texture[TextureID].S_Scale / 32 / Texture[TextureID].WidthRender;
-		TempV = (float) CurrentV1_3 * Texture[TextureID].T_Scale / 32 / Texture[TextureID].HeightRender;
+		TempU = (float) CurrentH1_3 * Texture.S_Scale / 32 / Texture.WidthRender;
+		TempV = (float) CurrentV1_3 * Texture.T_Scale / 32 / Texture.HeightRender;
 		glTexCoord2f(TempU, TempV);
 		if(!Renderer_EnableLighting) { glColor4ub (CurrentR1_3, CurrentG1_3, CurrentB1_3, CurrentA1_3); }
 		glNormal3f (CurrentR1_3 / 255.0f, CurrentG1_3 / 255.0f, CurrentB1_3 / 255.0f);
 		glVertex3d(CurrentX1_3, CurrentY1_3, CurrentZ1_3);
 		
-		TempU = (float) CurrentH2_1 * Texture[TextureID].S_Scale / 32 / Texture[TextureID].WidthRender;
-		TempV = (float) CurrentV2_1 * Texture[TextureID].T_Scale / 32 / Texture[TextureID].HeightRender;
+		TempU = (float) CurrentH2_1 * Texture.S_Scale / 32 / Texture.WidthRender;
+		TempV = (float) CurrentV2_1 * Texture.T_Scale / 32 / Texture.HeightRender;
 		glTexCoord2f(TempU, TempV);
 		if(!Renderer_EnableLighting) { glColor4ub (CurrentR2_1, CurrentG2_1, CurrentB2_1, CurrentA2_1); }
 		glNormal3f (CurrentR2_1 / 255.0f, CurrentG2_1 / 255.0f, CurrentB2_1 / 255.0f);
 		glVertex3d(CurrentX2_1, CurrentY2_1, CurrentZ2_1);
-		TempU = (float) CurrentH2_2 * Texture[TextureID].S_Scale / 32 / Texture[TextureID].WidthRender;
-		TempV = (float) CurrentV2_2 * Texture[TextureID].T_Scale / 32 / Texture[TextureID].HeightRender;
+		TempU = (float) CurrentH2_2 * Texture.S_Scale / 32 / Texture.WidthRender;
+		TempV = (float) CurrentV2_2 * Texture.T_Scale / 32 / Texture.HeightRender;
 		glTexCoord2f(TempU, TempV);
 		if(!Renderer_EnableLighting) { glColor4ub (CurrentR2_2, CurrentG2_2, CurrentB2_2, CurrentA2_2); } 
 		glNormal3f (CurrentR2_2 / 255.0f, CurrentG2_2 / 255.0f, CurrentB2_2 / 255.0f);
 		glVertex3d(CurrentX2_2, CurrentY2_2, CurrentZ2_2);
-		TempU = (float) CurrentH2_3 * Texture[TextureID].S_Scale / 32 / Texture[TextureID].WidthRender;
-		TempV = (float) CurrentV2_3 * Texture[TextureID].T_Scale / 32 / Texture[TextureID].HeightRender;
+		TempU = (float) CurrentH2_3 * Texture.S_Scale / 32 / Texture.WidthRender;
+		TempV = (float) CurrentV2_3 * Texture.T_Scale / 32 / Texture.HeightRender;
 		glTexCoord2f(TempU, TempV);
 		if(!Renderer_EnableLighting) { glColor4ub (CurrentR2_3, CurrentG2_3, CurrentB2_3, CurrentA2_3); }
 		glNormal3f (CurrentR2_3 / 255.0f, CurrentG2_3 / 255.0f, CurrentB2_3 / 255.0f);
@@ -1246,10 +1248,8 @@ int Viewer_RenderMap_CMDDrawTri2()
 /* VIEWER_RENDERMAP_CMDTEXTURE - F3DEX2_TEXTURE */
 int Viewer_RenderMap_CMDTexture()
 {
-	TextureID++;
-	
-	Texture[TextureID].S_Scale = ((Readout_CurrentByte5 * 0x100) + Readout_CurrentByte6) + 2;
-	Texture[TextureID].T_Scale = ((Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8) + 2;
+	Texture.S_Scale = ((Readout_CurrentByte5 * 0x100) + Readout_CurrentByte6) + 2;
+	Texture.T_Scale = ((Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8) + 2;
 	
 	return 0;
 }
@@ -1257,13 +1257,19 @@ int Viewer_RenderMap_CMDTexture()
 /* VIEWER_RENDERMAP_CMDSETTIMAGE - G_SETTIMG - GET TEXTURE OFFSET AND STORE FOR FUTURE USE */
 int Viewer_RenderMap_CMDSetTImage()
 {
-	if(SubDLCall) TextureID++;
-	
-	Texture[TextureID].DataSource = Readout_CurrentByte5;
-	
-	Texture[TextureID].Offset = Readout_CurrentByte6 << 16;
-	Texture[TextureID].Offset = Texture[TextureID].Offset + (Readout_CurrentByte7 << 8);
-	Texture[TextureID].Offset = Texture[TextureID].Offset + Readout_CurrentByte8;
+	if(Readout_NextGFXCommand1 == 0x000000E8) {
+		Texture.PalDataSource = Readout_CurrentByte5;
+		
+		Texture.PalOffset = Readout_CurrentByte6 << 16;
+		Texture.PalOffset = Texture.PalOffset + (Readout_CurrentByte7 << 8);
+		Texture.PalOffset = Texture.PalOffset + Readout_CurrentByte8;
+	} else {
+		Texture.DataSource = Readout_CurrentByte5;
+		
+		Texture.Offset = Readout_CurrentByte6 << 16;
+		Texture.Offset = Texture.Offset + (Readout_CurrentByte7 << 8);
+		Texture.Offset = Texture.Offset + Readout_CurrentByte8;
+	}
 	
 	return 0;
 }
@@ -1271,62 +1277,49 @@ int Viewer_RenderMap_CMDSetTImage()
 /* VIEWER_RENDERMAP_CMDSETTILE - G_SETTILE - GET TEXTURE PROPERTIES AND STORE THEM FOR FUTURE USE (MIRROR, ETC.) */
 int Viewer_RenderMap_CMDSetTile()
 {
+	/* FIX FOR CI TEXTURES - IF BYTES 5-8 ARE 07000000, LEAVE CURRENT PROPERTY SETTINGS ALONE */
+	if(Readout_Current2 == 0x00000007) return 0;
+	
 	unsigned char TempXParameter = Readout_CurrentByte7 * 0x10;
 	
 	switch(Readout_CurrentByte6) {
 	case 0x01:
-		Texture[TextureID].Y_Parameter = 1;
+		Texture.Y_Parameter = 1;
 		break;
 	case 0x09:
-		Texture[TextureID].Y_Parameter = 2;
+		Texture.Y_Parameter = 2;
 		break;
 	case 0x05:
-		Texture[TextureID].Y_Parameter = 3;
+		Texture.Y_Parameter = 3;
 		break;
 	default:
-		Texture[TextureID].Y_Parameter = 1;
+		Texture.Y_Parameter = 1;
 		break;
 	}
 	
 	switch(TempXParameter) {
 	case 0x00:
-		Texture[TextureID].X_Parameter = 1;
+		Texture.X_Parameter = 1;
 		break;
 	case 0x20:
-		Texture[TextureID].X_Parameter = 2;
+		Texture.X_Parameter = 2;
 		break;
 	case 0x10:
-		Texture[TextureID].X_Parameter = 3;
+		Texture.X_Parameter = 3;
 		break;
 	default:
-		Texture[TextureID].X_Parameter = 1;
+		Texture.X_Parameter = 1;
 		break;
 	}
 	
-	Texture[TextureID].LineSize = Readout_CurrentByte3 / 2;
+	Texture.LineSize = Readout_CurrentByte3 / 2;
 	
-	Texture[TextureID].Format_N64 = Readout_CurrentByte2;
-	Texture[TextureID].Palette = (Readout_Current1 >> 20) & 0x0F;
+	Texture.Format_N64 = Readout_CurrentByte2;
 	
-	switch(Texture[TextureID].Format_N64) {
-	/* RGBA FORMAT */
-	case 0x00:
-	case 0x08:
-	case 0x10:
-		LastCIPaletteID = TextureID;
-		break;
-	/* CI FORMAT */
-	case 0x40:
-	case 0x48:
-	case 0x50:
-		LastCITextureID = TextureID;
-		break;
-	default:
-		break;
-	}
+	Texture.Palette = (Readout_Current1 >> 20) & 0x0F;
 	
-	Texture[TextureID].Format_OGL = GL_RGBA;
-	Texture[TextureID].Format_OGLPixel = GL_RGBA;
+	Texture.Format_OGL = GL_RGBA;
+	Texture.Format_OGLPixel = GL_RGBA;
 	
 	return 0;
 }
@@ -1342,22 +1335,20 @@ int Viewer_RenderMap_CMDSetTileSize()
 	unsigned int LRS = (TileSize_Temp2 & 0xFFF000) >> 14;
 	unsigned int LRT = (TileSize_Temp2 & 0x000FFF) >> 2;
 	
-	Texture[TextureID].Width  = ((LRS - ULS) + 1);
-	Texture[TextureID].Height = ((LRT - ULT) + 1);
+	Texture.Width  = ((LRS - ULS) + 1);
+	Texture.Height = ((LRT - ULT) + 1);
 	
-	if(Texture[TextureID].Width > 256) {
-		Texture[TextureID].WidthRender  = Texture[TextureID].Width - 64;
+	if(Texture.Width > 256) {
+		Texture.WidthRender  = Texture.Width - 64;
 	} else {
-		Texture[TextureID].WidthRender  = Texture[TextureID].Width;
+		Texture.WidthRender  = Texture.Width;
 	}
 	
-	if(Texture[TextureID].Height > 256) {
-		Texture[TextureID].HeightRender = Texture[TextureID].Height - 64;
+	if(Texture.Height > 256) {
+		Texture.HeightRender = Texture.Height - 64;
 	} else {
-		Texture[TextureID].HeightRender = Texture[TextureID].Height;
+		Texture.HeightRender = Texture.Height;
 	}
-	
-	Viewer_LoadTexture();
 	
 	return 0;
 }
@@ -1500,83 +1491,77 @@ int Viewer_RenderMap_CMDSetPrimColor()
 }
 
 /* VIEWER_RENDERMAP_CMDLOADTLUT - G_LOADTLUT - GET PALETTE FOR CI TEXTURES FROM PREVIOUS TEXTURE OFFSET */
-int Viewer_RenderMap_CMDLoadTLUT()
+int Viewer_RenderMap_CMDLoadTLUT(unsigned int PaletteSrc, unsigned long PaletteOffset)
 {
-	if(!NoChangeCIPalette) {
-		/* clear the palette buffer */
-		memset(PaletteData, 0x00, sizeof(PaletteData));
+	/* clear the palette buffer */
+	memset(PaletteData, 0x00, sizeof(PaletteData));
+	
+	/* calculate palette size, 16 or 256, from parameters */
+	unsigned int TempPaletteSize = (Readout_CurrentByte6 * 0x10000) + (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
+	unsigned int PaletteSize = ((TempPaletteSize & 0xFFF000) >> 14) + 1;
+	
+	/* copy raw palette into buffer */
+	switch(PaletteSrc) {
+	case 0x02:
+		/* palette comes from scene file */
+		memcpy(PaletteData, &ZSceneBuffer[PaletteOffset / 4], PaletteSize * 2);
+		break;
+	case 0x03:
+		/* palette comes from map file */
+		memcpy(PaletteData, &ZMapBuffer[PaletteOffset / 4], PaletteSize * 2);
+		break;
+	case 0x04:
+		/* palette comes from gameplay_keep */
+		memcpy(PaletteData, &GameplayKeepBuffer[PaletteOffset / 4], PaletteSize * 2);
+		break;
+	case 0x05:
+		/* palette comes from gameplay_dangeon_keep */
+		/* (gameplay_field_keep is not handled yet, always loading in file specified in Filename_GameplayFDKeep */
+		memcpy(PaletteData, &GameplayFDKeepBuffer[PaletteOffset / 4], PaletteSize * 2);
+		break;
+	default:
+		/* fallback if source is not handled / no valid source was found */
+		memset(PaletteData, 0xFF, PaletteSize * 2);
+		break;
+	}
+	
+	/* initialize variables for palette conversion */
+	unsigned int CurrentPaletteEntry = 0;
+	unsigned int SourcePaletteData = 0;
+	unsigned int InPalettePosition = 0;
+	
+	unsigned int PalLoop = 0;
+	
+	unsigned int RExtract = 0;
+	unsigned int GExtract = 0;
+	unsigned int BExtract = 0;
+	unsigned int AExtract = 0;
+	
+	for(PalLoop = 0; PalLoop < PaletteSize; PalLoop++) {
+		/* get raw rgba5551 data */
+		SourcePaletteData = (PaletteData[InPalettePosition] * 0x100) + PaletteData[InPalettePosition + 1];
 		
-		/* calculate palette size, 16 or 256, from parameters */
-		unsigned int TempPaletteSize = (Readout_CurrentByte6 * 0x10000) + (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
-		unsigned int PaletteSize = ((TempPaletteSize & 0xFFF000) >> 14) + 1;
+		/* extract r, g, b and a elements */
+		RExtract = (SourcePaletteData & 0xF800);
+		RExtract >>= 8;
+		GExtract = (SourcePaletteData & 0x07C0);
+		GExtract <<= 5;
+		GExtract >>= 8;
+		BExtract = (SourcePaletteData & 0x003E);
+		BExtract <<= 18;
+		BExtract >>= 16;
 		
-		/* copy raw palette into buffer */
-		switch(Texture[LastCIPaletteID].DataSource) {
-		case 0x02:
-			/* palette comes from scene file */
-			memcpy(PaletteData, &ZSceneBuffer[Texture[LastCIPaletteID].Offset / 4], PaletteSize * 2);
-			break;
-		case 0x03:
-			/* palette comes from map file */
-			memcpy(PaletteData, &ZMapBuffer[Texture[LastCIPaletteID].Offset / 4], PaletteSize * 2);
-			break;
-		case 0x04:
-			/* palette comes from gameplay_keep */
-			memcpy(PaletteData, &GameplayKeepBuffer[Texture[LastCIPaletteID].Offset / 4], PaletteSize * 2);
-			break;
-		case 0x05:
-			/* palette comes from gameplay_dangeon_keep */
-			/* (gameplay_field_keep is not handled yet, always loading in file specified in Filename_GameplayFDKeep */
-			memcpy(PaletteData, &GameplayFDKeepBuffer[Texture[LastCIPaletteID].Offset / 4], PaletteSize * 2);
-			break;
-		default:
-			/* fallback if source is not handled / no valid source was found */
-			memset(PaletteData, 0xFF, PaletteSize * 2);
-			break;
-		}
+		if((SourcePaletteData & 0x0001)) { AExtract = 0xFF; } else { AExtract = 0x00; }
 		
-		/* initialize variables for palette conversion */
-		unsigned int CurrentPaletteEntry = 0;
-		unsigned int SourcePaletteData = 0;
-		unsigned int InPalettePosition = 0;
+		/* set the current ci palette index to the rgba values from above */
+		Palette[CurrentPaletteEntry].R = RExtract;
+		Palette[CurrentPaletteEntry].G = GExtract;
+		Palette[CurrentPaletteEntry].B = BExtract;
+		Palette[CurrentPaletteEntry].A = AExtract;
 		
-		unsigned int PalLoop = 0;
-		
-		unsigned int RExtract = 0;
-		unsigned int GExtract = 0;
-		unsigned int BExtract = 0;
-		unsigned int AExtract = 0;
-		
-		for(PalLoop = 0; PalLoop < PaletteSize; PalLoop++) {
-			/* get raw rgba5551 data */
-			SourcePaletteData = (PaletteData[InPalettePosition] * 0x100) + PaletteData[InPalettePosition + 1];
-			
-			/* extract r, g, b and a elements */
-			RExtract = (SourcePaletteData & 0xF800);
-			RExtract >>= 8;
-			GExtract = (SourcePaletteData & 0x07C0);
-			GExtract <<= 5;
-			GExtract >>= 8;
-			BExtract = (SourcePaletteData & 0x003E);
-			BExtract <<= 18;
-			BExtract >>= 16;
-			
-			if((SourcePaletteData & 0x0001)) { AExtract = 0xFF; } else { AExtract = 0x00; }
-			
-			/* set the current ci palette index to the rgba values from above */
-			Palette[CurrentPaletteEntry].R = RExtract;
-			Palette[CurrentPaletteEntry].G = GExtract;
-			Palette[CurrentPaletteEntry].B = BExtract;
-			Palette[CurrentPaletteEntry].A = AExtract;
-			
-			/* go on */
-			CurrentPaletteEntry++;
-			InPalettePosition += 2;
-		}
-		
-		NoChangeCIPalette = true;
-	} else {
-		//ignore since palette shouldn't be changed
+		/* go on */
+		CurrentPaletteEntry++;
+		InPalettePosition += 2;
 	}
 	
 	return 0;
@@ -1690,10 +1675,11 @@ int Viewer_RenderMap_CMDSetOtherModeL()
 /* VIEWER_LOADTEXTURE - CALLED FROM VIEWER_RENDERMAP_CMDSETTILESIZE, FETCH THE TEXTURE DATA AND CREATE AN OGL TEXTURE */
 GLuint Viewer_LoadTexture()
 {
+	if(Readout_NextGFXCommand1 == 0x00000003) return 0;
+	
 	int i, j = 0;
 	
 	unsigned long TextureBufferSize = 0x8000;
-	unsigned int TemporaryTextureID = 0;
 	
 	bool UnhandledTextureSource = false;
 	
@@ -1704,49 +1690,48 @@ GLuint Viewer_LoadTexture()
 	memset(TextureData_N64, 0x00, TextureBufferSize);
 	
 	/* create solid red texture for unsupported stuff, such as kakariko windows */
-	unsigned char * EmptyTexture;
-	EmptyTexture = (unsigned char *) malloc (TextureBufferSize);
+	unsigned char * EmptyTexture_Red;
+	unsigned char * EmptyTexture_Green;
+	EmptyTexture_Red = (unsigned char *) malloc (TextureBufferSize);
+	EmptyTexture_Green = (unsigned char *) malloc (TextureBufferSize);
 	for(i = 0; i < TextureBufferSize; i+=4) {
-		EmptyTexture[i]		= 0xFF;
-		EmptyTexture[i + 1]	= 0x00;
-		EmptyTexture[i + 2]	= 0x00;
-		EmptyTexture[i + 3]	= 0xFF;
+		EmptyTexture_Red[i]			= 0xFF;
+		EmptyTexture_Red[i + 1]		= 0x00;
+		EmptyTexture_Red[i + 2]		= 0x00;
+		EmptyTexture_Red[i + 3]		= 0xFF;
+		
+		EmptyTexture_Green[i]		= 0x00;
+		EmptyTexture_Green[i + 1]	= 0xFF;
+		EmptyTexture_Green[i + 2]	= 0x00;
+		EmptyTexture_Green[i + 3]	= 0xFF;
 	}
+	sprintf(SystemLogMsg, "TEXTURE: %x %x %x\n",
+		Texture.DataSource, Texture.Offset, Texture.Format_N64);
+	HelperFunc_LogMessage(2, SystemLogMsg);
 	
-	switch(Texture[TextureID].Format_N64) {
-	case 0x40:
-	case 0x48:
-	case 0x50:
-		TemporaryTextureID = LastCITextureID;
-		break;
-	default:
-		TemporaryTextureID = TextureID;
-		break;
-	}
-	
-	switch(Texture[TemporaryTextureID].DataSource) {
+	switch(Texture.DataSource) {
 	case 0x02:
-		memcpy(TextureData_N64, &ZSceneBuffer[Texture[TemporaryTextureID].Offset / 4], TextureBufferSize);
+		memcpy(TextureData_N64, &ZSceneBuffer[Texture.Offset / 4], TextureBufferSize);
 		break;
 	case 0x03:
-		memcpy(TextureData_N64, &ZMapBuffer[Texture[TemporaryTextureID].Offset / 4], TextureBufferSize);
+		memcpy(TextureData_N64, &ZMapBuffer[Texture.Offset / 4], TextureBufferSize);
 		break;
 	case 0x04:
-		memcpy(TextureData_N64, &GameplayKeepBuffer[Texture[TemporaryTextureID].Offset / 4], TextureBufferSize);
+		memcpy(TextureData_N64, &GameplayKeepBuffer[Texture.Offset / 4], TextureBufferSize);
 		break;
 	case 0x05:
-		memcpy(TextureData_N64, &GameplayFDKeepBuffer[Texture[TemporaryTextureID].Offset / 4], TextureBufferSize);
+		memcpy(TextureData_N64, &GameplayFDKeepBuffer[Texture.Offset / 4], TextureBufferSize);
 		break;
 	default:
 		UnhandledTextureSource = true;
-		Texture[TemporaryTextureID].Format_OGL = GL_RGBA;
-		Texture[TemporaryTextureID].Format_OGLPixel = GL_RGBA;
-		memcpy(TextureData_OGL, EmptyTexture, TextureBufferSize);
+		Texture.Format_OGL = GL_RGBA;
+		Texture.Format_OGLPixel = GL_RGBA;
+		memcpy(TextureData_OGL, EmptyTexture_Red, TextureBufferSize);
 		break;
 	}
 	
 	if(!UnhandledTextureSource) {
-		switch(Texture[TemporaryTextureID].Format_N64) {
+		switch(Texture.Format_N64) {
 		/* RGBA FORMAT */
 		case 0x00:
 		case 0x08:
@@ -1762,8 +1747,8 @@ GLuint Viewer_LoadTexture()
 			unsigned int LoadRGBA_InTexturePosition_N64 = 0;
 			unsigned int LoadRGBA_InTexturePosition_OGL = 0;
 			
-			for(j = 0; j < Texture[TemporaryTextureID].Height; j++) {
-				for(i = 0; i < Texture[TemporaryTextureID].Width; i++) {
+			for(j = 0; j < Texture.Height; j++) {
+				for(i = 0; i < Texture.Width; i++) {
 					LoadRGBA_RGBA5551 = (TextureData_N64[LoadRGBA_InTexturePosition_N64] * 0x100) + TextureData_N64[LoadRGBA_InTexturePosition_N64 + 1];
 					
 					LoadRGBA_RExtract = (LoadRGBA_RGBA5551 & 0xF800);
@@ -1789,7 +1774,7 @@ GLuint Viewer_LoadTexture()
 					LoadRGBA_InTexturePosition_N64 += 2;
 					LoadRGBA_InTexturePosition_OGL += 4;
 				}
-				LoadRGBA_InTexturePosition_N64 += Texture[TemporaryTextureID].LineSize * 4 - Texture[TemporaryTextureID].Width;
+				LoadRGBA_InTexturePosition_N64 += Texture.LineSize * 4 - Texture.Width;
 			}
 			
 			break;
@@ -1804,8 +1789,8 @@ GLuint Viewer_LoadTexture()
 			unsigned int LoadCI_InTexturePosition_N64 = 0;
 			unsigned int LoadCI_InTexturePosition_OGL = 0;
 			
-			for(j = 0; j < Texture[TemporaryTextureID].Height; j++) {
-				for(i = 0; i < Texture[TemporaryTextureID].Width / 2; i++) {
+			for(j = 0; j < Texture.Height; j++) {
+				for(i = 0; i < Texture.Width / 2; i++) {
 					LoadCI_CIData1 = (TextureData_N64[LoadCI_InTexturePosition_N64] & 0xF0) >> 4;
 					LoadCI_CIData2 = TextureData_N64[LoadCI_InTexturePosition_N64] & 0x0F;
 					
@@ -1821,7 +1806,7 @@ GLuint Viewer_LoadTexture()
 					LoadCI_InTexturePosition_N64 += 1;
 					LoadCI_InTexturePosition_OGL += 8;
 				}
-				LoadCI_InTexturePosition_N64 += Texture[TemporaryTextureID].LineSize * 8 - (Texture[TemporaryTextureID].Width / 2);
+				LoadCI_InTexturePosition_N64 += Texture.LineSize * 8 - (Texture.Width / 2);
 			}
 			
 			break;
@@ -1833,8 +1818,8 @@ GLuint Viewer_LoadTexture()
 			unsigned int LoadCI_InTexturePosition_N64 = 0;
 			unsigned int LoadCI_InTexturePosition_OGL = 0;
 			
-			for(j = 0; j < Texture[TemporaryTextureID].Height; j++) {
-				for(i = 0; i < Texture[TemporaryTextureID].Width; i++) {
+			for(j = 0; j < Texture.Height; j++) {
+				for(i = 0; i < Texture.Width; i++) {
 					LoadCI_CIData = TextureData_N64[LoadCI_InTexturePosition_N64];
 					
 					TextureData_OGL[LoadCI_InTexturePosition_OGL]     = Palette[LoadCI_CIData].R;
@@ -1845,7 +1830,7 @@ GLuint Viewer_LoadTexture()
 					LoadCI_InTexturePosition_N64 += 1;
 					LoadCI_InTexturePosition_OGL += 4;
 				}
-				LoadCI_InTexturePosition_N64 += Texture[TemporaryTextureID].LineSize * 8 - Texture[TemporaryTextureID].Width;
+				LoadCI_InTexturePosition_N64 += Texture.LineSize * 8 - Texture.Width;
 			}
 			
 			break;
@@ -1863,8 +1848,8 @@ GLuint Viewer_LoadTexture()
 			unsigned int LoadIA_InTexturePosition_N64 = 0;
 			unsigned int LoadIA_InTexturePosition_OGL = 0;
 			
-			for(j = 0; j < Texture[TemporaryTextureID].Height; j++) {
-				for(i = 0; i < Texture[TemporaryTextureID].Width / 2; i++) {
+			for(j = 0; j < Texture.Height; j++) {
+				for(i = 0; i < Texture.Width / 2; i++) {
 					LoadIA_IAData = (TextureData_N64[LoadIA_InTexturePosition_N64] & 0xF0) >> 4;
 					LoadIA_IExtract1 = (LoadIA_IAData & 0x0E) << 4;
 					if((LoadIA_IAData & 0x01)) { LoadIA_AExtract1 = 0xFF; } else { LoadIA_AExtract1 = 0x00; }
@@ -1885,7 +1870,7 @@ GLuint Viewer_LoadTexture()
 					LoadIA_InTexturePosition_N64 += 1;
 					LoadIA_InTexturePosition_OGL += 8;
 				}
-				LoadIA_InTexturePosition_N64 += Texture[TemporaryTextureID].LineSize * 8 - (Texture[TemporaryTextureID].Width / 2);
+				LoadIA_InTexturePosition_N64 += Texture.LineSize * 8 - (Texture.Width / 2);
 			}
 			
 			break;
@@ -1900,8 +1885,8 @@ GLuint Viewer_LoadTexture()
 			unsigned int LoadIA_InTexturePosition_N64 = 0;
 			unsigned int LoadIA_InTexturePosition_OGL = 0;
 			
-			for(j = 0; j < Texture[TemporaryTextureID].Height; j++) {
-				for(i = 0; i < Texture[TemporaryTextureID].Width; i++) {
+			for(j = 0; j < Texture.Height; j++) {
+				for(i = 0; i < Texture.Width; i++) {
 					LoadIA_IAData = TextureData_N64[LoadIA_InTexturePosition_N64];
 					LoadIA_IExtract = (LoadIA_IAData & 0xFE);
 					if((LoadIA_IAData & 0x01)) { LoadIA_AExtract = 0xFF; } else { LoadIA_AExtract = 0x00; }
@@ -1914,7 +1899,7 @@ GLuint Viewer_LoadTexture()
 					LoadIA_InTexturePosition_N64 += 1;
 					LoadIA_InTexturePosition_OGL += 4;
 				}
-				LoadIA_InTexturePosition_N64 += Texture[TemporaryTextureID].LineSize * 8 - Texture[TemporaryTextureID].Width;
+				LoadIA_InTexturePosition_N64 += Texture.LineSize * 8 - Texture.Width;
 			}
 			
 			break;
@@ -1929,8 +1914,8 @@ GLuint Viewer_LoadTexture()
 			unsigned int LoadIA_InTexturePosition_N64 = 0;
 			unsigned int LoadIA_InTexturePosition_OGL = 0;
 			
-			for(j = 0; j < Texture[TemporaryTextureID].Height; j++) {
-				for(i = 0; i < Texture[TemporaryTextureID].Width; i++) {
+			for(j = 0; j < Texture.Height; j++) {
+				for(i = 0; i < Texture.Width; i++) {
 					LoadIA_IAData = TextureData_N64[LoadIA_InTexturePosition_N64];
 					LoadIA_IExtract = LoadIA_IAData;
 					
@@ -1945,7 +1930,7 @@ GLuint Viewer_LoadTexture()
 					LoadIA_InTexturePosition_N64 += 2;
 					LoadIA_InTexturePosition_OGL += 4;
 				}
-				LoadIA_InTexturePosition_N64 += Texture[TemporaryTextureID].LineSize * 4 - Texture[TemporaryTextureID].Width;
+				LoadIA_InTexturePosition_N64 += Texture.LineSize * 4 - Texture.Width;
 			}
 			
 			break;
@@ -1963,8 +1948,8 @@ GLuint Viewer_LoadTexture()
 			unsigned int LoadI_InTexturePosition_N64 = 0;
 			unsigned int LoadI_InTexturePosition_OGL = 0;
 			
-			for(j = 0; j < Texture[TemporaryTextureID].Height; j++) {
-				for(i = 0; i < Texture[TemporaryTextureID].Width / 2; i++) {
+			for(j = 0; j < Texture.Height; j++) {
+				for(i = 0; i < Texture.Width / 2; i++) {
 					LoadI_IData = (TextureData_N64[LoadI_InTexturePosition_N64] & 0xF0) >> 4;
 					LoadI_IExtract1 = (LoadI_IData & 0x0F) << 4;
 					
@@ -1984,7 +1969,7 @@ GLuint Viewer_LoadTexture()
 					LoadI_InTexturePosition_N64 += 1;
 					LoadI_InTexturePosition_OGL += 8;
 				}
-				LoadI_InTexturePosition_N64 += Texture[TemporaryTextureID].LineSize * 8 - (Texture[TemporaryTextureID].Width / 2);
+				LoadI_InTexturePosition_N64 += Texture.LineSize * 8 - (Texture.Width / 2);
 			}
 			
 			break;
@@ -1997,8 +1982,8 @@ GLuint Viewer_LoadTexture()
 			unsigned int LoadI_InTexturePosition_N64 = 0;
 			unsigned int LoadI_InTexturePosition_OGL = 0;
 			
-			for(j = 0; j < Texture[TemporaryTextureID].Height; j++) {
-				for(i = 0; i < Texture[TemporaryTextureID].Width; i++) {
+			for(j = 0; j < Texture.Height; j++) {
+				for(i = 0; i < Texture.Width; i++) {
 					LoadI_IData = TextureData_N64[LoadI_InTexturePosition_N64];
 					
 					TextureData_OGL[LoadI_InTexturePosition_OGL]     = LoadI_IData;
@@ -2009,7 +1994,7 @@ GLuint Viewer_LoadTexture()
 					LoadI_InTexturePosition_N64 += 1;
 					LoadI_InTexturePosition_OGL += 4;
 				}
-				LoadI_InTexturePosition_N64 += Texture[TemporaryTextureID].LineSize * 8 - Texture[TemporaryTextureID].Width;
+				LoadI_InTexturePosition_N64 += Texture.LineSize * 8 - Texture.Width;
 			}
 			
 			break;
@@ -2017,24 +2002,24 @@ GLuint Viewer_LoadTexture()
 		/* FALLBACK - gives us an empty texture */
 		default:
 			{
-			sprintf(ErrorMsg, "Unhandled Texture Type 0x%02X!", Texture[TemporaryTextureID].Format_N64);
+			sprintf(ErrorMsg, "Unhandled Texture Type 0x%02X!", Texture.Format_N64);
 			MessageBox(hwnd, ErrorMsg, "Error", MB_OK | MB_ICONERROR);
-			Texture[TemporaryTextureID].Format_OGL = GL_RGBA;
-			Texture[TemporaryTextureID].Format_OGLPixel = GL_RGBA;
-			memcpy(TextureData_OGL, EmptyTexture, TextureBufferSize);
+			Texture.Format_OGL = GL_RGBA;
+			Texture.Format_OGLPixel = GL_RGBA;
+			memcpy(TextureData_OGL, EmptyTexture_Green, TextureBufferSize);
 			break;
 			}
 		}
 	}
 	
-	switch(Texture[TemporaryTextureID].Y_Parameter) {
+	switch(Texture.Y_Parameter) {
 		case 1:  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT); break;
 		case 2:  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); break;
 		case 3:  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT_ARB); break;
 		default: glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT); break;
 	}
 	
-	switch(Texture[TemporaryTextureID].X_Parameter) {
+	switch(Texture.X_Parameter) {
 		case 1:  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); break;
 		case 2:  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); break;
 		case 3:  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT_ARB); break;
@@ -2044,12 +2029,13 @@ GLuint Viewer_LoadTexture()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	
-	gluBuild2DMipmaps(GL_TEXTURE_2D, Texture[TemporaryTextureID].Format_OGL, Texture[TemporaryTextureID].WidthRender, Texture[TemporaryTextureID].HeightRender, Texture[TemporaryTextureID].Format_OGLPixel, GL_UNSIGNED_BYTE, TextureData_OGL);
+	gluBuild2DMipmaps(GL_TEXTURE_2D, Texture.Format_OGL, Texture.WidthRender, Texture.HeightRender, Texture.Format_OGLPixel, GL_UNSIGNED_BYTE, TextureData_OGL);
 	
 	free(TextureData_N64);
 	free(TextureData_OGL);
 	
-	free(EmptyTexture);
+	free(EmptyTexture_Red);
+	free(EmptyTexture_Green);
 	
 	return 0;
 }
@@ -2307,8 +2293,18 @@ int DrawGLScene(void)
 		ScActorInfo_CurrentCount = 0;
 		Viewer_RenderAllActors();
 		
+		Renderer_GLDisplayList_Current = 0;
+		
 		glEnable(GL_TEXTURE_2D);
-		glCallList(Renderer_GLDisplayList);
+		if(DListInfo_DListToRender == -1) {
+			while(!(Renderer_GLDisplayList_Current == Renderer_GLDisplayList + (DListInfo_CurrentCount + 1))) {
+				glCallList(Renderer_GLDisplayList_Current);
+				Renderer_GLDisplayList_Current++;
+			}
+		} else {
+			Renderer_GLDisplayList_Current = (Renderer_GLDisplayList + DListInfo_DListToRender);
+			glCallList(Renderer_GLDisplayList_Current);
+		}
 		
 		glDisable(GL_BLEND);
 		ActorInfo_CurrentCount = 0;
@@ -2607,8 +2603,6 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 						System_KbdKeys[VK_F1] = false;
 						if(!(DListInfo_DListToRender == -1)) {
 							DListInfo_DListToRender--;
-							MapLoaded = false;
-							Viewer_RenderMap(DListInfo_DListToRender);
 						}
 						if(DListInfo_DListToRender == -1) {
 							sprintf(StatusMsg, "Display List: rendering all");
@@ -2620,8 +2614,6 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 						System_KbdKeys[VK_F2] = false;
 						if(!(DListInfo_DListToRender == DListInfo_CurrentCount)) {
 							DListInfo_DListToRender++;
-							MapLoaded = false;
-							Viewer_RenderMap(DListInfo_DListToRender);
 						}
 						sprintf(StatusMsg, "Display List: #%d", (int)DListInfo_DListToRender + 1);
 					}
