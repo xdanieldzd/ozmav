@@ -112,6 +112,8 @@ bool			System_KbdKeys[256];
 char			AppTitle[256] = "OZMAV";
 char			AppVersion[256] = "V0.4c";
 char			AppBuildName[256] = "Welcome to the Project!";
+char			AppPath[512] = "";
+char			INIPath[512] = "";
 char			WindowTitle[256] = "";
 char			StatusMsg[256] = "";
 char			ErrorMsg[256] = "";
@@ -156,8 +158,8 @@ unsigned long	ZSceneFilesize = 0;
 unsigned long	GameplayKeepFilesize = 0;
 unsigned long	GameplayFDKeepFilesize = 0;
 
-char			Filename_ZMap[256] = "besitu_room_0.zmap";
-char			Filename_ZScene[256] = "besitu_scene.zscene";
+char			Filename_ZMap[256] = "";
+char			Filename_ZScene[256] = "";
 char			Filename_GameplayKeep[256] = "gameplay_keep.zdata";
 char			Filename_GameplayFDKeep[256] = "gameplay_dangeon_keep.zdata";
 
@@ -222,6 +224,9 @@ int				ScActorInfo_Selected = 0;
 GLuint			Renderer_GLDisplayList = 0;
 GLuint			Renderer_GLDisplayList_Current = 0;
 
+GLuint			Renderer_FilteringMode_Min = GL_LINEAR;
+GLuint			Renderer_FilteringMode_Mag = GL_LINEAR;
+
 DWORD			Renderer_LastFPS = 0;
 int				Renderer_FPS, Renderer_FrameNo = 0;
 char			Renderer_FPSMessage[32] = "";
@@ -238,7 +243,7 @@ GLfloat			FogColor[]= { 0.0f, 0.0f, 0.0f, 0.5f };
 GLfloat			PrimColor[]= { 0.0f, 0.0f, 0.0f, 1.0f };
 
 bool			Renderer_EnableMapActors = true;
-bool			Renderer_EnableSceneActors = false;
+bool			Renderer_EnableSceneActors = true;
 
 /* N64 BLENDING SIMULATION VARIABLES */
 unsigned long	Blender_Cycle1 = 0x00;
@@ -365,6 +370,9 @@ int Viewer_Initialize()
 	EnableMenuItem(hmenu, IDM_ACTORS_SCENERENDER, MF_BYCOMMAND | MF_ENABLED);
 	EnableMenuItem(hmenu, IDM_ACTORS_SCENEPREV, MF_BYCOMMAND | MF_ENABLED);
 	EnableMenuItem(hmenu, IDM_ACTORS_SCENENEXT, MF_BYCOMMAND | MF_ENABLED);
+	EnableMenuItem(hmenu, IDM_OPTIONS_FILTERNEAREST, MF_BYCOMMAND | MF_ENABLED);
+	EnableMenuItem(hmenu, IDM_OPTIONS_FILTERLINEAR, MF_BYCOMMAND | MF_ENABLED);
+	EnableMenuItem(hmenu, IDM_OPTIONS_FILTERMIPMAP, MF_BYCOMMAND | MF_ENABLED);
 	
 	sprintf(WindowTitle, "%s %s - %s", AppTitle, AppVersion, Filename_ZMap);
 	SetWindowText(hwnd, WindowTitle);
@@ -1340,15 +1348,20 @@ int Viewer_RenderMap_CMDSetTileSize()
 	
 	if(Texture.Width > 256) {
 		Texture.WidthRender  = Texture.Width - 64;
+		Texture.Width = (Texture.Width & 0xFF);				/* hack for MM commands that set insane texture coordinates */
 	} else {
 		Texture.WidthRender  = Texture.Width;
 	}
 	
 	if(Texture.Height > 256) {
 		Texture.HeightRender = Texture.Height - 64;
+		Texture.Height = (Texture.Height & 0xFF);			/* hack for MM commands that set insane texture coordinates */
 	} else {
 		Texture.HeightRender = Texture.Height;
 	}
+	
+//	sprintf(ErrorMsg, "%d * %d", Texture.Width, Texture.Height);
+//	MessageBox(hwnd, ErrorMsg, "", 0);
 	
 	return 0;
 }
@@ -1608,50 +1621,56 @@ int Viewer_RenderMap_CMDSetOtherModeL()
 			Blender_AlphaFunc = GL_GEQUAL;
 			Blender_AlphaRef = 0.5f;
 			break;
-
-		case 0xC810 + 0x3478:								//syotes2 everything
+			
+		case 0xC810 + 0x3478:								//syotes2 - everything
 			Blender_SrcFactor = GL_ONE;
 			Blender_DstFactor = GL_ZERO;
 			Blender_AlphaFunc = GL_GEQUAL;
 			Blender_AlphaRef = 0.5f;
 			break;
-		case 0xC810 + 0x49D8:								//spot00 water
+		case 0xC810 + 0x49D8:								//spot00 + most other maps - water
 			Blender_SrcFactor = GL_SRC_ALPHA;
 			Blender_DstFactor = GL_ONE_MINUS_SRC_ALPHA;
 			Blender_AlphaFunc = GL_GREATER;
 			Blender_AlphaRef = 0.0f;
 			break;
-		case 0x0C18 + 0x49D8:								//spot03 water at waterfall
+		case 0x0C18 + 0x49D8:								//spot03 - water at waterfall
 			Blender_SrcFactor = GL_SRC_ALPHA;
 			Blender_DstFactor = GL_DST_COLOR;
 			Blender_AlphaFunc = GL_GEQUAL;
 			Blender_AlphaRef = 0.5f;
 			break;
-		case 0xC810 + 0x4B50:								//spot00 death mountain plane, spot04 drawing at link's house
+		case 0xC810 + 0x4A50:								//MAJORA north clocktown etc - misc things (nct: greenery on walls)
+			Blender_SrcFactor = GL_SRC_ALPHA;
+			Blender_DstFactor = GL_ONE_MINUS_SRC_ALPHA;
+			Blender_AlphaFunc = GL_GREATER;
+			Blender_AlphaRef = 0.0f;
+			break;
+		case 0xC810 + 0x4B50:								//spot00 - death mountain plane, spot04 - drawing at link's house
 			Blender_SrcFactor = GL_SRC_ALPHA;
 			Blender_DstFactor = GL_ONE_MINUS_SRC_ALPHA;
 			Blender_AlphaFunc = GL_GEQUAL;
 			Blender_AlphaRef = 0.4f;
 			break;
-		case 0xC810 + 0x4DD8:								//spot00 (used near path to gerudo valley?)
+		case 0xC810 + 0x4DD8:								//spot00 - (used near path to gerudo valley?)
 			Blender_SrcFactor = GL_SRC_ALPHA;
 			Blender_DstFactor = GL_ONE_MINUS_SRC_ALPHA;
 			Blender_AlphaFunc = GL_GREATER;
 			Blender_AlphaRef = 0.0f;
 			break;
-		case 0x0C18 + 0x4DD8:								//spot11 around oasis
+		case 0x0C18 + 0x4DD8:								//spot11 - around oasis
 			Blender_SrcFactor = GL_ONE;
 			Blender_DstFactor = GL_ZERO;
 			Blender_AlphaFunc = GL_GEQUAL;
 			Blender_AlphaRef = 0.5f;
 			break;
-		case 0xC810 + 0x4F50:								//spot00, spot02, spot04 pathways
-			Blender_SrcFactor = GL_ONE;
-			Blender_DstFactor = GL_ZERO;
-			Blender_AlphaFunc = GL_GREATER;
+		case 0xC810 + 0x4F50:								//spot00, spot02, spot04 - pathways
+			Blender_SrcFactor = GL_SRC_ALPHA;
+			Blender_DstFactor = GL_ONE_MINUS_SRC_ALPHA;
+			Blender_AlphaFunc = GL_NOTEQUAL;
 			Blender_AlphaRef = 0.0f;
 			break;
-		case 0xC811 + 0x2D58:								//spot01 doorways
+		case 0xC811 + 0x2D58:								//spot01 - doorways
 			Blender_SrcFactor = GL_SRC_ALPHA;
 			Blender_DstFactor = GL_ONE_MINUS_SRC_ALPHA;
 			Blender_AlphaFunc = GL_GREATER;
@@ -1672,10 +1691,10 @@ int Viewer_RenderMap_CMDSetOtherModeL()
 
 /*	------------------------------------------------------------ */
 
-/* VIEWER_LOADTEXTURE - CALLED FROM VIEWER_RENDERMAP_CMDSETTILESIZE, FETCH THE TEXTURE DATA AND CREATE AN OGL TEXTURE */
+/* VIEWER_LOADTEXTURE - FETCH THE TEXTURE DATA AND CREATE AN OGL TEXTURE */
 GLuint Viewer_LoadTexture()
 {
-	if(Readout_NextGFXCommand1 == 0x00000003) return 0;
+	if((Readout_NextGFXCommand1 == 0x00000003) || (Readout_NextGFXCommand1 == 0x000000E1)) return 0;
 	
 	int i, j = 0;
 	
@@ -1705,10 +1724,10 @@ GLuint Viewer_LoadTexture()
 		EmptyTexture_Green[i + 2]	= 0x00;
 		EmptyTexture_Green[i + 3]	= 0xFF;
 	}
-	sprintf(SystemLogMsg, "TEXTURE: %x %x %x\n",
+/*	sprintf(SystemLogMsg, "TEXTURE: %x %x %x\n",
 		Texture.DataSource, Texture.Offset, Texture.Format_N64);
 	HelperFunc_LogMessage(2, SystemLogMsg);
-	
+*/	
 	switch(Texture.DataSource) {
 	case 0x02:
 		memcpy(TextureData_N64, &ZSceneBuffer[Texture.Offset / 4], TextureBufferSize);
@@ -1724,6 +1743,8 @@ GLuint Viewer_LoadTexture()
 		break;
 	default:
 		UnhandledTextureSource = true;
+		sprintf(ErrorMsg, "Unhandled Source Bank 0x%02X!", Texture.DataSource);
+		MessageBox(hwnd, ErrorMsg, "Error", MB_OK | MB_ICONERROR);
 		Texture.Format_OGL = GL_RGBA;
 		Texture.Format_OGLPixel = GL_RGBA;
 		memcpy(TextureData_OGL, EmptyTexture_Red, TextureBufferSize);
@@ -2026,8 +2047,8 @@ GLuint Viewer_LoadTexture()
 		default: glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); break;
 	}
 	
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, Renderer_FilteringMode_Min);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, Renderer_FilteringMode_Mag);
 	
 	gluBuild2DMipmaps(GL_TEXTURE_2D, Texture.Format_OGL, Texture.WidthRender, Texture.HeightRender, Texture.Format_OGLPixel, GL_UNSIGNED_BYTE, TextureData_OGL);
 	
@@ -2578,6 +2599,19 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 	sprintf(WindowTitle, "%s %s", AppTitle, AppVersion);
 	SetWindowText(hwnd, WindowTitle);
 	
+	GetModuleFileName(NULL, AppPath, sizeof(AppPath) - 1);
+	
+	char *AppPathTemp = strrchr(AppPath, '\\');
+	if(AppPathTemp) ++AppPathTemp; if(AppPathTemp) *AppPathTemp = 0;
+	sprintf(INIPath, "%s\\ozmav.ini", AppPath);
+	
+	GetPrivateProfileString("Viewer", "LastMap", "", Filename_ZMap, sizeof(Filename_ZMap), INIPath);
+	GetPrivateProfileString("Viewer", "LastScene", "", Filename_ZScene, sizeof(Filename_ZScene), INIPath);
+	Renderer_FilteringMode_Min = GetPrivateProfileInt("Viewer", "TexFilterMin", GL_LINEAR, INIPath);
+	Renderer_FilteringMode_Mag = GetPrivateProfileInt("Viewer", "TexFilterMag", GL_LINEAR, INIPath);
+	Renderer_EnableMapActors = GetPrivateProfileInt("Viewer", "RenderMapActors", true, INIPath);
+	Renderer_EnableSceneActors = GetPrivateProfileInt("Viewer", "RenderSceneActors", false, INIPath);
+	
 	ShowWindow(hwnd, nFunsterStil);
 	
 	while(!ExitProgram) {
@@ -2743,6 +2777,19 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 			SwapBuffers(hDC_ogl);
 		}
 	}
+	
+	WritePrivateProfileString("Viewer", "LastMap", Filename_ZMap, INIPath);
+	WritePrivateProfileString("Viewer", "LastScene", Filename_ZScene, INIPath);
+	char TempStr[256];
+	sprintf(TempStr, "%d", Renderer_FilteringMode_Min);
+	WritePrivateProfileString("Viewer", "TexFilterMin", TempStr, INIPath);
+	sprintf(TempStr, "%d", Renderer_FilteringMode_Mag);
+	WritePrivateProfileString("Viewer", "TexFilterMag", TempStr, INIPath);
+	sprintf(TempStr, "%d", Renderer_EnableMapActors);
+	WritePrivateProfileString("Viewer", "RenderMapActors", TempStr, INIPath);
+	sprintf(TempStr, "%d", Renderer_EnableSceneActors);
+	WritePrivateProfileString("Viewer", "RenderSceneActors", TempStr, INIPath);
+	
 	KillGLTarget();
 	DestroyWindow(hwnd);
 	
@@ -2847,6 +2894,21 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 					break;
 				case IDM_CAMERA_RESETCOORDS:
 					System_KbdKeys[VK_TAB] = true;
+					break;
+				case IDM_OPTIONS_FILTERNEAREST:
+					Renderer_FilteringMode_Min = GL_NEAREST;
+					Renderer_FilteringMode_Mag = GL_NEAREST;
+					Viewer_RenderMap();
+					break;
+				case IDM_OPTIONS_FILTERLINEAR:
+					Renderer_FilteringMode_Min = GL_LINEAR;
+					Renderer_FilteringMode_Mag = GL_LINEAR;
+					Viewer_RenderMap();
+					break;
+				case IDM_OPTIONS_FILTERMIPMAP:
+					Renderer_FilteringMode_Min = GL_LINEAR_MIPMAP_LINEAR;
+					Renderer_FilteringMode_Mag = GL_LINEAR;
+					Viewer_RenderMap();
 					break;
 				case IDM_HELP_ABOUT: ;
 					char AboutMsg[256] = "";
