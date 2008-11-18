@@ -62,8 +62,9 @@ int Viewer_RenderMap_CMDSetPrimColor();
 int Viewer_RenderMap_CMDLoadTLUT(unsigned int, unsigned long);
 int Viewer_RenderMap_CMDRDPHalf1();
 int Viewer_RenderMap_CMDSetOtherModeL();
+int Viewer_RenderMap_CMDSetCombine();
 
-GLuint Viewer_LoadTexture();
+GLuint Viewer_LoadTexture(int);
 
 int Viewer_RenderAllActors();
 int Viewer_RenderActorCube(int, GLshort, GLshort, GLshort, signed int, signed int, signed int, bool);
@@ -88,6 +89,13 @@ void Dialog_OpenZScene(HWND);
 int WINAPI WinMain (HINSTANCE, HINSTANCE, LPSTR, int);
 LRESULT CALLBACK WindowProcedure (HWND, UINT, WPARAM, LPARAM);
 
+PFNGLMULTITEXCOORD1FARBPROC		glMultiTexCoord1fARB		= NULL;
+PFNGLMULTITEXCOORD2FARBPROC		glMultiTexCoord2fARB		= NULL;
+PFNGLMULTITEXCOORD3FARBPROC		glMultiTexCoord3fARB		= NULL;
+PFNGLMULTITEXCOORD4FARBPROC		glMultiTexCoord4fARB		= NULL;
+PFNGLACTIVETEXTUREARBPROC		glActiveTextureARB			= NULL;
+PFNGLCLIENTACTIVETEXTUREARBPROC	glClientActiveTextureARB	= NULL;
+
 /*	------------------------------------------------------------
 	VARIABLES
 	------------------------------------------------------------ */
@@ -110,7 +118,7 @@ GLuint			GLFontBase;
 bool			System_KbdKeys[256];
 
 char			AppTitle[256] = "OZMAV";
-char			AppVersion[256] = "V0.4c";
+char			AppVersion[256] = "V0.5";
 char			AppBuildName[256] = "Welcome to the Project!";
 char			AppPath[512] = "";
 char			INIPath[512] = "";
@@ -200,6 +208,9 @@ unsigned char	* TextureData_N64;
 
 unsigned char	* PaletteData;
 
+bool			IsMultitex = false;
+unsigned int	MTexScaler = 1;
+
 /* ZELDA MAP & SCENE HEADER HANDLING VARIABLES */
 bool			MapHeader_MultiHeaderMap = false;
 int				MapHeader_Current;
@@ -224,6 +235,8 @@ int				ScActorInfo_Selected = 0;
 GLuint			Renderer_GLDisplayList = 0;
 GLuint			Renderer_GLDisplayList_Current = 0;
 
+GLuint			Renderer_GLTexture = 0;
+
 GLuint			Renderer_FilteringMode_Min = GL_LINEAR;
 GLuint			Renderer_FilteringMode_Mag = GL_LINEAR;
 
@@ -245,9 +258,37 @@ GLfloat			PrimColor[]= { 0.0f, 0.0f, 0.0f, 1.0f };
 bool			Renderer_EnableMapActors = true;
 bool			Renderer_EnableSceneActors = true;
 
-/* N64 BLENDING SIMULATION VARIABLES */
+bool			Renderer_EnableMultiTexturing = false;
+
+/* OPENGL EXTENSION VARIABLES */
+char			* GLExtension_List;
+bool			GLExtension_MultiTexture = false;
+bool			GLExtension_TextureMirror = false;
+bool			GLExtension_AnisoFilter = false;
+char			GLExtensionsSupported[256] = "";
+
+/* N64 BLENDING & COMBINER SIMULATION VARIABLES */
 unsigned long	Blender_Cycle1 = 0x00;
 unsigned long	Blender_Cycle2 = 0x00;
+
+unsigned long	Combiner_Cycle1 = 0x00;
+unsigned long	Combiner_Cycle2 = 0x00;
+
+GLenum			Combiner_Color_CmbMode[4];
+GLenum			Combiner_Color_Arg0_Source[4];
+GLenum			Combiner_Color_Arg0_Op[4];
+GLenum			Combiner_Color_Arg1_Source[4];
+GLenum			Combiner_Color_Arg1_Op[4];
+GLenum			Combiner_Color_Arg2_Source[4];
+GLenum			Combiner_Color_Arg2_Op[4];
+
+GLenum			Combiner_Alpha_CmbMode[4];
+GLenum			Combiner_Alpha_Arg0_Source[4];
+GLenum			Combiner_Alpha_Arg0_Op[4];
+GLenum			Combiner_Alpha_Arg1_Source[4];
+GLenum			Combiner_Alpha_Arg1_Op[4];
+GLenum			Combiner_Alpha_Arg2_Source[4];
+GLenum			Combiner_Alpha_Arg2_Op[4];
 
 /*	------------------------------------------------------------
 	STRUCTURES
@@ -334,7 +375,7 @@ struct {
 	signed short T_Scale;
 	unsigned int LineSize;
 	unsigned int Palette;
-} Texture;
+} Texture[1];
 
 /* CI TEXTURE PALETTE STRUCTURE */
 struct {
@@ -373,6 +414,7 @@ int Viewer_Initialize()
 	EnableMenuItem(hmenu, IDM_OPTIONS_FILTERNEAREST, MF_BYCOMMAND | MF_ENABLED);
 	EnableMenuItem(hmenu, IDM_OPTIONS_FILTERLINEAR, MF_BYCOMMAND | MF_ENABLED);
 	EnableMenuItem(hmenu, IDM_OPTIONS_FILTERMIPMAP, MF_BYCOMMAND | MF_ENABLED);
+	EnableMenuItem(hmenu, IDM_OPTIONS_MULTITEXTURE, MF_BYCOMMAND | MF_ENABLED);
 	
 	sprintf(WindowTitle, "%s %s - %s", AppTitle, AppVersion, Filename_ZMap);
 	SetWindowText(hwnd, WindowTitle);
@@ -807,6 +849,8 @@ int Viewer_RenderMap()
 				Blender_Cycle1 = 0x00;
 				Blender_Cycle2 = 0x00;
 				
+				IsMultitex = false;
+				
 				DListHasEnded = false;
 			glEndList();
 			HelperFunc_LogMessage(2, "end of dlist\n");
@@ -959,12 +1003,13 @@ int Viewer_RenderMap_DListParser(bool CalledFromRDPHalf, unsigned int DLToRender
 			sprintf(CurrentGFXCmd, "G_LOADTLUT           ");
 			sprintf(CurrentGFXCmdNote, "-");
 			HelperFunc_GFXLogCommand(Position);
-			Viewer_RenderMap_CMDLoadTLUT(Texture.PalDataSource, Texture.PalOffset);
+			Viewer_RenderMap_CMDLoadTLUT(Texture[0].PalDataSource, Texture[0].PalOffset);
 			break;
 		case G_SETCOMBINE:
 			sprintf(CurrentGFXCmd, "G_SETCOMBINE         ");
-			sprintf(CurrentGFXCmdNote, "<unemulated>");
+			sprintf(CurrentGFXCmdNote, "<partially handled>");
 			HelperFunc_GFXLogCommand(Position);
+			Viewer_RenderMap_CMDSetCombine();
 			break;
 		case F3DEX2_DL:
 			sprintf(CurrentGFXCmd, "F3DEX2_DL            ");
@@ -1010,7 +1055,76 @@ int Viewer_RenderMap_DListParser(bool CalledFromRDPHalf, unsigned int DLToRender
 /* VIEWER_RENDERMAP_CMDVERTEXLIST - F3DEX2_VTX - GET OFFSET, AMOUNT & VERTEX BUFFER POSITION OF VERTICES TO USE */
 int Viewer_RenderMap_CMDVertexList()
 {
-	Viewer_LoadTexture();
+	if((GLExtension_MultiTexture) && (Renderer_EnableMultiTexturing)) {
+		if(IsMultitex) {
+			/* texture 0 */
+			glActiveTextureARB(GL_TEXTURE0_ARB);
+			glEnable(GL_TEXTURE_2D);
+			
+			glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE_ARB);
+			
+			glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_RGB_ARB, Combiner_Color_CmbMode[0]);
+			glTexEnvi(GL_TEXTURE_ENV, GL_SOURCE0_RGB_ARB, Combiner_Color_Arg0_Source[0]);
+			glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND0_RGB_ARB, Combiner_Color_Arg0_Op[0]);
+			glTexEnvi(GL_TEXTURE_ENV, GL_SOURCE1_RGB_ARB, Combiner_Color_Arg1_Source[0]);
+			glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND1_RGB_ARB, Combiner_Color_Arg1_Op[0]);
+			glTexEnvi(GL_TEXTURE_ENV, GL_SOURCE2_RGB_ARB, Combiner_Color_Arg2_Source[0]);
+			glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND2_RGB_ARB, Combiner_Color_Arg2_Op[0]);
+			
+			glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_ALPHA_ARB, Combiner_Alpha_CmbMode[0]);
+			glTexEnvi(GL_TEXTURE_ENV, GL_SOURCE0_ALPHA_ARB, Combiner_Alpha_Arg0_Source[0]);
+			glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND0_ALPHA_ARB, Combiner_Alpha_Arg0_Op[0]);
+			glTexEnvi(GL_TEXTURE_ENV, GL_SOURCE1_ALPHA_ARB, Combiner_Alpha_Arg1_Source[0]);
+			glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND1_ALPHA_ARB, Combiner_Alpha_Arg1_Op[0]);
+			glTexEnvi(GL_TEXTURE_ENV, GL_SOURCE2_ALPHA_ARB, Combiner_Alpha_Arg2_Source[0]);
+			glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND2_ALPHA_ARB, Combiner_Alpha_Arg2_Op[0]);
+			
+			Renderer_GLTexture = Viewer_LoadTexture(1);
+			glBindTexture(GL_TEXTURE_2D, Renderer_GLTexture);
+			
+			/* texture 1 */
+			glActiveTextureARB(GL_TEXTURE1_ARB);
+			glEnable(GL_TEXTURE_2D);
+			
+			glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE_ARB);
+			
+			glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_RGB_ARB, Combiner_Color_CmbMode[1]);
+			glTexEnvi(GL_TEXTURE_ENV, GL_SOURCE0_RGB_ARB, Combiner_Color_Arg0_Source[1]);
+			glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND0_RGB_ARB, Combiner_Color_Arg0_Op[1]);
+			glTexEnvi(GL_TEXTURE_ENV, GL_SOURCE1_RGB_ARB, Combiner_Color_Arg1_Source[1]);
+			glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND1_RGB_ARB, Combiner_Color_Arg1_Op[1]);
+			glTexEnvi(GL_TEXTURE_ENV, GL_SOURCE2_RGB_ARB, Combiner_Color_Arg2_Source[1]);
+			glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND2_RGB_ARB, Combiner_Color_Arg2_Op[1]);
+			
+			glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_ALPHA_ARB, Combiner_Alpha_CmbMode[1]);
+			glTexEnvi(GL_TEXTURE_ENV, GL_SOURCE0_ALPHA_ARB, Combiner_Alpha_Arg0_Source[1]);
+			glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND0_ALPHA_ARB, Combiner_Alpha_Arg0_Op[1]);
+			glTexEnvi(GL_TEXTURE_ENV, GL_SOURCE1_ALPHA_ARB, Combiner_Alpha_Arg1_Source[1]);
+			glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND1_ALPHA_ARB, Combiner_Alpha_Arg1_Op[1]);
+			glTexEnvi(GL_TEXTURE_ENV, GL_SOURCE2_ALPHA_ARB, Combiner_Alpha_Arg2_Source[1]);
+			glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND2_ALPHA_ARB, Combiner_Alpha_Arg2_Op[1]);
+			
+			Renderer_GLTexture = Viewer_LoadTexture(0);
+			glBindTexture(GL_TEXTURE_2D, Renderer_GLTexture);
+			
+			glActiveTextureARB(GL_TEXTURE0_ARB);
+		} else {
+			glActiveTextureARB(GL_TEXTURE0_ARB);
+			glEnable(GL_TEXTURE_2D);
+			
+			Renderer_GLTexture = Viewer_LoadTexture(0);
+			glBindTexture(GL_TEXTURE_2D, Renderer_GLTexture);
+			
+			glActiveTextureARB(GL_TEXTURE1_ARB);
+			glDisable(GL_TEXTURE_2D);
+			
+			glActiveTextureARB(GL_TEXTURE0_ARB);
+		}
+	} else {
+		Renderer_GLTexture = Viewer_LoadTexture(0);
+		glEnable(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D, Renderer_GLTexture);
+	}
 	
 	unsigned long TempVertListOffset = 0;
 	int TempVertCount = 0;
@@ -1119,21 +1233,38 @@ int Viewer_RenderMap_CMDDrawTri1()
 	glBegin(GL_TRIANGLES);
 		glColor4f(PrimColor[0], PrimColor[1], PrimColor[2], PrimColor[3]);
 		
-		TempU = (float) CurrentH1_1 * Texture.S_Scale / 32 / Texture.WidthRender;
-		TempV = (float) CurrentV1_1 * Texture.T_Scale / 32 / Texture.HeightRender;
-		glTexCoord2f(TempU, TempV);
+		TempU = (float) CurrentH1_1 * Texture[0].S_Scale / 32 / Texture[0].WidthRender;
+		TempV = (float) CurrentV1_1 * Texture[0].T_Scale / 32 / Texture[0].HeightRender;
+		if((GLExtension_MultiTexture) && (Renderer_EnableMultiTexturing)) {
+			glMultiTexCoord2fARB(GL_TEXTURE0_ARB, TempU, TempV);
+			if(IsMultitex) glMultiTexCoord2fARB(GL_TEXTURE1_ARB, TempU / MTexScaler, TempV / MTexScaler);
+		} else {
+			glTexCoord2f(TempU, TempV);
+		}
 		if(!Renderer_EnableLighting) { glColor4ub (CurrentR1_1, CurrentG1_1, CurrentB1_1, CurrentA1_1); }
 		glNormal3f (CurrentR1_1 / 255.0f, CurrentG1_1 / 255.0f, CurrentB1_1 / 255.0f);
 		glVertex3d(CurrentX1_1, CurrentY1_1, CurrentZ1_1);
-		TempU = (float) CurrentH1_2 * Texture.S_Scale / 32 / Texture.WidthRender;
-		TempV = (float) CurrentV1_2 * Texture.T_Scale / 32 / Texture.HeightRender;
-		glTexCoord2f(TempU, TempV);
+		
+		TempU = (float) CurrentH1_2 * Texture[0].S_Scale / 32 / Texture[0].WidthRender;
+		TempV = (float) CurrentV1_2 * Texture[0].T_Scale / 32 / Texture[0].HeightRender;
+		if((GLExtension_MultiTexture) && (Renderer_EnableMultiTexturing)) {
+			glMultiTexCoord2fARB(GL_TEXTURE0_ARB, TempU, TempV);
+			if(IsMultitex) glMultiTexCoord2fARB(GL_TEXTURE1_ARB, TempU / MTexScaler, TempV / MTexScaler);
+		} else {
+			glTexCoord2f(TempU, TempV);
+		}
 		if(!Renderer_EnableLighting) { glColor4ub (CurrentR1_2, CurrentG1_2, CurrentB1_2, CurrentA1_2); }
 		glNormal3f (CurrentR1_2 / 255.0f, CurrentG1_2 / 255.0f, CurrentB1_2 / 255.0f);
 		glVertex3d(CurrentX1_2, CurrentY1_2, CurrentZ1_2);
-		TempU = (float) CurrentH1_3 * Texture.S_Scale / 32 / Texture.WidthRender;
-		TempV = (float) CurrentV1_3 * Texture.T_Scale / 32 / Texture.HeightRender;
-		glTexCoord2f(TempU, TempV);
+		
+		TempU = (float) CurrentH1_3 * Texture[0].S_Scale / 32 / Texture[0].WidthRender;
+		TempV = (float) CurrentV1_3 * Texture[0].T_Scale / 32 / Texture[0].HeightRender;
+		if((GLExtension_MultiTexture) && (Renderer_EnableMultiTexturing)) {
+			glMultiTexCoord2fARB(GL_TEXTURE0_ARB, TempU, TempV);
+			if(IsMultitex) glMultiTexCoord2fARB(GL_TEXTURE1_ARB, TempU / MTexScaler, TempV / MTexScaler);
+		} else {
+			glTexCoord2f(TempU, TempV);
+		}
 		if(!Renderer_EnableLighting) { glColor4ub (CurrentR1_3, CurrentG1_3, CurrentB1_3, CurrentA1_3); }
 		glNormal3f (CurrentR1_3 / 255.0f, CurrentG1_3 / 255.0f, CurrentB1_3 / 255.0f);
 		glVertex3d(CurrentX1_3, CurrentY1_3, CurrentZ1_3);
@@ -1211,40 +1342,74 @@ int Viewer_RenderMap_CMDDrawTri2()
 	glBegin(GL_TRIANGLES);
 		glColor4f(PrimColor[0], PrimColor[1], PrimColor[2], PrimColor[3]);
 		
-		TempU = (float) CurrentH1_1 * Texture.S_Scale / 32 / Texture.WidthRender;
-		TempV = (float) CurrentV1_1 * Texture.T_Scale / 32 / Texture.HeightRender;
-		glTexCoord2f(TempU, TempV);
+		TempU = (float) CurrentH1_1 * Texture[0].S_Scale / 32 / Texture[0].WidthRender;
+		TempV = (float) CurrentV1_1 * Texture[0].T_Scale / 32 / Texture[0].HeightRender;
+		if((GLExtension_MultiTexture) && (Renderer_EnableMultiTexturing)) {
+			glMultiTexCoord2fARB(GL_TEXTURE0_ARB, TempU, TempV);
+			if(IsMultitex) glMultiTexCoord2fARB(GL_TEXTURE1_ARB, TempU / MTexScaler, TempV / MTexScaler);
+		} else {
+			glTexCoord2f(TempU, TempV);
+		}
 		if(!Renderer_EnableLighting) { glColor4ub (CurrentR1_1, CurrentG1_1, CurrentB1_1, CurrentA1_1); }
 		glNormal3f (CurrentR1_1 / 255.0f, CurrentG1_1 / 255.0f, CurrentB1_1 / 255.0f);
 		glVertex3d(CurrentX1_1, CurrentY1_1, CurrentZ1_1);
-		TempU = (float) CurrentH1_2 * Texture.S_Scale / 32 / Texture.WidthRender;
-		TempV = (float) CurrentV1_2 * Texture.T_Scale / 32 / Texture.HeightRender;
-		glTexCoord2f(TempU, TempV);
+		
+		TempU = (float) CurrentH1_2 * Texture[0].S_Scale / 32 / Texture[0].WidthRender;
+		TempV = (float) CurrentV1_2 * Texture[0].T_Scale / 32 / Texture[0].HeightRender;
+		if((GLExtension_MultiTexture) && (Renderer_EnableMultiTexturing)) {
+			glMultiTexCoord2fARB(GL_TEXTURE0_ARB, TempU, TempV);
+			if(IsMultitex) glMultiTexCoord2fARB(GL_TEXTURE1_ARB, TempU / MTexScaler, TempV / MTexScaler);
+		} else {
+			glTexCoord2f(TempU, TempV);
+		}
 		if(!Renderer_EnableLighting) { glColor4ub (CurrentR1_2, CurrentG1_2, CurrentB1_2, CurrentA1_2); }
 		glNormal3f (CurrentR1_2 / 255.0f, CurrentG1_2 / 255.0f, CurrentB1_2 / 255.0f);
 		glVertex3d(CurrentX1_2, CurrentY1_2, CurrentZ1_2);
-		TempU = (float) CurrentH1_3 * Texture.S_Scale / 32 / Texture.WidthRender;
-		TempV = (float) CurrentV1_3 * Texture.T_Scale / 32 / Texture.HeightRender;
-		glTexCoord2f(TempU, TempV);
+		
+		TempU = (float) CurrentH1_3 * Texture[0].S_Scale / 32 / Texture[0].WidthRender;
+		TempV = (float) CurrentV1_3 * Texture[0].T_Scale / 32 / Texture[0].HeightRender;
+		if((GLExtension_MultiTexture) && (Renderer_EnableMultiTexturing)) {
+			glMultiTexCoord2fARB(GL_TEXTURE0_ARB, TempU, TempV);
+			if(IsMultitex) glMultiTexCoord2fARB(GL_TEXTURE1_ARB, TempU / MTexScaler, TempV / MTexScaler);
+		} else {
+			glTexCoord2f(TempU, TempV);
+		}
 		if(!Renderer_EnableLighting) { glColor4ub (CurrentR1_3, CurrentG1_3, CurrentB1_3, CurrentA1_3); }
 		glNormal3f (CurrentR1_3 / 255.0f, CurrentG1_3 / 255.0f, CurrentB1_3 / 255.0f);
 		glVertex3d(CurrentX1_3, CurrentY1_3, CurrentZ1_3);
 		
-		TempU = (float) CurrentH2_1 * Texture.S_Scale / 32 / Texture.WidthRender;
-		TempV = (float) CurrentV2_1 * Texture.T_Scale / 32 / Texture.HeightRender;
-		glTexCoord2f(TempU, TempV);
+		TempU = (float) CurrentH2_1 * Texture[0].S_Scale / 32 / Texture[0].WidthRender;
+		TempV = (float) CurrentV2_1 * Texture[0].T_Scale / 32 / Texture[0].HeightRender;
+		if((GLExtension_MultiTexture) && (Renderer_EnableMultiTexturing)) {
+			glMultiTexCoord2fARB(GL_TEXTURE0_ARB, TempU, TempV);
+			if(IsMultitex) glMultiTexCoord2fARB(GL_TEXTURE1_ARB, TempU / MTexScaler, TempV / MTexScaler);
+		} else {
+			glTexCoord2f(TempU, TempV);
+		}
 		if(!Renderer_EnableLighting) { glColor4ub (CurrentR2_1, CurrentG2_1, CurrentB2_1, CurrentA2_1); }
 		glNormal3f (CurrentR2_1 / 255.0f, CurrentG2_1 / 255.0f, CurrentB2_1 / 255.0f);
 		glVertex3d(CurrentX2_1, CurrentY2_1, CurrentZ2_1);
-		TempU = (float) CurrentH2_2 * Texture.S_Scale / 32 / Texture.WidthRender;
-		TempV = (float) CurrentV2_2 * Texture.T_Scale / 32 / Texture.HeightRender;
-		glTexCoord2f(TempU, TempV);
+		
+		TempU = (float) CurrentH2_2 * Texture[0].S_Scale / 32 / Texture[0].WidthRender;
+		TempV = (float) CurrentV2_2 * Texture[0].T_Scale / 32 / Texture[0].HeightRender;
+		if((GLExtension_MultiTexture) && (Renderer_EnableMultiTexturing)) {
+			glMultiTexCoord2fARB(GL_TEXTURE0_ARB, TempU, TempV);
+			if(IsMultitex) glMultiTexCoord2fARB(GL_TEXTURE1_ARB, TempU / MTexScaler, TempV / MTexScaler);
+		} else {
+			glTexCoord2f(TempU, TempV);
+		}
 		if(!Renderer_EnableLighting) { glColor4ub (CurrentR2_2, CurrentG2_2, CurrentB2_2, CurrentA2_2); } 
 		glNormal3f (CurrentR2_2 / 255.0f, CurrentG2_2 / 255.0f, CurrentB2_2 / 255.0f);
 		glVertex3d(CurrentX2_2, CurrentY2_2, CurrentZ2_2);
-		TempU = (float) CurrentH2_3 * Texture.S_Scale / 32 / Texture.WidthRender;
-		TempV = (float) CurrentV2_3 * Texture.T_Scale / 32 / Texture.HeightRender;
-		glTexCoord2f(TempU, TempV);
+		
+		TempU = (float) CurrentH2_3 * Texture[0].S_Scale / 32 / Texture[0].WidthRender;
+		TempV = (float) CurrentV2_3 * Texture[0].T_Scale / 32 / Texture[0].HeightRender;
+		if((GLExtension_MultiTexture) && (Renderer_EnableMultiTexturing)) {
+			glMultiTexCoord2fARB(GL_TEXTURE0_ARB, TempU, TempV);
+			if(IsMultitex) glMultiTexCoord2fARB(GL_TEXTURE1_ARB, TempU / MTexScaler, TempV / MTexScaler);
+		} else {
+			glTexCoord2f(TempU, TempV);
+		}
 		if(!Renderer_EnableLighting) { glColor4ub (CurrentR2_3, CurrentG2_3, CurrentB2_3, CurrentA2_3); }
 		glNormal3f (CurrentR2_3 / 255.0f, CurrentG2_3 / 255.0f, CurrentB2_3 / 255.0f);
 		glVertex3d(CurrentX2_3, CurrentY2_3, CurrentZ2_3);
@@ -1256,8 +1421,8 @@ int Viewer_RenderMap_CMDDrawTri2()
 /* VIEWER_RENDERMAP_CMDTEXTURE - F3DEX2_TEXTURE */
 int Viewer_RenderMap_CMDTexture()
 {
-	Texture.S_Scale = ((Readout_CurrentByte5 * 0x100) + Readout_CurrentByte6) + 2;
-	Texture.T_Scale = ((Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8) + 2;
+	Texture[0].S_Scale = ((Readout_CurrentByte5 * 0x100) + Readout_CurrentByte6) + 2;
+	Texture[0].T_Scale = ((Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8) + 2;
 	
 	return 0;
 }
@@ -1265,18 +1430,34 @@ int Viewer_RenderMap_CMDTexture()
 /* VIEWER_RENDERMAP_CMDSETTIMAGE - G_SETTIMG - GET TEXTURE OFFSET AND STORE FOR FUTURE USE */
 int Viewer_RenderMap_CMDSetTImage()
 {
-	if(Readout_NextGFXCommand1 == 0x000000E8) {
-		Texture.PalDataSource = Readout_CurrentByte5;
-		
-		Texture.PalOffset = Readout_CurrentByte6 << 16;
-		Texture.PalOffset = Texture.PalOffset + (Readout_CurrentByte7 << 8);
-		Texture.PalOffset = Texture.PalOffset + Readout_CurrentByte8;
-	} else {
-		Texture.DataSource = Readout_CurrentByte5;
-		
-		Texture.Offset = Readout_CurrentByte6 << 16;
-		Texture.Offset = Texture.Offset + (Readout_CurrentByte7 << 8);
-		Texture.Offset = Texture.Offset + Readout_CurrentByte8;
+	switch(Readout_NextGFXCommand1) {
+		case 0x000000E8:
+			Texture[0].PalDataSource = Readout_CurrentByte5;
+			
+			Texture[0].PalOffset = Readout_CurrentByte6 << 16;
+			Texture[0].PalOffset = Texture[0].PalOffset + (Readout_CurrentByte7 << 8);
+			Texture[0].PalOffset = Texture[0].PalOffset + Readout_CurrentByte8;
+			
+			IsMultitex = false;
+			break;
+		case 0x000110F5:
+			Texture[1].DataSource = Readout_CurrentByte5;
+			
+			Texture[1].Offset = Readout_CurrentByte6 << 16;
+			Texture[1].Offset = Texture[1].Offset + (Readout_CurrentByte7 << 8);
+			Texture[1].Offset = Texture[1].Offset + Readout_CurrentByte8;
+			
+			IsMultitex = true;
+			break;
+		default:
+			Texture[0].DataSource = Readout_CurrentByte5;
+			
+			Texture[0].Offset = Readout_CurrentByte6 << 16;
+			Texture[0].Offset = Texture[0].Offset + (Readout_CurrentByte7 << 8);
+			Texture[0].Offset = Texture[0].Offset + Readout_CurrentByte8;
+			
+			IsMultitex = false;
+			break;
 	}
 	
 	return 0;
@@ -1290,44 +1471,79 @@ int Viewer_RenderMap_CMDSetTile()
 	
 	unsigned char TempXParameter = Readout_CurrentByte7 * 0x10;
 	
-	switch(Readout_CurrentByte6) {
-	case 0x01:
-		Texture.Y_Parameter = 1;
-		break;
-	case 0x09:
-		Texture.Y_Parameter = 2;
-		break;
-	case 0x05:
-		Texture.Y_Parameter = 3;
-		break;
-	default:
-		Texture.Y_Parameter = 1;
-		break;
+	if(!IsMultitex) {
+		switch(Readout_CurrentByte6) {
+			case 0x01:
+				Texture[0].Y_Parameter = 1;
+				break;
+			case 0x09:
+				Texture[0].Y_Parameter = 2;
+				break;
+			case 0x05:
+				Texture[0].Y_Parameter = 3;
+				break;
+			default:
+				Texture[0].Y_Parameter = 1;
+				break;
+		}
+		
+		switch(TempXParameter) {
+			case 0x00:
+				Texture[0].X_Parameter = 1;
+				break;
+			case 0x20:
+				Texture[0].X_Parameter = 2;
+				break;
+			case 0x10:
+				Texture[0].X_Parameter = 3;
+				break;
+			default:
+				Texture[0].X_Parameter = 1;
+				break;
+		}
+		
+		Texture[0].LineSize = Readout_CurrentByte3 / 2;
+		Texture[0].Format_N64 = Readout_CurrentByte2;
+		Texture[0].Palette = (Readout_Current1 >> 20) & 0x0F;
+		Texture[0].Format_OGL = GL_RGBA;
+		Texture[0].Format_OGLPixel = GL_RGBA;
+	} else {
+		switch(Readout_CurrentByte6) {
+			case 0x01:
+				Texture[1].Y_Parameter = 1;
+				break;
+			case 0x09:
+				Texture[1].Y_Parameter = 2;
+				break;
+			case 0x05:
+				Texture[1].Y_Parameter = 3;
+				break;
+			default:
+				Texture[1].Y_Parameter = 1;
+				break;
+		}
+		
+		switch(TempXParameter) {
+			case 0x00:
+				Texture[1].X_Parameter = 1;
+				break;
+			case 0x20:
+				Texture[1].X_Parameter = 2;
+				break;
+			case 0x10:
+				Texture[1].X_Parameter = 3;
+				break;
+			default:
+				Texture[1].X_Parameter = 1;
+				break;
+		}
+		
+		Texture[1].LineSize = Readout_CurrentByte3 / 2;
+		Texture[1].Format_N64 = Readout_CurrentByte2;
+		Texture[1].Palette = (Readout_Current1 >> 20) & 0x0F;
+		Texture[1].Format_OGL = GL_RGBA;
+		Texture[1].Format_OGLPixel = GL_RGBA;
 	}
-	
-	switch(TempXParameter) {
-	case 0x00:
-		Texture.X_Parameter = 1;
-		break;
-	case 0x20:
-		Texture.X_Parameter = 2;
-		break;
-	case 0x10:
-		Texture.X_Parameter = 3;
-		break;
-	default:
-		Texture.X_Parameter = 1;
-		break;
-	}
-	
-	Texture.LineSize = Readout_CurrentByte3 / 2;
-	
-	Texture.Format_N64 = Readout_CurrentByte2;
-	
-	Texture.Palette = (Readout_Current1 >> 20) & 0x0F;
-	
-	Texture.Format_OGL = GL_RGBA;
-	Texture.Format_OGLPixel = GL_RGBA;
 	
 	return 0;
 }
@@ -1343,25 +1559,43 @@ int Viewer_RenderMap_CMDSetTileSize()
 	unsigned int LRS = (TileSize_Temp2 & 0xFFF000) >> 14;
 	unsigned int LRT = (TileSize_Temp2 & 0x000FFF) >> 2;
 	
-	Texture.Width  = ((LRS - ULS) + 1);
-	Texture.Height = ((LRT - ULT) + 1);
+	MTexScaler = (Readout_CurrentByte5 + 1) * 2;
 	
-	if(Texture.Width > 256) {
-		Texture.WidthRender  = Texture.Width - 64;
-		Texture.Width = (Texture.Width & 0xFF);				/* hack for MM commands that set insane texture coordinates */
+	if(!IsMultitex) {
+		Texture[0].Width  = ((LRS - ULS) + 1);
+		Texture[0].Height = ((LRT - ULT) + 1);
+		
+		if(Texture[0].Width > 256) {
+			Texture[0].WidthRender = Texture[0].Width - 64;
+			Texture[0].Width = (Texture[0].Width & 0xFF);				/* hack for MM commands that set insane texture coordinates */
+		} else {
+			Texture[0].WidthRender = Texture[0].Width;
+		}
+		
+		if(Texture[0].Height > 256) {
+			Texture[0].HeightRender = Texture[0].Height - 64;
+			Texture[0].Height = (Texture[0].Height & 0xFF);				/* hack for MM commands that set insane texture coordinates */
+		} else {
+			Texture[0].HeightRender = Texture[0].Height;
+		}
 	} else {
-		Texture.WidthRender  = Texture.Width;
+		Texture[1].Width  = ((LRS - ULS) + 1);
+		Texture[1].Height = ((LRT - ULT) + 1);
+		
+		if(Texture[1].Width > 256) {
+			Texture[1].WidthRender = Texture[1].Width - 64;
+			Texture[1].Width = (Texture[1].Width & 0xFF);				/* hack for MM commands that set insane texture coordinates */
+		} else {
+			Texture[1].WidthRender = Texture[1].Width;
+		}
+		
+		if(Texture[1].Height > 256) {
+			Texture[1].HeightRender = Texture[1].Height - 64;
+			Texture[1].Height = (Texture[1].Height & 0xFF);				/* hack for MM commands that set insane texture coordinates */
+		} else {
+			Texture[1].HeightRender = Texture[1].Height;
+		}
 	}
-	
-	if(Texture.Height > 256) {
-		Texture.HeightRender = Texture.Height - 64;
-		Texture.Height = (Texture.Height & 0xFF);			/* hack for MM commands that set insane texture coordinates */
-	} else {
-		Texture.HeightRender = Texture.Height;
-	}
-	
-//	sprintf(ErrorMsg, "%d * %d", Texture.Width, Texture.Height);
-//	MessageBox(hwnd, ErrorMsg, "", 0);
 	
 	return 0;
 }
@@ -1628,7 +1862,7 @@ int Viewer_RenderMap_CMDSetOtherModeL()
 			Blender_AlphaFunc = GL_GEQUAL;
 			Blender_AlphaRef = 0.5f;
 			break;
-		case 0xC810 + 0x49D8:								//spot00 + most other maps - water
+		case 0xC810 + 0x49D8:								//spot00 + most other maps - water (does not always work)
 			Blender_SrcFactor = GL_SRC_ALPHA;
 			Blender_DstFactor = GL_ONE_MINUS_SRC_ALPHA;
 			Blender_AlphaFunc = GL_GREATER;
@@ -1689,11 +1923,68 @@ int Viewer_RenderMap_CMDSetOtherModeL()
 	return 0;
 }
 
+int Viewer_RenderMap_CMDSetCombine()
+{
+	Combiner_Cycle1 =	Readout_CurrentByte5 * 0x1000000;
+	Combiner_Cycle1 +=	Readout_CurrentByte6 * 0x10000;
+	Combiner_Cycle1 >>=	16;
+	
+	Combiner_Cycle2 =	Readout_CurrentByte7 * 0x100;
+	Combiner_Cycle2 +=	Readout_CurrentByte8;
+	
+	switch (Combiner_Cycle1 + Combiner_Cycle2) {
+		default:
+//			sprintf(ErrorMsg, "Unsupported mode 0x%04X 0x%04X.\nUsing default settings...", (unsigned int)Combiner_Cycle1, (unsigned int)Combiner_Cycle2);
+//			MessageBox(hwnd, ErrorMsg, "SetCombine Error", MB_OK | MB_ICONERROR);
+			
+/*			glActiveTextureARB(GL_TEXTURE1_ARB);
+			Renderer_GLTexture = Viewer_LoadTexture(0);
+			glEnable(GL_TEXTURE_2D);
+			glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE_ARB);
+			glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_MODULATE);
+			glBindTexture(GL_TEXTURE_2D, Renderer_GLTexture);
+*/
+			Combiner_Color_CmbMode[0] = GL_MODULATE;
+			Combiner_Color_Arg0_Source[0] = GL_TEXTURE0;
+			Combiner_Color_Arg0_Op[0] = GL_SRC_COLOR;
+			Combiner_Color_Arg1_Source[0] = GL_PRIMARY_COLOR;
+			Combiner_Color_Arg1_Op[0] = GL_SRC_COLOR;
+			
+			Combiner_Alpha_CmbMode[0] = GL_MODULATE;
+			Combiner_Alpha_Arg0_Source[0] = GL_TEXTURE0;
+			Combiner_Alpha_Arg0_Op[0] = GL_SRC_ALPHA;
+			Combiner_Alpha_Arg1_Source[0] = GL_PRIMARY_COLOR;
+			Combiner_Alpha_Arg1_Op[0] = GL_SRC_ALPHA;
+			
+			Combiner_Color_CmbMode[1] = GL_MODULATE;
+			Combiner_Color_Arg0_Source[1] = GL_PREVIOUS;
+			Combiner_Color_Arg0_Op[1] = GL_ONE;
+			Combiner_Color_Arg1_Source[1] = GL_TEXTURE1;
+			Combiner_Color_Arg1_Op[1] = GL_SRC_COLOR;
+			Combiner_Color_Arg2_Source[1] = GL_CONSTANT;
+			Combiner_Color_Arg2_Op[1] = GL_SRC_COLOR;
+			
+			Combiner_Alpha_CmbMode[1] = GL_ADD_SIGNED;
+			Combiner_Alpha_Arg0_Source[1] = GL_PREVIOUS;
+			Combiner_Alpha_Arg0_Op[1] = GL_SRC_ALPHA;
+			Combiner_Alpha_Arg1_Source[1] = GL_TEXTURE1;
+			Combiner_Alpha_Arg1_Op[1] = GL_SRC_ALPHA;
+			Combiner_Alpha_Arg2_Source[1] = GL_CONSTANT;
+			Combiner_Alpha_Arg2_Op[1] = GL_SRC_ALPHA;
+			
+			break;
+	}
+	
+	return 0;
+}
+
 /*	------------------------------------------------------------ */
 
 /* VIEWER_LOADTEXTURE - FETCH THE TEXTURE DATA AND CREATE AN OGL TEXTURE */
-GLuint Viewer_LoadTexture()
+GLuint Viewer_LoadTexture(int TextureID)
 {
+	GLuint GLTexture;
+	
 	if((Readout_NextGFXCommand1 == 0x00000003) || (Readout_NextGFXCommand1 == 0x000000E1)) return 0;
 	
 	int i, j = 0;
@@ -1724,35 +2015,32 @@ GLuint Viewer_LoadTexture()
 		EmptyTexture_Green[i + 2]	= 0x00;
 		EmptyTexture_Green[i + 3]	= 0xFF;
 	}
-/*	sprintf(SystemLogMsg, "TEXTURE: %x %x %x\n",
-		Texture.DataSource, Texture.Offset, Texture.Format_N64);
-	HelperFunc_LogMessage(2, SystemLogMsg);
-*/	
-	switch(Texture.DataSource) {
+	
+	switch(Texture[TextureID].DataSource) {
 	case 0x02:
-		memcpy(TextureData_N64, &ZSceneBuffer[Texture.Offset / 4], TextureBufferSize);
+		memcpy(TextureData_N64, &ZSceneBuffer[Texture[TextureID].Offset / 4], TextureBufferSize);
 		break;
 	case 0x03:
-		memcpy(TextureData_N64, &ZMapBuffer[Texture.Offset / 4], TextureBufferSize);
+		memcpy(TextureData_N64, &ZMapBuffer[Texture[TextureID].Offset / 4], TextureBufferSize);
 		break;
 	case 0x04:
-		memcpy(TextureData_N64, &GameplayKeepBuffer[Texture.Offset / 4], TextureBufferSize);
+		memcpy(TextureData_N64, &GameplayKeepBuffer[Texture[TextureID].Offset / 4], TextureBufferSize);
 		break;
 	case 0x05:
-		memcpy(TextureData_N64, &GameplayFDKeepBuffer[Texture.Offset / 4], TextureBufferSize);
+		memcpy(TextureData_N64, &GameplayFDKeepBuffer[Texture[TextureID].Offset / 4], TextureBufferSize);
 		break;
 	default:
 		UnhandledTextureSource = true;
-		sprintf(ErrorMsg, "Unhandled Source Bank 0x%02X!", Texture.DataSource);
+		sprintf(ErrorMsg, "Unhandled Source Bank 0x%02X!", Texture[TextureID].DataSource);
 		MessageBox(hwnd, ErrorMsg, "Error", MB_OK | MB_ICONERROR);
-		Texture.Format_OGL = GL_RGBA;
-		Texture.Format_OGLPixel = GL_RGBA;
+		Texture[TextureID].Format_OGL = GL_RGBA;
+		Texture[TextureID].Format_OGLPixel = GL_RGBA;
 		memcpy(TextureData_OGL, EmptyTexture_Red, TextureBufferSize);
 		break;
 	}
 	
 	if(!UnhandledTextureSource) {
-		switch(Texture.Format_N64) {
+		switch(Texture[TextureID].Format_N64) {
 		/* RGBA FORMAT */
 		case 0x00:
 		case 0x08:
@@ -1768,8 +2056,8 @@ GLuint Viewer_LoadTexture()
 			unsigned int LoadRGBA_InTexturePosition_N64 = 0;
 			unsigned int LoadRGBA_InTexturePosition_OGL = 0;
 			
-			for(j = 0; j < Texture.Height; j++) {
-				for(i = 0; i < Texture.Width; i++) {
+			for(j = 0; j < Texture[TextureID].Height; j++) {
+				for(i = 0; i < Texture[TextureID].Width; i++) {
 					LoadRGBA_RGBA5551 = (TextureData_N64[LoadRGBA_InTexturePosition_N64] * 0x100) + TextureData_N64[LoadRGBA_InTexturePosition_N64 + 1];
 					
 					LoadRGBA_RExtract = (LoadRGBA_RGBA5551 & 0xF800);
@@ -1795,7 +2083,7 @@ GLuint Viewer_LoadTexture()
 					LoadRGBA_InTexturePosition_N64 += 2;
 					LoadRGBA_InTexturePosition_OGL += 4;
 				}
-				LoadRGBA_InTexturePosition_N64 += Texture.LineSize * 4 - Texture.Width;
+				LoadRGBA_InTexturePosition_N64 += Texture[TextureID].LineSize * 4 - Texture[TextureID].Width;
 			}
 			
 			break;
@@ -1810,8 +2098,8 @@ GLuint Viewer_LoadTexture()
 			unsigned int LoadCI_InTexturePosition_N64 = 0;
 			unsigned int LoadCI_InTexturePosition_OGL = 0;
 			
-			for(j = 0; j < Texture.Height; j++) {
-				for(i = 0; i < Texture.Width / 2; i++) {
+			for(j = 0; j < Texture[TextureID].Height; j++) {
+				for(i = 0; i < Texture[TextureID].Width / 2; i++) {
 					LoadCI_CIData1 = (TextureData_N64[LoadCI_InTexturePosition_N64] & 0xF0) >> 4;
 					LoadCI_CIData2 = TextureData_N64[LoadCI_InTexturePosition_N64] & 0x0F;
 					
@@ -1827,7 +2115,7 @@ GLuint Viewer_LoadTexture()
 					LoadCI_InTexturePosition_N64 += 1;
 					LoadCI_InTexturePosition_OGL += 8;
 				}
-				LoadCI_InTexturePosition_N64 += Texture.LineSize * 8 - (Texture.Width / 2);
+				LoadCI_InTexturePosition_N64 += Texture[TextureID].LineSize * 8 - (Texture[TextureID].Width / 2);
 			}
 			
 			break;
@@ -1839,8 +2127,8 @@ GLuint Viewer_LoadTexture()
 			unsigned int LoadCI_InTexturePosition_N64 = 0;
 			unsigned int LoadCI_InTexturePosition_OGL = 0;
 			
-			for(j = 0; j < Texture.Height; j++) {
-				for(i = 0; i < Texture.Width; i++) {
+			for(j = 0; j < Texture[TextureID].Height; j++) {
+				for(i = 0; i < Texture[TextureID].Width; i++) {
 					LoadCI_CIData = TextureData_N64[LoadCI_InTexturePosition_N64];
 					
 					TextureData_OGL[LoadCI_InTexturePosition_OGL]     = Palette[LoadCI_CIData].R;
@@ -1851,7 +2139,7 @@ GLuint Viewer_LoadTexture()
 					LoadCI_InTexturePosition_N64 += 1;
 					LoadCI_InTexturePosition_OGL += 4;
 				}
-				LoadCI_InTexturePosition_N64 += Texture.LineSize * 8 - Texture.Width;
+				LoadCI_InTexturePosition_N64 += Texture[TextureID].LineSize * 8 - Texture[TextureID].Width;
 			}
 			
 			break;
@@ -1869,8 +2157,8 @@ GLuint Viewer_LoadTexture()
 			unsigned int LoadIA_InTexturePosition_N64 = 0;
 			unsigned int LoadIA_InTexturePosition_OGL = 0;
 			
-			for(j = 0; j < Texture.Height; j++) {
-				for(i = 0; i < Texture.Width / 2; i++) {
+			for(j = 0; j < Texture[TextureID].Height; j++) {
+				for(i = 0; i < Texture[TextureID].Width / 2; i++) {
 					LoadIA_IAData = (TextureData_N64[LoadIA_InTexturePosition_N64] & 0xF0) >> 4;
 					LoadIA_IExtract1 = (LoadIA_IAData & 0x0E) << 4;
 					if((LoadIA_IAData & 0x01)) { LoadIA_AExtract1 = 0xFF; } else { LoadIA_AExtract1 = 0x00; }
@@ -1891,7 +2179,7 @@ GLuint Viewer_LoadTexture()
 					LoadIA_InTexturePosition_N64 += 1;
 					LoadIA_InTexturePosition_OGL += 8;
 				}
-				LoadIA_InTexturePosition_N64 += Texture.LineSize * 8 - (Texture.Width / 2);
+				LoadIA_InTexturePosition_N64 += Texture[TextureID].LineSize * 8 - (Texture[TextureID].Width / 2);
 			}
 			
 			break;
@@ -1906,8 +2194,8 @@ GLuint Viewer_LoadTexture()
 			unsigned int LoadIA_InTexturePosition_N64 = 0;
 			unsigned int LoadIA_InTexturePosition_OGL = 0;
 			
-			for(j = 0; j < Texture.Height; j++) {
-				for(i = 0; i < Texture.Width; i++) {
+			for(j = 0; j < Texture[TextureID].Height; j++) {
+				for(i = 0; i < Texture[TextureID].Width; i++) {
 					LoadIA_IAData = TextureData_N64[LoadIA_InTexturePosition_N64];
 					LoadIA_IExtract = (LoadIA_IAData & 0xFE);
 					if((LoadIA_IAData & 0x01)) { LoadIA_AExtract = 0xFF; } else { LoadIA_AExtract = 0x00; }
@@ -1920,7 +2208,7 @@ GLuint Viewer_LoadTexture()
 					LoadIA_InTexturePosition_N64 += 1;
 					LoadIA_InTexturePosition_OGL += 4;
 				}
-				LoadIA_InTexturePosition_N64 += Texture.LineSize * 8 - Texture.Width;
+				LoadIA_InTexturePosition_N64 += Texture[TextureID].LineSize * 8 - Texture[TextureID].Width;
 			}
 			
 			break;
@@ -1935,8 +2223,8 @@ GLuint Viewer_LoadTexture()
 			unsigned int LoadIA_InTexturePosition_N64 = 0;
 			unsigned int LoadIA_InTexturePosition_OGL = 0;
 			
-			for(j = 0; j < Texture.Height; j++) {
-				for(i = 0; i < Texture.Width; i++) {
+			for(j = 0; j < Texture[TextureID].Height; j++) {
+				for(i = 0; i < Texture[TextureID].Width; i++) {
 					LoadIA_IAData = TextureData_N64[LoadIA_InTexturePosition_N64];
 					LoadIA_IExtract = LoadIA_IAData;
 					
@@ -1951,7 +2239,7 @@ GLuint Viewer_LoadTexture()
 					LoadIA_InTexturePosition_N64 += 2;
 					LoadIA_InTexturePosition_OGL += 4;
 				}
-				LoadIA_InTexturePosition_N64 += Texture.LineSize * 4 - Texture.Width;
+				LoadIA_InTexturePosition_N64 += Texture[TextureID].LineSize * 4 - Texture[TextureID].Width;
 			}
 			
 			break;
@@ -1969,8 +2257,8 @@ GLuint Viewer_LoadTexture()
 			unsigned int LoadI_InTexturePosition_N64 = 0;
 			unsigned int LoadI_InTexturePosition_OGL = 0;
 			
-			for(j = 0; j < Texture.Height; j++) {
-				for(i = 0; i < Texture.Width / 2; i++) {
+			for(j = 0; j < Texture[TextureID].Height; j++) {
+				for(i = 0; i < Texture[TextureID].Width / 2; i++) {
 					LoadI_IData = (TextureData_N64[LoadI_InTexturePosition_N64] & 0xF0) >> 4;
 					LoadI_IExtract1 = (LoadI_IData & 0x0F) << 4;
 					
@@ -1990,7 +2278,7 @@ GLuint Viewer_LoadTexture()
 					LoadI_InTexturePosition_N64 += 1;
 					LoadI_InTexturePosition_OGL += 8;
 				}
-				LoadI_InTexturePosition_N64 += Texture.LineSize * 8 - (Texture.Width / 2);
+				LoadI_InTexturePosition_N64 += Texture[TextureID].LineSize * 8 - (Texture[TextureID].Width / 2);
 			}
 			
 			break;
@@ -2003,8 +2291,8 @@ GLuint Viewer_LoadTexture()
 			unsigned int LoadI_InTexturePosition_N64 = 0;
 			unsigned int LoadI_InTexturePosition_OGL = 0;
 			
-			for(j = 0; j < Texture.Height; j++) {
-				for(i = 0; i < Texture.Width; i++) {
+			for(j = 0; j < Texture[TextureID].Height; j++) {
+				for(i = 0; i < Texture[TextureID].Width; i++) {
 					LoadI_IData = TextureData_N64[LoadI_InTexturePosition_N64];
 					
 					TextureData_OGL[LoadI_InTexturePosition_OGL]     = LoadI_IData;
@@ -2015,7 +2303,7 @@ GLuint Viewer_LoadTexture()
 					LoadI_InTexturePosition_N64 += 1;
 					LoadI_InTexturePosition_OGL += 4;
 				}
-				LoadI_InTexturePosition_N64 += Texture.LineSize * 8 - Texture.Width;
+				LoadI_InTexturePosition_N64 += Texture[TextureID].LineSize * 8 - Texture[TextureID].Width;
 			}
 			
 			break;
@@ -2023,34 +2311,45 @@ GLuint Viewer_LoadTexture()
 		/* FALLBACK - gives us an empty texture */
 		default:
 			{
-			sprintf(ErrorMsg, "Unhandled Texture Type 0x%02X!", Texture.Format_N64);
+			sprintf(ErrorMsg, "Unhandled Texture Type 0x%02X!", Texture[TextureID].Format_N64);
 			MessageBox(hwnd, ErrorMsg, "Error", MB_OK | MB_ICONERROR);
-			Texture.Format_OGL = GL_RGBA;
-			Texture.Format_OGLPixel = GL_RGBA;
+			Texture[TextureID].Format_OGL = GL_RGBA;
+			Texture[TextureID].Format_OGLPixel = GL_RGBA;
 			memcpy(TextureData_OGL, EmptyTexture_Green, TextureBufferSize);
 			break;
 			}
 		}
 	}
 	
-	switch(Texture.Y_Parameter) {
+	glGenTextures(1, &GLTexture);
+	glBindTexture(GL_TEXTURE_2D, GLTexture);
+	
+	switch(Texture[TextureID].Y_Parameter) {
 		case 1:  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT); break;
 		case 2:  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); break;
-		case 3:  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT_ARB); break;
+		case 3:  if(GLExtension_TextureMirror) glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT_ARB); break;
 		default: glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT); break;
 	}
 	
-	switch(Texture.X_Parameter) {
+	switch(Texture[TextureID].X_Parameter) {
 		case 1:  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); break;
 		case 2:  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); break;
-		case 3:  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT_ARB); break;
+		case 3:  if(GLExtension_TextureMirror) glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT_ARB); break;
 		default: glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); break;
+	}
+	
+	if(GLExtension_AnisoFilter) {
+		float AnisoMax;
+		glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &AnisoMax);
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, AnisoMax);
+	} else {
+		//
 	}
 	
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, Renderer_FilteringMode_Min);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, Renderer_FilteringMode_Mag);
 	
-	gluBuild2DMipmaps(GL_TEXTURE_2D, Texture.Format_OGL, Texture.WidthRender, Texture.HeightRender, Texture.Format_OGLPixel, GL_UNSIGNED_BYTE, TextureData_OGL);
+	gluBuild2DMipmaps(GL_TEXTURE_2D, Texture[TextureID].Format_OGL, Texture[TextureID].WidthRender, Texture[TextureID].HeightRender, Texture[TextureID].Format_OGLPixel, GL_UNSIGNED_BYTE, TextureData_OGL);
 	
 	free(TextureData_N64);
 	free(TextureData_OGL);
@@ -2058,7 +2357,7 @@ GLuint Viewer_LoadTexture()
 	free(EmptyTexture_Red);
 	free(EmptyTexture_Green);
 	
-	return 0;
+	return GLTexture;
 }
 
 /*	------------------------------------------------------------ */
@@ -2261,6 +2560,7 @@ int InitGL(void)
 {
 	glShadeModel(GL_SMOOTH);
 	glEnable(GL_POINT_SMOOTH);
+	glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
 	
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	
@@ -2287,6 +2587,36 @@ int InitGL(void)
 	
 	glEnable(GL_COLOR_MATERIAL);
 	glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+	
+	GLExtension_List = strdup(glGetString(GL_EXTENSIONS));
+	int ExtListLen = strlen(GLExtension_List);
+	for(int i = 0; i < ExtListLen; i++) {
+		if(GLExtension_List[i] == ' ') GLExtension_List[i] = '\n';
+	}
+	
+	if(strstr(GLExtension_List, "GL_ARB_multitexture")) {
+		GLExtension_MultiTexture = true;
+		glMultiTexCoord1fARB		= (PFNGLMULTITEXCOORD1FARBPROC) wglGetProcAddress("glMultiTexCoord1fARB");
+		glMultiTexCoord2fARB		= (PFNGLMULTITEXCOORD2FARBPROC) wglGetProcAddress("glMultiTexCoord2fARB");
+		glMultiTexCoord3fARB		= (PFNGLMULTITEXCOORD3FARBPROC) wglGetProcAddress("glMultiTexCoord3fARB");
+		glMultiTexCoord4fARB		= (PFNGLMULTITEXCOORD4FARBPROC) wglGetProcAddress("glMultiTexCoord4fARB");
+		glActiveTextureARB			= (PFNGLACTIVETEXTUREARBPROC) wglGetProcAddress("glActiveTextureARB");
+		glClientActiveTextureARB	= (PFNGLCLIENTACTIVETEXTUREARBPROC) wglGetProcAddress("glClientActiveTextureARB");
+	} else {
+		MessageBox(hwnd, "Extension 'GL_ARB_multitexture' not supported.\nMultitexturing will not work correctly.", "Extension Error", MB_OK | MB_ICONERROR);
+	}
+	
+	if(strstr(GLExtension_List, "GL_ARB_texture_mirrored_repeat")) {
+		GLExtension_TextureMirror = true;
+	} else {
+		MessageBox(hwnd, "Extension 'GL_ARB_texture_mirrored_repeat' not supported.\nTexture mirroring will not work correctly.", "Extension Error", MB_OK | MB_ICONERROR);
+	}
+	
+	if(strstr(GLExtension_List, "GL_EXT_texture_filter_anisotropic")) {
+		GLExtension_AnisoFilter = true;
+	} else {
+		MessageBox(hwnd, "Extension 'GL_EXT_texture_filter_anisotropic' not supported.\nAnisotropic filtering will not work correctly.", "Extension Error", MB_OK | MB_ICONERROR);
+	}
 	
 	return true;
 }
@@ -2316,7 +2646,6 @@ int DrawGLScene(void)
 		
 		Renderer_GLDisplayList_Current = 0;
 		
-		glEnable(GL_TEXTURE_2D);
 		if(DListInfo_DListToRender == -1) {
 			while(!(Renderer_GLDisplayList_Current == Renderer_GLDisplayList + (DListInfo_CurrentCount + 1))) {
 				glCallList(Renderer_GLDisplayList_Current);
@@ -2607,10 +2936,11 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 	
 	GetPrivateProfileString("Viewer", "LastMap", "", Filename_ZMap, sizeof(Filename_ZMap), INIPath);
 	GetPrivateProfileString("Viewer", "LastScene", "", Filename_ZScene, sizeof(Filename_ZScene), INIPath);
-	Renderer_FilteringMode_Min = GetPrivateProfileInt("Viewer", "TexFilterMin", GL_LINEAR, INIPath);
+	Renderer_FilteringMode_Min = GetPrivateProfileInt("Viewer", "TexFilterMin", GL_LINEAR_MIPMAP_LINEAR, INIPath);
 	Renderer_FilteringMode_Mag = GetPrivateProfileInt("Viewer", "TexFilterMag", GL_LINEAR, INIPath);
 	Renderer_EnableMapActors = GetPrivateProfileInt("Viewer", "RenderMapActors", true, INIPath);
 	Renderer_EnableSceneActors = GetPrivateProfileInt("Viewer", "RenderSceneActors", false, INIPath);
+	Renderer_EnableMultiTexturing = GetPrivateProfileInt("Viewer", "EnableMultiTex", false, INIPath);
 	
 	ShowWindow(hwnd, nFunsterStil);
 	
@@ -2745,20 +3075,16 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 					}
 					if (System_KbdKeys[VK_LEFT]) {
 						CamAngleX -= 0.02f;
-						GLUTCamera_Orientation(CamAngleX, CamAngleY);
 					}
 					if (System_KbdKeys[VK_RIGHT]) {
 						CamAngleX += 0.02f;
-						GLUTCamera_Orientation(CamAngleX, CamAngleY);
 					}
 					
 					if (System_KbdKeys[VK_UP]) {
 						CamAngleY += 0.01f;
-						GLUTCamera_Orientation(CamAngleX, CamAngleY);
 					}
 					if (System_KbdKeys[VK_DOWN]) {
 						CamAngleY -= 0.01f;
-						GLUTCamera_Orientation(CamAngleX, CamAngleY);
 					}
 					
 					if (System_KbdKeys[VK_TAB]) {
@@ -2772,6 +3098,8 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 					SendMessage(hstatus, SB_SETTEXT, 2, (LPARAM)StatusMsg);
 				}
 			}
+			
+			GLUTCamera_Orientation(CamAngleX, CamAngleY);
 			
 			DrawGLScene();
 			SwapBuffers(hDC_ogl);
@@ -2789,6 +3117,8 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 	WritePrivateProfileString("Viewer", "RenderMapActors", TempStr, INIPath);
 	sprintf(TempStr, "%d", Renderer_EnableSceneActors);
 	WritePrivateProfileString("Viewer", "RenderSceneActors", TempStr, INIPath);
+	sprintf(TempStr, "%d", Renderer_EnableMultiTexturing);
+	WritePrivateProfileString("Viewer", "EnableMultiTex", TempStr, INIPath);
 	
 	KillGLTarget();
 	DestroyWindow(hwnd);
@@ -2910,9 +3240,22 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 					Renderer_FilteringMode_Mag = GL_LINEAR;
 					Viewer_RenderMap();
 					break;
+				case IDM_OPTIONS_MULTITEXTURE:
+					if(Renderer_EnableMultiTexturing) {
+						Renderer_EnableMultiTexturing = false;
+					} else {
+						Renderer_EnableMultiTexturing = true;
+					}
+					Viewer_RenderMap();
+					break;
 				case IDM_HELP_ABOUT: ;
+					sprintf(GLExtensionsSupported, "OpenGL extensions supported and used:\n");
+					if(GLExtension_MultiTexture) sprintf(GLExtensionsSupported, "%sGL_ARB_multitexture\n", GLExtensionsSupported);
+					if(GLExtension_TextureMirror) sprintf(GLExtensionsSupported, "%sGL_ARB_texture_mirrored_repeat\n", GLExtensionsSupported);
+					if(GLExtension_AnisoFilter) sprintf(GLExtensionsSupported, "%sGL_EXT_texture_filter_anisotropic\n", GLExtensionsSupported);
+					
 					char AboutMsg[256] = "";
-					sprintf(AboutMsg, "%s %s (Build '%s') - OpenGL Zelda Map Viewer\n\nWritten in October/November 2008 by xdaniel & contributors\nhttp://ozmav.googlecode.com/", AppTitle, AppVersion, AppBuildName);
+					sprintf(AboutMsg, "%s %s (Build '%s') - OpenGL Zelda Map Viewer\n\nWritten in October/November 2008 by xdaniel & contributors\nhttp://ozmav.googlecode.com/\n\n%s", AppTitle, AppVersion, AppBuildName, GLExtensionsSupported);
 					MessageBox(hwnd, AboutMsg, "About", MB_OK | MB_ICONINFORMATION);
 					break;
 			}
