@@ -4,7 +4,7 @@
 	Written in October/November 2008 by xdaniel & contributors
 	http://ozmav.googlecode.com/
 	------------------------------------------------------------
-    gfx_emul.c - Display List interpreter & main map renderer
+	gfx_emul.c - Display List interpreter & main map renderer
 	------------------------------------------------------------ */
 
 #include "globals.h"

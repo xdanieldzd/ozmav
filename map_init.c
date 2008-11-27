@@ -4,7 +4,7 @@
 	Written in October/November 2008 by xdaniel & contributors
 	http://ozmav.googlecode.com/
 	------------------------------------------------------------
-    map_init.c - map/scene header, actor and DList loader
+	map_init.c - map/scene header, actor and DList loader
 	------------------------------------------------------------ */
 
 #include "globals.h"

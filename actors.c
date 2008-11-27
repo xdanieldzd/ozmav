@@ -4,7 +4,7 @@
 	Written in October/November 2008 by xdaniel & contributors
 	http://ozmav.googlecode.com/
 	------------------------------------------------------------
-    actors.c - misc. actor-related functions
+	actors.c - misc. actor-related functions
 	------------------------------------------------------------ */
 
 #include "globals.h"

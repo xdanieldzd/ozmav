@@ -4,7 +4,7 @@
 	Written in October/November 2008 by xdaniel & contributors
 	http://ozmav.googlecode.com/
 	------------------------------------------------------------
-    helpers.c - misc. helper functions (log file handling, etc.)
+	helpers.c - misc. helper functions (log file handling, etc.)
 	------------------------------------------------------------ */
 
 #include "globals.h"

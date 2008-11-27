@@ -96,91 +96,91 @@ extern PFNGLCLIENTACTIVETEXTUREARBPROC	glClientActiveTextureARB;
 	------------------------------------------------------------ */
 
 /* WINDOW HANDLING VARIABLES, ETC. */
-extern HWND		    	hwnd;
-extern HMENU	    	hmenu;
-extern HWND		    	hogl;
-extern HWND		    	hstatus;
+extern HWND				hwnd;
+extern HMENU			hmenu;
+extern HWND				hogl;
+extern HWND				hstatus;
 
-extern HDC		    	hDC_ogl;
-extern HGLRC	    	hRC;
-extern HINSTANCE	    hInstance;
+extern HDC				hDC_ogl;
+extern HGLRC			hRC;
+extern HINSTANCE		hInstance;
 
-extern char			    szClassName[];
+extern char				szClassName[];
 
 /* GENERAL GLOBAL PROGRAM VARIABLES */
-extern bool		    	System_KbdKeys[256];
+extern bool				System_KbdKeys[256];
 
-extern char		    	AppTitle[256];
-extern char		    	AppVersion[256];
-extern char			    AppBuildName[256];
-extern char	    		AppPath[512];
-extern char		    	INIPath[512];
-extern char	    		WindowTitle[256];
-extern char	    		StatusMsg[256];
-extern char	    		ErrorMsg[256];
+extern char				AppTitle[256];
+extern char				AppVersion[256];
+extern char				AppBuildName[256];
+extern char				AppPath[512];
+extern char				INIPath[512];
+extern char				WindowTitle[256];
+extern char				StatusMsg[256];
+extern char				ErrorMsg[256];
 
-extern char		    	MapActorMsg[256];
-extern char		    	SceneActorMsg[256];
+extern char				MapActorMsg[256];
+extern char				SceneActorMsg[256];
 
-extern bool	    		MapLoaded;
-extern bool		    	WndActive;
-extern bool			    ExitProgram;
+extern bool				MapLoaded;
+extern bool				WndActive;
+extern bool				ExitProgram;
 
-extern char	    		CurrentGFXCmd[256];
-extern char	    		CurrentGFXCmdNote[256];
-extern char		    	GFXLogMsg[256];
-extern char	    		SystemLogMsg[256];
+extern char				CurrentGFXCmd[256];
+extern char				CurrentGFXCmdNote[256];
+extern char				GFXLogMsg[256];
+extern char				SystemLogMsg[256];
 
-extern bool		    	GFXLogOpened;
+extern bool				GFXLogOpened;
 
 /* CAMERA / VIEWPOINT VARIABLES */
-extern float	    	CamAngleX, CamAngleY;
-extern float	    	CamX, CamY, CamZ;
-extern float	    	CamLX, CamLY, CamLZ;
+extern float			CamAngleX, CamAngleY;
+extern float			CamX, CamY, CamZ;
+extern float			CamLX, CamLY, CamLZ;
 
-extern int		    	MousePosX, MousePosY;
-extern int		    	MouseCenterX, MouseCenterY;
+extern int				MousePosX, MousePosY;
+extern int				MouseCenterX, MouseCenterY;
 
-extern bool		    	MouseButtonDown;
+extern bool				MouseButtonDown;
 
 /* FILE HANDLING VARIABLES */
-extern FILE	    		* FileZMap;
-extern FILE		    	* FileZScene;
-extern FILE		    	* FileGameplayKeep;
-extern FILE		    	* FileGameplayFDKeep;
+extern FILE				* FileZMap;
+extern FILE				* FileZScene;
+extern FILE				* FileGameplayKeep;
+extern FILE				* FileGameplayFDKeep;
 
-extern unsigned int 	* ZMapBuffer;
-extern unsigned int 	* ZSceneBuffer;
-extern unsigned int 	* GameplayKeepBuffer;
-extern unsigned int 	* GameplayFDKeepBuffer;
+extern unsigned int		* ZMapBuffer;
+extern unsigned int		* ZSceneBuffer;
+extern unsigned int		* GameplayKeepBuffer;
+extern unsigned int		* GameplayFDKeepBuffer;
 
 extern unsigned long	ZMapFilesize;
 extern unsigned long	ZSceneFilesize;
 extern unsigned long	GameplayKeepFilesize;
 extern unsigned long	GameplayFDKeepFilesize;
 
-extern char			    Filename_ZMap[256];
-extern char		    	Filename_ZScene[256];
-extern char		    	Filename_GameplayKeep[256];
-extern char		    	Filename_GameplayFDKeep[256];
+extern char				Filename_ZMap[256];
+extern char				Filename_ZScene[256];
+extern char				Filename_GameplayKeep[256];
+extern char				Filename_GameplayFDKeep[256];
 
-extern bool		    	ZMapExists;
-extern bool		    	ZSceneExists;
+extern bool				ZMapExists;
+extern bool				ZSceneExists;
 
-extern FILE		    	* FileGFXLog;
-extern FILE		    	* FileSystemLog;
+extern FILE				* FileGFXLog;
+extern FILE				* FileSystemLog;
 
 /* DATA READOUT VARIABLES */
 extern unsigned long	Readout_Current1;
 extern unsigned long	Readout_Current2;
-extern unsigned int     Readout_CurrentByte1;
-extern unsigned int 	Readout_CurrentByte2;
-extern unsigned int 	Readout_CurrentByte3;
-extern unsigned int 	Readout_CurrentByte4;
-extern unsigned int 	Readout_CurrentByte5;
-extern unsigned int 	Readout_CurrentByte6;
-extern unsigned int 	Readout_CurrentByte7;
-extern unsigned int 	Readout_CurrentByte8;
+extern unsigned int		Readout_CurrentByte1;
+extern unsigned int		Readout_CurrentByte2;
+extern unsigned int		Readout_CurrentByte3;
+extern unsigned int		Readout_CurrentByte4;
+extern unsigned int		Readout_CurrentByte5;
+extern unsigned int		Readout_CurrentByte6;
+extern unsigned int		Readout_CurrentByte7;
+extern unsigned int		Readout_CurrentByte8;
 
 extern unsigned long	Readout_NextGFXCommand1 ;
 
@@ -190,10 +190,10 @@ extern signed long		DListInfo_CurrentCount;
 extern signed long		DListInfo_DListToRender;
 extern unsigned long	DLTempPosition;
 
-extern unsigned int 	DLToRender;
-extern bool			    DListHasEnded;
+extern unsigned int		DLToRender;
+extern bool				DListHasEnded;
 
-extern bool		    	SubDLCall;
+extern bool				SubDLCall;
 
 /* F3DZEX TEXTURE HANDLING VARIABLES */
 extern unsigned char	* TextureData_OGL;
@@ -201,17 +201,17 @@ extern unsigned char	* TextureData_N64;
 
 extern unsigned char	* PaletteData;
 
-extern bool		    	IsMultitex;
-extern unsigned int 	MTexScaler;
+extern bool				IsMultitex;
+extern unsigned int		MTexScaler;
 
 /* ZELDA MAP & SCENE HEADER HANDLING VARIABLES */
-extern bool		    	MapHeader_MultiHeaderMap;
+extern bool				MapHeader_MultiHeaderMap;
 extern int				MapHeader_Current;
 extern int				MapHeader_TotalCount;
 extern unsigned long	MapHeader_List[256];
 extern unsigned long	MapHeader_CurrentPosInList;
 
-extern bool	    		SceneHeader_MultiHeaderMap;
+extern bool				SceneHeader_MultiHeaderMap;
 extern int				SceneHeader_Current;
 extern int				SceneHeader_TotalCount;
 extern unsigned long	SceneHeader_List[256];
@@ -235,11 +235,11 @@ extern GLuint			Renderer_FilteringMode_Mag;
 
 extern DWORD			Renderer_LastFPS;
 extern int				Renderer_FPS, Renderer_FrameNo;
-extern char	    		Renderer_FPSMessage[32];
+extern char				Renderer_FPSMessage[32];
 
-extern char	    		Renderer_CoordDisp[256];
+extern char				Renderer_CoordDisp[256];
 
-extern bool		    	Renderer_EnableLighting;
+extern bool				Renderer_EnableLighting;
 
 extern GLfloat			LightAmbient[];
 extern GLfloat			LightDiffuse[];
@@ -248,31 +248,31 @@ extern GLfloat			LightPosition[];
 extern GLfloat			FogColor[];
 extern GLfloat			PrimColor[];
 
-extern bool		    	Renderer_EnableMapActors;
-extern bool		    	Renderer_EnableSceneActors;
+extern bool				Renderer_EnableMapActors;
+extern bool				Renderer_EnableSceneActors;
 
-extern bool		    	Renderer_EnableCombiner;
+extern bool				Renderer_EnableCombiner;
 
 /* OPENGL EXTENSION VARIABLES */
-extern char		    	* GLExtension_List;
-extern bool		    	GLExtension_MultiTexture;
-extern bool		    	GLExtension_TextureMirror;
-extern bool		    	GLExtension_AnisoFilter;
-extern char		    	GLExtensionsSupported[256];
+extern char				* GLExtension_List;
+extern bool				GLExtension_MultiTexture;
+extern bool				GLExtension_TextureMirror;
+extern bool				GLExtension_AnisoFilter;
+extern char				GLExtensionsSupported[256];
 
-extern bool		    	GLExtensionsUnsupported;
-extern char		    	GLExtensionsErrorMsg[512];
+extern bool				GLExtensionsUnsupported;
+extern char				GLExtensionsErrorMsg[512];
 
 /* N64 BLENDING & COMBINER SIMULATION VARIABLES */
-extern unsigned int 	RDPCycleMode;
+extern unsigned int		RDPCycleMode;
 
 extern unsigned long	Blender_Cycle1;
 extern unsigned long	Blender_Cycle2;
 
-extern unsigned int	    Combiner_TextureMode;
-extern unsigned int	    Combiner_Texture;
-extern unsigned int	    Combiner_AlphaMode;
-extern unsigned int	    Combiner_AlphaCycles;
+extern unsigned int		Combiner_TextureMode;
+extern unsigned int		Combiner_Texture;
+extern unsigned int		Combiner_AlphaMode;
+extern unsigned int		Combiner_AlphaCycles;
 
 extern unsigned long	Combiner_Cycle1;
 extern unsigned long	Combiner_Cycle2;

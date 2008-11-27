@@ -4,7 +4,7 @@
 	Written in October/November 2008 by xdaniel & contributors
 	http://ozmav.googlecode.com/
 	------------------------------------------------------------
-    main.c - Windows stuff, basic initialization + camera
+	main.c - Windows stuff, basic initialization + camera
 	------------------------------------------------------------ */
 
 #include "globals.h"
@@ -37,7 +37,7 @@ HDC				hDC_ogl = NULL;
 HGLRC			hRC = NULL;
 HINSTANCE		hInstance;
 
-char			szClassName[ ] = "OZMAVClass";
+char			szClassName[] = "OZMAVClass";
 
 /* GENERAL GLOBAL PROGRAM VARIABLES */
 bool			System_KbdKeys[256];

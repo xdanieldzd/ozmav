@@ -4,7 +4,7 @@
 	Written in October/November 2008 by xdaniel & contributors
 	http://ozmav.googlecode.com/
 	------------------------------------------------------------
-    ogl_mngr.c - OGL + ext. initialization, etc.
+	ogl_mngr.c - OGL + ext. initialization, etc.
 	------------------------------------------------------------ */
 
 #include "globals.h"
