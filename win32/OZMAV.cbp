@@ -30,28 +30,28 @@
 			<Add library="odbccp32" />
 			<Add library="comctl32" />
 		</Linker>
-		<Unit filename="actors.c">
+		<Unit filename="../actors.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="gfx_emul.c">
+		<Unit filename="../gfx_emul.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="globals.h" />
-		<Unit filename="helpers.c">
+		<Unit filename="../globals.h" />
+		<Unit filename="../helpers.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="main.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="map_init.c">
+		<Unit filename="../map_init.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="n64.h" />
-		<Unit filename="ogl_mngr.c">
+		<Unit filename="../n64.h" />
+		<Unit filename="../ogl_mngr.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="resource.h" />
-		<Unit filename="resource.rc">
+		<Unit filename="../resource.h" />
+		<Unit filename="../resource.rc">
 			<Option compilerVar="CPP" />
 		</Unit>
 		<Extensions>

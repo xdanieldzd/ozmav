@@ -311,7 +311,7 @@ int Viewer_GetVertexList(unsigned int Bank, unsigned long Offset, unsigned int V
 	memset(VertListTempBuffer, 0x00, sizeof(VertListTempBuffer));
 
 	if(Viewer_ZMemCopy(Bank, Offset, VertListTempBuffer, ((VertCount + 1) * 0x10)) == -1) {
-		sprintf(ErrorMsg, "Invalid Vertex data source!");
+		sprintf(ErrorMsg, "Invalid Vertex data source 0x%02X!", Bank);
 		MessageBox(hwnd, ErrorMsg, "Error", MB_OK | MB_ICONERROR);
 		return 0;
 	}
@@ -1331,7 +1331,7 @@ GLuint Viewer_LoadTexture(int TextureID)
 
 	if(Viewer_ZMemCopy(Texture[TextureID].DataSource, Texture[TextureID].Offset, TextureData_N64, TextureBufferSize) == -1) {
 		UnhandledTextureSource = true;
-		sprintf(ErrorMsg, "Unhandled Source Bank 0x%02X!", Texture[TextureID].DataSource);
+		sprintf(ErrorMsg, "Unhandled texture source 0x%02X|%06X!", Texture[TextureID].DataSource, Texture[TextureID].Offset);
 		MessageBox(hwnd, ErrorMsg, "Error", MB_OK | MB_ICONERROR);
 		Texture[TextureID].Format_OGL = GL_RGBA;
 		Texture[TextureID].Format_OGLPixel = GL_RGBA;

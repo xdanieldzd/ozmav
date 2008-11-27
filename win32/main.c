@@ -7,7 +7,7 @@
 	main.c - Windows stuff, basic initialization + camera
 	------------------------------------------------------------ */
 
-#include "globals.h"
+#include "../globals.h"
 
 /*	------------------------------------------------------------
 	SYSTEM FUNCTIONS - OPENGL & WINDOWS
@@ -253,7 +253,9 @@ int Viewer_Initialize()
 {
 	FileSystemLog = fopen("log.txt", "w");
 
-	Viewer_OpenMapScene();
+	if(Viewer_OpenMapScene() == -1) {
+		return 0;
+	}
 
 	Viewer_RenderMap();
 
@@ -403,6 +405,7 @@ int Viewer_OpenMapScene()
 		sprintf(StatusMsg, "Map loaded successfully!");
 	} else {
 		MessageBox(hwnd, "Error: Selected file is not a ZMap file!", "Error", MB_OK | MB_ICONERROR);
+		return -1;
 	}
 
 	return 0;

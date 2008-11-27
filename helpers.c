@@ -16,6 +16,9 @@ int Viewer_ZMemCopy(unsigned int SourceBank, unsigned long SourceOffset, unsigne
 	int ReturnValue = 0;
 
 	switch(SourceBank) {
+	case 0x00:
+		/* invalid source, ignore */
+		break;
 	case 0x02:
 		/* data comes from scene file */
 		memcpy(Target, &ZSceneBuffer[SourceOffset / 4], Size);
@@ -39,6 +42,9 @@ int Viewer_ZMemCopy(unsigned int SourceBank, unsigned long SourceOffset, unsigne
 		ReturnValue = -1;
 		break;
 	}
+
+	sprintf(SystemLogMsg, "ZMemCopy: Copying 0x%04X bytes from 0x%02X|%06X\n", Size, SourceBank, SourceOffset);
+	HelperFunc_LogMessage(2, SystemLogMsg);
 
 	return ReturnValue;
 }
