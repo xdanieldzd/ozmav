@@ -279,18 +279,14 @@ int Viewer_RenderMap_CMDVertexList()
 		glBindTexture(GL_TEXTURE_2D, Renderer_GLTexture);
 	}
 
-	unsigned int TempVertListBank = 0;
-	unsigned long TempVertListOffset = 0;
-	unsigned int TempVertCount = 0;
-	unsigned int TempVertListStartEntry = 0;
+	unsigned int VertList_Temp = (Readout_CurrentByte2 * 0x10000) + (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
+	unsigned int TempVertCount = ((VertList_Temp & 0x000FFF) / 2);
+	unsigned int TempVertListStartEntry = TempVertCount - ((VertList_Temp & 0xFFF000) >> 12);
 
-	TempVertListBank = Readout_CurrentByte5;
-	TempVertListOffset = Readout_CurrentByte6 << 16;
+	unsigned int TempVertListBank = Readout_CurrentByte5;
+	unsigned long TempVertListOffset = Readout_CurrentByte6 << 16;
 	TempVertListOffset = TempVertListOffset + (Readout_CurrentByte7 << 8);
 	TempVertListOffset = TempVertListOffset + Readout_CurrentByte8;
-	TempVertCount = ((Readout_CurrentByte4 / 2));
-
-	TempVertListStartEntry = TempVertCount - ((Readout_CurrentByte2 << 4) + (Readout_CurrentByte3 >> 4));
 
 	Viewer_GetVertexList(TempVertListBank, TempVertListOffset, TempVertCount, TempVertListStartEntry);
 
