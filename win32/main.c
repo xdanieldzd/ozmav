@@ -43,18 +43,18 @@ char			szClassName[] = "OZMAVClass";
 bool			System_KbdKeys[256];
 
 char			AppTitle[256] = "OZMAV";
-char			AppVersion[256] = "V0.55";
-char			AppBuildName[256] = "insanity strikes";
+char			AppVersion[256] = "V0.6";
+char			AppBuildName[256] = "interrupted stability";
 char			AppPath[512] = "";
 char			INIPath[512] = "";
 char			WindowTitle[256] = "";
 char			StatusMsg[256] = "";
-char			ErrorMsg[256] = "";
+char			ErrorMsg[1024] = "";
 
 char			MapActorMsg[256] = "";
 char			SceneActorMsg[256] = "";
 
-bool			MapLoaded = false;
+bool			AreaLoaded = false;
 bool			WndActive = true;
 bool			ExitProgram = false;
 
@@ -66,9 +66,9 @@ char			SystemLogMsg[256] = "";
 bool			GFXLogOpened = false;
 
 /* CAMERA / VIEWPOINT VARIABLES */
-float			CamAngleX, CamAngleY;
-float			CamX, CamY, CamZ;
-float			CamLX, CamLY, CamLZ;
+float			CamAngleX = 0, CamAngleY = 0;
+float			CamX = 0, CamY = 0, CamZ = 0;
+float			CamLX = 0, CamLY = 0, CamLZ = 0;
 
 int				MousePosX = 0, MousePosY = 0;
 int				MouseCenterX = 0, MouseCenterY = 0;
@@ -76,31 +76,36 @@ int				MouseCenterX = 0, MouseCenterY = 0;
 bool			MouseButtonDown = false;
 
 /* FILE HANDLING VARIABLES */
-FILE			* FileZMap;
-FILE			* FileZScene;
-FILE			* FileGameplayKeep;
-FILE			* FileGameplayFDKeep;
+FILE			* FileROM = NULL;
+FILE			* FileZMap = NULL;
+FILE			* FileZScene = NULL;
+FILE			* FileGameplayKeep = NULL;
+FILE			* FileGameplayFDKeep = NULL;
 
-unsigned int	* ZMapBuffer;
+unsigned int	* ROMBuffer;
+unsigned int	* ZMapBuffer[256];
 unsigned int	* ZSceneBuffer;
 unsigned int	* GameplayKeepBuffer;
 unsigned int	* GameplayFDKeepBuffer;
 
-unsigned long	ZMapFilesize = 0;
+unsigned long	ROMFilesize = 0;
+unsigned long	ZMapFilesize[256];
 unsigned long	ZSceneFilesize = 0;
 unsigned long	GameplayKeepFilesize = 0;
 unsigned long	GameplayFDKeepFilesize = 0;
 
+char			Filename_ROM[256] = "";
 char			Filename_ZMap[256] = "";
 char			Filename_ZScene[256] = "";
 char			Filename_GameplayKeep[256] = "";
 char			Filename_GameplayFDKeep[256] = "";
 
+bool			ROMExists = false;
 bool			ZMapExists = false;
 bool			ZSceneExists = false;
 
-FILE			* FileGFXLog;
-FILE			* FileSystemLog;
+FILE			* FileGFXLog = NULL;
+FILE			* FileSystemLog = NULL;
 
 /* DATA READOUT VARIABLES */
 unsigned long	Readout_Current1 = 0;
@@ -117,8 +122,9 @@ unsigned int	Readout_CurrentByte8 = 0;
 unsigned long	Readout_NextGFXCommand1 = 0;
 
 /* F3DZEX DISPLAY LIST HANDLING VARIABLES */
-unsigned long	DLists[2048];
-signed long		DListInfo_CurrentCount = 0;
+unsigned long	DLists[256][2048];
+signed long		DListInfo_CurrentCount[256];
+signed long		DListInfo_TotalCount = 0;
 signed long		DListInfo_DListToRender = 0;
 unsigned long	DLTempPosition = 0;
 
@@ -128,13 +134,18 @@ bool			DListHasEnded = false;
 bool			SubDLCall = false;
 
 /* F3DZEX TEXTURE HANDLING VARIABLES */
-unsigned char	* TextureData_OGL;
-unsigned char	* TextureData_N64;
+unsigned char	* TextureData_OGL = NULL;
+unsigned char	* TextureData_N64 = NULL;
 
-unsigned char	* PaletteData;
+unsigned char	* PaletteData = NULL;
 
 bool			IsMultitex = false;
 unsigned int	MTexScaler = 1;
+
+/* ZELDA ROM HANDLING VARIABLES */
+unsigned long	ROM_SceneTableOffset = 0x00;
+unsigned int	ROM_SceneToLoad = 0x00;
+unsigned int	ROM_CurrentMap = 0;
 
 /* ZELDA MAP & SCENE HEADER HANDLING VARIABLES */
 bool			MapHeader_MultiHeaderMap = false;
@@ -150,7 +161,7 @@ unsigned long	SceneHeader_List[256];
 unsigned long	SceneHeader_CurrentPosInList = 0;
 
 /* ZELDA ACTOR DATA HANDLING VARIABLES */
-int				ActorInfo_CurrentCount = 0;
+int				ActorInfo_CurrentCount[256];
 int				ActorInfo_Selected = 0;
 
 int				ScActorInfo_CurrentCount = 0;
@@ -232,11 +243,11 @@ GLenum			Combiner_Alpha_D1 = 0x00;
 	------------------------------------------------------------ */
 
 /* ZELDA MAP & SCENE HEADER STRUCTURES */
-struct MapHeader_Struct MapHeader[256];
+struct MapHeader_Struct MapHeader[256][256];
 struct SceneHeader_Struct SceneHeader[256];
 
 /* ZELDA MAP & SCENE ACTOR DATA STRUCTURES */
-struct Actors_Struct Actors[1024];
+struct Actors_Struct Actors[256][1024];
 struct ScActors_Struct ScActors[1024];
 
 /* F3DZEX VERTEX DATA STRUCTURE */
@@ -251,9 +262,31 @@ struct Palette_Struct Palette[512];
 /* VIEWER_INITIALIZE - CALLED AFTER SELECTING THE MAP AND SCENE FILES */
 int Viewer_Initialize()
 {
-	FileSystemLog = fopen("log.txt", "w");
+	/* FREE PREVIOUSLY ALLOCATED MEMORY */
+	int i;
+	for(i = 0; i < 128; i++) {
+		if(ZMapBuffer[i] != NULL) free(ZMapBuffer[i]);
+	}
+	if(ROMBuffer != NULL) free(ROMBuffer);
+	if(ZSceneBuffer != NULL) free(ZSceneBuffer);
+//	if(GameplayKeepBuffer != NULL) free(GameplayKeepBuffer);
+//	if(GameplayFDKeepBuffer != NULL) free(GameplayFDKeepBuffer);
+	if(PaletteData != NULL) free(PaletteData);
 
-	if(Viewer_OpenMapScene() == -1) {
+	/* OPEN FILE */
+	FileROM = fopen(Filename_ROM, "r+b");
+	/* GET FILESIZE */
+	size_t Result;
+	fseek(FileROM, 0, SEEK_END);
+	ROMFilesize = ftell(FileROM);
+	rewind(FileROM);
+	/* LOAD FILE INTO BUFFER */
+	ROMBuffer = (unsigned int*) malloc (sizeof(int) * ROMFilesize);
+	Result = fread(ROMBuffer, 1, ROMFilesize, FileROM);
+	/* CLOSE FILE */
+	fclose(FileROM);
+
+	if(Viewer_LoadAreaData() == -1) {
 		return 0;
 	}
 
@@ -279,134 +312,113 @@ int Viewer_Initialize()
 	EnableMenuItem(hmenu, IDM_OPTIONS_FILTERMIPMAP, MF_BYCOMMAND | MF_ENABLED);
 	EnableMenuItem(hmenu, IDM_OPTIONS_MULTITEXTURE, MF_BYCOMMAND | MF_ENABLED);
 
-	sprintf(WindowTitle, "%s %s - %s", AppTitle, AppVersion, Filename_ZMap);
+	sprintf(WindowTitle, "%s %s - %s", AppTitle, AppVersion, Filename_ROM);
 	SetWindowText(hwnd, WindowTitle);
 
 	return 0;
 }
 
-/* VIEWER_OPENMAPSCENE - CALLED IN INITIALIZATION, LOADS MAP AND SCENE DATA INTO BUFFERS AND DOES SOME PRE-ANALYZING */
-int Viewer_OpenMapScene()
+int Viewer_LoadAreaData()
 {
-	MapLoaded = false;
+	FileSystemLog = fopen("log.txt", "w");
 
-	/* FREE PREVIOUSLY ALLOCATED MEMORY */
-	if(ZMapBuffer != NULL) free(ZMapBuffer);
-	if(ZSceneBuffer != NULL) free(ZSceneBuffer);
-	if(GameplayKeepBuffer != NULL) free(GameplayKeepBuffer);
-	if(GameplayFDKeepBuffer != NULL) free(GameplayFDKeepBuffer);
-	if(PaletteData != NULL) free(PaletteData);
+	AreaLoaded = false;
 
-	/* OPEN FILE */
-	FileZMap = fopen(Filename_ZMap, "r+b");
-	/* GET FILESIZE */
-	size_t Result;
-	fseek(FileZMap, 0, SEEK_END);
-	ZMapFilesize = ftell(FileZMap);
-	rewind(FileZMap);
-	/* LOAD FILE INTO BUFFER */
-	ZMapBuffer = (unsigned int*) malloc (sizeof(int) * ZMapFilesize);
-	Result = fread(ZMapBuffer, 1, ZMapFilesize, FileZMap);
-	/* CLOSE FILE */
-	fclose(FileZMap);
+	int i;
 
-	/* OPEN FILE */
-	FileZScene = fopen(Filename_ZScene, "r+b");
-	/* GET FILESIZE */
-	fseek(FileZMap, 0, SEEK_END);
-	ZSceneFilesize = ftell(FileZScene);
-	rewind(FileZScene);
-	/* LOAD FILE INTO BUFFER */
-	ZSceneBuffer = (unsigned int*) malloc (sizeof(int) * ZSceneFilesize);
-	Result = fread(ZSceneBuffer, 1, ZSceneFilesize, FileZScene);
-	/* CLOSE FILE */
-	fclose(FileZScene);
+	MapHeader_Current = 0;
+	SceneHeader_Current = 0;
+	DListInfo_DListToRender = -1;
+	ActorInfo_Selected = 0;
 
-	/* OPEN FILE */
-	FileGameplayKeep = fopen(Filename_GameplayKeep, "r+b");
-	/* GET FILESIZE */
-	fseek(FileGameplayKeep, 0, SEEK_END);
-	GameplayKeepFilesize = ftell(FileGameplayKeep);
-	rewind(FileGameplayKeep);
-	/* LOAD FILE INTO BUFFER */
-	GameplayKeepBuffer = (unsigned int*) malloc (sizeof(int) * GameplayKeepFilesize);
-	Result = fread(GameplayKeepBuffer, 1, GameplayKeepFilesize, FileGameplayKeep);
-	/* CLOSE FILE */
-	fclose(FileGameplayKeep);
+	ROM_CurrentMap = 0;
 
-	/* OPEN FILE */
-	FileGameplayFDKeep = fopen(Filename_GameplayFDKeep, "r+b");
-	/* GET FILESIZE */
-	fseek(FileGameplayFDKeep, 0, SEEK_END);
-	GameplayFDKeepFilesize = ftell(FileGameplayFDKeep);
-	rewind(FileGameplayFDKeep);
-	/* LOAD FILE INTO BUFFER */
-	GameplayFDKeepBuffer = (unsigned int*) malloc (sizeof(int) * GameplayFDKeepFilesize);
-	Result = fread(GameplayFDKeepBuffer, 1, GameplayFDKeepFilesize, FileGameplayFDKeep);
-	/* CLOSE FILE */
-	fclose(FileGameplayFDKeep);
+	Renderer_EnableLighting = true;
 
-	memcpy(&Readout_Current1, &ZMapBuffer[0], 4);
-	memcpy(&Readout_Current2, &ZMapBuffer[0 + 1], 4);
+	memset(MapHeader, 0x00, sizeof(MapHeader));
+	memset(SceneHeader, 0x00, sizeof(SceneHeader));
+	memset(Actors, 0x00, sizeof(Actors));
+	memset(ScActors, 0x00, sizeof(ScActors));
+	memset(Vertex, 0x00, sizeof(Vertex));
+
+	PaletteData = (unsigned char *) malloc (1024);
+	memset(PaletteData, 0x00, sizeof(PaletteData));
+
+	/* get current scene's offset */
+	unsigned long TempOffset = (ROM_SceneTableOffset / 4) + (ROM_SceneToLoad * 0x14) / 4;
+	memcpy(&Readout_Current1, &ROMBuffer[TempOffset], 4);
+	memcpy(&Readout_Current2, &ROMBuffer[TempOffset + 1], 4);
 	HelperFunc_SplitCurrentVals(true);
 
-	if((Readout_CurrentByte1 == 0x08) || (Readout_CurrentByte1 == 0x16) || (Readout_CurrentByte1 == 0x18)) {
-		if((Readout_CurrentByte1 == 0x18)) {
-			MapHeader_MultiHeaderMap = true;
-			unsigned long MapHeaderListPos = (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
-			Viewer_GetMapHeaderList(MapHeaderListPos);
-		} else {
-			MapHeader_TotalCount = 0;
-		}
+	unsigned long Scene_Start = (Readout_CurrentByte1 * 0x1000000) + (Readout_CurrentByte2 * 0x10000) + (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
+	unsigned long Scene_End = (Readout_CurrentByte5 * 0x1000000) + (Readout_CurrentByte6 * 0x10000) + (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
+	unsigned long Scene_Length = Scene_End - Scene_Start;
 
-		memcpy(&Readout_Current1, &ZSceneBuffer[0], 4);
-		memcpy(&Readout_Current2, &ZSceneBuffer[0 + 1], 4);
+	/* copy current scene into buffer */
+	ZSceneBuffer = (unsigned int*) malloc (sizeof(int) * Scene_Length);
+	memcpy(ZSceneBuffer, &ROMBuffer[Scene_Start / 4], Scene_Length);
+
+	/* check for multiple scene headers */
+	memcpy(&Readout_Current1, &ZSceneBuffer[0], 4);
+	memcpy(&Readout_Current2, &ZSceneBuffer[0 + 1], 4);
+	HelperFunc_SplitCurrentVals(true);
+
+	if((Readout_CurrentByte1 == 0x18)) {
+		SceneHeader_MultiHeaderMap = true;
+		unsigned long SceneHeaderListPos = (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
+		Viewer_GetSceneHeaderList(SceneHeaderListPos);
+	} else {
+		SceneHeader_TotalCount = 0;
+	}
+
+	Viewer_GetSceneHeader(SceneHeader_Current);
+	Viewer_GetSceneActors(SceneHeader_Current);
+
+	for(i = 0; i < (SceneHeader[SceneHeader_Current].Map_Count); i++) {
+		ROM_CurrentMap = i;
+
+		memcpy(&Readout_Current1, &ZSceneBuffer[((SceneHeader[SceneHeader_Current].Map_ListOffset + (i * 0x08)) / 4)], 4);
+		memcpy(&Readout_Current2, &ZSceneBuffer[((SceneHeader[SceneHeader_Current].Map_ListOffset + (i * 0x08)) / 4) + 1], 4);
 		HelperFunc_SplitCurrentVals(true);
 
-		if((Readout_CurrentByte1 == 0x18)) {
-			SceneHeader_MultiHeaderMap = true;
-			unsigned long SceneHeaderListPos = (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
-			Viewer_GetSceneHeaderList(SceneHeaderListPos);
-		} else {
-			SceneHeader_TotalCount = 0;
+		unsigned long Map_Start = (Readout_CurrentByte1 * 0x1000000) + (Readout_CurrentByte2 * 0x10000) + (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
+		unsigned long Map_End = (Readout_CurrentByte5 * 0x1000000) + (Readout_CurrentByte6 * 0x10000) + (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
+		unsigned long Map_Length = Map_End - Map_Start;
+
+		ZMapFilesize[i] = Map_Length;
+
+		ZMapBuffer[i] = (unsigned int*) malloc (sizeof(int) * Map_Length);
+		memcpy(ZMapBuffer[i], &ROMBuffer[Map_Start / 4], Map_Length);
+
+		memcpy(&Readout_Current1, &ZMapBuffer[i][0], 4);
+		memcpy(&Readout_Current2, &ZMapBuffer[i][1], 4);
+		HelperFunc_SplitCurrentVals(true);
+
+		if((Readout_CurrentByte1 == 0x08) || (Readout_CurrentByte1 == 0x16) || (Readout_CurrentByte1 == 0x18)) {
+			if((Readout_CurrentByte1 == 0x18)) {
+				MapHeader_MultiHeaderMap = true;
+				unsigned long MapHeaderListPos = (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
+				Viewer_GetMapHeaderList(MapHeaderListPos);
+			} else {
+				MapHeader_TotalCount = 0;
+			}
 		}
 
-		MapHeader_Current = 0;
-		SceneHeader_Current = 0;
-		DListInfo_DListToRender = -1;
-		ActorInfo_Selected = 0;
-
-		Renderer_EnableLighting = true;
-
-		memset(MapHeader, 0x00, sizeof(MapHeader));
-		memset(SceneHeader, 0x00, sizeof(SceneHeader));
-		memset(Actors, 0x00, sizeof(Actors));
-		memset(ScActors, 0x00, sizeof(ScActors));
-		memset(Vertex, 0x00, sizeof(Vertex));
-
-		PaletteData = (unsigned char *) malloc (1024);
-		memset(PaletteData, 0x00, sizeof(PaletteData));
-
 		Viewer_GetMapHeader(MapHeader_Current);
-		Viewer_GetSceneHeader(SceneHeader_Current);
 		Viewer_GetMapActors(MapHeader_Current);
-		Viewer_GetSceneActors(SceneHeader_Current);
-		Viewer_GetDisplayLists(ZMapFilesize);
-
-		CamAngleX = 0.0f, CamAngleY = 0.0f;
-		CamX = 0.0f, CamY = 0.0f, CamZ = 5.0f;
-		CamLX = 0.0f, CamLY = 0.0f, CamLZ = -1.0f;
-
-		memset(CurrentGFXCmd, 0x00, sizeof(CurrentGFXCmd));
-		memset(CurrentGFXCmdNote, 0x00, sizeof(CurrentGFXCmdNote));
-		memset(GFXLogMsg, 0x00, sizeof(GFXLogMsg));
-		memset(SystemLogMsg, 0x00, sizeof(SystemLogMsg));
-
-		sprintf(StatusMsg, "Map loaded successfully!");
-	} else {
-		MessageBox(hwnd, "Error: Selected file is not a ZMap file!", "Error", MB_OK | MB_ICONERROR);
-		return -1;
+		Viewer_GetDisplayLists(ZMapFilesize[i]);
 	}
+
+	CamAngleX = 0.0f, CamAngleY = 0.0f;
+	CamX = 0.0f, CamY = 0.0f, CamZ = 5.0f;
+	CamLX = 0.0f, CamLY = 0.0f, CamLZ = -1.0f;
+
+	memset(CurrentGFXCmd, 0x00, sizeof(CurrentGFXCmd));
+	memset(CurrentGFXCmdNote, 0x00, sizeof(CurrentGFXCmdNote));
+	memset(GFXLogMsg, 0x00, sizeof(GFXLogMsg));
+	memset(SystemLogMsg, 0x00, sizeof(SystemLogMsg));
+
+	sprintf(StatusMsg, "Map loaded successfully!");
 
 	return 0;
 }
@@ -440,6 +452,25 @@ void Camera_MouseMove(int x, int y)
 }
 
 /*	------------------------------------------------------------ */
+
+void Dialog_OpenROM(HWND hwnd)
+{
+	char			filter[] = "Nintendo 64 ROMs (*.z64)\0;*.z64\0";
+	OPENFILENAME	ofn;
+
+	memset(&ofn, 0, sizeof(ofn));
+	ofn.lStructSize		= sizeof(OPENFILENAME);
+	ofn.hwndOwner		= hwnd;
+	ofn.lpstrFilter		= filter;
+	ofn.nFilterIndex	= 1;
+	ofn.lpstrFile		= Filename_ROM;
+	ofn.nMaxFile		= 256;
+	ofn.Flags			= OFN_EXPLORER | OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
+
+	if(GetOpenFileName(&ofn)) ROMExists = true;
+
+	return;
+}
 
 /* DIALOG_OPENZMAP - COMMON DIALOG USED FOR SELECTING THE MAP FILE */
 void Dialog_OpenZMap(HWND hwnd)
@@ -574,10 +605,9 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 	if(AppPathTemp) ++AppPathTemp; if(AppPathTemp) *AppPathTemp = 0;
 	sprintf(INIPath, "%s\\ozmav.ini", AppPath);
 
-	GetPrivateProfileString("Viewer", "LastMap", "", Filename_ZMap, sizeof(Filename_ZMap), INIPath);
-	GetPrivateProfileString("Viewer", "LastScene", "", Filename_ZScene, sizeof(Filename_ZScene), INIPath);
-	GetPrivateProfileString("Viewer", "GameplayKeep", "gameplay_keep.zdata", Filename_GameplayKeep, sizeof(Filename_GameplayKeep), INIPath);
-	GetPrivateProfileString("Viewer", "GameplayFDKeep", "gameplay_dangeon_keep.zdata", Filename_GameplayFDKeep, sizeof(Filename_GameplayFDKeep), INIPath);
+	GetPrivateProfileString("Viewer", "LastROM", "", Filename_ROM, sizeof(Filename_ROM), INIPath);
+	ROM_SceneTableOffset = GetPrivateProfileInt("Viewer", "SceneTable", 0xBA0BB0, INIPath);
+	ROM_SceneToLoad = GetPrivateProfileInt("Viewer", "LastScene", 0x00, INIPath);
 	Renderer_FilteringMode_Min = GetPrivateProfileInt("Viewer", "TexFilterMin", GL_LINEAR_MIPMAP_LINEAR, INIPath);
 	Renderer_FilteringMode_Mag = GetPrivateProfileInt("Viewer", "TexFilterMag", GL_LINEAR, INIPath);
 	Renderer_EnableMapActors = GetPrivateProfileInt("Viewer", "RenderMapActors", true, INIPath);
@@ -604,24 +634,22 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 					System_KbdKeys[VK_F11] = false;
 				}
 
-				if (MapLoaded) {
+				if (AreaLoaded) {
 					if (System_KbdKeys[VK_F1]) {
 						System_KbdKeys[VK_F1] = false;
-						if(!(DListInfo_DListToRender == -1)) {
-							DListInfo_DListToRender--;
+						if(!(ROM_SceneToLoad == 0)) {
+							ROM_SceneToLoad--;
+							if(ROMExists) Viewer_LoadAreaData(); Viewer_RenderMap();
 						}
-						if(DListInfo_DListToRender == -1) {
-							sprintf(StatusMsg, "Display List: rendering all");
-						} else {
-							sprintf(StatusMsg, "Display List: #%d", (int)DListInfo_DListToRender + 1);
-						}
+						sprintf(StatusMsg, "Rendering level 0x%02X", ROM_SceneToLoad);
 					}
 					if (System_KbdKeys[VK_F2]) {
 						System_KbdKeys[VK_F2] = false;
-						if(!(DListInfo_DListToRender == DListInfo_CurrentCount)) {
-							DListInfo_DListToRender++;
+						if(!(ROM_SceneToLoad == 0x6D)) {
+							ROM_SceneToLoad++;
+							if(ROMExists) Viewer_LoadAreaData();
 						}
-						sprintf(StatusMsg, "Display List: #%d", (int)DListInfo_DListToRender + 1);
+						sprintf(StatusMsg, "Rendering level 0x%02X", ROM_SceneToLoad);
 					}
 					if (System_KbdKeys[VK_F3]) {
 						System_KbdKeys[VK_F3] = false;
@@ -657,7 +685,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 					}
 					if (System_KbdKeys[VK_F6]) {
 						System_KbdKeys[VK_F6] = false;
-						if(!(ActorInfo_Selected == MapHeader[MapHeader_Current].Actor_Count - 1)) {
+						if(!(ActorInfo_Selected == MapHeader[ROM_CurrentMap][MapHeader_Current].Actor_Count - 1)) {
 							ActorInfo_Selected++;
 						}
 					}
@@ -667,7 +695,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 					}
 					if (System_KbdKeys[VK_F8]) {
 						System_KbdKeys[VK_F8] = false;
-						ActorInfo_Selected = MapHeader[MapHeader_Current].Actor_Count - 1;
+						ActorInfo_Selected = MapHeader[ROM_CurrentMap][MapHeader_Current].Actor_Count - 1;
 					}
 
 					if (System_KbdKeys[VK_DIVIDE]) {
@@ -760,11 +788,13 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 		}
 	}
 
-	WritePrivateProfileString("Viewer", "LastMap", Filename_ZMap, INIPath);
-	WritePrivateProfileString("Viewer", "LastScene", Filename_ZScene, INIPath);
-	WritePrivateProfileString("Viewer", "GameplayKeep", Filename_GameplayKeep, INIPath);
-	WritePrivateProfileString("Viewer", "GameplayFDKeep", Filename_GameplayFDKeep, INIPath);
+	WritePrivateProfileString("Viewer", "LastROM", Filename_ROM, INIPath);
 	char TempStr[256];
+
+	sprintf(TempStr, "%d", ROM_SceneTableOffset);
+	WritePrivateProfileString("Viewer", "SceneTable", TempStr, INIPath);
+	sprintf(TempStr, "%d", ROM_SceneToLoad);
+	WritePrivateProfileString("Viewer", "LastScene", TempStr, INIPath);
 	sprintf(TempStr, "%d", Renderer_FilteringMode_Min);
 	WritePrivateProfileString("Viewer", "TexFilterMin", TempStr, INIPath);
 	sprintf(TempStr, "%d", Renderer_FilteringMode_Mag);
@@ -815,14 +845,18 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			switch(LOWORD(wParam))
 			{
 				case IDM_FILE_OPEN:
-					ZMapExists = false;
+					ROMExists = false;
+
+					Dialog_OpenROM(hwnd);
+					if(ROMExists) Viewer_Initialize();
+/*					ZMapExists = false;
 					ZSceneExists = false;
 
 					Dialog_OpenZMap(hwnd);
 
 					if(ZMapExists) Dialog_OpenZScene(hwnd);
 					if(ZSceneExists) Viewer_Initialize();
-					break;
+*/					break;
 				case IDM_FILE_SAVE:
 					break;
 				case IDM_FILE_EXIT:

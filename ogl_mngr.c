@@ -98,7 +98,9 @@ int DrawGLScene(void)
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	if(MapLoaded) {
+	int i;
+
+	if(AreaLoaded) {
 		HelperFunc_CalculateFPS();
 
 		sprintf(Renderer_CoordDisp, "Cam X: %4.2f, Y: %4.2f, Z: %4.2f", CamX, CamY, CamZ);
@@ -112,24 +114,26 @@ int DrawGLScene(void)
 		glScalef(0.005, 0.005, 0.005);
 
 		glDisable(GL_BLEND);
-		ActorInfo_CurrentCount = 0;
+		for(i = 0; i < SceneHeader[SceneHeader_Current].Map_Count; i++) {
+			ActorInfo_CurrentCount[i] = 0;
+		}
 		ScActorInfo_CurrentCount = 0;
 		Viewer_RenderAllActors();
 
-		Renderer_GLDisplayList_Current = 0;
+		Renderer_GLDisplayList_Current = Renderer_GLDisplayList;
 
-		if(DListInfo_DListToRender == -1) {
-			while(!(Renderer_GLDisplayList_Current == Renderer_GLDisplayList + (DListInfo_CurrentCount + 1))) {
-				glCallList(Renderer_GLDisplayList_Current);
-				Renderer_GLDisplayList_Current++;
+		for(i = 0; i < SceneHeader[SceneHeader_Current].Map_Count; i++) {
+			int j;
+			for(j = 0; j < DListInfo_CurrentCount[i]; j++) {
+				glCallList(Renderer_GLDisplayList_Current + j);
 			}
-		} else {
-			Renderer_GLDisplayList_Current = (Renderer_GLDisplayList + DListInfo_DListToRender);
-			glCallList(Renderer_GLDisplayList_Current);
+			Renderer_GLDisplayList_Current += j;
 		}
 
 		glDisable(GL_BLEND);
-		ActorInfo_CurrentCount = 0;
+		for(i = 0; i < SceneHeader[SceneHeader_Current].Map_Count; i++) {
+			ActorInfo_CurrentCount[i] = 0;
+		}
 		ScActorInfo_CurrentCount = 0;
 		Viewer_RenderAllActors();
 	}

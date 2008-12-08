@@ -18,44 +18,53 @@ int Viewer_RenderMap()
 	if(!GFXLogOpened) FileGFXLog = fopen("gfxlog.txt", "w"); GFXLogOpened = true;
 
 	/* IF GL DLISTS EXIST, DELETE THEM ALL */
-	if(Renderer_GLDisplayList != 0) { glDeleteLists(Renderer_GLDisplayList, 256); }
+	if(Renderer_GLDisplayList != 0) { glDeleteLists(Renderer_GLDisplayList, 4096); }
 	/* REGENERATE GL DLISTS */
-	Renderer_GLDisplayList = glGenLists(256);
+	Renderer_GLDisplayList = glGenLists(4096);
 
 	/* SET GL DLIST BASE */
 	glListBase(Renderer_GLDisplayList);
 
-	/* RESET SOME VALUES FOR DLIST READING/BUILDING */
 	Renderer_GLDisplayList_Current = Renderer_GLDisplayList;
-	DLToRender = 0;
 
-	while(!(Renderer_GLDisplayList_Current == Renderer_GLDisplayList + (DListInfo_CurrentCount + 1))) {
-		if(Renderer_GLDisplayList_Current != 0) {
-			glNewList(Renderer_GLDisplayList_Current, GL_COMPILE);
-				DLTempPosition = DLists[DLToRender] / 4;
+	int i;
+	for(i = 0; i < SceneHeader[SceneHeader_Current].Map_Count; i++) {
+		sprintf(ErrorMsg, "");
 
-				SubDLCall = false;
-				Viewer_RenderMap_DListParser(false, DLToRender, DLTempPosition);
+		ROM_CurrentMap = i;
 
-				PrimColor[0] = 0.0f;
-				PrimColor[1] = 0.0f;
-				PrimColor[2] = 0.0f;
-				PrimColor[3] = 1.0f;
+		int j;
+		for(j = 0; j < DListInfo_CurrentCount[ROM_CurrentMap]; j++) {
+			if(Renderer_GLDisplayList_Current != 0) {
+				glNewList(Renderer_GLDisplayList_Current + j, GL_COMPILE);
+					DLTempPosition = DLists[ROM_CurrentMap][j] / 4;
 
-				Blender_Cycle1 = 0x00;
-				Blender_Cycle2 = 0x00;
+					SubDLCall = false;
+					Viewer_RenderMap_DListParser(false, j, DLTempPosition);
 
-				IsMultitex = false;
+					PrimColor[0] = 0.0f;
+					PrimColor[1] = 0.0f;
+					PrimColor[2] = 0.0f;
+					PrimColor[3] = 1.0f;
 
-				DListHasEnded = false;
-			glEndList();
+					Blender_Cycle1 = 0x00;
+					Blender_Cycle2 = 0x00;
+
+					IsMultitex = false;
+
+					DListHasEnded = false;
+				glEndList();
+
+				sprintf(ErrorMsg, "%s- DLists[%d][%d] = 0x%08X\n", ErrorMsg, ROM_CurrentMap, j, DLists[ROM_CurrentMap][j]);
+			}
 		}
+//		sprintf(ErrorMsg, "%s\n- Filesize 0x%08X\n", ErrorMsg, ZMapFilesize[i]);
+//		MessageBox(hwnd, ErrorMsg, "", 0);
 
-		Renderer_GLDisplayList_Current++;
-		DLToRender++;
+		Renderer_GLDisplayList_Current += j;
 	}
 
-	MapLoaded = true;
+	AreaLoaded = true;
 
 	fclose(FileGFXLog); GFXLogOpened = false;
 	fclose(FileSystemLog);
@@ -77,10 +86,10 @@ int Viewer_RenderMap_DListParser(bool CalledFromRDPHalf, unsigned int DLToRender
 	}
 
 	while (!DListHasEnded) {
-		memcpy(&Readout_Current1, &ZMapBuffer[Position], 4);
-		memcpy(&Readout_Current2, &ZMapBuffer[Position + 1], 4);
+		memcpy(&Readout_Current1, &ZMapBuffer[ROM_CurrentMap][Position], 4);
+		memcpy(&Readout_Current2, &ZMapBuffer[ROM_CurrentMap][Position + 1], 4);
 
-		memcpy(&Readout_NextGFXCommand1, &ZMapBuffer[Position + 2], 4);
+		memcpy(&Readout_NextGFXCommand1, &ZMapBuffer[ROM_CurrentMap][Position + 2], 4);
 
 		HelperFunc_SplitCurrentVals(true);
 
@@ -1279,7 +1288,7 @@ GLuint Viewer_LoadTexture(int TextureID)
 {
 	if((Readout_NextGFXCommand1 == 0x00000003) || (Readout_NextGFXCommand1 == 0x000000E1)) return 0;
 
-	GLuint GLTexture;
+	GLuint GLTexture = 0;
 
 /*	sprintf(ErrorMsg, "TEXTURE %d:\n \
 	Height %d, HeightRender %d, Width %d, WidthRender %d\n \
@@ -1295,15 +1304,17 @@ GLuint Viewer_LoadTexture(int TextureID)
 						Texture[TextureID].LineSize, Texture[TextureID].Palette);
 
 	MessageBox(hwnd, ErrorMsg, "Texture", MB_OK | MB_ICONINFORMATION);
+	HelperFunc_LogMessage(2, ErrorMsg);
 */
-	int i, j = 0;
+	int i = 0;
+	int j = 0;
 
 	unsigned long TextureBufferSize = 0x8000;
 
 	bool UnhandledTextureSource = false;
 
-	TextureData_OGL = (unsigned char *) malloc (TextureBufferSize);
-	TextureData_N64 = (unsigned char *) malloc (TextureBufferSize);
+	TextureData_OGL = (unsigned char *) malloc (sizeof(char) * TextureBufferSize);
+	TextureData_N64 = (unsigned char *) malloc (sizeof(char) * TextureBufferSize);
 
 	memset(TextureData_OGL, 0x00, TextureBufferSize);
 	memset(TextureData_N64, 0x00, TextureBufferSize);
@@ -1311,8 +1322,10 @@ GLuint Viewer_LoadTexture(int TextureID)
 	/* create solid red texture for unsupported stuff, such as kakariko windows */
 	unsigned char * EmptyTexture_Red;
 	unsigned char * EmptyTexture_Green;
-	EmptyTexture_Red = (unsigned char *) malloc (TextureBufferSize);
-	EmptyTexture_Green = (unsigned char *) malloc (TextureBufferSize);
+
+	EmptyTexture_Red = (unsigned char *) malloc (sizeof(char) * TextureBufferSize);
+	EmptyTexture_Green = (unsigned char *) malloc (sizeof(char) * TextureBufferSize);
+
 	for(i = 0; i < TextureBufferSize; i+=4) {
 		EmptyTexture_Red[i]			= 0xFF;
 		EmptyTexture_Red[i + 1]		= 0x00;
@@ -1325,10 +1338,10 @@ GLuint Viewer_LoadTexture(int TextureID)
 		EmptyTexture_Green[i + 3]	= 0xFF;
 	}
 
-	if(Viewer_ZMemCopy(Texture[TextureID].DataSource, Texture[TextureID].Offset, TextureData_N64, TextureBufferSize) == -1) {
+	if(Viewer_ZMemCopy(Texture[TextureID].DataSource, Texture[TextureID].Offset, TextureData_N64, TextureBufferSize / 4) == -1) {
 		UnhandledTextureSource = true;
-		sprintf(ErrorMsg, "Unhandled texture source 0x%02X|%06X!", Texture[TextureID].DataSource, Texture[TextureID].Offset);
-		MessageBox(hwnd, ErrorMsg, "Error", MB_OK | MB_ICONERROR);
+//		sprintf(ErrorMsg, "Unhandled texture source 0x%02X|%06X!", Texture[TextureID].DataSource, Texture[TextureID].Offset);
+//		MessageBox(hwnd, ErrorMsg, "Error", MB_OK | MB_ICONERROR);
 		Texture[TextureID].Format_OGL = GL_RGBA;
 		Texture[TextureID].Format_OGLPixel = GL_RGBA;
 		memcpy(TextureData_OGL, EmptyTexture_Red, TextureBufferSize);
@@ -1543,7 +1556,6 @@ GLuint Viewer_LoadTexture(int TextureID)
 		case 0x80:
 		case 0x90:
 			{
-			/* 4bit - spot00 pathways, castle town walls, treeline near kokiri entrance, besitu blue patterned walls */
 			unsigned int LoadI_IData = 0;
 
 			unsigned int LoadI_IExtract1 = 0;
@@ -1580,7 +1592,6 @@ GLuint Viewer_LoadTexture(int TextureID)
 			}
 		case 0x88:
 			{
-			/* 8bit - Bmori_0 l/r side walls */
 			unsigned int LoadI_IData = 0;
 
 			unsigned int LoadI_InTexturePosition_N64 = 0;

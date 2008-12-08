@@ -22,7 +22,7 @@ int Viewer_GetMapHeaderList(int HeaderListPos)
 	MapHeader_TotalCount = 1;
 
 	while (!EndOfList) {
-		memcpy(&Readout_Current1, &ZMapBuffer[HeaderListPos], 4);
+		memcpy(&Readout_Current1, &ZMapBuffer[ROM_CurrentMap][HeaderListPos], 4);
 
 		HelperFunc_SplitCurrentVals(false);
 
@@ -52,48 +52,48 @@ int Viewer_GetMapHeader(int CurrentHeader)
 	HelperFunc_LogMessage(2, SystemLogMsg);
 
 	while(!EndOfHeader) {
-		memcpy(&Readout_Current1, &ZMapBuffer[InHeaderPos], 4);
-		memcpy(&Readout_Current2, &ZMapBuffer[InHeaderPos + 1], 4);
+		memcpy(&Readout_Current1, &ZMapBuffer[ROM_CurrentMap][InHeaderPos], 4);
+		memcpy(&Readout_Current2, &ZMapBuffer[ROM_CurrentMap][InHeaderPos + 1], 4);
 
 		HelperFunc_SplitCurrentVals(true);
 
 		switch(Readout_CurrentByte1) {
 		case 0x01:
-			MapHeader[CurrentHeader].Actor_Count = Readout_CurrentByte2;
-			MapHeader[CurrentHeader].Actor_DataOffset = ((Readout_CurrentByte6 * 0x10000) + Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
+			MapHeader[ROM_CurrentMap][CurrentHeader].Actor_Count = Readout_CurrentByte2;
+			MapHeader[ROM_CurrentMap][CurrentHeader].Actor_DataOffset = ((Readout_CurrentByte6 * 0x10000) + Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
 			sprintf(SystemLogMsg, "  0x%08X:\tActors: %d, Actor data offset: 0x%06X\n",
 				InHeaderPos * 4,
-				MapHeader[CurrentHeader].Actor_Count, (unsigned int)MapHeader[CurrentHeader].Actor_DataOffset);
+				MapHeader[ROM_CurrentMap][CurrentHeader].Actor_Count, (unsigned int)MapHeader[ROM_CurrentMap][CurrentHeader].Actor_DataOffset);
 			HelperFunc_LogMessage(2, SystemLogMsg);
 			break;
 		case 0x0A:
-			MapHeader[CurrentHeader].MeshDataHeader = ((Readout_CurrentByte6 * 0x10000) + Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
+			MapHeader[ROM_CurrentMap][CurrentHeader].MeshDataHeader = ((Readout_CurrentByte6 * 0x10000) + Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
 			sprintf(SystemLogMsg, "  0x%08X:\tMesh data header: 0x%06X\n",
 				InHeaderPos * 4,
-				(unsigned int)MapHeader[CurrentHeader].MeshDataHeader);
+				(unsigned int)MapHeader[ROM_CurrentMap][CurrentHeader].MeshDataHeader);
 			HelperFunc_LogMessage(2, SystemLogMsg);
 			break;
 		case 0x0B:
-			MapHeader[CurrentHeader].Group_Count = Readout_CurrentByte2;
-			MapHeader[CurrentHeader].Group_DataOffset = ((Readout_CurrentByte6 * 0x10000) + Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
+			MapHeader[ROM_CurrentMap][CurrentHeader].Group_Count = Readout_CurrentByte2;
+			MapHeader[ROM_CurrentMap][CurrentHeader].Group_DataOffset = ((Readout_CurrentByte6 * 0x10000) + Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
 			sprintf(SystemLogMsg, "  0x%08X:\tGroups: %d, Group data offset: 0x%06X\n",
 				InHeaderPos * 4,
-				MapHeader[CurrentHeader].Group_Count, (unsigned int)MapHeader[CurrentHeader].Group_DataOffset);
+				MapHeader[ROM_CurrentMap][CurrentHeader].Group_Count, (unsigned int)MapHeader[ROM_CurrentMap][CurrentHeader].Group_DataOffset);
 			HelperFunc_LogMessage(2, SystemLogMsg);
 			break;
 		case 0x10:
-			MapHeader[CurrentHeader].MapTime = (Readout_CurrentByte5 * 0x100) + Readout_CurrentByte6;
-			MapHeader[CurrentHeader].TimeFlow = Readout_CurrentByte7;
+			MapHeader[ROM_CurrentMap][CurrentHeader].MapTime = (Readout_CurrentByte5 * 0x100) + Readout_CurrentByte6;
+			MapHeader[ROM_CurrentMap][CurrentHeader].TimeFlow = Readout_CurrentByte7;
 			sprintf(SystemLogMsg, "  0x%08X:\tMap time: 0x%04X, Timeflow: 0x%02X\n",
 				InHeaderPos * 4,
-				(unsigned int)MapHeader[CurrentHeader].MapTime, MapHeader[CurrentHeader].TimeFlow);
+				(unsigned int)MapHeader[ROM_CurrentMap][CurrentHeader].MapTime, MapHeader[ROM_CurrentMap][CurrentHeader].TimeFlow);
 			HelperFunc_LogMessage(2, SystemLogMsg);
 			break;
 		case 0x12:
-			MapHeader[CurrentHeader].Skybox = Readout_CurrentByte5;
+			MapHeader[ROM_CurrentMap][CurrentHeader].Skybox = Readout_CurrentByte5;
 			sprintf(SystemLogMsg, "  0x%08X:\tSkybox setting: 0x%02X\n",
 				InHeaderPos * 4,
-				MapHeader[CurrentHeader].Skybox);
+				MapHeader[ROM_CurrentMap][CurrentHeader].Skybox);
 			HelperFunc_LogMessage(2, SystemLogMsg);
 			break;
 		case 0x14:
@@ -102,10 +102,10 @@ int Viewer_GetMapHeader(int CurrentHeader)
 			HelperFunc_LogMessage(2, SystemLogMsg);
 			break;
 		case 0x16:
-			MapHeader[CurrentHeader].EchoLevel = Readout_CurrentByte8;
+			MapHeader[ROM_CurrentMap][CurrentHeader].EchoLevel = Readout_CurrentByte8;
 			sprintf(SystemLogMsg, "  0x%08X:\tEcho level: 0x%02X\n",
 				InHeaderPos * 4,
-				MapHeader[CurrentHeader].EchoLevel);
+				MapHeader[ROM_CurrentMap][CurrentHeader].EchoLevel);
 			HelperFunc_LogMessage(2, SystemLogMsg);
 			break;
 		default:
@@ -175,6 +175,7 @@ int Viewer_GetSceneHeader(int CurrentHeader)
 		HelperFunc_SplitCurrentVals(true);
 
 		switch(Readout_CurrentByte1) {
+		/* scene actors */
 		case 0x00:
 			SceneHeader[CurrentHeader].ScActor_Count = Readout_CurrentByte2;
 			SceneHeader[CurrentHeader].ScActor_DataOffset = ((Readout_CurrentByte6 * 0x10000) + Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
@@ -183,11 +184,22 @@ int Viewer_GetSceneHeader(int CurrentHeader)
 				SceneHeader[CurrentHeader].ScActor_Count, (unsigned int)SceneHeader[CurrentHeader].ScActor_DataOffset);
 			HelperFunc_LogMessage(2, SystemLogMsg);
 			break;
+		/* maps */
+		case 0x04:
+			SceneHeader[CurrentHeader].Map_Count = Readout_CurrentByte2;
+			SceneHeader[CurrentHeader].Map_ListOffset = ((Readout_CurrentByte6 * 0x10000) + Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
+			sprintf(SystemLogMsg, "  0x%08X:\tMaps: %d, Map list offset: 0x%06X\n",
+				InHeaderPos * 4,
+				SceneHeader[CurrentHeader].Map_Count, (unsigned int)SceneHeader[CurrentHeader].Map_ListOffset);
+			HelperFunc_LogMessage(2, SystemLogMsg);
+			break;
+		/* end of header */
 		case 0x14:
 			EndOfHeader = true;
 			sprintf(SystemLogMsg, "  0x%08X:\tEnd of header\n", InHeaderPos * 4);
 			HelperFunc_LogMessage(2, SystemLogMsg);
 			break;
+		/* unhandled option */
 		default:
 			sprintf(SystemLogMsg, "  0x%08X:\t<Unknown header option (%02X%02X%02X%02X %02X%02X%02X%02X)>\n",
 				InHeaderPos * 4,
@@ -211,34 +223,34 @@ int Viewer_GetSceneHeader(int CurrentHeader)
 /* VIEWER_GETMAPACTORS - READ THE MAP ACTOR DATA FROM THE OFFSET SPECIFIED INSIDE THE CURRENT MAP HEADER */
 int Viewer_GetMapActors(int CurrentHeader)
 {
-	int InActorDataPos = MapHeader[CurrentHeader].Actor_DataOffset / 4;
+	int InActorDataPos = MapHeader[ROM_CurrentMap][CurrentHeader].Actor_DataOffset / 4;
 
-	ActorInfo_CurrentCount = 0;
+	ActorInfo_CurrentCount[ROM_CurrentMap] = 0;
 	ActorInfo_Selected = 0;
 
-	if(!(MapHeader[CurrentHeader].Actor_Count) == 0) {
-		while (!(ActorInfo_CurrentCount == MapHeader[CurrentHeader].Actor_Count)) {
-			memcpy(&Readout_Current1, &ZMapBuffer[InActorDataPos], 4);
-			memcpy(&Readout_Current2, &ZMapBuffer[InActorDataPos + 1], 4);
+	if(!(MapHeader[ROM_CurrentMap][CurrentHeader].Actor_Count) == 0) {
+		while (!(ActorInfo_CurrentCount[ROM_CurrentMap] == MapHeader[ROM_CurrentMap][CurrentHeader].Actor_Count)) {
+			memcpy(&Readout_Current1, &ZMapBuffer[ROM_CurrentMap][InActorDataPos], 4);
+			memcpy(&Readout_Current2, &ZMapBuffer[ROM_CurrentMap][InActorDataPos + 1], 4);
 
 			HelperFunc_SplitCurrentVals(true);
 
-			Actors[ActorInfo_CurrentCount].Number = (Readout_CurrentByte1 * 0x100) + Readout_CurrentByte2;
-			Actors[ActorInfo_CurrentCount].X_Position = (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
-			Actors[ActorInfo_CurrentCount].Y_Position = (Readout_CurrentByte5 * 0x100) + Readout_CurrentByte6;
-			Actors[ActorInfo_CurrentCount].Z_Position = (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
+			Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].Number = (Readout_CurrentByte1 * 0x100) + Readout_CurrentByte2;
+			Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].X_Position = (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
+			Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].Y_Position = (Readout_CurrentByte5 * 0x100) + Readout_CurrentByte6;
+			Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].Z_Position = (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
 
-			memcpy(&Readout_Current1, &ZMapBuffer[InActorDataPos + 2], 4);
-			memcpy(&Readout_Current2, &ZMapBuffer[InActorDataPos + 3], 4);
+			memcpy(&Readout_Current1, &ZMapBuffer[ROM_CurrentMap][InActorDataPos + 2], 4);
+			memcpy(&Readout_Current2, &ZMapBuffer[ROM_CurrentMap][InActorDataPos + 3], 4);
 
 			HelperFunc_SplitCurrentVals(true);
 
-			Actors[ActorInfo_CurrentCount].X_Rotation = (Readout_CurrentByte1 * 0x100) + Readout_CurrentByte2;
-			Actors[ActorInfo_CurrentCount].Y_Rotation = (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
-			Actors[ActorInfo_CurrentCount].Z_Rotation = (Readout_CurrentByte5 * 0x100) + Readout_CurrentByte6;
-			Actors[ActorInfo_CurrentCount].Variable = (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
+			Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].X_Rotation = (Readout_CurrentByte1 * 0x100) + Readout_CurrentByte2;
+			Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].Y_Rotation = (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
+			Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].Z_Rotation = (Readout_CurrentByte5 * 0x100) + Readout_CurrentByte6;
+			Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].Variable = (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
 
-			ActorInfo_CurrentCount++;
+			ActorInfo_CurrentCount[ROM_CurrentMap]++;
 			InActorDataPos += 4;
 		}
 	}
@@ -266,8 +278,8 @@ int Viewer_GetSceneActors(int CurrentHeader)
 			ScActors[ScActorInfo_CurrentCount].Y_Position = (Readout_CurrentByte5 * 0x100) + Readout_CurrentByte6;
 			ScActors[ScActorInfo_CurrentCount].Z_Position = (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
 
-			memcpy(&Readout_Current1, &ZMapBuffer[InScActorDataPos + 2], 4);
-			memcpy(&Readout_Current2, &ZMapBuffer[InScActorDataPos + 3], 4);
+			memcpy(&Readout_Current1, &ZSceneBuffer[InScActorDataPos + 2], 4);
+			memcpy(&Readout_Current2, &ZSceneBuffer[InScActorDataPos + 3], 4);
 
 			HelperFunc_SplitCurrentVals(true);
 
@@ -288,12 +300,12 @@ int Viewer_GetSceneActors(int CurrentHeader)
 int Viewer_GetDisplayLists(unsigned long Fsize)
 {
 	unsigned int DListScanPosition = 0;
-	DListInfo_CurrentCount = -1;
+	DListInfo_CurrentCount[ROM_CurrentMap] = 0;
 	unsigned long TempOffset = 0;
 
-	while ((DListScanPosition < Fsize / 4)) {
-		memcpy(&Readout_Current1, &ZMapBuffer[DListScanPosition], 4);
-		memcpy(&Readout_Current2, &ZMapBuffer[DListScanPosition + 1], 4);
+	while (DListScanPosition < Fsize / 4) {
+		memcpy(&Readout_Current1, &ZMapBuffer[ROM_CurrentMap][DListScanPosition], 4);
+		memcpy(&Readout_Current2, &ZMapBuffer[ROM_CurrentMap][DListScanPosition + 1], 4);
 
 		HelperFunc_SplitCurrentVals(true);
 
@@ -304,14 +316,20 @@ int Viewer_GetDisplayLists(unsigned long Fsize)
 					TempOffset = TempOffset + (Readout_CurrentByte7 << 8);
 					TempOffset = TempOffset + Readout_CurrentByte8;
 
-					DListInfo_CurrentCount++;
-					DLists[DListInfo_CurrentCount] = TempOffset;
+					//sprintf(ErrorMsg, "MAP %d: dlist %d @ %08X", ROM_CurrentMap, DListInfo_CurrentCount[ROM_CurrentMap] + 1, TempOffset);
+					//MessageBox(hwnd, ErrorMsg, "", 0);
+
+					DLists[ROM_CurrentMap][DListInfo_CurrentCount[ROM_CurrentMap]] = TempOffset;
+
+					DListInfo_CurrentCount[ROM_CurrentMap]++;
+					DListInfo_TotalCount++;
 				}
 			}
 		}
-
 		DListScanPosition += 2;
 	}
+
+//	DListInfo_CurrentCount[ROM_CurrentMap]--;
 
 	return 0;
 }

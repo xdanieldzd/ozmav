@@ -29,7 +29,7 @@ enum { true = 1, false = 0 };
 	------------------------------------------------------------ */
 
 extern int Viewer_Initialize();
-extern int Viewer_OpenMapScene();
+extern int Viewer_LoadAreaData();
 extern int Viewer_GetMapHeaderList(int);
 extern int Viewer_GetMapHeader(int);
 extern int Viewer_GetSceneHeaderList(int);
@@ -81,6 +81,7 @@ extern void GLUTCamera_Orientation(float,float);
 extern void GLUTCamera_Movement(int);
 extern void Camera_MouseMove(int, int);
 
+extern void Dialog_OpenROM(HWND);
 extern void Dialog_OpenZMap(HWND);
 extern void Dialog_OpenZScene(HWND);
 
@@ -117,12 +118,12 @@ extern char				AppPath[512];
 extern char				INIPath[512];
 extern char				WindowTitle[256];
 extern char				StatusMsg[256];
-extern char				ErrorMsg[256];
+extern char				ErrorMsg[1024];
 
 extern char				MapActorMsg[256];
 extern char				SceneActorMsg[256];
 
-extern bool				MapLoaded;
+extern bool				AreaLoaded;
 extern bool				WndActive;
 extern bool				ExitProgram;
 
@@ -144,26 +145,31 @@ extern int				MouseCenterX, MouseCenterY;
 extern bool				MouseButtonDown;
 
 /* FILE HANDLING VARIABLES */
+extern FILE				* FileROM;
 extern FILE				* FileZMap;
 extern FILE				* FileZScene;
 extern FILE				* FileGameplayKeep;
 extern FILE				* FileGameplayFDKeep;
 
-extern unsigned int		* ZMapBuffer;
+extern unsigned int		* ROMBuffer;
+extern unsigned int		* ZMapBuffer[256];
 extern unsigned int		* ZSceneBuffer;
 extern unsigned int		* GameplayKeepBuffer;
 extern unsigned int		* GameplayFDKeepBuffer;
 
-extern unsigned long	ZMapFilesize;
+extern unsigned long	ROMFilesize;
+extern unsigned long	ZMapFilesize[256];
 extern unsigned long	ZSceneFilesize;
 extern unsigned long	GameplayKeepFilesize;
 extern unsigned long	GameplayFDKeepFilesize;
 
+extern char				Filename_ROM[256];
 extern char				Filename_ZMap[256];
 extern char				Filename_ZScene[256];
 extern char				Filename_GameplayKeep[256];
 extern char				Filename_GameplayFDKeep[256];
 
+extern bool				ROMExists;
 extern bool				ZMapExists;
 extern bool				ZSceneExists;
 
@@ -185,8 +191,9 @@ extern unsigned int		Readout_CurrentByte8;
 extern unsigned long	Readout_NextGFXCommand1 ;
 
 /* F3DZEX DISPLAY LIST HANDLING VARIABLES */
-extern unsigned long	DLists[2048];
-extern signed long		DListInfo_CurrentCount;
+extern unsigned long	DLists[256][2048];
+extern signed long		DListInfo_CurrentCount[256];
+extern signed long		DListInfo_TotalCount;
 extern signed long		DListInfo_DListToRender;
 extern unsigned long	DLTempPosition;
 
@@ -204,6 +211,11 @@ extern unsigned char	* PaletteData;
 extern bool				IsMultitex;
 extern unsigned int		MTexScaler;
 
+/* ZELDA ROM HANDLING VARIABLES */
+extern unsigned long	ROM_SceneTableOffset;
+extern unsigned int		ROM_SceneToLoad;
+extern unsigned int		ROM_CurrentMap;
+
 /* ZELDA MAP & SCENE HEADER HANDLING VARIABLES */
 extern bool				MapHeader_MultiHeaderMap;
 extern int				MapHeader_Current;
@@ -218,7 +230,7 @@ extern unsigned long	SceneHeader_List[256];
 extern unsigned long	SceneHeader_CurrentPosInList;
 
 /* ZELDA ACTOR DATA HANDLING VARIABLES */
-extern int				ActorInfo_CurrentCount;
+extern int				ActorInfo_CurrentCount[256];
 extern int				ActorInfo_Selected;
 
 extern int				ScActorInfo_CurrentCount;
@@ -311,10 +323,11 @@ struct MapHeader_Struct {
 	unsigned char Actor_Count;
 	unsigned long Actor_DataOffset;
 };
-extern struct MapHeader_Struct MapHeader[256];
+extern struct MapHeader_Struct MapHeader[256][256];
 
 struct SceneHeader_Struct {
-	unsigned long Unknown1;
+	unsigned char Map_Count;
+	unsigned long Map_ListOffset;
 	unsigned long Unknown2;
 	unsigned long Unknown3;
 	unsigned long Unknown4;
@@ -337,7 +350,7 @@ struct Actors_Struct {
 	short Z_Rotation;
 	int Variable;
 };
-extern struct Actors_Struct Actors[1024];
+extern struct Actors_Struct Actors[256][1024];
 
 /* ZELDA SCENE ACTOR DATA STRUCTURE */
 struct ScActors_Struct {

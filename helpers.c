@@ -25,16 +25,7 @@ int Viewer_ZMemCopy(unsigned int SourceBank, unsigned long SourceOffset, unsigne
 		break;
 	case 0x03:
 		/* data comes from map file */
-		memcpy(Target, &ZMapBuffer[SourceOffset / 4], Size);
-		break;
-	case 0x04:
-		/* data comes from gameplay_keep */
-		memcpy(Target, &GameplayKeepBuffer[SourceOffset / 4], Size);
-		break;
-	case 0x05:
-		/* data comes from gameplay_dangeon_keep */
-		/* (gameplay_field_keep is not handled yet, always loading in file specified in Filename_GameplayFDKeep */
-		memcpy(Target, &GameplayFDKeepBuffer[SourceOffset / 4], Size);
+		memcpy(Target, &ZMapBuffer[ROM_CurrentMap][SourceOffset / 4], Size);
 		break;
 	default:
 		/* fallback if source is not handled / no valid source was found */

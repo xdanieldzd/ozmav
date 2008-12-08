@@ -25,46 +25,57 @@ int Viewer_RenderAllActors()
 
 	glDisable(GL_FOG);
 
-	if(Renderer_EnableMapActors) {
-		if (MapHeader[MapHeader_Current].Actor_Count > 0) {
-			while (!(ActorInfo_CurrentCount == MapHeader[MapHeader_Current].Actor_Count)) {
-				glEnable(GL_LIGHT1);
-				glDisable(GL_LIGHTING);
-				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-				Viewer_RenderActorCube(ActorInfo_CurrentCount, Actors[ActorInfo_CurrentCount].X_Position, Actors[ActorInfo_CurrentCount].Y_Position, Actors[ActorInfo_CurrentCount].Z_Position, Actors[ActorInfo_CurrentCount].X_Rotation, Actors[ActorInfo_CurrentCount].Y_Rotation, Actors[ActorInfo_CurrentCount].Z_Rotation, true);
-				glEnable(GL_LIGHTING);
-				glDisable(GL_LIGHT1);
-				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-				glEnable(GL_POLYGON_OFFSET_LINE);
-				glPolygonOffset(-1.0f,-1.0f);
-				glColor3f(1.0f, 1.0f, 1.0f);
-				Viewer_RenderActorCube(ActorInfo_CurrentCount, Actors[ActorInfo_CurrentCount].X_Position, Actors[ActorInfo_CurrentCount].Y_Position, Actors[ActorInfo_CurrentCount].Z_Position, Actors[ActorInfo_CurrentCount].X_Rotation, Actors[ActorInfo_CurrentCount].Y_Rotation, Actors[ActorInfo_CurrentCount].Z_Rotation ,true);
-				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-				glEnable(GL_LIGHT1);
-				glDisable(GL_LIGHTING);
-				ActorInfo_CurrentCount++;
+	int i;
+	for(i = 0; i < (SceneHeader[SceneHeader_Current].Map_Count); i++) {
+		ROM_CurrentMap = i;
+
+		if(Renderer_EnableMapActors) {
+			if (MapHeader[ROM_CurrentMap][MapHeader_Current].Actor_Count > 0) {
+				while (!(ActorInfo_CurrentCount[ROM_CurrentMap] == MapHeader[ROM_CurrentMap][MapHeader_Current].Actor_Count)) {
+					glEnable(GL_LIGHT1);
+					glDisable(GL_LIGHTING);
+					glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+					Viewer_RenderActorCube(ActorInfo_CurrentCount[ROM_CurrentMap],
+						Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].X_Position, Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].Y_Position, Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].Z_Position,
+						Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].X_Rotation, Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].Y_Rotation, Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].Z_Rotation,
+						true);
+					glEnable(GL_LIGHTING);
+					glDisable(GL_LIGHT1);
+					glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+					glEnable(GL_POLYGON_OFFSET_LINE);
+					glPolygonOffset(-1.0f,-1.0f);
+					glColor3f(1.0f, 1.0f, 1.0f);
+					Viewer_RenderActorCube(ActorInfo_CurrentCount[ROM_CurrentMap],
+						Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].X_Position, Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].Y_Position, Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].Z_Position,
+						Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].X_Rotation, Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].Y_Rotation, Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].Z_Rotation,
+						true);
+					glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+					glEnable(GL_LIGHT1);
+					glDisable(GL_LIGHTING);
+					ActorInfo_CurrentCount[ROM_CurrentMap]++;
+				}
 			}
 		}
-	}
 
-	if(Renderer_EnableSceneActors) {
-		if (SceneHeader[SceneHeader_Current].ScActor_Count > 0) {
-			while (!(ScActorInfo_CurrentCount == SceneHeader[SceneHeader_Current].ScActor_Count)) {
-				glEnable(GL_LIGHT1);
-				glDisable(GL_LIGHTING);
-				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-				Viewer_RenderActorCube(ScActorInfo_CurrentCount, ScActors[ScActorInfo_CurrentCount].X_Position, ScActors[ScActorInfo_CurrentCount].Y_Position, ScActors[ScActorInfo_CurrentCount].Z_Position, ScActors[ScActorInfo_CurrentCount].X_Rotation, ScActors[ScActorInfo_CurrentCount].Y_Rotation, ScActors[ScActorInfo_CurrentCount].Z_Rotation, false);
-				glEnable(GL_LIGHTING);
-				glDisable(GL_LIGHT1);
-				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-				glEnable(GL_POLYGON_OFFSET_LINE);
-				glPolygonOffset(-1.0f,-1.0f);
-				glColor3f(1.0f, 1.0f, 1.0f);
-				Viewer_RenderActorCube(ScActorInfo_CurrentCount, ScActors[ScActorInfo_CurrentCount].X_Position, ScActors[ScActorInfo_CurrentCount].Y_Position, ScActors[ScActorInfo_CurrentCount].Z_Position, ScActors[ScActorInfo_CurrentCount].X_Rotation, ScActors[ScActorInfo_CurrentCount].Y_Rotation, ScActors[ScActorInfo_CurrentCount].Z_Rotation, false);
-				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-				glEnable(GL_LIGHT1);
-				glDisable(GL_LIGHTING);
-				ScActorInfo_CurrentCount++;
+		if(Renderer_EnableSceneActors) {
+			if (SceneHeader[SceneHeader_Current].ScActor_Count > 0) {
+				while (!(ScActorInfo_CurrentCount == SceneHeader[SceneHeader_Current].ScActor_Count)) {
+					glEnable(GL_LIGHT1);
+					glDisable(GL_LIGHTING);
+					glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+					Viewer_RenderActorCube(ScActorInfo_CurrentCount, ScActors[ScActorInfo_CurrentCount].X_Position, ScActors[ScActorInfo_CurrentCount].Y_Position, ScActors[ScActorInfo_CurrentCount].Z_Position, ScActors[ScActorInfo_CurrentCount].X_Rotation, ScActors[ScActorInfo_CurrentCount].Y_Rotation, ScActors[ScActorInfo_CurrentCount].Z_Rotation, false);
+					glEnable(GL_LIGHTING);
+					glDisable(GL_LIGHT1);
+					glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+					glEnable(GL_POLYGON_OFFSET_LINE);
+					glPolygonOffset(-1.0f,-1.0f);
+					glColor3f(1.0f, 1.0f, 1.0f);
+					Viewer_RenderActorCube(ScActorInfo_CurrentCount, ScActors[ScActorInfo_CurrentCount].X_Position, ScActors[ScActorInfo_CurrentCount].Y_Position, ScActors[ScActorInfo_CurrentCount].Z_Position, ScActors[ScActorInfo_CurrentCount].X_Rotation, ScActors[ScActorInfo_CurrentCount].Y_Rotation, ScActors[ScActorInfo_CurrentCount].Z_Rotation, false);
+					glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+					glEnable(GL_LIGHT1);
+					glDisable(GL_LIGHTING);
+					ScActorInfo_CurrentCount++;
+				}
 			}
 		}
 	}
@@ -85,17 +96,17 @@ int Viewer_RenderActorCube(int ActorToRender, GLshort X, GLshort Y, GLshort Z, s
 	glBegin(GL_QUADS);
 		/* CHECK IF ACTOR IS MAP ACTOR OR SCENE ACTOR */
 		if(IsMapActor) {
-			if((ActorToRender == ActorInfo_Selected)) {
-				glColor3f(1.0f, 0.0f, 0.0f);
-			} else {
+//			if((ActorToRender == ActorInfo_Selected)) {
+//				glColor3f(1.0f, 0.0f, 0.0f);
+//			} else {
 				glColor3f(0.0f, 1.0f, 0.0f);
-			}
+//			}
 		} else {
-			if((ActorToRender == ScActorInfo_Selected)) {
-				glColor3f(1.0f, 1.0f, 0.0f);
-			} else {
+//			if((ActorToRender == ScActorInfo_Selected)) {
+//				glColor3f(1.0f, 1.0f, 0.0f);
+//			} else {
 				glColor3f(0.0f, 0.0f, 1.0f);
-			}
+//			}
 		}
 
 		glVertex3s( 12, 12, 12);   //V2
