@@ -18,7 +18,7 @@ int Viewer_RenderMap()
 	if(!GFXLogOpened) FileGFXLog = fopen("gfxlog.txt", "w"); GFXLogOpened = true;
 
 	/* IF GL DLISTS EXIST, DELETE THEM ALL */
-	if(Renderer_GLDisplayList != 0) { glDeleteLists(Renderer_GLDisplayList, 4096); }
+	if(Renderer_GLDisplayList != 0) glDeleteLists(Renderer_GLDisplayList, 4096);
 	/* REGENERATE GL DLISTS */
 	Renderer_GLDisplayList = glGenLists(4096);
 
@@ -27,13 +27,13 @@ int Viewer_RenderMap()
 
 	Renderer_GLDisplayList_Current = Renderer_GLDisplayList;
 
-	int i;
+	int i = 0;
 	for(i = 0; i < SceneHeader[SceneHeader_Current].Map_Count; i++) {
 		sprintf(ErrorMsg, "");
 
 		ROM_CurrentMap = i;
 
-		int j;
+		int j = 0;
 		for(j = 0; j < DListInfo_CurrentCount[ROM_CurrentMap]; j++) {
 			if(Renderer_GLDisplayList_Current != 0) {
 				glNewList(Renderer_GLDisplayList_Current + j, GL_COMPILE);
@@ -55,7 +55,7 @@ int Viewer_RenderMap()
 					DListHasEnded = false;
 				glEndList();
 
-				sprintf(ErrorMsg, "%s- DLists[%d][%d] = 0x%08X\n", ErrorMsg, ROM_CurrentMap, j, DLists[ROM_CurrentMap][j]);
+//				sprintf(ErrorMsg, "%s- DLists[%d][%d] = 0x%08X\n", ErrorMsg, ROM_CurrentMap, j, DLists[ROM_CurrentMap][j]);
 			}
 		}
 //		sprintf(ErrorMsg, "%s\n- Filesize 0x%08X\n", ErrorMsg, ZMapFilesize[i]);
@@ -360,6 +360,8 @@ int Viewer_GetVertexList(unsigned int Bank, unsigned long Offset, unsigned int V
 
 		CurrentVert++;
 	}
+
+	free(VertListTempBuffer);
 
 	return 0;
 }
@@ -1288,8 +1290,6 @@ GLuint Viewer_LoadTexture(int TextureID)
 {
 	if((Readout_NextGFXCommand1 == 0x00000003) || (Readout_NextGFXCommand1 == 0x000000E1)) return 0;
 
-	GLuint GLTexture = 0;
-
 /*	sprintf(ErrorMsg, "TEXTURE %d:\n \
 	Height %d, HeightRender %d, Width %d, WidthRender %d\n \
 	DataSource %x, PalDataSource %x, Offset %x, PalOffset %x\n \
@@ -1627,21 +1627,55 @@ GLuint Viewer_LoadTexture(int TextureID)
 		}
 	}
 
-	glGenTextures(1, &GLTexture);
-	glBindTexture(GL_TEXTURE_2D, GLTexture);
+	bool SearchingCache = true;
+	bool NewTexture = false;
 
-	switch(Texture[TextureID].Y_Parameter) {
-		case 1:  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT); break;
-		case 2:  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); break;
-		case 3:  if(GLExtension_TextureMirror) glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT_ARB); break;
-		default: glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT); break;
+	i = 0;
+
+	while(SearchingCache) {
+		if((CurrentTextures[i].Offset == Texture[TextureID].Offset) &&
+			(CurrentTextures[i].DataSource == Texture[TextureID].DataSource) &&
+			(CurrentTextures[i].Map == ROM_CurrentMap)) {
+				SearchingCache = false;
+				TempGLTexture = CurrentTextures[i].GLTextureID;
+		}
+
+		i++;
+
+		if(i == 1025) {
+			SearchingCache = false;
+
+			glGenTextures(1, &TempGLTexture);
+			glBindTexture(GL_TEXTURE_2D, TempGLTexture);
+
+			CurrentTextures[TexCachePosition].GLTextureID = TempGLTexture;
+			CurrentTextures[TexCachePosition].Offset = Texture[TextureID].Offset;
+			CurrentTextures[TexCachePosition].DataSource = Texture[TextureID].DataSource;
+			CurrentTextures[TexCachePosition].Map = ROM_CurrentMap;
+			TexCachePosition++;
+
+			NewTexture = true;
+		}
 	}
 
-	switch(Texture[TextureID].X_Parameter) {
-		case 1:  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); break;
-		case 2:  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); break;
-		case 3:  if(GLExtension_TextureMirror) glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT_ARB); break;
-		default: glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); break;
+	if(NewTexture) {
+		switch(Texture[TextureID].Y_Parameter) {
+			case 1:  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT); break;
+			case 2:  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); break;
+			case 3:  if(GLExtension_TextureMirror) glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT_ARB); break;
+			default: glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT); break;
+		}
+
+		switch(Texture[TextureID].X_Parameter) {
+			case 1:  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); break;
+			case 2:  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); break;
+			case 3:  if(GLExtension_TextureMirror) glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT_ARB); break;
+			default: glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); break;
+		}
+
+		gluBuild2DMipmaps(GL_TEXTURE_2D, Texture[TextureID].Format_OGL, Texture[TextureID].WidthRender, Texture[TextureID].HeightRender, Texture[TextureID].Format_OGLPixel, GL_UNSIGNED_BYTE, TextureData_OGL);
+	} else {
+		//
 	}
 
 	if(GLExtension_AnisoFilter) {
@@ -1655,15 +1689,13 @@ GLuint Viewer_LoadTexture(int TextureID)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, Renderer_FilteringMode_Min);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, Renderer_FilteringMode_Mag);
 
-	gluBuild2DMipmaps(GL_TEXTURE_2D, Texture[TextureID].Format_OGL, Texture[TextureID].WidthRender, Texture[TextureID].HeightRender, Texture[TextureID].Format_OGLPixel, GL_UNSIGNED_BYTE, TextureData_OGL);
-
 	free(TextureData_N64);
 	free(TextureData_OGL);
 
 	free(EmptyTexture_Red);
 	free(EmptyTexture_Green);
 
-	return GLTexture;
+	return TempGLTexture;
 }
 
 /*	------------------------------------------------------------ */

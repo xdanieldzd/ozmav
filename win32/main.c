@@ -142,6 +142,9 @@ unsigned char	* PaletteData = NULL;
 bool			IsMultitex = false;
 unsigned int	MTexScaler = 1;
 
+unsigned int	TexCachePosition = 0;
+unsigned int	TotalTexCount = 0;
+
 /* ZELDA ROM HANDLING VARIABLES */
 unsigned long	ROM_SceneTableOffset = 0x00;
 unsigned int	ROM_SceneToLoad = 0x00;
@@ -172,6 +175,8 @@ GLuint			Renderer_GLDisplayList = 0;
 GLuint			Renderer_GLDisplayList_Current = 0;
 
 GLuint			Renderer_GLTexture = 0;
+
+GLuint			TempGLTexture = 0;
 
 GLuint			Renderer_FilteringMode_Min = GL_LINEAR;
 GLuint			Renderer_FilteringMode_Mag = GL_LINEAR;
@@ -257,39 +262,13 @@ struct Texture_Struct Texture[1];
 /* CI TEXTURE PALETTE STRUCTURE */
 struct Palette_Struct Palette[512];
 
+struct CurrentTextures_Struct CurrentTextures[1024];
+
 /*	------------------------------------------------------------ */
 
-/* VIEWER_INITIALIZE - CALLED AFTER SELECTING THE MAP AND SCENE FILES */
 int Viewer_Initialize()
 {
-	/* FREE PREVIOUSLY ALLOCATED MEMORY */
-	int i;
-	for(i = 0; i < 128; i++) {
-		if(ZMapBuffer[i] != NULL) free(ZMapBuffer[i]);
-	}
-	if(ROMBuffer != NULL) free(ROMBuffer);
-	if(ZSceneBuffer != NULL) free(ZSceneBuffer);
-//	if(GameplayKeepBuffer != NULL) free(GameplayKeepBuffer);
-//	if(GameplayFDKeepBuffer != NULL) free(GameplayFDKeepBuffer);
-	if(PaletteData != NULL) free(PaletteData);
-
-	/* OPEN FILE */
-	FileROM = fopen(Filename_ROM, "r+b");
-	/* GET FILESIZE */
-	size_t Result;
-	fseek(FileROM, 0, SEEK_END);
-	ROMFilesize = ftell(FileROM);
-	rewind(FileROM);
-	/* LOAD FILE INTO BUFFER */
-	ROMBuffer = (unsigned int*) malloc (sizeof(int) * ROMFilesize);
-	Result = fread(ROMBuffer, 1, ROMFilesize, FileROM);
-	/* CLOSE FILE */
-	fclose(FileROM);
-
-	if(Viewer_LoadAreaData() == -1) {
-		return 0;
-	}
-
+	Viewer_LoadAreaData();
 	Viewer_RenderMap();
 
 	EnableMenuItem(hmenu, IDM_CAMERA_RESETCOORDS, MF_BYCOMMAND | MF_ENABLED);
@@ -322,9 +301,32 @@ int Viewer_LoadAreaData()
 {
 	FileSystemLog = fopen("log.txt", "w");
 
-	AreaLoaded = false;
+	/* OPEN FILE */
+	FileROM = fopen(Filename_ROM, "r+b");
+	/* GET FILESIZE */
+	size_t Result;
+	fseek(FileROM, 0, SEEK_END);
+	ROMFilesize = ftell(FileROM);
+	rewind(FileROM);
+	/* LOAD FILE INTO BUFFER */
+	ROMBuffer = (unsigned int*) malloc (sizeof(int) * ROMFilesize);
+	Result = fread(ROMBuffer, 1, ROMFilesize, FileROM);
+	/* CLOSE FILE */
+	fclose(FileROM);
 
-	int i;
+	int i = 0;
+
+	for(i = 0; i < (SceneHeader[SceneHeader_Current].Map_Count); i++) {
+		if(ZMapBuffer[i] != NULL) free(ZMapBuffer[i]);
+	}
+	if(ZSceneBuffer != NULL) free(ZSceneBuffer);
+	if(PaletteData != NULL) free(PaletteData);
+
+	for(i = 0; i < 1024; i++) {
+		glDeleteTextures(1, &CurrentTextures[i].GLTextureID);
+	}
+
+	AreaLoaded = false;
 
 	MapHeader_Current = 0;
 	SceneHeader_Current = 0;
@@ -343,6 +345,9 @@ int Viewer_LoadAreaData()
 
 	PaletteData = (unsigned char *) malloc (1024);
 	memset(PaletteData, 0x00, sizeof(PaletteData));
+
+	memset(CurrentTextures, 0x00, sizeof(CurrentTextures));
+	TexCachePosition = 0;
 
 	/* get current scene's offset */
 	unsigned long TempOffset = (ROM_SceneTableOffset / 4) + (ROM_SceneToLoad * 0x14) / 4;
@@ -420,6 +425,8 @@ int Viewer_LoadAreaData()
 
 	sprintf(StatusMsg, "Map loaded successfully!");
 
+	if(ROMBuffer != NULL) free(ROMBuffer);
+
 	return 0;
 }
 
@@ -468,46 +475,6 @@ void Dialog_OpenROM(HWND hwnd)
 	ofn.Flags			= OFN_EXPLORER | OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
 
 	if(GetOpenFileName(&ofn)) ROMExists = true;
-
-	return;
-}
-
-/* DIALOG_OPENZMAP - COMMON DIALOG USED FOR SELECTING THE MAP FILE */
-void Dialog_OpenZMap(HWND hwnd)
-{
-	char			filter[] = "Zelda Map files (*.zmap)\0;*.zmap\0";
-	OPENFILENAME	ofn;
-
-	memset(&ofn, 0, sizeof(ofn));
-	ofn.lStructSize		= sizeof(OPENFILENAME);
-	ofn.hwndOwner		= hwnd;
-	ofn.lpstrFilter		= filter;
-	ofn.nFilterIndex	= 1;
-	ofn.lpstrFile		= Filename_ZMap;
-	ofn.nMaxFile		= 256;
-	ofn.Flags			= OFN_EXPLORER | OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
-
-	if(GetOpenFileName(&ofn)) ZMapExists = true;
-
-	return;
-}
-
-/* DIALOG_OPENZSCENE - COMMON DIALOG USED FOR SELECTING THE SCENE FILE */
-void Dialog_OpenZScene(HWND hwnd)
-{
-	char			filter[] = "Zelda Scene files (*.zscene)\0*.zscene\0";
-	OPENFILENAME	ofn;
-
-	memset(&ofn, 0, sizeof(ofn));
-	ofn.lStructSize		= sizeof(OPENFILENAME);
-	ofn.hwndOwner		= hwnd;
-	ofn.lpstrFilter		= filter;
-	ofn.nFilterIndex	= 1;
-	ofn.lpstrFile		= Filename_ZScene;
-	ofn.nMaxFile		= 256;
-	ofn.Flags			= OFN_EXPLORER | OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
-
-	if(GetOpenFileName(&ofn)) ZSceneExists = true;
 
 	return;
 }
@@ -591,10 +558,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 
 	SendMessage(hstatus, SB_SETPARTS, sizeof(hstatuswidths)/sizeof(int), (LPARAM)hstatuswidths);
 
-	if (!CreateGLTarget(640,480,16))
-	{
-		return 0;
-	}
+	if (!CreateGLTarget(640,480,16)) return 0;
 
 	sprintf(WindowTitle, "%s %s", AppTitle, AppVersion);
 	SetWindowText(hwnd, WindowTitle);
@@ -639,7 +603,8 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 						System_KbdKeys[VK_F1] = false;
 						if(!(ROM_SceneToLoad == 0)) {
 							ROM_SceneToLoad--;
-							if(ROMExists) Viewer_LoadAreaData(); Viewer_RenderMap();
+							Viewer_LoadAreaData();
+							Viewer_RenderMap();
 						}
 						sprintf(StatusMsg, "Rendering level 0x%02X", ROM_SceneToLoad);
 					}
@@ -647,7 +612,8 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 						System_KbdKeys[VK_F2] = false;
 						if(!(ROM_SceneToLoad == 0x6D)) {
 							ROM_SceneToLoad++;
-							if(ROMExists) Viewer_LoadAreaData();
+							Viewer_LoadAreaData();
+							Viewer_RenderMap();
 						}
 						sprintf(StatusMsg, "Rendering level 0x%02X", ROM_SceneToLoad);
 					}
@@ -849,14 +815,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 
 					Dialog_OpenROM(hwnd);
 					if(ROMExists) Viewer_Initialize();
-/*					ZMapExists = false;
-					ZSceneExists = false;
-
-					Dialog_OpenZMap(hwnd);
-
-					if(ZMapExists) Dialog_OpenZScene(hwnd);
-					if(ZSceneExists) Viewer_Initialize();
-*/					break;
+					break;
 				case IDM_FILE_SAVE:
 					break;
 				case IDM_FILE_EXIT:

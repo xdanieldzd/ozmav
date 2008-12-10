@@ -177,9 +177,9 @@ void KillGLTarget(void)
 /* CREATEGLTARGET - CREATE AN OPENGL RENDERING TARGET WITH THE SPECIFIED PARAMETERS */
 BOOL CreateGLTarget(int width, int height, int bits)
 {
-	GLuint		PixelFormat;
+	GLuint PixelFormat;
 
-	static	PIXELFORMATDESCRIPTOR pfd=
+	static PIXELFORMATDESCRIPTOR pfd=
 	{
 		sizeof(PIXELFORMATDESCRIPTOR),
 		1,

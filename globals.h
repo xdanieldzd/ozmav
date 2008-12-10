@@ -82,8 +82,6 @@ extern void GLUTCamera_Movement(int);
 extern void Camera_MouseMove(int, int);
 
 extern void Dialog_OpenROM(HWND);
-extern void Dialog_OpenZMap(HWND);
-extern void Dialog_OpenZScene(HWND);
 
 extern PFNGLMULTITEXCOORD1FARBPROC		glMultiTexCoord1fARB;
 extern PFNGLMULTITEXCOORD2FARBPROC		glMultiTexCoord2fARB;
@@ -211,6 +209,8 @@ extern unsigned char	* PaletteData;
 extern bool				IsMultitex;
 extern unsigned int		MTexScaler;
 
+extern unsigned int		TexCachePosition;
+
 /* ZELDA ROM HANDLING VARIABLES */
 extern unsigned long	ROM_SceneTableOffset;
 extern unsigned int		ROM_SceneToLoad;
@@ -241,6 +241,8 @@ extern GLuint			Renderer_GLDisplayList;
 extern GLuint			Renderer_GLDisplayList_Current;
 
 extern GLuint			Renderer_GLTexture;
+
+extern GLuint			TempGLTexture;
 
 extern GLuint			Renderer_FilteringMode_Min;
 extern GLuint			Renderer_FilteringMode_Mag;
@@ -410,3 +412,10 @@ struct Palette_Struct {
 };
 extern struct Palette_Struct Palette[512];
 
+struct CurrentTextures_Struct {
+	GLuint GLTextureID;
+	unsigned int DataSource;
+	unsigned long Offset;
+	unsigned int Map;
+};
+extern struct CurrentTextures_Struct CurrentTextures[1024];
