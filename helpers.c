@@ -1,7 +1,7 @@
 /*	------------------------------------------------------------
 	OZMAV - OpenGL Zelda Map Viewer
 
-	Written in October/November 2008 by xdaniel & contributors
+	Written 2008/2009 by xdaniel & contributors
 	http://ozmav.googlecode.com/
 	------------------------------------------------------------
 	helpers.c - misc. helper functions (log file handling, etc.)
@@ -13,31 +13,61 @@
 
 int Viewer_ZMemCopy(unsigned int SourceBank, unsigned long SourceOffset, unsigned char * Target, unsigned long Size)
 {
-	int ReturnValue = 0;
-
 	switch(SourceBank) {
 	case 0x00:
 		/* invalid source, ignore */
 		break;
 	case 0x02:
 		/* data comes from scene file */
-		memcpy(Target, &ZSceneBuffer[SourceOffset / 4], Size);
+		if(SourceOffset < ZSceneFilesize) {
+			memcpy(Target, &ZSceneBuffer[SourceOffset / 4], Size);
+		} else {
+			return -1;
+		}
 		break;
 	case 0x03:
 		/* data comes from map file */
-		memcpy(Target, &ZMapBuffer[ROM_CurrentMap][SourceOffset / 4], Size);
+		if(SourceOffset < ZMapFilesize[ROM_CurrentMap]) {
+			memcpy(Target, &ZMapBuffer[ROM_CurrentMap][SourceOffset / 4], Size);
+		} else {
+			return -1;
+		}
+		break;
+	case 0x04:
+		/* data comes from gameplay_keep */
+		if(SourceOffset < GameplayKeepFilesize) {
+//			memcpy(Target, &GameplayKeepBuffer[SourceOffset / 4], Size);
+		} else {
+			return -1;
+		}
+		break;
+	case 0x05:
+		/* data comes from gameplay_dangeon_keep */
+		if(SourceOffset < GameplayFDKeepFilesize) {
+//			memcpy(Target, &GameplayFDKeepBuffer[SourceOffset / 4], Size);
+		} else {
+			return -1;
+		}
+		break;
+	case 0x06:
+		/* data comes from object file */
+		if((SourceOffset < CurrentObject_Length) && (TempObjectBuffer_Allocated)) {
+			memcpy(Target, &TempObjectBuffer[SourceOffset / 4], Size);
+		} else {
+			return -1;
+		}
 		break;
 	default:
 		/* fallback if source is not handled / no valid source was found */
 		memset(Target, 0xFF, Size);
-		ReturnValue = -1;
+		return -1;
 		break;
 	}
 
 	sprintf(SystemLogMsg, "ZMemCopy: Copying 0x%04X bytes from 0x%02X|%06X\n", Size, SourceBank, SourceOffset);
 	HelperFunc_LogMessage(2, SystemLogMsg);
 
-	return ReturnValue;
+	return 0;
 }
 
 /*	------------------------------------------------------------ */

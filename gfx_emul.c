@@ -1,7 +1,7 @@
 /*	------------------------------------------------------------
 	OZMAV - OpenGL Zelda Map Viewer
 
-	Written in October/November 2008 by xdaniel & contributors
+	Written 2008/2009 by xdaniel & contributors
 	http://ozmav.googlecode.com/
 	------------------------------------------------------------
 	gfx_emul.c - Display List interpreter & main map renderer
@@ -14,6 +14,9 @@
 /* VIEWER_RENDERMAP - MAIN FUNCTION FOR DISPLAY LIST HANDLING TO RENDER MAPS, FOR EITHER ALL OR A GIVEN DISPLAY LIST(S) */
 int Viewer_RenderMap()
 {
+	Debug_MallocOperations = 0;
+	Debug_FreeOperations = 0;
+
 	/* OPEN GFX COMMAND LOG */
 	if(!GFXLogOpened) FileGFXLog = fopen("gfxlog.txt", "w"); GFXLogOpened = true;
 
@@ -24,7 +27,6 @@ int Viewer_RenderMap()
 
 	/* SET GL DLIST BASE */
 	glListBase(Renderer_GLDisplayList);
-
 	Renderer_GLDisplayList_Current = Renderer_GLDisplayList;
 
 	int i = 0;
@@ -40,6 +42,13 @@ int Viewer_RenderMap()
 					DLTempPosition = DLists[ROM_CurrentMap][j] / 4;
 
 					SubDLCall = false;
+
+					/* reset stuff set by geometrymode */
+					glDisable(GL_FOG);
+					glDisable(GL_LIGHTING); glDisable(GL_NORMALIZE); Renderer_EnableLighting = false;
+					glDisable(GL_CULL_FACE);
+
+					GetDLFromZMapScene = true;
 					Viewer_RenderMap_DListParser(false, j, DLTempPosition);
 
 					PrimColor[0] = 0.0f;
@@ -50,10 +59,10 @@ int Viewer_RenderMap()
 					Blender_Cycle1 = 0x00;
 					Blender_Cycle2 = 0x00;
 
-					IsMultitex = false;
-
 					DListHasEnded = false;
 				glEndList();
+
+				Renderer_GLDisplayList_Total++;
 
 //				sprintf(ErrorMsg, "%s- DLists[%d][%d] = 0x%08X\n", ErrorMsg, ROM_CurrentMap, j, DLists[ROM_CurrentMap][j]);
 			}
@@ -64,10 +73,175 @@ int Viewer_RenderMap()
 		Renderer_GLDisplayList_Current += j;
 	}
 
+	TexCachePosition = 0;
+	memset(CurrentTextures, 0x00, sizeof(CurrentTextures));
+
+/*	for(i = 0; i < SceneHeader[SceneHeader_Current].Map_Count; i++) {
+		sprintf(ErrorMsg, "");
+
+		ROM_CurrentMap = i;
+
+		int j = 0;
+		if(!(MapHeader[ROM_CurrentMap][MapHeader_Current].Actor_Count) == 0) {
+			for(j = 0; j < MapHeader[ROM_CurrentMap][MapHeader_Current].Actor_Count; j++) {
+				unsigned int ID = Actors[ROM_CurrentMap][j].Number;
+
+				if(ActorTable[ID].Valid) {
+					unsigned long ActorData_Start = ActorTable[ID].StartOffset;
+					unsigned long ActorData_End = ActorTable[ID].EndOffset;
+					unsigned long ActorData_Length = ActorData_End - ActorData_Start;
+
+					unsigned long TempOffset;
+
+					if(!(TempActorBuffer = (unsigned int*) malloc (sizeof(int) * ActorData_Length))) {
+						MessageBox(hwnd, "Error while allocating actor scratch buffer!", "Error", MB_OK | MB_ICONSTOP);
+						TempActorBuffer_Allocated = false;
+						AreaLoaded = false;
+						return 0;
+					} else {
+						TempActorBuffer_Allocated = true;
+						Debug_MallocOperations++;
+					}
+
+					memcpy(TempActorBuffer, &ROMBuffer[ActorData_Start / 4], ActorData_Length);
+
+					memcpy(&Readout_Current1, &TempActorBuffer[(ActorData_Length / 4) - 1], 4);
+					HelperFunc_SplitCurrentVals(false);
+
+					unsigned long TempDiff = (Readout_CurrentByte1 * 0x1000000) + (Readout_CurrentByte2 * 0x10000) + (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
+					TempOffset = ActorData_Length - TempDiff;
+
+					memcpy(&Readout_Current1, &TempActorBuffer[TempOffset / 4], 4);
+					HelperFunc_SplitCurrentVals(false);
+
+					TempOffset = (Readout_CurrentByte1 * 0x1000000) + (Readout_CurrentByte2 * 0x10000) + (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
+
+					memcpy(&Readout_Current1, &TempActorBuffer[(TempOffset / 4) + 2], 4);
+					HelperFunc_SplitCurrentVals(false);
+
+					ObjectID = (Readout_CurrentByte1 * 0x100) + Readout_CurrentByte2;
+
+					bool TempValid = true;
+
+					if((ObjectID < 0x03) || (ObjectID > 0x191)) {
+						TempValid = false;
+					} else {
+						if(ObjectTable[ObjectID].Valid == false) {
+							TempValid = false;
+						}
+					}
+
+					if((TempValid) && (TempActorBuffer_Allocated)) {
+						unsigned long CurrentObject_Start = ObjectTable[ObjectID].StartOffset;
+						unsigned long CurrentObject_End = ObjectTable[ObjectID].EndOffset;
+						CurrentObject_Length = CurrentObject_End - CurrentObject_Start;
+
+						sprintf(ErrorMsg, "Object %04X: 0x%08X - 0x%08X (0x%06X bytes)\n", ObjectID, CurrentObject_Start, CurrentObject_End, CurrentObject_Length);
+						HelperFunc_LogMessage(2, ErrorMsg);
+
+						if(!(TempObjectBuffer = (unsigned int*) malloc (sizeof(int) * CurrentObject_Length))) {
+							MessageBox(hwnd, "Error while allocating object scratch buffer!", "Error", MB_OK | MB_ICONSTOP);
+							TempObjectBuffer_Allocated = false;
+							AreaLoaded = false;
+							return 0;
+						} else {
+							TempObjectBuffer_Allocated = true;
+							Debug_MallocOperations++;
+						}
+
+						memcpy(TempObjectBuffer, &ROMBuffer[CurrentObject_Start / 4], CurrentObject_Length);
+
+						unsigned int DListScanPosition = 0;
+						bool DListFound = false;
+						int DListCnt = 0;
+
+						while ((DListScanPosition < CurrentObject_Length / 4) && (DListFound == false)) {
+							memcpy(&Readout_Current1, &TempObjectBuffer[DListScanPosition], 4);
+							memcpy(&Readout_Current2, &TempObjectBuffer[DListScanPosition + 1], 4);
+
+							HelperFunc_SplitCurrentVals(true);
+
+							if((Readout_CurrentByte1 == 0xE7) && (Readout_CurrentByte2 == 0x00)) {
+								if((Readout_CurrentByte3 == 0x00) && (Readout_CurrentByte4 == 0x00)) {
+									glNewList(Renderer_GLDisplayList + Renderer_GLDisplayList_Total + ID, GL_COMPILE);
+										SubDLCall = false;
+										GetDLFromZMapScene = false;
+										if(DListCnt == 0) {
+											Viewer_RenderMap_DListParser(false, j, DListScanPosition);
+											DListFound = true;
+										}
+
+										PrimColor[0] = 0.0f;
+										PrimColor[1] = 0.0f;
+										PrimColor[2] = 0.0f;
+										PrimColor[3] = 1.0f;
+
+										Blender_Cycle1 = 0x00;
+										Blender_Cycle2 = 0x00;
+
+										DListHasEnded = false;
+
+										DListCnt++;
+									glEndList();
+								}
+							}
+							DListScanPosition += 2;
+						}
+
+						if(TempObjectBuffer_Allocated) { free(TempObjectBuffer); TempObjectBuffer_Allocated = false; Debug_FreeOperations++; }
+					} else {
+						glNewList(Renderer_GLDisplayList + Renderer_GLDisplayList_Total + ID, GL_COMPILE);
+							glBegin(GL_QUADS);
+								glColor3f(0.0f, 1.0f, 0.0f);
+
+								glVertex3s( 12, 12, 12);   //V2
+								glVertex3s( 12,-12, 12);   //V1
+								glVertex3s( 12,-12,-12);   //V3
+								glVertex3s( 12, 12,-12);   //V4
+
+								glVertex3s( 12, 12,-12);   //V4
+								glVertex3s( 12,-12,-12);   //V3
+								glVertex3s(-12,-12,-12);   //V5
+								glVertex3s(-12, 12,-12);   //V6
+
+								glVertex3s(-12, 12,-12);   //V6
+								glVertex3s(-12,-12,-12);   //V5
+								glVertex3s(-12,-12, 12);   //V7
+								glVertex3s(-12, 12, 12);   //V8
+
+								glVertex3s(-12, 12,-12);   //V6
+								glVertex3s(-12, 12, 12);   //V8
+								glVertex3s( 12, 12, 12);   //V2
+								glVertex3s( 12, 12,-12);   //V4
+
+								glVertex3s(-12,-12, 12);   //V7
+								glVertex3s(-12,-12,-12);   //V5
+								glVertex3s( 12,-12,-12);   //V3
+								glVertex3s( 12,-12, 12);   //V1
+
+								//front
+								glColor3f(1.0f, 1.0f, 1.0f);
+
+								glVertex3s(-12, 12, 12);   //V8
+								glVertex3s(-12,-12, 12);   //V7
+								glVertex3s( 12,-12, 12);   //V1
+								glVertex3s( 12, 12, 12);   //V2
+							glEnd();
+						glEndList();
+					}
+
+					if(TempActorBuffer_Allocated) { free(TempActorBuffer); TempActorBuffer_Allocated = false; Debug_FreeOperations++; }
+				}
+			}
+		}
+	}
+*/
 	AreaLoaded = true;
 
 	fclose(FileGFXLog); GFXLogOpened = false;
-	fclose(FileSystemLog);
+
+//	sprintf(ErrorMsg, "%d malloc operations, %d free operations while loading map", Debug_MallocOperations, Debug_FreeOperations);
+//	MessageBox(hwnd, ErrorMsg, "Memory", MB_OK | MB_ICONINFORMATION);
 
 	return 0;
 }
@@ -86,12 +260,23 @@ int Viewer_RenderMap_DListParser(bool CalledFromRDPHalf, unsigned int DLToRender
 	}
 
 	while (!DListHasEnded) {
-		memcpy(&Readout_Current1, &ZMapBuffer[ROM_CurrentMap][Position], 4);
-		memcpy(&Readout_Current2, &ZMapBuffer[ROM_CurrentMap][Position + 1], 4);
+		if(GetDLFromZMapScene) {
+			/* get data from map */
+			memcpy(&Readout_Current1, &ZMapBuffer[ROM_CurrentMap][Position], 4);
+			memcpy(&Readout_Current2, &ZMapBuffer[ROM_CurrentMap][Position + 1], 4);
 
-		memcpy(&Readout_NextGFXCommand1, &ZMapBuffer[ROM_CurrentMap][Position + 2], 4);
+			memcpy(&Readout_NextGFXCommand1, &ZMapBuffer[ROM_CurrentMap][Position + 2], 4);
 
-		HelperFunc_SplitCurrentVals(true);
+			HelperFunc_SplitCurrentVals(true);
+		} else {
+			/* get data from temp object */
+			memcpy(&Readout_Current1, &TempObjectBuffer[Position], 4);
+			memcpy(&Readout_Current2, &TempObjectBuffer[Position + 1], 4);
+
+			memcpy(&Readout_NextGFXCommand1, &TempObjectBuffer[Position + 2], 4);
+
+			HelperFunc_SplitCurrentVals(true);
+		}
 
 		if(CalledFromRDPHalf) HelperFunc_LogMessage(1, " ");
 
@@ -202,7 +387,7 @@ int Viewer_RenderMap_DListParser(bool CalledFromRDPHalf, unsigned int DLToRender
 			sprintf(CurrentGFXCmd, "F3DEX2_RDPHALF_1     ");
 			sprintf(CurrentGFXCmdNote, "<unemulated>");
 			HelperFunc_GFXLogCommand(Position);
-			Viewer_RenderMap_CMDRDPHalf1();
+			Viewer_RenderMap_CMDRDPHalf1(GetDLFromZMapScene);
 			break;
 		case G_LOADTLUT:
 			sprintf(CurrentGFXCmd, "G_LOADTLUT           ");
@@ -212,9 +397,8 @@ int Viewer_RenderMap_DListParser(bool CalledFromRDPHalf, unsigned int DLToRender
 			break;
 		case G_SETCOMBINE:
 			sprintf(CurrentGFXCmd, "G_SETCOMBINE         ");
-			sprintf(CurrentGFXCmdNote, "<partially handled>");
+			sprintf(CurrentGFXCmdNote, "<unemulated>");
 			HelperFunc_GFXLogCommand(Position);
-			Viewer_RenderMap_CMDSetCombine();
 			break;
 		case F3DEX2_DL:
 			sprintf(CurrentGFXCmd, "F3DEX2_DL            ");
@@ -260,29 +444,7 @@ int Viewer_RenderMap_DListParser(bool CalledFromRDPHalf, unsigned int DLToRender
 /* VIEWER_RENDERMAP_CMDVERTEXLIST - F3DEX2_VTX - GET OFFSET, AMOUNT & VERTEX BUFFER POSITION OF VERTICES TO USE */
 int Viewer_RenderMap_CMDVertexList()
 {
-	if((GLExtension_MultiTexture) && (Renderer_EnableCombiner)) {
-		Viewer_SetGLCombiner();
-
-		if(IsMultitex) {
-			/* texture 0 */
-			glActiveTextureARB(GL_TEXTURE0_ARB);
-			Renderer_GLTexture = Viewer_LoadTexture(0);
-			glBindTexture(GL_TEXTURE_2D, Renderer_GLTexture);
-
-			/* texture 1 */
-			glActiveTextureARB(GL_TEXTURE1_ARB);
-			Renderer_GLTexture = Viewer_LoadTexture(1);
-			glBindTexture(GL_TEXTURE_2D, Renderer_GLTexture);
-		} else {
-			/* texture */
-			glActiveTextureARB(GL_TEXTURE1_ARB);
-			glDisable(GL_TEXTURE_2D);
-
-			glActiveTextureARB(GL_TEXTURE0_ARB);
-			Renderer_GLTexture = Viewer_LoadTexture(0);
-			glBindTexture(GL_TEXTURE_2D, Renderer_GLTexture);
-		}
-	} else {
+	if(!Texture[0].DataSource == 0x00) {
 		glEnable(GL_TEXTURE_2D);
 		Renderer_GLTexture = Viewer_LoadTexture(0);
 		glBindTexture(GL_TEXTURE_2D, Renderer_GLTexture);
@@ -315,9 +477,11 @@ int Viewer_GetVertexList(unsigned int Bank, unsigned long Offset, unsigned int V
 	VertListTempBuffer = (unsigned char *) malloc ((VertCount + 1) * 0x10);
 	memset(VertListTempBuffer, 0x00, sizeof(VertListTempBuffer));
 
+	Debug_MallocOperations++;
+
 	if(Viewer_ZMemCopy(Bank, Offset, VertListTempBuffer, ((VertCount + 1) * 0x10)) == -1) {
 		sprintf(ErrorMsg, "Invalid Vertex data source 0x%02X!", Bank);
-		MessageBox(hwnd, ErrorMsg, "Error", MB_OK | MB_ICONERROR);
+//		MessageBox(hwnd, ErrorMsg, "Error", MB_OK | MB_ICONERROR);
 		return 0;
 	}
 
@@ -362,6 +526,7 @@ int Viewer_GetVertexList(unsigned int Bank, unsigned long Offset, unsigned int V
 	}
 
 	free(VertListTempBuffer);
+	Debug_FreeOperations++;
 
 	return 0;
 }
@@ -407,42 +572,21 @@ int Viewer_RenderMap_CMDDrawTri1()
 
 		TempU = (float) CurrentH1_1 * Texture[0].S_Scale / 32 / Texture[0].WidthRender;
 		TempV = (float) CurrentV1_1 * Texture[0].T_Scale / 32 / Texture[0].HeightRender;
-		TempU2 = (float) CurrentH1_1 * Texture[0].S_Scale / 32 / Texture[1].WidthRender;
-		TempV2 = (float) CurrentV1_1 * Texture[0].T_Scale / 32 / Texture[1].HeightRender;
-		if((GLExtension_MultiTexture) && (Renderer_EnableCombiner)) {
-			glMultiTexCoord2fARB(GL_TEXTURE0_ARB, TempU, TempV);
-			if(IsMultitex) glMultiTexCoord2fARB(GL_TEXTURE1_ARB, TempU2 / MTexScaler, TempV2 / MTexScaler);
-		} else {
-			glTexCoord2f(TempU, TempV);
-		}
+		glTexCoord2f(TempU, TempV);
 		if(!Renderer_EnableLighting) { glColor4ub (CurrentR1_1, CurrentG1_1, CurrentB1_1, CurrentA1_1); }
 		glNormal3f (CurrentR1_1 / 255.0f, CurrentG1_1 / 255.0f, CurrentB1_1 / 255.0f);
 		glVertex3d(CurrentX1_1, CurrentY1_1, CurrentZ1_1);
 
 		TempU = (float) CurrentH1_2 * Texture[0].S_Scale / 32 / Texture[0].WidthRender;
 		TempV = (float) CurrentV1_2 * Texture[0].T_Scale / 32 / Texture[0].HeightRender;
-		TempU2 = (float) CurrentH1_2 * Texture[0].S_Scale / 32 / Texture[1].WidthRender;
-		TempV2 = (float) CurrentV1_2 * Texture[0].T_Scale / 32 / Texture[1].HeightRender;
-		if((GLExtension_MultiTexture) && (Renderer_EnableCombiner)) {
-			glMultiTexCoord2fARB(GL_TEXTURE0_ARB, TempU, TempV);
-			if(IsMultitex) glMultiTexCoord2fARB(GL_TEXTURE1_ARB, TempU2 / MTexScaler, TempV2 / MTexScaler);
-		} else {
-			glTexCoord2f(TempU, TempV);
-		}
+		glTexCoord2f(TempU, TempV);
 		if(!Renderer_EnableLighting) { glColor4ub (CurrentR1_2, CurrentG1_2, CurrentB1_2, CurrentA1_2); }
 		glNormal3f (CurrentR1_2 / 255.0f, CurrentG1_2 / 255.0f, CurrentB1_2 / 255.0f);
 		glVertex3d(CurrentX1_2, CurrentY1_2, CurrentZ1_2);
 
 		TempU = (float) CurrentH1_3 * Texture[0].S_Scale / 32 / Texture[0].WidthRender;
 		TempV = (float) CurrentV1_3 * Texture[0].T_Scale / 32 / Texture[0].HeightRender;
-		TempU2 = (float) CurrentH1_3 * Texture[0].S_Scale / 32 / Texture[1].WidthRender;
-		TempV2 = (float) CurrentV1_3 * Texture[0].T_Scale / 32 / Texture[1].HeightRender;
-		if((GLExtension_MultiTexture) && (Renderer_EnableCombiner)) {
-			glMultiTexCoord2fARB(GL_TEXTURE0_ARB, TempU, TempV);
-			if(IsMultitex) glMultiTexCoord2fARB(GL_TEXTURE1_ARB, TempU2 / MTexScaler, TempV2 / MTexScaler);
-		} else {
-			glTexCoord2f(TempU, TempV);
-		}
+		glTexCoord2f(TempU, TempV);
 		if(!Renderer_EnableLighting) { glColor4ub (CurrentR1_3, CurrentG1_3, CurrentB1_3, CurrentA1_3); }
 		glNormal3f (CurrentR1_3 / 255.0f, CurrentG1_3 / 255.0f, CurrentB1_3 / 255.0f);
 		glVertex3d(CurrentX1_3, CurrentY1_3, CurrentZ1_3);
@@ -522,84 +666,42 @@ int Viewer_RenderMap_CMDDrawTri2()
 
 		TempU = (float) CurrentH1_1 * Texture[0].S_Scale / 32 / Texture[0].WidthRender;
 		TempV = (float) CurrentV1_1 * Texture[0].T_Scale / 32 / Texture[0].HeightRender;
-		TempU2 = (float) CurrentH1_1 * Texture[0].S_Scale / 32 / Texture[1].WidthRender;
-		TempV2 = (float) CurrentV1_1 * Texture[0].T_Scale / 32 / Texture[1].HeightRender;
-		if((GLExtension_MultiTexture) && (Renderer_EnableCombiner)) {
-			glMultiTexCoord2fARB(GL_TEXTURE0_ARB, TempU, TempV);
-			if(IsMultitex) glMultiTexCoord2fARB(GL_TEXTURE1_ARB, TempU2 / MTexScaler, TempV2 / MTexScaler);
-		} else {
-			glTexCoord2f(TempU, TempV);
-		}
+		glTexCoord2f(TempU, TempV);
 		if(!Renderer_EnableLighting) { glColor4ub (CurrentR1_1, CurrentG1_1, CurrentB1_1, CurrentA1_1); }
 		glNormal3f (CurrentR1_1 / 255.0f, CurrentG1_1 / 255.0f, CurrentB1_1 / 255.0f);
 		glVertex3d(CurrentX1_1, CurrentY1_1, CurrentZ1_1);
 
 		TempU = (float) CurrentH1_2 * Texture[0].S_Scale / 32 / Texture[0].WidthRender;
 		TempV = (float) CurrentV1_2 * Texture[0].T_Scale / 32 / Texture[0].HeightRender;
-		TempU2 = (float) CurrentH1_2 * Texture[0].S_Scale / 32 / Texture[1].WidthRender;
-		TempV2 = (float) CurrentV1_2 * Texture[0].T_Scale / 32 / Texture[1].HeightRender;
-		if((GLExtension_MultiTexture) && (Renderer_EnableCombiner)) {
-			glMultiTexCoord2fARB(GL_TEXTURE0_ARB, TempU, TempV);
-			if(IsMultitex) glMultiTexCoord2fARB(GL_TEXTURE1_ARB, TempU2 / MTexScaler, TempV2 / MTexScaler);
-		} else {
-			glTexCoord2f(TempU, TempV);
-		}
+		glTexCoord2f(TempU, TempV);
 		if(!Renderer_EnableLighting) { glColor4ub (CurrentR1_2, CurrentG1_2, CurrentB1_2, CurrentA1_2); }
 		glNormal3f (CurrentR1_2 / 255.0f, CurrentG1_2 / 255.0f, CurrentB1_2 / 255.0f);
 		glVertex3d(CurrentX1_2, CurrentY1_2, CurrentZ1_2);
 
 		TempU = (float) CurrentH1_3 * Texture[0].S_Scale / 32 / Texture[0].WidthRender;
 		TempV = (float) CurrentV1_3 * Texture[0].T_Scale / 32 / Texture[0].HeightRender;
-		TempU2 = (float) CurrentH1_3 * Texture[0].S_Scale / 32 / Texture[1].WidthRender;
-		TempV2 = (float) CurrentV1_3 * Texture[0].T_Scale / 32 / Texture[1].HeightRender;
-		if((GLExtension_MultiTexture) && (Renderer_EnableCombiner)) {
-			glMultiTexCoord2fARB(GL_TEXTURE0_ARB, TempU, TempV);
-			if(IsMultitex) glMultiTexCoord2fARB(GL_TEXTURE1_ARB, TempU2 / MTexScaler, TempV2 / MTexScaler);
-		} else {
-			glTexCoord2f(TempU, TempV);
-		}
+		glTexCoord2f(TempU, TempV);
 		if(!Renderer_EnableLighting) { glColor4ub (CurrentR1_3, CurrentG1_3, CurrentB1_3, CurrentA1_3); }
 		glNormal3f (CurrentR1_3 / 255.0f, CurrentG1_3 / 255.0f, CurrentB1_3 / 255.0f);
 		glVertex3d(CurrentX1_3, CurrentY1_3, CurrentZ1_3);
 
 		TempU = (float) CurrentH2_1 * Texture[0].S_Scale / 32 / Texture[0].WidthRender;
 		TempV = (float) CurrentV2_1 * Texture[0].T_Scale / 32 / Texture[0].HeightRender;
-		TempU2 = (float) CurrentH2_1 * Texture[0].S_Scale / 32 / Texture[1].WidthRender;
-		TempV2 = (float) CurrentV2_1 * Texture[0].T_Scale / 32 / Texture[1].HeightRender;
-		if((GLExtension_MultiTexture) && (Renderer_EnableCombiner)) {
-			glMultiTexCoord2fARB(GL_TEXTURE0_ARB, TempU, TempV);
-			if(IsMultitex) glMultiTexCoord2fARB(GL_TEXTURE1_ARB, TempU2 / MTexScaler, TempV2 / MTexScaler);
-		} else {
-			glTexCoord2f(TempU, TempV);
-		}
+		glTexCoord2f(TempU, TempV);
 		if(!Renderer_EnableLighting) { glColor4ub (CurrentR2_1, CurrentG2_1, CurrentB2_1, CurrentA2_1); }
 		glNormal3f (CurrentR2_1 / 255.0f, CurrentG2_1 / 255.0f, CurrentB2_1 / 255.0f);
 		glVertex3d(CurrentX2_1, CurrentY2_1, CurrentZ2_1);
 
 		TempU = (float) CurrentH2_2 * Texture[0].S_Scale / 32 / Texture[0].WidthRender;
 		TempV = (float) CurrentV2_2 * Texture[0].T_Scale / 32 / Texture[0].HeightRender;
-		TempU2 = (float) CurrentH2_2 * Texture[0].S_Scale / 32 / Texture[1].WidthRender;
-		TempV2 = (float) CurrentV2_2 * Texture[0].T_Scale / 32 / Texture[1].HeightRender;
-		if((GLExtension_MultiTexture) && (Renderer_EnableCombiner)) {
-			glMultiTexCoord2fARB(GL_TEXTURE0_ARB, TempU, TempV);
-			if(IsMultitex) glMultiTexCoord2fARB(GL_TEXTURE1_ARB, TempU2 / MTexScaler, TempV2 / MTexScaler);
-		} else {
-			glTexCoord2f(TempU, TempV);
-		}
+		glTexCoord2f(TempU, TempV);
 		if(!Renderer_EnableLighting) { glColor4ub (CurrentR2_2, CurrentG2_2, CurrentB2_2, CurrentA2_2); }
 		glNormal3f (CurrentR2_2 / 255.0f, CurrentG2_2 / 255.0f, CurrentB2_2 / 255.0f);
 		glVertex3d(CurrentX2_2, CurrentY2_2, CurrentZ2_2);
 
 		TempU = (float) CurrentH2_3 * Texture[0].S_Scale / 32 / Texture[0].WidthRender;
 		TempV = (float) CurrentV2_3 * Texture[0].T_Scale / 32 / Texture[0].HeightRender;
-		TempU2 = (float) CurrentH2_3 * Texture[0].S_Scale / 32 / Texture[1].WidthRender;
-		TempV2 = (float) CurrentV2_3 * Texture[0].T_Scale / 32 / Texture[1].HeightRender;
-		if((GLExtension_MultiTexture) && (Renderer_EnableCombiner)) {
-			glMultiTexCoord2fARB(GL_TEXTURE0_ARB, TempU, TempV);
-			if(IsMultitex) glMultiTexCoord2fARB(GL_TEXTURE1_ARB, TempU2 / MTexScaler, TempV2 / MTexScaler);
-		} else {
-			glTexCoord2f(TempU, TempV);
-		}
+		glTexCoord2f(TempU, TempV);
 		if(!Renderer_EnableLighting) { glColor4ub (CurrentR2_3, CurrentG2_3, CurrentB2_3, CurrentA2_3); }
 		glNormal3f (CurrentR2_3 / 255.0f, CurrentG2_3 / 255.0f, CurrentB2_3 / 255.0f);
 		glVertex3d(CurrentX2_3, CurrentY2_3, CurrentZ2_3);
@@ -628,16 +730,6 @@ int Viewer_RenderMap_CMDSetTImage()
 			Texture[0].PalOffset = Texture[0].PalOffset + (Readout_CurrentByte7 << 8);
 			Texture[0].PalOffset = Texture[0].PalOffset + Readout_CurrentByte8;
 
-			IsMultitex = false;
-			break;
-		case 0x000110F5:
-			Texture[1].DataSource = Readout_CurrentByte5;
-
-			Texture[1].Offset = Readout_CurrentByte6 << 16;
-			Texture[1].Offset = Texture[1].Offset + (Readout_CurrentByte7 << 8);
-			Texture[1].Offset = Texture[1].Offset + Readout_CurrentByte8;
-
-			IsMultitex = true;
 			break;
 		default:
 			Texture[0].DataSource = Readout_CurrentByte5;
@@ -645,8 +737,6 @@ int Viewer_RenderMap_CMDSetTImage()
 			Texture[0].Offset = Readout_CurrentByte6 << 16;
 			Texture[0].Offset = Texture[0].Offset + (Readout_CurrentByte7 << 8);
 			Texture[0].Offset = Texture[0].Offset + Readout_CurrentByte8;
-
-			IsMultitex = false;
 			break;
 	}
 
@@ -661,79 +751,41 @@ int Viewer_RenderMap_CMDSetTile()
 
 	unsigned char TempXParameter = Readout_CurrentByte7 * 0x10;
 
-	if(!IsMultitex) {
-		switch(Readout_CurrentByte6) {
-			case 0x01:
-				Texture[0].Y_Parameter = 1;
-				break;
-			case 0x09:
-				Texture[0].Y_Parameter = 2;
-				break;
-			case 0x05:
-				Texture[0].Y_Parameter = 3;
-				break;
-			default:
-				Texture[0].Y_Parameter = 1;
-				break;
-		}
-
-		switch(TempXParameter) {
-			case 0x00:
-				Texture[0].X_Parameter = 1;
-				break;
-			case 0x20:
-				Texture[0].X_Parameter = 2;
-				break;
-			case 0x10:
-				Texture[0].X_Parameter = 3;
-				break;
-			default:
-				Texture[0].X_Parameter = 1;
-				break;
-		}
-
-		Texture[0].LineSize = Readout_CurrentByte3 / 2;
-		Texture[0].Format_N64 = Readout_CurrentByte2;
-		Texture[0].Palette = (Readout_Current1 >> 20) & 0x0F;
-		Texture[0].Format_OGL = GL_RGBA;
-		Texture[0].Format_OGLPixel = GL_RGBA;
-	} else {
-		switch(Readout_CurrentByte6) {
-			case 0x01:
-				Texture[1].Y_Parameter = 1;
-				break;
-			case 0x09:
-				Texture[1].Y_Parameter = 2;
-				break;
-			case 0x05:
-				Texture[1].Y_Parameter = 3;
-				break;
-			default:
-				Texture[1].Y_Parameter = 1;
-				break;
-		}
-
-		switch(TempXParameter) {
-			case 0x00:
-				Texture[1].X_Parameter = 1;
-				break;
-			case 0x20:
-				Texture[1].X_Parameter = 2;
-				break;
-			case 0x10:
-				Texture[1].X_Parameter = 3;
-				break;
-			default:
-				Texture[1].X_Parameter = 1;
-				break;
-		}
-
-		Texture[1].LineSize = Readout_CurrentByte3 / 2;
-		Texture[1].Format_N64 = Readout_CurrentByte2;
-		Texture[1].Palette = (Readout_Current1 >> 20) & 0x0F;
-		Texture[1].Format_OGL = GL_RGBA;
-		Texture[1].Format_OGLPixel = GL_RGBA;
+	switch(Readout_CurrentByte6) {
+		case 0x01:
+			Texture[0].Y_Parameter = 1;
+			break;
+		case 0x09:
+			Texture[0].Y_Parameter = 2;
+			break;
+		case 0x05:
+			Texture[0].Y_Parameter = 3;
+			break;
+		default:
+			Texture[0].Y_Parameter = 1;
+			break;
 	}
+
+	switch(TempXParameter) {
+		case 0x00:
+			Texture[0].X_Parameter = 1;
+			break;
+		case 0x20:
+			Texture[0].X_Parameter = 2;
+			break;
+		case 0x10:
+			Texture[0].X_Parameter = 3;
+			break;
+		default:
+			Texture[0].X_Parameter = 1;
+			break;
+	}
+
+	Texture[0].LineSize = Readout_CurrentByte3 / 2;
+	Texture[0].Format_N64 = Readout_CurrentByte2;
+	Texture[0].Palette = (Readout_Current1 >> 20) & 0x0F;
+	Texture[0].Format_OGL = GL_RGBA;
+	Texture[0].Format_OGLPixel = GL_RGBA;
 
 	return 0;
 }
@@ -751,38 +803,21 @@ int Viewer_RenderMap_CMDSetTileSize()
 	unsigned int LRS = (TileSize_Temp2 & 0xFFF000) >> 14;
 	unsigned int LRT = (TileSize_Temp2 & 0x000FFF) >> 2;
 
-	MTexScaler = (Readout_CurrentByte5 + 1) * 2;
+	Texture[0].Width  = ((LRS - ULS) + 1);
+	Texture[0].Height = ((LRT - ULT) + 1);
 
-	if(!IsMultitex) {
-		Texture[0].Width  = ((LRS - ULS) + 1);
-		Texture[0].Height = ((LRT - ULT) + 1);
-
-		if(Texture[0].Width > 256) {
-			Texture[0].WidthRender = Texture[0].Width - 64;
-		} else {
-			Texture[0].WidthRender = Texture[0].Width;
-		}
-
-		if(Texture[0].Height > 256) {
-			Texture[0].HeightRender = Texture[0].Height - 64;
-		} else {
-			Texture[0].HeightRender = Texture[0].Height;
-		}
+	if(Texture[0].Width > 256) {
+		Texture[0].Width = 256;
+		Texture[0].WidthRender = Texture[0].Width;// - 64;
 	} else {
-		Texture[1].Width  = ((LRS - ULS) + 1);
-		Texture[1].Height = ((LRT - ULT) + 1);
+		Texture[0].WidthRender = Texture[0].Width;
+	}
 
-		if(Texture[1].Width > 256) {
-			Texture[1].WidthRender = Texture[1].Width - 64;
-		} else {
-			Texture[1].WidthRender = Texture[1].Width;
-		}
-
-		if(Texture[1].Height > 256) {
-			Texture[1].HeightRender = Texture[1].Height - 64;
-		} else {
-			Texture[1].HeightRender = Texture[1].Height;
-		}
+	if(Texture[0].Height > 256) {
+		Texture[0].Height = 256;
+		Texture[0].HeightRender = Texture[0].Height;// - 64;
+	} else {
+		Texture[0].HeightRender = Texture[0].Height;
 	}
 
 	return 0;
@@ -985,7 +1020,7 @@ int Viewer_RenderMap_CMDLoadTLUT(unsigned int PaletteSrc, unsigned long PaletteO
 }
 
 /* VIEWER_RENDERMAP_CMDRDPHALF1 - F3DEX2_RDPHALF_1 - CALL AND RENDER ADDITIONAL DISPLAY LISTS FROM INSIDE OTHERS */
-int Viewer_RenderMap_CMDRDPHalf1()
+int Viewer_RenderMap_CMDRDPHalf1(bool GetDLFromZMapScene)
 {
 	if(Readout_CurrentByte5 == 0x03) {
 		unsigned long TempOffset;
@@ -1040,6 +1075,8 @@ int Viewer_RenderMap_CMDSetOtherModeL()
 	GLclampf Blender_AlphaRef =		0.5f;
 
 	switch (Blender_Cycle1 + Blender_Cycle2) {
+		case 0x0055 + 0x2048:
+
 		case 0xC811 + 0x2078:								//no blending
 		case 0xC811 + 0x3078:
 		case 0x0C19 + 0x2078:
@@ -1074,6 +1111,8 @@ int Viewer_RenderMap_CMDSetOtherModeL()
 			Blender_AlphaFunc = GL_GREATER;
 			Blender_AlphaRef = 0.0f;
 			break;
+		case 0x0050 + 0x4B50:
+		case 0x0C18 + 0x4B50:								//
 		case 0xC810 + 0x4B50:								//spot00 - death mountain plane, spot04 - drawing at link's house
 			Blender_SrcFactor = GL_SRC_ALPHA;
 			Blender_DstFactor = GL_ONE_MINUS_SRC_ALPHA;
@@ -1092,7 +1131,9 @@ int Viewer_RenderMap_CMDSetOtherModeL()
 			Blender_AlphaFunc = GL_GEQUAL;
 			Blender_AlphaRef = 0.5f;
 			break;
+		case 0x0C18 + 0x4F50:								//
 		case 0xC810 + 0x4F50:								//spot00, spot02, spot04 - pathways
+		case 0xC818 + 0x4F50:								//
 			Blender_SrcFactor = GL_SRC_ALPHA;
 			Blender_DstFactor = GL_ONE_MINUS_SRC_ALPHA;
 			Blender_AlphaFunc = GL_NOTEQUAL;
@@ -1117,177 +1158,14 @@ int Viewer_RenderMap_CMDSetOtherModeL()
 	return 0;
 }
 
-int Viewer_RenderMap_CMDSetCombine()
-{
-	static char *Mode[] = { "G_CCMUX_COMBINED       ", "G_CCMUX_TEXEL0         ",
-							"G_CCMUX_TEXEL1         ", "G_CCMUX_PRIMITIVE      ",
-							"G_CCMUX_SHADE          ", "G_CCMUX_ENVIRONMENT    ",
-							"G_CCMUX_CENTER         ", "G_CCMUX_COMBINED_ALPHA ",
-							"G_CCMUX_TEXEL0_ALPHA   ", "G_CCMUX_TEXEL1_ALPHA   ",
-							"G_CCMUX_PRIMITIVE_ALPHA", "G_CCMUX_SHADE_ALPHA    ",
-							"G_CCMUX_ENV_ALPHA      ", "G_CCMUX_LOD_FRACTION   ",
-							"G_CCMUX_PRIM_LOD_FRAC  ", "G_CCMUX_K5             ",
-							"G_CCMUX_UNDEFINED      ", "G_CCMUX_UNDEFINED      ",
-							"G_CCMUX_UNDEFINED      ", "G_CCMUX_UNDEFINED      ",
-							"G_CCMUX_UNDEFINED      ", "G_CCMUX_UNDEFINED      ",
-							"G_CCMUX_UNDEFINED      ", "G_CCMUX_UNDEFINED      ",
-							"G_CCMUX_UNDEFINED      ", "G_CCMUX_UNDEFINED      ",
-							"G_CCMUX_UNDEFINED      ", "G_CCMUX_UNDEFINED      ",
-							"G_CCMUX_UNDEFINED      ", "G_CCMUX_UNDEFINED      ",
-							"G_CCMUX_UNDEFINED      ", "G_CCMUX_0              " };
-
-	static char *Alpha[] = { "AC_COMBINED            ", "AC_TEXEL0              ",
-						  	 "AC_TEXEL1              ", "AC_PRIMITIVE           ",
-							 "AC_SHADE               ", "AC_ENVIRONMENT         ",
-							 "AC_PRIM_LOD_FRAC       ", "AC_0                   " };
-
-	unsigned long TempExtract0 =	(Readout_CurrentByte1 * 0x1000000) +
-									(Readout_CurrentByte2 * 0x10000) +
-									(Readout_CurrentByte3 * 0x100) +
-									Readout_CurrentByte4;
-
-	unsigned long TempExtract1 =	(Readout_CurrentByte5 * 0x1000000) +
-									(Readout_CurrentByte6 * 0x10000) +
-									(Readout_CurrentByte7 * 0x100) +
-									Readout_CurrentByte8;
-
-	Combiner_Color_A0	= ((TempExtract0 >> 20) & 0xF);
-	Combiner_Color_B0	= ((TempExtract1 >> 28) & 0xF);
-	Combiner_Color_C0	= ((TempExtract0 >> 15) & 0x1F);
-	Combiner_Color_D0	= ((TempExtract1 >> 15) & 0x7);
-	Combiner_Alpha_A0	= ((TempExtract0 >> 12) & 0x7);
-	Combiner_Alpha_B0	= ((TempExtract1 >> 12) & 0x7);
-	Combiner_Alpha_C0	= ((TempExtract0 >> 9)  & 0x7);
-	Combiner_Alpha_D0	= ((TempExtract1 >> 9)  & 0x7);
-
-	Combiner_Color_A1	= ((TempExtract0 >> 5)  & 0xF);
-	Combiner_Color_B1	= ((TempExtract1 >> 24) & 0xF);
-	Combiner_Color_C1	= ((TempExtract0 >> 0)  & 0x1F);
-	Combiner_Color_D1	= ((TempExtract1 >> 6)  & 0x7);
-	Combiner_Alpha_A1	= ((TempExtract1 >> 21) & 0x7);
-	Combiner_Alpha_B1	= ((TempExtract1 >> 3)  & 0x7);
-	Combiner_Alpha_C1	= ((TempExtract1 >> 18) & 0x7);
-	Combiner_Alpha_D1	= ((TempExtract1 >> 0)  & 0x7);
-
-	Combiner_Cycle1 =	(Combiner_Color_A0 << 0)  | (Combiner_Color_B0 << 4)  |
-						(Combiner_Color_C0 << 8)  | (Combiner_Color_D0 << 13) |
-						(Combiner_Alpha_A0 << 16) | (Combiner_Alpha_B0 << 19) |
-						(Combiner_Alpha_C0 << 22) | (Combiner_Alpha_D0 << 25);
-
-	Combiner_Cycle2 =	(Combiner_Color_A1 << 0)  | (Combiner_Color_B1 << 4)  |
-						(Combiner_Color_C1 << 8)  | (Combiner_Color_D1 << 13) |
-						(Combiner_Alpha_A1 << 16) | (Combiner_Alpha_B1 << 19) |
-						(Combiner_Alpha_C1 << 22) | (Combiner_Alpha_D1 << 25);
-
-	#define CMB			0x00000001
-	#define T0			0x00000002
-	#define T1			0x00000004
-	#define PRIM		0x00000008
-	#define SHADE		0x00000010
-	#define ENV			0x00000020
-	#define CENTER		0x00000040
-	#define SCALE		0x00000080
-	#define CMB_A		0x00000100
-	#define T0_A		0x00000200
-	#define T1_A		0x00000400
-	#define PRIM_A		0x00000800
-	#define SHADE_A		0x00001000
-	#define ENV_A		0x00002000
-	#define	LOD_F		0x00004000
-	#define PRIM_LOD_F	0x00008000
-	#define NOISE		0x00010000
-	#define ONE			0x80000000
-
-	int CycleCnt = 1;
-	if (RDPCycleMode == 1) CycleCnt = 2;
-
-	int i, j;
-
-	for(i = 0; i < CycleCnt; i++) {
-		/* color part */
-		unsigned int CurrentCycleData = Combiner_Cycle1;
-		if(i == 1) CurrentCycleData = Combiner_Cycle2;
-
-		switch (CurrentCycleData & 0x0000FFFF) {
-			case 0xE4F1:
-				Combiner_TextureMode = T0 | SHADE;
-				Combiner_AlphaCycles = 2;
-				Combiner_Texture |= 1;
-				break;
-			default:
-/*				sprintf(SystemLogMsg, "SetCombine:\nColor A0 = %s, Color B0 = %s, Color C0 = %s, Color D0 = %s\nAlpha A0 = %s, Alpha B0 = %s, Alpha C0 = %s, Alpha D0 = %s\nColor A1 = %s, Color B1 = %s, Color C1 = %s, Color D1 = %s\nAlpha A1 = %s, Alpha B1 = %s, Alpha C1 = %s, Alpha D1 = %s\nCurrent Cycle = %04X, Cycle 1 = %08X, Cycle 2 = %08X\n\n",
-						Mode[Combiner_Color_A0],  Mode[Combiner_Color_B0],  Mode[Combiner_Color_C0],  Mode[Combiner_Color_D0],
-						Alpha[Combiner_Alpha_A0], Alpha[Combiner_Alpha_B0], Alpha[Combiner_Alpha_C0], Alpha[Combiner_Alpha_D0],
-						Mode[Combiner_Color_A1],  Mode[Combiner_Color_B1],  Mode[Combiner_Color_C1],  Mode[Combiner_Color_D1],
-						Alpha[Combiner_Alpha_A1], Alpha[Combiner_Alpha_B1], Alpha[Combiner_Alpha_C1], Alpha[Combiner_Alpha_D1],
-						(CurrentCycleData & 0x0000FFFF), (unsigned int)Combiner_Cycle1, (unsigned int)Combiner_Cycle2);
-				HelperFunc_LogMessage(2, SystemLogMsg);
-*/
-				break;
-		}
-	}
-
-	for(j = 0; j < Combiner_AlphaCycles; j++) {
-		/* alpha part */
-		unsigned int CurrentCycleData = Combiner_Cycle1;
-		if(j == 1) CurrentCycleData = Combiner_Cycle2;
-
-		switch ((CurrentCycleData & 0xFFFF0000) >> 16) {
-			default:
-				break;
-		}
-	}
-
-	return 0;
-}
-
 /*	------------------------------------------------------------ */
-
-int Viewer_SetGLCombiner()
-{
-	switch(Combiner_TextureMode) {
-		case T0 | SHADE:
-			glActiveTextureARB(GL_TEXTURE0);
-			glEnable(GL_TEXTURE_2D);
-			glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE);
-			glTexEnvf(GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_REPLACE);
-			glTexEnvf(GL_TEXTURE_ENV, GL_SOURCE0_RGB, GL_TEXTURE);
-			glTexEnvf(GL_TEXTURE_ENV, GL_OPERAND0_RGB, GL_SRC_COLOR);
-			glTexEnvf(GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_MODULATE);
-			glTexEnvf(GL_TEXTURE_ENV, GL_SOURCE1_RGB, GL_PRIMARY_COLOR);
-			glTexEnvf(GL_TEXTURE_ENV, GL_OPERAND1_RGB, GL_SRC_COLOR);
-
-			glActiveTextureARB(GL_TEXTURE1);
-			glEnable(GL_TEXTURE_2D);
-			glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE);
-			glTexEnvf(GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_MODULATE);
-			glTexEnvf(GL_TEXTURE_ENV, GL_SOURCE0_RGB, GL_PREVIOUS);
-			glTexEnvf(GL_TEXTURE_ENV, GL_OPERAND0_RGB, GL_SRC_COLOR);
-			glTexEnvf(GL_TEXTURE_ENV, GL_SOURCE1_RGB, GL_TEXTURE);
-			glTexEnvf(GL_TEXTURE_ENV, GL_OPERAND1_RGB, GL_SRC_COLOR);
-			glTexEnvf(GL_TEXTURE_ENV, GL_SOURCE2_RGB, GL_CONSTANT);
-			glTexEnvf(GL_TEXTURE_ENV, GL_OPERAND2_RGB, GL_SRC_COLOR);
-			break;
-		default:
-			glActiveTextureARB(GL_TEXTURE1);
-			glDisable(GL_TEXTURE_2D);
-			glActiveTextureARB(GL_TEXTURE0);
-			glDisable(GL_TEXTURE_2D);
-			break;
-	}
-
-	switch(Combiner_AlphaMode) {
-		default:
-			//
-			break;
-	}
-
-	return 0;
-}
 
 /* VIEWER_LOADTEXTURE - FETCH THE TEXTURE DATA AND CREATE AN OGL TEXTURE */
 GLuint Viewer_LoadTexture(int TextureID)
 {
+	/* for now, don't do any texturing for objects - REALLY crashy-crashy atm */
+//	if(!GetDLFromZMapScene) return 0;
+
 	if((Readout_NextGFXCommand1 == 0x00000003) || (Readout_NextGFXCommand1 == 0x000000E1)) return 0;
 
 /*	sprintf(ErrorMsg, "TEXTURE %d:\n \
@@ -1309,8 +1187,14 @@ GLuint Viewer_LoadTexture(int TextureID)
 	int i = 0;
 	int j = 0;
 
-	unsigned long TextureBufferSize = 0x8000;
+//	unsigned long TextureBufferSize = 0x10000;
+	unsigned long TextureBufferSize = (Texture[TextureID].Height * Texture[TextureID].Width) * 8;
 
+/*	if(TextureBufferSize > 0x10000) {
+		sprintf(ErrorMsg, "warning: texture buffer > 0x10000!!\n%d * %d * 4 = 0x%08x", Texture[TextureID].Height, Texture[TextureID].Width, TextureBufferSize);
+		MessageBox(hwnd, ErrorMsg, "", 0);
+	}
+*/
 	bool UnhandledTextureSource = false;
 
 	TextureData_OGL = (unsigned char *) malloc (sizeof(char) * TextureBufferSize);
@@ -1319,12 +1203,18 @@ GLuint Viewer_LoadTexture(int TextureID)
 	memset(TextureData_OGL, 0x00, TextureBufferSize);
 	memset(TextureData_N64, 0x00, TextureBufferSize);
 
+	Debug_MallocOperations++;
+	Debug_MallocOperations++;
+
 	/* create solid red texture for unsupported stuff, such as kakariko windows */
 	unsigned char * EmptyTexture_Red;
 	unsigned char * EmptyTexture_Green;
 
 	EmptyTexture_Red = (unsigned char *) malloc (sizeof(char) * TextureBufferSize);
 	EmptyTexture_Green = (unsigned char *) malloc (sizeof(char) * TextureBufferSize);
+
+	Debug_MallocOperations++;
+	Debug_MallocOperations++;
 
 	for(i = 0; i < TextureBufferSize; i+=4) {
 		EmptyTexture_Red[i]			= 0xFF;
@@ -1629,34 +1519,43 @@ GLuint Viewer_LoadTexture(int TextureID)
 
 	bool SearchingCache = true;
 	bool NewTexture = false;
+	unsigned int OtherCacheCriteria = 0;
 
 	i = 0;
+
+	if(GetDLFromZMapScene) {
+		OtherCacheCriteria = ROM_CurrentMap;
+	} else {
+		OtherCacheCriteria = ObjectID;
+//		i=1024;					/* CACHING BROKEN FOR ACTORS - SKIPPING CACHE VIA I=1024 */
+	}
 
 	while(SearchingCache) {
 		if((CurrentTextures[i].Offset == Texture[TextureID].Offset) &&
 			(CurrentTextures[i].DataSource == Texture[TextureID].DataSource) &&
-			(CurrentTextures[i].Map == ROM_CurrentMap)) {
+			(CurrentTextures[i].OtherCriteria == OtherCacheCriteria)) {
 				SearchingCache = false;
 				TempGLTexture = CurrentTextures[i].GLTextureID;
-		}
+		} else {
+			if(i != 1024) {
+				i++;
+			} else {
+				SearchingCache = false;
 
-		i++;
+				glGenTextures(1, &TempGLTexture);
 
-		if(i == 1025) {
-			SearchingCache = false;
+				CurrentTextures[TexCachePosition].GLTextureID = TempGLTexture;
+				CurrentTextures[TexCachePosition].Offset = Texture[TextureID].Offset;
+				CurrentTextures[TexCachePosition].DataSource = Texture[TextureID].DataSource;
+				CurrentTextures[TexCachePosition].OtherCriteria = OtherCacheCriteria;
+				TexCachePosition++;
 
-			glGenTextures(1, &TempGLTexture);
-			glBindTexture(GL_TEXTURE_2D, TempGLTexture);
-
-			CurrentTextures[TexCachePosition].GLTextureID = TempGLTexture;
-			CurrentTextures[TexCachePosition].Offset = Texture[TextureID].Offset;
-			CurrentTextures[TexCachePosition].DataSource = Texture[TextureID].DataSource;
-			CurrentTextures[TexCachePosition].Map = ROM_CurrentMap;
-			TexCachePosition++;
-
-			NewTexture = true;
+				NewTexture = true;
+			}
 		}
 	}
+
+	glBindTexture(GL_TEXTURE_2D, TempGLTexture);
 
 	if(NewTexture) {
 		switch(Texture[TextureID].Y_Parameter) {
@@ -1692,8 +1591,14 @@ GLuint Viewer_LoadTexture(int TextureID)
 	free(TextureData_N64);
 	free(TextureData_OGL);
 
+	Debug_FreeOperations++;
+	Debug_FreeOperations++;
+
 	free(EmptyTexture_Red);
 	free(EmptyTexture_Green);
+
+	Debug_FreeOperations++;
+	Debug_FreeOperations++;
 
 	return TempGLTexture;
 }

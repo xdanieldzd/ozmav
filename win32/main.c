@@ -1,7 +1,7 @@
 /*	------------------------------------------------------------
 	OZMAV - OpenGL Zelda Map Viewer
 
-	Written in October/November 2008 by xdaniel & contributors
+	Written 2008/2009 by xdaniel & contributors
 	http://ozmav.googlecode.com/
 	------------------------------------------------------------
 	main.c - Windows stuff, basic initialization + camera
@@ -43,7 +43,7 @@ char			szClassName[] = "OZMAVClass";
 bool			System_KbdKeys[256];
 
 char			AppTitle[256] = "OZMAV";
-char			AppVersion[256] = "V0.6";
+char			AppVersion[256] = "V0.6b";
 char			AppBuildName[256] = "interrupted stability";
 char			AppPath[512] = "";
 char			INIPath[512] = "";
@@ -60,8 +60,8 @@ bool			ExitProgram = false;
 
 char			CurrentGFXCmd[256] = "";
 char			CurrentGFXCmdNote[256] = "";
-char			GFXLogMsg[256] = "";
-char			SystemLogMsg[256] = "";
+char			GFXLogMsg[1024] = "";
+char			SystemLogMsg[1024] = "";
 
 bool			GFXLogOpened = false;
 
@@ -77,10 +77,6 @@ bool			MouseButtonDown = false;
 
 /* FILE HANDLING VARIABLES */
 FILE			* FileROM = NULL;
-FILE			* FileZMap = NULL;
-FILE			* FileZScene = NULL;
-FILE			* FileGameplayKeep = NULL;
-FILE			* FileGameplayFDKeep = NULL;
 
 unsigned int	* ROMBuffer;
 unsigned int	* ZMapBuffer[256];
@@ -88,21 +84,28 @@ unsigned int	* ZSceneBuffer;
 unsigned int	* GameplayKeepBuffer;
 unsigned int	* GameplayFDKeepBuffer;
 
+unsigned int	* TempActorBuffer;
+unsigned int	* TempObjectBuffer;
+bool			TempActorBuffer_Allocated;
+bool			TempObjectBuffer_Allocated;
+
+unsigned int	Debug_MallocOperations;
+unsigned int	Debug_FreeOperations;
+
+bool			GetDLFromZMapScene;
+
 unsigned long	ROMFilesize = 0;
 unsigned long	ZMapFilesize[256];
 unsigned long	ZSceneFilesize = 0;
 unsigned long	GameplayKeepFilesize = 0;
 unsigned long	GameplayFDKeepFilesize = 0;
 
+unsigned long	CurrentObject_Length;
+unsigned int	ObjectID;
+
 char			Filename_ROM[256] = "";
-char			Filename_ZMap[256] = "";
-char			Filename_ZScene[256] = "";
-char			Filename_GameplayKeep[256] = "";
-char			Filename_GameplayFDKeep[256] = "";
 
 bool			ROMExists = false;
-bool			ZMapExists = false;
-bool			ZSceneExists = false;
 
 FILE			* FileGFXLog = NULL;
 FILE			* FileSystemLog = NULL;
@@ -139,15 +142,16 @@ unsigned char	* TextureData_N64 = NULL;
 
 unsigned char	* PaletteData = NULL;
 
-bool			IsMultitex = false;
-unsigned int	MTexScaler = 1;
-
-unsigned int	TexCachePosition = 0;
-unsigned int	TotalTexCount = 0;
+unsigned long	TexCachePosition = 0;
+unsigned long	TotalTexCount = 0;
 
 /* ZELDA ROM HANDLING VARIABLES */
 unsigned long	ROM_SceneTableOffset = 0x00;
 unsigned int	ROM_SceneToLoad = 0x00;
+
+unsigned long	ROM_ObjectTableOffset = 0x00;
+unsigned long	ROM_ActorTableOffset = 0x00;
+
 unsigned int	ROM_CurrentMap = 0;
 
 /* ZELDA MAP & SCENE HEADER HANDLING VARIABLES */
@@ -173,6 +177,7 @@ int				ScActorInfo_Selected = 0;
 /* GENERAL RENDERER VARIABLES */
 GLuint			Renderer_GLDisplayList = 0;
 GLuint			Renderer_GLDisplayList_Current = 0;
+GLuint			Renderer_GLDisplayList_Total = 0;
 
 GLuint			Renderer_GLTexture = 0;
 
@@ -199,8 +204,6 @@ GLfloat			PrimColor[]= { 0.0f, 0.0f, 0.0f, 1.0f };
 bool			Renderer_EnableMapActors = true;
 bool			Renderer_EnableSceneActors = true;
 
-bool			Renderer_EnableCombiner = false;
-
 /* OPENGL EXTENSION VARIABLES */
 char			* GLExtension_List;
 bool			GLExtension_MultiTexture = false;
@@ -217,32 +220,6 @@ unsigned int	RDPCycleMode = 0;
 unsigned long	Blender_Cycle1 = 0x00;
 unsigned long	Blender_Cycle2 = 0x00;
 
-unsigned int	Combiner_TextureMode = 0;
-unsigned int	Combiner_Texture = 0;
-unsigned int	Combiner_AlphaMode = 0;
-unsigned int	Combiner_AlphaCycles = 1;
-
-unsigned long	Combiner_Cycle1 = 0x00;
-unsigned long	Combiner_Cycle2 = 0x00;
-
-GLenum			Combiner_Color_A0 = 0x00;
-GLenum			Combiner_Color_B0 = 0x00;
-GLenum			Combiner_Color_C0 = 0x00;
-GLenum			Combiner_Color_D0 = 0x00;
-GLenum			Combiner_Alpha_A0 = 0x00;
-GLenum			Combiner_Alpha_B0 = 0x00;
-GLenum			Combiner_Alpha_C0 = 0x00;
-GLenum			Combiner_Alpha_D0 = 0x00;
-
-GLenum			Combiner_Color_A1 = 0x00;
-GLenum			Combiner_Color_B1 = 0x00;
-GLenum			Combiner_Color_C1 = 0x00;
-GLenum			Combiner_Color_D1 = 0x00;
-GLenum			Combiner_Alpha_A1 = 0x00;
-GLenum			Combiner_Alpha_B1 = 0x00;
-GLenum			Combiner_Alpha_C1 = 0x00;
-GLenum			Combiner_Alpha_D1 = 0x00;
-
 /*	------------------------------------------------------------
 	STRUCTURES
 	------------------------------------------------------------ */
@@ -258,49 +235,19 @@ struct ScActors_Struct ScActors[1024];
 /* F3DZEX VERTEX DATA STRUCTURE */
 struct Vertex_Struct Vertex[4096];
 /* F3DZEX TEXTURE DATA STRUCTURE */
-struct Texture_Struct Texture[1];
+struct Texture_Struct Texture[0];
 /* CI TEXTURE PALETTE STRUCTURE */
 struct Palette_Struct Palette[512];
-
+/* PSEUDO TEXTURE CACHE STRUCTURE */
 struct CurrentTextures_Struct CurrentTextures[1024];
+
+struct ObjectActorTable_Struct ObjectTable[8192];
+struct ObjectActorTable_Struct ActorTable[8192];
 
 /*	------------------------------------------------------------ */
 
 int Viewer_Initialize()
 {
-	Viewer_LoadAreaData();
-	Viewer_RenderMap();
-
-	EnableMenuItem(hmenu, IDM_CAMERA_RESETCOORDS, MF_BYCOMMAND | MF_ENABLED);
-	EnableMenuItem(hmenu, IDM_MAP_PREVDLIST, MF_BYCOMMAND | MF_ENABLED);
-	EnableMenuItem(hmenu, IDM_MAP_NEXTDLIST, MF_BYCOMMAND | MF_ENABLED);
-	EnableMenuItem(hmenu, IDM_MAP_PREVHEADER, MF_BYCOMMAND | MF_ENABLED);
-	EnableMenuItem(hmenu, IDM_MAP_NEXTHEADER, MF_BYCOMMAND | MF_ENABLED);
-	EnableMenuItem(hmenu, IDM_SCENE_PREVHEADER, MF_BYCOMMAND | MF_ENABLED);
-	EnableMenuItem(hmenu, IDM_SCENE_NEXTHEADER, MF_BYCOMMAND | MF_ENABLED);
-	EnableMenuItem(hmenu, IDM_ACTORS_MAPRENDER, MF_BYCOMMAND | MF_ENABLED);
-	EnableMenuItem(hmenu, IDM_ACTORS_SELECTPREV, MF_BYCOMMAND | MF_ENABLED);
-	EnableMenuItem(hmenu, IDM_ACTORS_SELECTNEXT, MF_BYCOMMAND | MF_ENABLED);
-	EnableMenuItem(hmenu, IDM_ACTORS_JUMPFIRST, MF_BYCOMMAND | MF_ENABLED);
-	EnableMenuItem(hmenu, IDM_ACTORS_JUMPLAST, MF_BYCOMMAND | MF_ENABLED);
-	EnableMenuItem(hmenu, IDM_ACTORS_SCENERENDER, MF_BYCOMMAND | MF_ENABLED);
-	EnableMenuItem(hmenu, IDM_ACTORS_SCENEPREV, MF_BYCOMMAND | MF_ENABLED);
-	EnableMenuItem(hmenu, IDM_ACTORS_SCENENEXT, MF_BYCOMMAND | MF_ENABLED);
-	EnableMenuItem(hmenu, IDM_OPTIONS_FILTERNEAREST, MF_BYCOMMAND | MF_ENABLED);
-	EnableMenuItem(hmenu, IDM_OPTIONS_FILTERLINEAR, MF_BYCOMMAND | MF_ENABLED);
-	EnableMenuItem(hmenu, IDM_OPTIONS_FILTERMIPMAP, MF_BYCOMMAND | MF_ENABLED);
-	EnableMenuItem(hmenu, IDM_OPTIONS_MULTITEXTURE, MF_BYCOMMAND | MF_ENABLED);
-
-	sprintf(WindowTitle, "%s %s - %s", AppTitle, AppVersion, Filename_ROM);
-	SetWindowText(hwnd, WindowTitle);
-
-	return 0;
-}
-
-int Viewer_LoadAreaData()
-{
-	FileSystemLog = fopen("log.txt", "w");
-
 	/* OPEN FILE */
 	FileROM = fopen(Filename_ROM, "r+b");
 	/* GET FILESIZE */
@@ -314,6 +261,49 @@ int Viewer_LoadAreaData()
 	/* CLOSE FILE */
 	fclose(FileROM);
 
+	Viewer_LoadAreaData();
+	Viewer_RenderMapRefresh();
+
+	EnableMenuItem(hmenu, IDM_LEVEL_PREVLEVEL, MF_BYCOMMAND | MF_ENABLED);
+	EnableMenuItem(hmenu, IDM_LEVEL_NEXTLEVEL, MF_BYCOMMAND | MF_ENABLED);
+	EnableMenuItem(hmenu, IDM_MAP_PREVHEADER, MF_BYCOMMAND | MF_ENABLED);
+	EnableMenuItem(hmenu, IDM_MAP_NEXTHEADER, MF_BYCOMMAND | MF_ENABLED);
+	EnableMenuItem(hmenu, IDM_SCENE_PREVHEADER, MF_BYCOMMAND | MF_ENABLED);
+	EnableMenuItem(hmenu, IDM_SCENE_NEXTHEADER, MF_BYCOMMAND | MF_ENABLED);
+	EnableMenuItem(hmenu, IDM_ACTORS_MAPRENDER, MF_BYCOMMAND | MF_ENABLED);
+//	EnableMenuItem(hmenu, IDM_ACTORS_SELECTPREV, MF_BYCOMMAND | MF_ENABLED);
+//	EnableMenuItem(hmenu, IDM_ACTORS_SELECTNEXT, MF_BYCOMMAND | MF_ENABLED);
+//	EnableMenuItem(hmenu, IDM_ACTORS_JUMPFIRST, MF_BYCOMMAND | MF_ENABLED);
+//	EnableMenuItem(hmenu, IDM_ACTORS_JUMPLAST, MF_BYCOMMAND | MF_ENABLED);
+	EnableMenuItem(hmenu, IDM_ACTORS_SCENERENDER, MF_BYCOMMAND | MF_ENABLED);
+//	EnableMenuItem(hmenu, IDM_ACTORS_SCENEPREV, MF_BYCOMMAND | MF_ENABLED);
+//	EnableMenuItem(hmenu, IDM_ACTORS_SCENENEXT, MF_BYCOMMAND | MF_ENABLED);
+	EnableMenuItem(hmenu, IDM_OPTIONS_RESETCAMCOORDS, MF_BYCOMMAND | MF_ENABLED);
+	EnableMenuItem(hmenu, IDM_OPTIONS_FILTERNEAREST, MF_BYCOMMAND | MF_ENABLED);
+	EnableMenuItem(hmenu, IDM_OPTIONS_FILTERLINEAR, MF_BYCOMMAND | MF_ENABLED);
+	EnableMenuItem(hmenu, IDM_OPTIONS_FILTERMIPMAP, MF_BYCOMMAND | MF_ENABLED);
+//	EnableMenuItem(hmenu, IDM_OPTIONS_MULTITEXTURE, MF_BYCOMMAND | MF_ENABLED);
+
+	sprintf(WindowTitle, "%s %s - %s", AppTitle, AppVersion, Filename_ROM);
+	SetWindowText(hwnd, WindowTitle);
+
+//	if(ROMBuffer != NULL) free(ROMBuffer);
+
+	return 0;
+}
+
+int Viewer_LoadAreaData()
+{
+	FileSystemLog = fopen("log.txt", "w");
+
+	AreaLoaded = false;
+
+	sprintf(StatusMsg, "Loading level...");
+	SendMessage(hstatus, SB_SETTEXT, 2, (LPARAM)StatusMsg);
+
+	free(GameplayKeepBuffer);
+	free(GameplayFDKeepBuffer);
+
 	int i = 0;
 
 	for(i = 0; i < (SceneHeader[SceneHeader_Current].Map_Count); i++) {
@@ -322,11 +312,12 @@ int Viewer_LoadAreaData()
 	if(ZSceneBuffer != NULL) free(ZSceneBuffer);
 	if(PaletteData != NULL) free(PaletteData);
 
-	for(i = 0; i < 1024; i++) {
-		glDeleteTextures(1, &CurrentTextures[i].GLTextureID);
+	for(i = 0; i < 1025; i++) {
+		if(glIsTexture(CurrentTextures[i].GLTextureID) == GL_TRUE) {
+			glDeleteTextures(1, &CurrentTextures[i].GLTextureID);
+		}
 	}
-
-	AreaLoaded = false;
+	memset(CurrentTextures, 0x00, sizeof(CurrentTextures));
 
 	MapHeader_Current = 0;
 	SceneHeader_Current = 0;
@@ -346,11 +337,32 @@ int Viewer_LoadAreaData()
 	PaletteData = (unsigned char *) malloc (1024);
 	memset(PaletteData, 0x00, sizeof(PaletteData));
 
-	memset(CurrentTextures, 0x00, sizeof(CurrentTextures));
+	/* reset texture struct to prevent texture loader from going out of whack when there aren't any on a map (ex. sasatest) */
+	Texture[0].Height = 0x00, Texture[0].HeightRender = 0x00, Texture[0].Width = 0x00, Texture[0].WidthRender = 0x00;
+	Texture[0].DataSource = 0x00, Texture[0].PalDataSource = 0x00, Texture[0].Offset = 0x00, Texture[0].PalOffset = 0x00;
+	Texture[0].Format_N64 = 0x00, Texture[0].Format_OGL = 0x00, Texture[0].Format_OGLPixel = 0x00;
+	Texture[0].Y_Parameter = 0x00, Texture[0].X_Parameter = 0x00, Texture[0].S_Scale = 0x00, Texture[0].T_Scale = 0x00;
+	Texture[0].LineSize = 0x00, Texture[0].Palette = 0x00;
+
 	TexCachePosition = 0;
 
+	/* ---- LOAD GAMEPLAY DATA FILES ---- */
+
+	unsigned long TempOffset = 0;
+	TempOffset = 0xF5E000;
+	GameplayKeepFilesize = 0x0567B0;
+	GameplayKeepBuffer = (unsigned int*) malloc (sizeof(int) * GameplayKeepFilesize);
+	memcpy(GameplayKeepBuffer, &ROMBuffer[TempOffset / 4], GameplayKeepFilesize);
+
+	TempOffset = 0xFC3000;
+	GameplayFDKeepFilesize = 0x017AF0;
+	GameplayFDKeepBuffer = (unsigned int*) malloc (sizeof(int) * GameplayFDKeepFilesize);
+	memcpy(GameplayFDKeepBuffer, &ROMBuffer[TempOffset / 4], GameplayFDKeepFilesize);
+
+	/* ---- LOAD SCENE DATA ---- */
+
 	/* get current scene's offset */
-	unsigned long TempOffset = (ROM_SceneTableOffset / 4) + (ROM_SceneToLoad * 0x14) / 4;
+	TempOffset = (ROM_SceneTableOffset / 4) + (ROM_SceneToLoad * 0x14) / 4;
 	memcpy(&Readout_Current1, &ROMBuffer[TempOffset], 4);
 	memcpy(&Readout_Current2, &ROMBuffer[TempOffset + 1], 4);
 	HelperFunc_SplitCurrentVals(true);
@@ -358,6 +370,8 @@ int Viewer_LoadAreaData()
 	unsigned long Scene_Start = (Readout_CurrentByte1 * 0x1000000) + (Readout_CurrentByte2 * 0x10000) + (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
 	unsigned long Scene_End = (Readout_CurrentByte5 * 0x1000000) + (Readout_CurrentByte6 * 0x10000) + (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
 	unsigned long Scene_Length = Scene_End - Scene_Start;
+
+	ZSceneFilesize = Scene_Length;
 
 	/* copy current scene into buffer */
 	ZSceneBuffer = (unsigned int*) malloc (sizeof(int) * Scene_Length);
@@ -378,6 +392,8 @@ int Viewer_LoadAreaData()
 
 	Viewer_GetSceneHeader(SceneHeader_Current);
 	Viewer_GetSceneActors(SceneHeader_Current);
+
+	/* ---- LOAD MAP DATA ---- */
 
 	for(i = 0; i < (SceneHeader[SceneHeader_Current].Map_Count); i++) {
 		ROM_CurrentMap = i;
@@ -407,11 +423,58 @@ int Viewer_LoadAreaData()
 			} else {
 				MapHeader_TotalCount = 0;
 			}
+
+			Viewer_GetMapHeader(MapHeader_Current);
+			Viewer_GetMapActors(MapHeader_Current);
+		} else {
+			MessageBox(hwnd, "Invalid or non-standard map header!", "Error", MB_OK | MB_ICONEXCLAMATION);
 		}
 
-		Viewer_GetMapHeader(MapHeader_Current);
-		Viewer_GetMapActors(MapHeader_Current);
-		Viewer_GetDisplayLists(ZMapFilesize[i]);
+		Viewer_GetMapDisplayLists(ZMapFilesize[i]);
+	}
+
+	/* ---- LOAD OBJECT DATA ---- */
+
+	ROM_ObjectTableOffset = 0xB9E6C8;
+
+	for(i = 0; i < (0x192 * 2); i+=2) {
+		memcpy(&Readout_Current1, &ROMBuffer[(ROM_ObjectTableOffset / 4) + i], 4);
+		memcpy(&Readout_Current2, &ROMBuffer[(ROM_ObjectTableOffset / 4) + i + 1], 4);
+		HelperFunc_SplitCurrentVals(true);
+
+		ObjectTable[i / 2].StartOffset = (Readout_CurrentByte1 * 0x1000000) + (Readout_CurrentByte2 * 0x10000) + (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
+		ObjectTable[i / 2].EndOffset = (Readout_CurrentByte5 * 0x1000000) + (Readout_CurrentByte6 * 0x10000) + (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
+
+		if((ObjectTable[i / 2].StartOffset == 0x00) && (ObjectTable[i / 2].EndOffset == 0x00)) {
+			ObjectTable[i / 2].Valid = false;
+		} else {
+			ObjectTable[i / 2].Valid = true;
+		}
+
+//		sprintf(ErrorMsg, "%04X: %08X -> %08X", i / 2, ObjectTable[i / 2].StartOffset, ObjectTable[i / 2].EndOffset);
+//		MessageBox(hwnd, ErrorMsg, "", 0);
+	}
+
+	/* ---- LOAD ACTOR DATA ---- */
+
+	ROM_ActorTableOffset = 0xB8D440;
+
+	for(i = 0; i < (0x1D7 * 8); i+=8) {
+		memcpy(&Readout_Current1, &ROMBuffer[(ROM_ActorTableOffset / 4) + i], 4);
+		memcpy(&Readout_Current2, &ROMBuffer[(ROM_ActorTableOffset / 4) + i + 1], 4);
+		HelperFunc_SplitCurrentVals(true);
+
+		ActorTable[i / 8].StartOffset = (Readout_CurrentByte1 * 0x1000000) + (Readout_CurrentByte2 * 0x10000) + (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
+		ActorTable[i / 8].EndOffset = (Readout_CurrentByte5 * 0x1000000) + (Readout_CurrentByte6 * 0x10000) + (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
+
+		if((ActorTable[i / 8].StartOffset == 0x00) && (ActorTable[i / 8].EndOffset == 0x00)) {
+			ActorTable[i / 8].Valid = false;
+		} else {
+			ActorTable[i / 8].Valid = true;
+		}
+
+//		sprintf(ErrorMsg, "%04X: %08X -> %08X (valid: %d)", i / 8, ActorTable[i / 8].StartOffset, ActorTable[i / 8].EndOffset, ActorTable[i / 8].Valid);
+//		MessageBox(hwnd, ErrorMsg, "", 0);
 	}
 
 	CamAngleX = 0.0f, CamAngleY = 0.0f;
@@ -423,9 +486,27 @@ int Viewer_LoadAreaData()
 	memset(GFXLogMsg, 0x00, sizeof(GFXLogMsg));
 	memset(SystemLogMsg, 0x00, sizeof(SystemLogMsg));
 
-	sprintf(StatusMsg, "Map loaded successfully!");
+//	sprintf(StatusMsg, "Level loaded successfully!");
+	sprintf(StatusMsg, "Level: 0x%02X", ROM_SceneToLoad);
 
-	if(ROMBuffer != NULL) free(ROMBuffer);
+	return 0;
+}
+
+int Viewer_RenderMapRefresh()
+{
+	/* rendering speed workaround: i don't know why it works (related to texture
+	   handling most likely), only that it does!
+
+	   basically, we create the whole ogl dlist stuff once (rendermap), then
+	   draw the whole thing once (drawglscene) and then recreate the ogl dlists
+	   again - instant speedup! the level loading process now takes roughly
+	   double the time, but with the spirit temple rendering at ~65 fps instead
+	   of a mere 28 or so (depending where the camera's at), i guess that
+	   tradeoff isn't too bad :) */
+
+	Viewer_RenderMap();
+	DrawGLScene();
+	Viewer_RenderMap();
 
 	return 0;
 }
@@ -576,7 +657,6 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 	Renderer_FilteringMode_Mag = GetPrivateProfileInt("Viewer", "TexFilterMag", GL_LINEAR, INIPath);
 	Renderer_EnableMapActors = GetPrivateProfileInt("Viewer", "RenderMapActors", true, INIPath);
 	Renderer_EnableSceneActors = GetPrivateProfileInt("Viewer", "RenderSceneActors", false, INIPath);
-	Renderer_EnableCombiner = GetPrivateProfileInt("Viewer", "EnableCombiner", false, INIPath);
 
 	ShowWindow(hwnd, nFunsterStil);
 
@@ -604,18 +684,18 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 						if(!(ROM_SceneToLoad == 0)) {
 							ROM_SceneToLoad--;
 							Viewer_LoadAreaData();
-							Viewer_RenderMap();
+							Viewer_RenderMapRefresh();
 						}
-						sprintf(StatusMsg, "Rendering level 0x%02X", ROM_SceneToLoad);
+						sprintf(StatusMsg, "Level: 0x%02X", ROM_SceneToLoad);
 					}
 					if (System_KbdKeys[VK_F2]) {
 						System_KbdKeys[VK_F2] = false;
 						if(!(ROM_SceneToLoad == 0x6D)) {
 							ROM_SceneToLoad++;
 							Viewer_LoadAreaData();
-							Viewer_RenderMap();
+							Viewer_RenderMapRefresh();
 						}
-						sprintf(StatusMsg, "Rendering level 0x%02X", ROM_SceneToLoad);
+						sprintf(StatusMsg, "Level: 0x%02X", ROM_SceneToLoad);
 					}
 					if (System_KbdKeys[VK_F3]) {
 						System_KbdKeys[VK_F3] = false;
@@ -643,7 +723,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 							sprintf(StatusMsg, "Map Header: #%d", MapHeader_Current);
 						}
 					}
-					if (System_KbdKeys[VK_F5]) {
+/*					if (System_KbdKeys[VK_F5]) {
 						System_KbdKeys[VK_F5] = false;
 						if(!(ActorInfo_Selected == 0)) {
 							ActorInfo_Selected--;
@@ -663,7 +743,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 						System_KbdKeys[VK_F8] = false;
 						ActorInfo_Selected = MapHeader[ROM_CurrentMap][MapHeader_Current].Actor_Count - 1;
 					}
-
+*/
 					if (System_KbdKeys[VK_DIVIDE]) {
 						System_KbdKeys[VK_DIVIDE] = false;
 						if(!(SceneHeader_TotalCount == 0)) {
@@ -690,7 +770,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 							sprintf(StatusMsg, "Scene Header: #%d", SceneHeader_Current);
 						}
 					}
-					if (System_KbdKeys[VK_SUBTRACT]) {
+/*					if (System_KbdKeys[VK_SUBTRACT]) {
 						System_KbdKeys[VK_SUBTRACT] = false;
 						if(!(ScActorInfo_Selected == 0)) {
 							ScActorInfo_Selected--;
@@ -702,7 +782,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 							ScActorInfo_Selected++;
 						}
 					}
-
+*/
 					if (System_KbdKeys['W']) {
 						if(System_KbdKeys[VK_SHIFT]) {
 							GLUTCamera_Movement(6);
@@ -722,10 +802,10 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 						}
 					}
 					if (System_KbdKeys[VK_LEFT]) {
-						CamAngleX -= 0.02f;
+						CamAngleX -= 0.025f;
 					}
 					if (System_KbdKeys[VK_RIGHT]) {
-						CamAngleX += 0.02f;
+						CamAngleX += 0.025f;
 					}
 
 					if (System_KbdKeys[VK_UP]) {
@@ -769,8 +849,6 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 	WritePrivateProfileString("Viewer", "RenderMapActors", TempStr, INIPath);
 	sprintf(TempStr, "%d", Renderer_EnableSceneActors);
 	WritePrivateProfileString("Viewer", "RenderSceneActors", TempStr, INIPath);
-	sprintf(TempStr, "%d", Renderer_EnableCombiner);
-	WritePrivateProfileString("Viewer", "EnableCombiner", TempStr, INIPath);
 
 	KillGLTarget();
 	DestroyWindow(hwnd);
@@ -795,7 +873,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			RECT rcClient;
 			GetClientRect(hwnd, &rcClient);
 			hogl = GetDlgItem(hwnd, IDC_MAIN_OPENGL);
-			SetWindowPos(hogl, NULL, 0, 0, rcClient.right, rcClient.bottom - 25, SWP_NOZORDER);
+			SetWindowPos(hogl, NULL, 0, 0, rcClient.right, rcClient.bottom - 20, SWP_NOZORDER);
 
 			RECT rcStatus;
 			GetDlgItem(hwnd, IDC_MAIN_STATUSBAR);
@@ -815,16 +893,17 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 
 					Dialog_OpenROM(hwnd);
 					if(ROMExists) Viewer_Initialize();
+
 					break;
 				case IDM_FILE_SAVE:
 					break;
 				case IDM_FILE_EXIT:
 					ExitProgram = true;
 					break;
-				case IDM_MAP_PREVDLIST:
+				case IDM_LEVEL_PREVLEVEL:
 					System_KbdKeys[VK_F1] = true;
 					break;
-				case IDM_MAP_NEXTDLIST:
+				case IDM_LEVEL_NEXTLEVEL:
 					System_KbdKeys[VK_F2] = true;
 					break;
 				case IDM_MAP_PREVHEADER:
@@ -871,7 +950,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 				case IDM_ACTORS_SCENENEXT:
 					System_KbdKeys[VK_ADD] = true;
 					break;
-				case IDM_CAMERA_RESETCOORDS:
+				case IDM_OPTIONS_RESETCAMCOORDS:
 					System_KbdKeys[VK_TAB] = true;
 					break;
 				case IDM_OPTIONS_FILTERNEAREST:
@@ -889,14 +968,6 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 					Renderer_FilteringMode_Mag = GL_LINEAR;
 					Viewer_RenderMap();
 					break;
-				case IDM_OPTIONS_MULTITEXTURE:
-					if(Renderer_EnableCombiner) {
-						Renderer_EnableCombiner = false;
-					} else {
-						Renderer_EnableCombiner = true;
-					}
-					Viewer_RenderMap();
-					break;
 				case IDM_HELP_ABOUT: ;
 					sprintf(GLExtensionsSupported, "OpenGL extensions supported and used:\n");
 					if(GLExtension_MultiTexture) sprintf(GLExtensionsSupported, "%sGL_ARB_multitexture\n", GLExtensionsSupported);
@@ -904,7 +975,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 					if(GLExtension_AnisoFilter) sprintf(GLExtensionsSupported, "%sGL_EXT_texture_filter_anisotropic\n", GLExtensionsSupported);
 
 					char AboutMsg[256] = "";
-					sprintf(AboutMsg, "%s %s (Build '%s') - OpenGL Zelda Map Viewer\n\nWritten in October/November 2008 by xdaniel & contributors\nhttp://ozmav.googlecode.com/\n\n%s", AppTitle, AppVersion, AppBuildName, GLExtensionsSupported);
+					sprintf(AboutMsg, "%s %s (Build '%s') - OpenGL Zelda Map Viewer\n\nWritten 2008/2009 by xdaniel & contributors\nhttp://ozmav.googlecode.com/\n\n%s", AppTitle, AppVersion, AppBuildName, GLExtensionsSupported);
 					MessageBox(hwnd, AboutMsg, "About", MB_OK | MB_ICONINFORMATION);
 					break;
 			}

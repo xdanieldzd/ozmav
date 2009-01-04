@@ -1,7 +1,7 @@
 /*	------------------------------------------------------------
 	OZMAV - OpenGL Zelda Map Viewer
 
-	Written in October/November 2008 by xdaniel & contributors
+	Written 2008/2009 by xdaniel & contributors
 	http://ozmav.googlecode.com/
 	------------------------------------------------------------
 	map_init.c - map/scene header, actor and DList loader
@@ -46,7 +46,7 @@ int Viewer_GetMapHeader(int CurrentHeader)
 {
 	bool EndOfHeader = false;
 
-	int InHeaderPos = MapHeader_List[CurrentHeader] / 4;
+	unsigned int InHeaderPos = MapHeader_List[CurrentHeader] / 4;
 
 	sprintf(SystemLogMsg, "Map Header #%d (0x%08X):\n", CurrentHeader + 1, InHeaderPos * 4);
 	HelperFunc_LogMessage(2, SystemLogMsg);
@@ -296,13 +296,14 @@ int Viewer_GetSceneActors(int CurrentHeader)
 	return 0;
 }
 
-/* VIEWER_GETDISPLAYLISTS - SCAN THE CURRENT MAP FOR F3DZEX DISPLAY LISTS AND STORE THEIR OFFSETS IN THE DLISTS STRUCT */
-int Viewer_GetDisplayLists(unsigned long Fsize)
+/* Viewer_GetMapDisplayLists - SCAN THE CURRENT MAP FOR F3DZEX DISPLAY LISTS AND STORE THEIR OFFSETS IN THE DLISTS STRUCT */
+int Viewer_GetMapDisplayLists(unsigned long Fsize)
 {
 	unsigned int DListScanPosition = 0;
 	DListInfo_CurrentCount[ROM_CurrentMap] = 0;
 	unsigned long TempOffset = 0;
 
+	/* the old method: scan the map for 0xDE commands and take their parameters as dlist offsets */
 	while (DListScanPosition < Fsize / 4) {
 		memcpy(&Readout_Current1, &ZMapBuffer[ROM_CurrentMap][DListScanPosition], 4);
 		memcpy(&Readout_Current2, &ZMapBuffer[ROM_CurrentMap][DListScanPosition + 1], 4);
@@ -329,7 +330,28 @@ int Viewer_GetDisplayLists(unsigned long Fsize)
 		DListScanPosition += 2;
 	}
 
-//	DListInfo_CurrentCount[ROM_CurrentMap]--;
+	/* if that fails: EXPERIMENTAL dlist detection by mesh header data when no dlists have been found (sutaru, testroom) */
+	if(DListInfo_CurrentCount[ROM_CurrentMap] == 0) {
+		TempOffset = (MapHeader[ROM_CurrentMap][MapHeader_Current].MeshDataHeader / 4) + 3;
+		memcpy(&Readout_Current1, &ZMapBuffer[ROM_CurrentMap][TempOffset], 4);
+		HelperFunc_SplitCurrentVals(false);
+
+		if((Readout_CurrentByte1 == 0x03)) {
+			TempOffset = Readout_CurrentByte2 << 16;
+			TempOffset = TempOffset + (Readout_CurrentByte3 << 8);
+			TempOffset = TempOffset + Readout_CurrentByte4;
+
+			DLists[ROM_CurrentMap][DListInfo_CurrentCount[ROM_CurrentMap]] = TempOffset;
+
+			DListInfo_CurrentCount[ROM_CurrentMap]++;
+			DListInfo_TotalCount++;
+		}
+	}
+
+	/* crap, epic fail! no dlists found! */
+	if(DListInfo_CurrentCount[ROM_CurrentMap] == 0) {
+		MessageBox(hwnd, "No Display Lists found!", "Error", MB_OK | MB_ICONEXCLAMATION);
+	}
 
 	return 0;
 }

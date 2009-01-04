@@ -1,7 +1,7 @@
 /*	------------------------------------------------------------
 	OZMAV - OpenGL Zelda Map Viewer
 
-	Written in October/November 2008 by xdaniel & contributors
+	Written 2008/2009 by xdaniel & contributors
 	http://ozmav.googlecode.com/
 	------------------------------------------------------------
 	ogl_mngr.c - OGL + ext. initialization, etc.
@@ -98,7 +98,7 @@ int DrawGLScene(void)
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	int i;
+	int i = 0;
 
 	if(AreaLoaded) {
 		HelperFunc_CalculateFPS();
@@ -123,7 +123,7 @@ int DrawGLScene(void)
 		Renderer_GLDisplayList_Current = Renderer_GLDisplayList;
 
 		for(i = 0; i < SceneHeader[SceneHeader_Current].Map_Count; i++) {
-			int j;
+			int j = 0;
 			for(j = 0; j < DListInfo_CurrentCount[i]; j++) {
 				glCallList(Renderer_GLDisplayList_Current + j);
 			}

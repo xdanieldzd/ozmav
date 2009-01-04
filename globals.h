@@ -30,13 +30,16 @@ enum { true = 1, false = 0 };
 
 extern int Viewer_Initialize();
 extern int Viewer_LoadAreaData();
+extern int Viewer_RenderMapRefresh();
+
 extern int Viewer_GetMapHeaderList(int);
 extern int Viewer_GetMapHeader(int);
 extern int Viewer_GetSceneHeaderList(int);
 extern int Viewer_GetSceneHeader(int);
 extern int Viewer_GetMapActors(int);
 extern int Viewer_GetSceneActors(int);
-extern int Viewer_GetDisplayLists(unsigned long);
+
+extern int Viewer_GetMapDisplayLists(unsigned long);
 
 extern int Viewer_RenderMap();
 extern int Viewer_RenderMap_DListParser(bool, unsigned int, unsigned long);
@@ -53,18 +56,16 @@ extern int Viewer_RenderMap_CMDGeometryMode();
 extern int Viewer_RenderMap_CMDSetFogColor();
 extern int Viewer_RenderMap_CMDSetPrimColor();
 extern int Viewer_RenderMap_CMDLoadTLUT(unsigned int, unsigned long);
-extern int Viewer_RenderMap_CMDRDPHalf1();
+extern int Viewer_RenderMap_CMDRDPHalf1(bool);
 extern int Viewer_RenderMap_CMDSetOtherModeH();
 extern int Viewer_RenderMap_CMDSetOtherModeL();
-extern int Viewer_RenderMap_CMDSetCombine();
 
-extern int Viewer_SetGLCombiner();
 extern GLuint Viewer_LoadTexture(int);
 
 extern int Viewer_ZMemCopy(unsigned int, unsigned long, unsigned char *, unsigned long);
 
 extern int Viewer_RenderAllActors();
-extern int Viewer_RenderActorCube(int, GLshort, GLshort, GLshort, signed int, signed int, signed int, bool);
+extern int Viewer_RenderActor(int, GLshort, GLshort, GLshort, signed int, signed int, signed int, bool);
 
 extern void HelperFunc_SplitCurrentVals(bool);
 extern int HelperFunc_LogMessage(int, char[]);
@@ -127,8 +128,8 @@ extern bool				ExitProgram;
 
 extern char				CurrentGFXCmd[256];
 extern char				CurrentGFXCmdNote[256];
-extern char				GFXLogMsg[256];
-extern char				SystemLogMsg[256];
+extern char				GFXLogMsg[1024];
+extern char				SystemLogMsg[1024];
 
 extern bool				GFXLogOpened;
 
@@ -144,10 +145,6 @@ extern bool				MouseButtonDown;
 
 /* FILE HANDLING VARIABLES */
 extern FILE				* FileROM;
-extern FILE				* FileZMap;
-extern FILE				* FileZScene;
-extern FILE				* FileGameplayKeep;
-extern FILE				* FileGameplayFDKeep;
 
 extern unsigned int		* ROMBuffer;
 extern unsigned int		* ZMapBuffer[256];
@@ -155,21 +152,28 @@ extern unsigned int		* ZSceneBuffer;
 extern unsigned int		* GameplayKeepBuffer;
 extern unsigned int		* GameplayFDKeepBuffer;
 
+extern unsigned int		* TempActorBuffer;
+extern unsigned int		* TempObjectBuffer;
+extern bool				TempActorBuffer_Allocated;
+extern bool				TempObjectBuffer_Allocated;
+
+extern unsigned int		Debug_MallocOperations;
+extern unsigned int		Debug_FreeOperations;
+
+extern bool				GetDLFromZMapScene;
+
 extern unsigned long	ROMFilesize;
 extern unsigned long	ZMapFilesize[256];
 extern unsigned long	ZSceneFilesize;
 extern unsigned long	GameplayKeepFilesize;
 extern unsigned long	GameplayFDKeepFilesize;
 
+extern unsigned long	CurrentObject_Length;
+extern unsigned int		ObjectID;
+
 extern char				Filename_ROM[256];
-extern char				Filename_ZMap[256];
-extern char				Filename_ZScene[256];
-extern char				Filename_GameplayKeep[256];
-extern char				Filename_GameplayFDKeep[256];
 
 extern bool				ROMExists;
-extern bool				ZMapExists;
-extern bool				ZSceneExists;
 
 extern FILE				* FileGFXLog;
 extern FILE				* FileSystemLog;
@@ -206,14 +210,16 @@ extern unsigned char	* TextureData_N64;
 
 extern unsigned char	* PaletteData;
 
-extern bool				IsMultitex;
-extern unsigned int		MTexScaler;
-
-extern unsigned int		TexCachePosition;
+extern unsigned long	TexCachePosition;
+extern unsigned long	TotalTexCount;
 
 /* ZELDA ROM HANDLING VARIABLES */
 extern unsigned long	ROM_SceneTableOffset;
 extern unsigned int		ROM_SceneToLoad;
+
+extern unsigned long	ROM_ObjectTableOffset;
+extern unsigned long	ROM_ActorTableOffset;
+
 extern unsigned int		ROM_CurrentMap;
 
 /* ZELDA MAP & SCENE HEADER HANDLING VARIABLES */
@@ -239,6 +245,7 @@ extern int				ScActorInfo_Selected;
 /* GENERAL RENDERER VARIABLES */
 extern GLuint			Renderer_GLDisplayList;
 extern GLuint			Renderer_GLDisplayList_Current;
+extern GLuint			Renderer_GLDisplayList_Total;
 
 extern GLuint			Renderer_GLTexture;
 
@@ -265,8 +272,6 @@ extern GLfloat			PrimColor[];
 extern bool				Renderer_EnableMapActors;
 extern bool				Renderer_EnableSceneActors;
 
-extern bool				Renderer_EnableCombiner;
-
 /* OPENGL EXTENSION VARIABLES */
 extern char				* GLExtension_List;
 extern bool				GLExtension_MultiTexture;
@@ -282,32 +287,6 @@ extern unsigned int		RDPCycleMode;
 
 extern unsigned long	Blender_Cycle1;
 extern unsigned long	Blender_Cycle2;
-
-extern unsigned int		Combiner_TextureMode;
-extern unsigned int		Combiner_Texture;
-extern unsigned int		Combiner_AlphaMode;
-extern unsigned int		Combiner_AlphaCycles;
-
-extern unsigned long	Combiner_Cycle1;
-extern unsigned long	Combiner_Cycle2;
-
-extern GLenum			Combiner_Color_A0;
-extern GLenum			Combiner_Color_B0;
-extern GLenum			Combiner_Color_C0;
-extern GLenum			Combiner_Color_D0;
-extern GLenum			Combiner_Alpha_A0;
-extern GLenum			Combiner_Alpha_B0;
-extern GLenum			Combiner_Alpha_C0;
-extern GLenum			Combiner_Alpha_D0;
-
-extern GLenum			Combiner_Color_A1;
-extern GLenum			Combiner_Color_B1;
-extern GLenum			Combiner_Color_C1;
-extern GLenum			Combiner_Color_D1;
-extern GLenum			Combiner_Alpha_A1;
-extern GLenum			Combiner_Alpha_B1;
-extern GLenum			Combiner_Alpha_C1;
-extern GLenum			Combiner_Alpha_D1;
 
 /*	------------------------------------------------------------
 	STRUCTURES
@@ -401,7 +380,7 @@ struct Texture_Struct {
 	unsigned int LineSize;
 	unsigned int Palette;
 };
-extern struct Texture_Struct Texture[1];
+extern struct Texture_Struct Texture[0];
 
 /* CI TEXTURE PALETTE STRUCTURE */
 struct Palette_Struct {
@@ -416,6 +395,14 @@ struct CurrentTextures_Struct {
 	GLuint GLTextureID;
 	unsigned int DataSource;
 	unsigned long Offset;
-	unsigned int Map;
+	unsigned int OtherCriteria;
 };
 extern struct CurrentTextures_Struct CurrentTextures[1024];
+
+struct ObjectActorTable_Struct {
+	unsigned long StartOffset;
+	unsigned long EndOffset;
+	bool Valid;
+};
+extern struct ObjectActorTable_Struct ObjectTable[8192];
+extern struct ObjectActorTable_Struct ActorTable[8192];
