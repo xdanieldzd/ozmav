@@ -464,10 +464,10 @@ int Viewer_GetMapCollision(int CurrentHeader)
 				glEnable(GL_POLYGON_OFFSET_FILL);
 				glPolygonOffset(-1.0f,-1.0f);
 
+				glEnable(GL_CULL_FACE);
 				glDisable(GL_TEXTURE_2D);
 				glDisable(GL_LIGHTING);
 
-				glEnable(GL_BLEND);
 				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 				glAlphaFunc(GL_GREATER, 0.0f);
 
@@ -515,10 +515,10 @@ int Viewer_GetMapCollision(int CurrentHeader)
 
 					Renderer_GLDisplayList_Total++;
 				}
-				glDisable(GL_BLEND);
 
 				glEnable(GL_LIGHTING);
 				glEnable(GL_TEXTURE_2D);
+				glDisable(GL_CULL_FACE);
 
 				glDisable(GL_POLYGON_OFFSET_FILL);
 			glEndList();

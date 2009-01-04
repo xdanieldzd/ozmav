@@ -125,12 +125,17 @@ int DrawGLScene(void)
 		for(i = 0; i < SceneHeader[SceneHeader_Current].Map_Count; i++) {
 			int j = 0;
 			for(j = 0; j < DListInfo_CurrentCount[i]; j++) {
-				glCallList(Renderer_GLDisplayList_Current + j);
+				if(Renderer_EnableMap) glCallList(Renderer_GLDisplayList_Current + j);
 			}
 			Renderer_GLDisplayList_Current += j;
 		}
 
 		if(Renderer_EnableCollision) {
+			if(Renderer_EnableMap) {
+				glEnable(GL_BLEND);
+			} else {
+				glDisable(GL_BLEND);
+			}
 			glCallList(Renderer_GLDisplayList_Current);
 		}
 

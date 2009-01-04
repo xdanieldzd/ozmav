@@ -274,6 +274,7 @@ extern GLfloat			PrimColor[];
 extern bool				Renderer_EnableMapActors;
 extern bool				Renderer_EnableSceneActors;
 
+extern bool				Renderer_EnableMap;
 extern bool				Renderer_EnableCollision;
 
 /* OPENGL EXTENSION VARIABLES */
