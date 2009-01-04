@@ -41,6 +41,8 @@ extern int Viewer_GetSceneActors(int);
 
 extern int Viewer_GetMapDisplayLists(unsigned long);
 
+extern int Viewer_GetMapCollision(int);
+
 extern int Viewer_RenderMap();
 extern int Viewer_RenderMap_DListParser(bool, unsigned int, unsigned long);
 
@@ -272,6 +274,8 @@ extern GLfloat			PrimColor[];
 extern bool				Renderer_EnableMapActors;
 extern bool				Renderer_EnableSceneActors;
 
+extern bool				Renderer_EnableCollision;
+
 /* OPENGL EXTENSION VARIABLES */
 extern char				* GLExtension_List;
 extern bool				GLExtension_MultiTexture;
@@ -310,7 +314,8 @@ struct SceneHeader_Struct {
 	unsigned char Map_Count;
 	unsigned long Map_ListOffset;
 	unsigned long Unknown2;
-	unsigned long Unknown3;
+	unsigned char Col_DataSource;
+	unsigned long Col_DataOffset;
 	unsigned long Unknown4;
 	unsigned long Unknown5;
 	unsigned char ScActor_Count;
@@ -406,3 +411,5 @@ struct ObjectActorTable_Struct {
 };
 extern struct ObjectActorTable_Struct ObjectTable[8192];
 extern struct ObjectActorTable_Struct ActorTable[8192];
+
+extern struct Vertex_Struct CollisionVertex[8192];

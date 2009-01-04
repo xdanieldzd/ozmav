@@ -184,6 +184,15 @@ int Viewer_GetSceneHeader(int CurrentHeader)
 				SceneHeader[CurrentHeader].ScActor_Count, (unsigned int)SceneHeader[CurrentHeader].ScActor_DataOffset);
 			HelperFunc_LogMessage(2, SystemLogMsg);
 			break;
+		/* collision */
+		case 0x03:
+			SceneHeader[CurrentHeader].Col_DataSource = Readout_CurrentByte5;
+			SceneHeader[CurrentHeader].Col_DataOffset = ((Readout_CurrentByte6 * 0x10000) + Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
+			sprintf(SystemLogMsg, "  0x%08X:\tCollision data offset: 0x%06X\n",
+				InHeaderPos * 4,
+				(unsigned int)SceneHeader[CurrentHeader].Col_DataOffset);
+			HelperFunc_LogMessage(2, SystemLogMsg);
+			break;
 		/* maps */
 		case 0x04:
 			SceneHeader[CurrentHeader].Map_Count = Readout_CurrentByte2;
@@ -351,6 +360,169 @@ int Viewer_GetMapDisplayLists(unsigned long Fsize)
 	/* crap, epic fail! no dlists found! */
 	if(DListInfo_CurrentCount[ROM_CurrentMap] == 0) {
 		MessageBox(hwnd, "No Display Lists found!", "Error", MB_OK | MB_ICONEXCLAMATION);
+	}
+
+	return 0;
+}
+
+int Viewer_GetMapCollision(int CurrentHeader)
+{
+	unsigned int TotalColPoly = 0;
+	unsigned int TotalColVert = 0;
+
+	unsigned long TempOffset = (SceneHeader[CurrentHeader].Col_DataOffset / 4) + 3;
+	memcpy(&Readout_Current1, &ZSceneBuffer[TempOffset], 4);
+	HelperFunc_SplitCurrentVals(false);
+
+	unsigned long ColVertAmount = (Readout_CurrentByte1 * 0x100) + Readout_CurrentByte2;
+
+	TempOffset = (SceneHeader[CurrentHeader].Col_DataOffset / 4) + 4;
+	memcpy(&Readout_Current1, &ZSceneBuffer[TempOffset], 4);
+	HelperFunc_SplitCurrentVals(false);
+
+	if((Readout_CurrentByte1 == 0x02)) {
+		TempOffset = Readout_CurrentByte2 << 16;
+		TempOffset = TempOffset + (Readout_CurrentByte3 << 8);
+		TempOffset = TempOffset + Readout_CurrentByte4;
+
+		unsigned long ColVertScanPosition = TempOffset / 4;
+
+		while (TotalColVert < ColVertAmount) {
+			/* vertex 1 - xyz */
+			/* vertex 2 - x.. */
+			memcpy(&Readout_Current1, &ZSceneBuffer[ColVertScanPosition], 4);
+			memcpy(&Readout_Current2, &ZSceneBuffer[ColVertScanPosition + 1], 4);
+			HelperFunc_SplitCurrentVals(true);
+
+			CollisionVertex[TotalColVert].X = (Readout_CurrentByte1 * 0x100) + Readout_CurrentByte2;
+			CollisionVertex[TotalColVert].Y = (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
+			CollisionVertex[TotalColVert].Z = (Readout_CurrentByte5 * 0x100) + Readout_CurrentByte6;
+			TotalColVert++;
+			CollisionVertex[TotalColVert].X = (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
+
+			ColVertScanPosition += 2;
+
+			/* vertex 2 - .yz */
+			/* vertex 3 - xy. */
+			memcpy(&Readout_Current1, &ZSceneBuffer[ColVertScanPosition], 4);
+			memcpy(&Readout_Current2, &ZSceneBuffer[ColVertScanPosition + 1], 4);
+			HelperFunc_SplitCurrentVals(true);
+
+			CollisionVertex[TotalColVert].Y = (Readout_CurrentByte1 * 0x100) + Readout_CurrentByte2;
+			CollisionVertex[TotalColVert].Z = (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
+			TotalColVert++;
+			CollisionVertex[TotalColVert].X = (Readout_CurrentByte5 * 0x100) + Readout_CurrentByte6;
+			CollisionVertex[TotalColVert].Y = (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
+
+			ColVertScanPosition += 2;
+
+			/* vertex 3 - ..z */
+			/* vertex 4 - xyz */
+			memcpy(&Readout_Current1, &ZSceneBuffer[ColVertScanPosition], 4);
+			memcpy(&Readout_Current2, &ZSceneBuffer[ColVertScanPosition + 1], 4);
+			HelperFunc_SplitCurrentVals(true);
+
+			CollisionVertex[TotalColVert].Z = (Readout_CurrentByte1 * 0x100) + Readout_CurrentByte2;
+			TotalColVert++;
+			CollisionVertex[TotalColVert].X = (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
+			CollisionVertex[TotalColVert].Y = (Readout_CurrentByte5 * 0x100) + Readout_CurrentByte6;
+			CollisionVertex[TotalColVert].Z = (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
+			TotalColVert++;
+
+			ColVertScanPosition += 2;
+		}
+	}
+
+	HelperFunc_LogMessage(2, "COLLISION RENDERING:\n");
+	int i = 0;
+	for(i = 0; i < TotalColVert; i++) {
+		sprintf(SystemLogMsg, " - Vertex #%5d: X %5d, Y %5d, Z %5d\n", i, CollisionVertex[i].X, CollisionVertex[i].Y, CollisionVertex[i].Z);
+		HelperFunc_LogMessage(2, SystemLogMsg);
+	}
+
+	TempOffset = (SceneHeader[CurrentHeader].Col_DataOffset / 4) + 5;
+	memcpy(&Readout_Current1, &ZSceneBuffer[TempOffset], 4);
+	HelperFunc_SplitCurrentVals(false);
+
+	unsigned long ColPolyAmount = ((Readout_CurrentByte1 * 0x100) + Readout_CurrentByte2);
+
+	TempOffset = (SceneHeader[CurrentHeader].Col_DataOffset / 4) + 6;
+	memcpy(&Readout_Current1, &ZSceneBuffer[TempOffset], 4);
+	HelperFunc_SplitCurrentVals(false);
+
+	HelperFunc_LogMessage(2, "\n");
+
+	if((Readout_CurrentByte1 == 0x02)) {
+		TempOffset = Readout_CurrentByte2 << 16;
+		TempOffset = TempOffset + (Readout_CurrentByte3 << 8);
+		TempOffset = TempOffset + Readout_CurrentByte4;
+
+		unsigned long ColPolyScanPosition = TempOffset / 4;
+
+		if(Renderer_GLDisplayList_Current != 0) {
+			glNewList(Renderer_GLDisplayList_Current, GL_COMPILE);
+				glEnable(GL_POLYGON_OFFSET_FILL);
+				glPolygonOffset(-1.0f,-1.0f);
+
+				glDisable(GL_TEXTURE_2D);
+				glDisable(GL_LIGHTING);
+
+				glEnable(GL_BLEND);
+				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+				glAlphaFunc(GL_GREATER, 0.0f);
+
+				while (TotalColPoly < ColPolyAmount) {
+					memcpy(&Readout_Current1, &ZSceneBuffer[ColPolyScanPosition], 4);
+					memcpy(&Readout_Current2, &ZSceneBuffer[ColPolyScanPosition + 1], 4);
+					HelperFunc_SplitCurrentVals(true);
+
+					unsigned int ColType = ((Readout_CurrentByte1 * 0x100) + Readout_CurrentByte2);
+					unsigned int ColVertex1 = ((Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4);
+					unsigned int ColVertex2 = ((Readout_CurrentByte5 * 0x100) + Readout_CurrentByte6);
+					unsigned int ColVertex3 = ((Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8);
+
+					if((ColVertex1 >= TotalColVert) || (ColVertex2 >= TotalColVert) || (ColVertex2 >= TotalColVert)) {
+						sprintf(SystemLogMsg, " - WARNING! Requested vertex (%d, %d, %d) > vertex count %d!\n\n", ColVertex1, ColVertex2, ColVertex3, TotalColVert);
+						HelperFunc_LogMessage(2, SystemLogMsg);
+					} else {
+						switch(ColType) {
+							case 0: glColor4f(0.0f, 1.0f, 0.0f, 0.3f); break;
+							case 1: glColor4f(1.0f, 0.0f, 0.0f, 0.3f); break;
+							case 2: glColor4f(0.0f, 0.0f, 1.0f, 0.3f); break;
+							case 3: glColor4f(1.0f, 1.0f, 0.0f, 0.3f); break;
+							case 4: glColor4f(0.0f, 1.0f, 1.0f, 0.3f); break;
+							case 5: glColor4f(1.0f, 0.0f, 1.0f, 0.3f); break;
+							case 6: glColor4f(1.0f, 1.0f, 1.0f, 0.3f); break;
+							default: glColor4f(0.0f, 1.0f, 0.0f, 0.3f); break;
+						}
+
+						glBegin(GL_TRIANGLES);
+							glVertex3d(CollisionVertex[ColVertex1].X, CollisionVertex[ColVertex1].Y, CollisionVertex[ColVertex1].Z);
+							glVertex3d(CollisionVertex[ColVertex2].X, CollisionVertex[ColVertex2].Y, CollisionVertex[ColVertex2].Z);
+							glVertex3d(CollisionVertex[ColVertex3].X, CollisionVertex[ColVertex3].Y, CollisionVertex[ColVertex3].Z);
+						glEnd();
+
+						sprintf(SystemLogMsg, " - Polygon %5d:\n  - Vertex 1 (#%5d), X %5d, Y %5d, Z %5d\n  - Vertex 2 (#%5d), X %5d, Y %5d, Z %5d\n  - Vertex 3 (#%5d), X %5d, Y %5d, Z %5d\n\n",
+							TotalColPoly,
+							ColVertex1, CollisionVertex[ColVertex1].X, CollisionVertex[ColVertex1].Y, CollisionVertex[ColVertex1].Z,
+							ColVertex2, CollisionVertex[ColVertex2].X, CollisionVertex[ColVertex2].Y, CollisionVertex[ColVertex2].Z,
+							ColVertex3, CollisionVertex[ColVertex3].X, CollisionVertex[ColVertex3].Y, CollisionVertex[ColVertex3].Z);
+						HelperFunc_LogMessage(2, SystemLogMsg);
+					}
+
+					TotalColPoly++;
+					ColPolyScanPosition += 4;
+
+					Renderer_GLDisplayList_Total++;
+				}
+				glDisable(GL_BLEND);
+
+				glEnable(GL_LIGHTING);
+				glEnable(GL_TEXTURE_2D);
+
+				glDisable(GL_POLYGON_OFFSET_FILL);
+			glEndList();
+		}
 	}
 
 	return 0;

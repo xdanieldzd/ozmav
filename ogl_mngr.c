@@ -130,6 +130,10 @@ int DrawGLScene(void)
 			Renderer_GLDisplayList_Current += j;
 		}
 
+		if(Renderer_EnableCollision) {
+			glCallList(Renderer_GLDisplayList_Current);
+		}
+
 		glDisable(GL_BLEND);
 		for(i = 0; i < SceneHeader[SceneHeader_Current].Map_Count; i++) {
 			ActorInfo_CurrentCount[i] = 0;

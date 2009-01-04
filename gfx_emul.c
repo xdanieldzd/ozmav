@@ -76,6 +76,8 @@ int Viewer_RenderMap()
 	TexCachePosition = 0;
 	memset(CurrentTextures, 0x00, sizeof(CurrentTextures));
 
+	Viewer_GetMapCollision(SceneHeader_Current);
+
 /*	for(i = 0; i < SceneHeader[SceneHeader_Current].Map_Count; i++) {
 		sprintf(ErrorMsg, "");
 
@@ -567,9 +569,9 @@ int Viewer_RenderMap_CMDDrawTri1()
 	float TempU = 0, TempU2 = 0;
 	float TempV = 0, TempV2 = 0;
 
-	glBegin(GL_TRIANGLES);
-		glColor4f(PrimColor[0], PrimColor[1], PrimColor[2], PrimColor[3]);
+	glColor4f(PrimColor[0], PrimColor[1], PrimColor[2], PrimColor[3]);
 
+	glBegin(GL_TRIANGLES);
 		TempU = (float) CurrentH1_1 * Texture[0].S_Scale / 32 / Texture[0].WidthRender;
 		TempV = (float) CurrentV1_1 * Texture[0].T_Scale / 32 / Texture[0].HeightRender;
 		glTexCoord2f(TempU, TempV);
@@ -661,9 +663,9 @@ int Viewer_RenderMap_CMDDrawTri2()
 	float TempU = 0, TempU2 = 0;
 	float TempV = 0, TempV2 = 0;
 
-	glBegin(GL_TRIANGLES);
-		glColor4f(PrimColor[0], PrimColor[1], PrimColor[2], PrimColor[3]);
+	glColor4f(PrimColor[0], PrimColor[1], PrimColor[2], PrimColor[3]);
 
+	glBegin(GL_TRIANGLES);
 		TempU = (float) CurrentH1_1 * Texture[0].S_Scale / 32 / Texture[0].WidthRender;
 		TempV = (float) CurrentV1_1 * Texture[0].T_Scale / 32 / Texture[0].HeightRender;
 		glTexCoord2f(TempU, TempV);

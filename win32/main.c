@@ -204,6 +204,8 @@ GLfloat			PrimColor[]= { 0.0f, 0.0f, 0.0f, 1.0f };
 bool			Renderer_EnableMapActors = true;
 bool			Renderer_EnableSceneActors = true;
 
+bool			Renderer_EnableCollision = true;
+
 /* OPENGL EXTENSION VARIABLES */
 char			* GLExtension_List;
 bool			GLExtension_MultiTexture = false;
@@ -244,6 +246,8 @@ struct CurrentTextures_Struct CurrentTextures[1024];
 struct ObjectActorTable_Struct ObjectTable[8192];
 struct ObjectActorTable_Struct ActorTable[8192];
 
+struct Vertex_Struct CollisionVertex[8192];
+
 /*	------------------------------------------------------------ */
 
 int Viewer_Initialize()
@@ -282,7 +286,7 @@ int Viewer_Initialize()
 	EnableMenuItem(hmenu, IDM_OPTIONS_FILTERNEAREST, MF_BYCOMMAND | MF_ENABLED);
 	EnableMenuItem(hmenu, IDM_OPTIONS_FILTERLINEAR, MF_BYCOMMAND | MF_ENABLED);
 	EnableMenuItem(hmenu, IDM_OPTIONS_FILTERMIPMAP, MF_BYCOMMAND | MF_ENABLED);
-//	EnableMenuItem(hmenu, IDM_OPTIONS_MULTITEXTURE, MF_BYCOMMAND | MF_ENABLED);
+	EnableMenuItem(hmenu, IDM_OPTIONS_RENDERCOLLISION, MF_BYCOMMAND | MF_ENABLED);
 
 	sprintf(WindowTitle, "%s %s - %s", AppTitle, AppVersion, Filename_ROM);
 	SetWindowText(hwnd, WindowTitle);
@@ -392,6 +396,7 @@ int Viewer_LoadAreaData()
 
 	Viewer_GetSceneHeader(SceneHeader_Current);
 	Viewer_GetSceneActors(SceneHeader_Current);
+//	Viewer_GetMapCollision(SceneHeader_Current);			/* do when rendering map */
 
 	/* ---- LOAD MAP DATA ---- */
 
@@ -657,6 +662,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 	Renderer_FilteringMode_Mag = GetPrivateProfileInt("Viewer", "TexFilterMag", GL_LINEAR, INIPath);
 	Renderer_EnableMapActors = GetPrivateProfileInt("Viewer", "RenderMapActors", true, INIPath);
 	Renderer_EnableSceneActors = GetPrivateProfileInt("Viewer", "RenderSceneActors", false, INIPath);
+	Renderer_EnableCollision = GetPrivateProfileInt("Viewer", "RenderCollision", true, INIPath);
 
 	ShowWindow(hwnd, nFunsterStil);
 
@@ -849,6 +855,8 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 	WritePrivateProfileString("Viewer", "RenderMapActors", TempStr, INIPath);
 	sprintf(TempStr, "%d", Renderer_EnableSceneActors);
 	WritePrivateProfileString("Viewer", "RenderSceneActors", TempStr, INIPath);
+	sprintf(TempStr, "%d", Renderer_EnableCollision);
+	WritePrivateProfileString("Viewer", "RenderCollision", TempStr, INIPath);
 
 	KillGLTarget();
 	DestroyWindow(hwnd);
@@ -967,6 +975,13 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 					Renderer_FilteringMode_Min = GL_LINEAR_MIPMAP_LINEAR;
 					Renderer_FilteringMode_Mag = GL_LINEAR;
 					Viewer_RenderMap();
+					break;
+				case IDM_OPTIONS_RENDERCOLLISION:
+					if(!Renderer_EnableCollision) {
+						Renderer_EnableCollision = true;
+					} else {
+						Renderer_EnableCollision = false;
+					}
 					break;
 				case IDM_HELP_ABOUT: ;
 					sprintf(GLExtensionsSupported, "OpenGL extensions supported and used:\n");
