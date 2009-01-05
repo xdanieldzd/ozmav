@@ -276,6 +276,7 @@ extern bool				Renderer_EnableSceneActors;
 
 extern bool				Renderer_EnableMap;
 extern bool				Renderer_EnableCollision;
+extern GLfloat			Renderer_CollisionAlpha;
 
 /* OPENGL EXTENSION VARIABLES */
 extern char				* GLExtension_List;

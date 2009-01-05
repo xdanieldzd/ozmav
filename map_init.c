@@ -462,14 +462,11 @@ int Viewer_GetMapCollision(int CurrentHeader)
 		if(Renderer_GLDisplayList_Current != 0) {
 			glNewList(Renderer_GLDisplayList_Current, GL_COMPILE);
 				glEnable(GL_POLYGON_OFFSET_FILL);
-				glPolygonOffset(-1.0f,-1.0f);
+				glPolygonOffset(-1.0f, -1.0f);
 
 				glEnable(GL_CULL_FACE);
 				glDisable(GL_TEXTURE_2D);
 				glDisable(GL_LIGHTING);
-
-				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-				glAlphaFunc(GL_GREATER, 0.0f);
 
 				while (TotalColPoly < ColPolyAmount) {
 					memcpy(&Readout_Current1, &ZSceneBuffer[ColPolyScanPosition], 4);
@@ -478,22 +475,25 @@ int Viewer_GetMapCollision(int CurrentHeader)
 
 					unsigned int ColType = ((Readout_CurrentByte1 * 0x100) + Readout_CurrentByte2);
 					unsigned int ColVertex1 = ((Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4);
+					ColVertex1 = (ColVertex1 & 0x0FFF);
 					unsigned int ColVertex2 = ((Readout_CurrentByte5 * 0x100) + Readout_CurrentByte6);
+					ColVertex2 = (ColVertex2 & 0x0FFF);
 					unsigned int ColVertex3 = ((Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8);
+					ColVertex3 = (ColVertex3 & 0x0FFF);
 
 					if((ColVertex1 >= TotalColVert) || (ColVertex2 >= TotalColVert) || (ColVertex2 >= TotalColVert)) {
 						sprintf(SystemLogMsg, " - WARNING! Requested vertex (%d, %d, %d) > vertex count %d!\n\n", ColVertex1, ColVertex2, ColVertex3, TotalColVert);
 						HelperFunc_LogMessage(2, SystemLogMsg);
 					} else {
 						switch(ColType) {
-							case 0: glColor4f(0.0f, 1.0f, 0.0f, 0.3f); break;
-							case 1: glColor4f(1.0f, 0.0f, 0.0f, 0.3f); break;
-							case 2: glColor4f(0.0f, 0.0f, 1.0f, 0.3f); break;
-							case 3: glColor4f(1.0f, 1.0f, 0.0f, 0.3f); break;
-							case 4: glColor4f(0.0f, 1.0f, 1.0f, 0.3f); break;
-							case 5: glColor4f(1.0f, 0.0f, 1.0f, 0.3f); break;
-							case 6: glColor4f(1.0f, 1.0f, 1.0f, 0.3f); break;
-							default: glColor4f(0.0f, 1.0f, 0.0f, 0.3f); break;
+							case 0: glColor4f(0.0f, 1.0f, 0.0f, Renderer_CollisionAlpha); break;
+							case 1: glColor4f(1.0f, 0.0f, 0.0f, Renderer_CollisionAlpha); break;
+							case 2: glColor4f(0.0f, 0.0f, 1.0f, Renderer_CollisionAlpha); break;
+							case 3: glColor4f(1.0f, 1.0f, 0.0f, Renderer_CollisionAlpha); break;
+							case 4: glColor4f(0.0f, 1.0f, 1.0f, Renderer_CollisionAlpha); break;
+							case 5: glColor4f(1.0f, 0.0f, 1.0f, Renderer_CollisionAlpha); break;
+							case 6: glColor4f(1.0f, 1.0f, 1.0f, Renderer_CollisionAlpha); break;
+							default: glColor4f(0.0f, 1.0f, 0.0f, Renderer_CollisionAlpha); break;
 						}
 
 						glBegin(GL_TRIANGLES);

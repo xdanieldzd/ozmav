@@ -206,6 +206,7 @@ bool			Renderer_EnableSceneActors = true;
 
 bool			Renderer_EnableMap = true;
 bool			Renderer_EnableCollision = true;
+GLfloat			Renderer_CollisionAlpha = 0.3f;
 
 /* OPENGL EXTENSION VARIABLES */
 char			* GLExtension_List;

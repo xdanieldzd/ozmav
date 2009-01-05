@@ -131,12 +131,20 @@ int DrawGLScene(void)
 		}
 
 		if(Renderer_EnableCollision) {
-			if(Renderer_EnableMap) {
-				glEnable(GL_BLEND);
-			} else {
-				glDisable(GL_BLEND);
-			}
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			glAlphaFunc(GL_GREATER, 0.0f);
+
+			glEnable(GL_BLEND);
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+			if(Renderer_EnableMap) { Renderer_CollisionAlpha = 0.3f; } else { Renderer_CollisionAlpha = 0.1f; }
 			glCallList(Renderer_GLDisplayList_Current);
+
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+			glLineWidth(6.5f);
+			glCallList(Renderer_GLDisplayList_Current);
+
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+			glDisable(GL_BLEND);
 		}
 
 		glDisable(GL_BLEND);
