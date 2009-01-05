@@ -389,7 +389,7 @@ int Viewer_RenderMap_DListParser(bool CalledFromRDPHalf, unsigned int DLToRender
 			sprintf(CurrentGFXCmd, "F3DEX2_RDPHALF_1     ");
 			sprintf(CurrentGFXCmdNote, "<unemulated>");
 			HelperFunc_GFXLogCommand(Position);
-			Viewer_RenderMap_CMDRDPHalf1(GetDLFromZMapScene);
+			Viewer_RenderMap_CMDRDPHalf1_CMDDListStart_CMDDListStart(GetDLFromZMapScene);
 			break;
 		case G_LOADTLUT:
 			sprintf(CurrentGFXCmd, "G_LOADTLUT           ");
@@ -406,6 +406,7 @@ int Viewer_RenderMap_DListParser(bool CalledFromRDPHalf, unsigned int DLToRender
 			sprintf(CurrentGFXCmd, "F3DEX2_DL            ");
 			sprintf(CurrentGFXCmdNote, "<unemulated>");
 			HelperFunc_GFXLogCommand(Position);
+			Viewer_RenderMap_CMDRDPHalf1_CMDDListStart_CMDDListStart(GetDLFromZMapScene);
 			break;
 		case F3DEX2_BRANCH_Z:
 			sprintf(CurrentGFXCmd, "F3DEX2_BRANCH_Z      ");
@@ -1021,8 +1022,8 @@ int Viewer_RenderMap_CMDLoadTLUT(unsigned int PaletteSrc, unsigned long PaletteO
 	return 0;
 }
 
-/* VIEWER_RENDERMAP_CMDRDPHALF1 - F3DEX2_RDPHALF_1 - CALL AND RENDER ADDITIONAL DISPLAY LISTS FROM INSIDE OTHERS */
-int Viewer_RenderMap_CMDRDPHalf1(bool GetDLFromZMapScene)
+/* Viewer_RenderMap_CMDRDPHalf1_CMDDListStart_CMDDListStart - F3DEX2_RDPHALF_1 & F3DEX2_DL - CALL AND RENDER ADDITIONAL DISPLAY LISTS FROM INSIDE OTHERS */
+int Viewer_RenderMap_CMDRDPHalf1_CMDDListStart_CMDDListStart(bool GetDLFromZMapScene)
 {
 	if(Readout_CurrentByte5 == 0x03) {
 		unsigned long TempOffset;

@@ -113,6 +113,18 @@ int DrawGLScene(void)
 
 		glScalef(0.005, 0.005, 0.005);
 
+		/* #0 - GET COLLISION GL DLIST */
+		unsigned int GLCollisionDList = Renderer_GLDisplayList;
+
+		for(i = 0; i < SceneHeader[SceneHeader_Current].Map_Count; i++) {
+			int j = 0;
+			for(j = 0; j < DListInfo_CurrentCount[i]; j++) {
+				//do nothing, just simulating stuff
+			}
+			GLCollisionDList += j;
+		}
+
+		/* #1 - RENDER ACTORS, PASS 1 */
 		glDisable(GL_BLEND);
 		for(i = 0; i < SceneHeader[SceneHeader_Current].Map_Count; i++) {
 			ActorInfo_CurrentCount[i] = 0;
@@ -120,6 +132,7 @@ int DrawGLScene(void)
 		ScActorInfo_CurrentCount = 0;
 		Viewer_RenderAllActors();
 
+		/* #2 - RENDER MAP */
 		Renderer_GLDisplayList_Current = Renderer_GLDisplayList;
 
 		for(i = 0; i < SceneHeader[SceneHeader_Current].Map_Count; i++) {
@@ -130,6 +143,7 @@ int DrawGLScene(void)
 			Renderer_GLDisplayList_Current += j;
 		}
 
+		/* #3 - RENDER COLLISION */
 		if(Renderer_EnableCollision) {
 			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 			glAlphaFunc(GL_GREATER, 0.0f);
@@ -137,16 +151,17 @@ int DrawGLScene(void)
 			glEnable(GL_BLEND);
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 			if(Renderer_EnableMap) { Renderer_CollisionAlpha = 0.3f; } else { Renderer_CollisionAlpha = 0.1f; }
-			glCallList(Renderer_GLDisplayList_Current);
+			glCallList(GLCollisionDList);
 
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-			glLineWidth(6.5f);
-			glCallList(Renderer_GLDisplayList_Current);
+			glLineWidth(8.5f);
+			glCallList(GLCollisionDList);
 
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 			glDisable(GL_BLEND);
 		}
 
+		/* #4 - RENDER ACTORS, PASS 2 */
 		glDisable(GL_BLEND);
 		for(i = 0; i < SceneHeader[SceneHeader_Current].Map_Count; i++) {
 			ActorInfo_CurrentCount[i] = 0;

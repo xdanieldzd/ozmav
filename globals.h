@@ -58,7 +58,7 @@ extern int Viewer_RenderMap_CMDGeometryMode();
 extern int Viewer_RenderMap_CMDSetFogColor();
 extern int Viewer_RenderMap_CMDSetPrimColor();
 extern int Viewer_RenderMap_CMDLoadTLUT(unsigned int, unsigned long);
-extern int Viewer_RenderMap_CMDRDPHalf1(bool);
+extern int Viewer_RenderMap_CMDRDPHalf1_CMDDListStart(bool);
 extern int Viewer_RenderMap_CMDSetOtherModeH();
 extern int Viewer_RenderMap_CMDSetOtherModeL();
 

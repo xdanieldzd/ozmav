@@ -308,52 +308,126 @@ int Viewer_GetSceneActors(int CurrentHeader)
 /* Viewer_GetMapDisplayLists - SCAN THE CURRENT MAP FOR F3DZEX DISPLAY LISTS AND STORE THEIR OFFSETS IN THE DLISTS STRUCT */
 int Viewer_GetMapDisplayLists(unsigned long Fsize)
 {
-	unsigned int DListScanPosition = 0;
 	DListInfo_CurrentCount[ROM_CurrentMap] = 0;
 	unsigned long TempOffset = 0;
 
-	/* the old method: scan the map for 0xDE commands and take their parameters as dlist offsets */
-	while (DListScanPosition < Fsize / 4) {
-		memcpy(&Readout_Current1, &ZMapBuffer[ROM_CurrentMap][DListScanPosition], 4);
-		memcpy(&Readout_Current2, &ZMapBuffer[ROM_CurrentMap][DListScanPosition + 1], 4);
+	/* EXPERIMENTAL dlist detection by mesh header data - watch out for missing geometry! (hope there isn't any tho) */
+	TempOffset = (MapHeader[ROM_CurrentMap][MapHeader_Current].MeshDataHeader / 4);
+	memcpy(&Readout_Current1, &ZMapBuffer[ROM_CurrentMap][TempOffset], 4);
+	HelperFunc_SplitCurrentVals(false);
 
+	unsigned int MeshHeaderSetup = Readout_CurrentByte1;
+	unsigned int MeshAmount = Readout_CurrentByte2;
+	unsigned int TotalMeshCount = 0;
+
+	switch(MeshHeaderSetup) {
+	case 0x00: {
+		/* simple maps, ex. besitu ??? */
+		TempOffset = (MapHeader[ROM_CurrentMap][MapHeader_Current].MeshDataHeader / 4) + 3;
+		unsigned long MeshScanPosition = TempOffset;
+
+		while(TotalMeshCount < MeshAmount + 1) {
+			memcpy(&Readout_Current1, &ZMapBuffer[ROM_CurrentMap][MeshScanPosition], 4);
+			HelperFunc_SplitCurrentVals(false);
+
+			if(Readout_CurrentByte1 == 0x03) {
+				DLists[ROM_CurrentMap][DListInfo_CurrentCount[ROM_CurrentMap]] = (Readout_CurrentByte2 * 0x10000) + (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
+				DListInfo_CurrentCount[ROM_CurrentMap]++;
+				DListInfo_TotalCount++;
+			}
+
+			MeshScanPosition++;
+
+			TotalMeshCount++;
+		}
+		break;
+		}
+	case 0x01: {
+		/* static prerendered maps, ex. market_alley ??? */
+		TempOffset = (MapHeader[ROM_CurrentMap][MapHeader_Current].MeshDataHeader / 4) + 1;
+		memcpy(&Readout_Current1, &ZMapBuffer[ROM_CurrentMap][TempOffset], 4);
+		memcpy(&Readout_Current2, &ZMapBuffer[ROM_CurrentMap][TempOffset + 1], 4);
 		HelperFunc_SplitCurrentVals(true);
 
-		if ((Readout_CurrentByte1 == F3DEX2_DL) && (Readout_CurrentByte2 == 0x00)) {
-			if((Readout_CurrentByte3 == 0x00) && (Readout_CurrentByte4 == 0x00)) {
-				if((Readout_CurrentByte5 == 0x03)) {
-					TempOffset = Readout_CurrentByte6 << 16;
-					TempOffset = TempOffset + (Readout_CurrentByte7 << 8);
-					TempOffset = TempOffset + Readout_CurrentByte8;
+		if((Readout_CurrentByte1 == 0x03)) {
+			TempOffset = ((Readout_CurrentByte2 * 0x10000) + (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4) / 4;
 
-					//sprintf(ErrorMsg, "MAP %d: dlist %d @ %08X", ROM_CurrentMap, DListInfo_CurrentCount[ROM_CurrentMap] + 1, TempOffset);
-					//MessageBox(hwnd, ErrorMsg, "", 0);
+			memcpy(&Readout_Current1, &ZMapBuffer[ROM_CurrentMap][TempOffset], 4);
+			memcpy(&Readout_Current2, &ZMapBuffer[ROM_CurrentMap][TempOffset + 1], 4);
+			HelperFunc_SplitCurrentVals(true);
 
-					DLists[ROM_CurrentMap][DListInfo_CurrentCount[ROM_CurrentMap]] = TempOffset;
+			if((Readout_CurrentByte1 == 0x03)) {
+				TempOffset = Readout_CurrentByte2 << 16;
+				TempOffset = TempOffset + (Readout_CurrentByte3 << 8);
+				TempOffset = TempOffset + Readout_CurrentByte4;
 
-					DListInfo_CurrentCount[ROM_CurrentMap]++;
-					DListInfo_TotalCount++;
-				}
+				DLists[ROM_CurrentMap][DListInfo_CurrentCount[ROM_CurrentMap]] = TempOffset;
+
+				DListInfo_CurrentCount[ROM_CurrentMap]++;
+				DListInfo_TotalCount++;
 			}
 		}
-		DListScanPosition += 2;
-	}
-
-	/* if that fails: EXPERIMENTAL dlist detection by mesh header data when no dlists have been found (sutaru, testroom) */
-	if(DListInfo_CurrentCount[ROM_CurrentMap] == 0) {
+		break;
+		}
+	case 0x02: {
+		/* complicated maps, ex. spot00 ??? */
 		TempOffset = (MapHeader[ROM_CurrentMap][MapHeader_Current].MeshDataHeader / 4) + 3;
-		memcpy(&Readout_Current1, &ZMapBuffer[ROM_CurrentMap][TempOffset], 4);
-		HelperFunc_SplitCurrentVals(false);
+		unsigned long MeshScanPosition = TempOffset;
 
-		if((Readout_CurrentByte1 == 0x03)) {
-			TempOffset = Readout_CurrentByte2 << 16;
-			TempOffset = TempOffset + (Readout_CurrentByte3 << 8);
-			TempOffset = TempOffset + Readout_CurrentByte4;
+		unsigned long Unknown1 = 0;
+		unsigned long Unknown2 = 0;
+		unsigned long DListStart1 = 0;
+		unsigned long DListStart2 = 0;
 
-			DLists[ROM_CurrentMap][DListInfo_CurrentCount[ROM_CurrentMap]] = TempOffset;
+		unsigned long DLSecondary[1024];
+		unsigned int DListInfo_SecondaryCount = 0;
 
+		while(TotalMeshCount < MeshAmount) {
+			memcpy(&Readout_Current1, &ZMapBuffer[ROM_CurrentMap][MeshScanPosition], 4);
+			memcpy(&Readout_Current2, &ZMapBuffer[ROM_CurrentMap][MeshScanPosition + 1], 4);
+			HelperFunc_SplitCurrentVals(true);
+
+			Unknown1 = (Readout_CurrentByte1 * 0x1000000) + (Readout_CurrentByte2 * 0x10000) + (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
+			Unknown2 = (Readout_CurrentByte5 * 0x1000000) + (Readout_CurrentByte6 * 0x10000) + (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
+			MeshScanPosition += 2;
+
+			memcpy(&Readout_Current1, &ZMapBuffer[ROM_CurrentMap][MeshScanPosition], 4);
+			memcpy(&Readout_Current2, &ZMapBuffer[ROM_CurrentMap][MeshScanPosition + 1], 4);
+			HelperFunc_SplitCurrentVals(true);
+
+			if(Readout_CurrentByte1 == 0x03) {
+				/* primary dlists - terrain geometry, etc */
+				DListStart1 = (Readout_CurrentByte2 * 0x10000) + (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
+				DLists[ROM_CurrentMap][DListInfo_CurrentCount[ROM_CurrentMap]] = DListStart1;
+				DListInfo_CurrentCount[ROM_CurrentMap]++;
+				DListInfo_TotalCount++;
+			}
+
+			if(Readout_CurrentByte5 == 0x03) {
+				/* secondary dlists - water, pathways, etc */
+				DListStart2 = (Readout_CurrentByte6 * 0x10000) + (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
+				DLSecondary[DListInfo_SecondaryCount] = DListStart2;
+				DListInfo_SecondaryCount++;
+				DListInfo_TotalCount++;
+			}
+
+			MeshScanPosition += 2;
+
+			TotalMeshCount++;
+		}
+
+		int i = 0;
+		for(i = 0; i < DListInfo_SecondaryCount; i++) {
+			/* add secondary dlists to main dlist array */
+			DLists[ROM_CurrentMap][DListInfo_CurrentCount[ROM_CurrentMap]] = DLSecondary[i];
 			DListInfo_CurrentCount[ROM_CurrentMap]++;
-			DListInfo_TotalCount++;
+		}
+
+		break;
+		}
+	default: {
+		MessageBox(hwnd, "Unknown Mesh Header setup!", "Error", MB_OK | MB_ICONEXCLAMATION);
+		break;
 		}
 	}
 
@@ -462,7 +536,7 @@ int Viewer_GetMapCollision(int CurrentHeader)
 		if(Renderer_GLDisplayList_Current != 0) {
 			glNewList(Renderer_GLDisplayList_Current, GL_COMPILE);
 				glEnable(GL_POLYGON_OFFSET_FILL);
-				glPolygonOffset(-1.0f, -1.0f);
+				glPolygonOffset(-2.0f, -2.0f);
 
 				glEnable(GL_CULL_FACE);
 				glDisable(GL_TEXTURE_2D);
@@ -474,10 +548,13 @@ int Viewer_GetMapCollision(int CurrentHeader)
 					HelperFunc_SplitCurrentVals(true);
 
 					unsigned int ColType = ((Readout_CurrentByte1 * 0x100) + Readout_CurrentByte2);
+
 					unsigned int ColVertex1 = ((Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4);
 					ColVertex1 = (ColVertex1 & 0x0FFF);
+
 					unsigned int ColVertex2 = ((Readout_CurrentByte5 * 0x100) + Readout_CurrentByte6);
 					ColVertex2 = (ColVertex2 & 0x0FFF);
+
 					unsigned int ColVertex3 = ((Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8);
 					ColVertex3 = (ColVertex3 & 0x0FFF);
 
@@ -502,8 +579,9 @@ int Viewer_GetMapCollision(int CurrentHeader)
 							glVertex3d(CollisionVertex[ColVertex3].X, CollisionVertex[ColVertex3].Y, CollisionVertex[ColVertex3].Z);
 						glEnd();
 
-						sprintf(SystemLogMsg, " - Polygon %5d:\n  - Vertex 1 (#%5d), X %5d, Y %5d, Z %5d\n  - Vertex 2 (#%5d), X %5d, Y %5d, Z %5d\n  - Vertex 3 (#%5d), X %5d, Y %5d, Z %5d\n\n",
+						sprintf(SystemLogMsg, " - Polygon %5d:\n  - Collision type: 0x%04X\n  - Vertex 1 (#%5d), X %5d, Y %5d, Z %5d\n  - Vertex 2 (#%5d), X %5d, Y %5d, Z %5d\n  - Vertex 3 (#%5d), X %5d, Y %5d, Z %5d\n\n",
 							TotalColPoly,
+							ColType,
 							ColVertex1, CollisionVertex[ColVertex1].X, CollisionVertex[ColVertex1].Y, CollisionVertex[ColVertex1].Z,
 							ColVertex2, CollisionVertex[ColVertex2].X, CollisionVertex[ColVertex2].Y, CollisionVertex[ColVertex2].Z,
 							ColVertex3, CollisionVertex[ColVertex3].X, CollisionVertex[ColVertex3].Y, CollisionVertex[ColVertex3].Z);
