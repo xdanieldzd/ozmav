@@ -254,19 +254,6 @@ struct Vertex_Struct CollisionVertex[8192];
 
 int Viewer_Initialize()
 {
-	/* OPEN FILE */
-	FileROM = fopen(Filename_ROM, "r+b");
-	/* GET FILESIZE */
-	size_t Result;
-	fseek(FileROM, 0, SEEK_END);
-	ROMFilesize = ftell(FileROM);
-	rewind(FileROM);
-	/* LOAD FILE INTO BUFFER */
-	ROMBuffer = (unsigned int*) malloc (sizeof(int) * ROMFilesize);
-	Result = fread(ROMBuffer, 1, ROMFilesize, FileROM);
-	/* CLOSE FILE */
-	fclose(FileROM);
-
 	Viewer_LoadAreaData();
 	Viewer_RenderMapRefresh();
 
@@ -294,8 +281,6 @@ int Viewer_Initialize()
 	sprintf(WindowTitle, "%s %s - %s", AppTitle, AppVersion, Filename_ROM);
 	SetWindowText(hwnd, WindowTitle);
 
-//	if(ROMBuffer != NULL) free(ROMBuffer);
-
 	return 0;
 }
 
@@ -307,6 +292,19 @@ int Viewer_LoadAreaData()
 
 	sprintf(StatusMsg, "Loading level...");
 	SendMessage(hstatus, SB_SETTEXT, 2, (LPARAM)StatusMsg);
+
+	/* OPEN FILE */
+	FileROM = fopen(Filename_ROM, "r+b");
+	/* GET FILESIZE */
+	size_t Result;
+	fseek(FileROM, 0, SEEK_END);
+	ROMFilesize = ftell(FileROM);
+	rewind(FileROM);
+	/* LOAD FILE INTO BUFFER */
+	ROMBuffer = (unsigned int*) malloc (sizeof(int) * ROMFilesize);
+	Result = fread(ROMBuffer, 1, ROMFilesize, FileROM);
+	/* CLOSE FILE */
+	fclose(FileROM);
 
 	free(GameplayKeepBuffer);
 	free(GameplayFDKeepBuffer);
@@ -497,6 +495,8 @@ int Viewer_LoadAreaData()
 //	sprintf(StatusMsg, "Level loaded successfully!");
 	sprintf(StatusMsg, "Level: 0x%02X", ROM_SceneToLoad);
 
+	if(ROMBuffer != NULL) free(ROMBuffer);
+
 	return 0;
 }
 
@@ -630,7 +630,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 			NULL
 			);
 
-	int hstatuswidths[] = {40, 220, -1};
+	int hstatuswidths[] = {50, 220, -1};
 	hstatus = CreateWindowEx(
 			0,
 			STATUSCLASSNAME,
@@ -646,8 +646,6 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 			NULL);
 
 	SendMessage(hstatus, SB_SETPARTS, sizeof(hstatuswidths)/sizeof(int), (LPARAM)hstatuswidths);
-
-	if (!CreateGLTarget(640,480,16)) return 0;
 
 	sprintf(WindowTitle, "%s %s", AppTitle, AppVersion);
 	SetWindowText(hwnd, WindowTitle);
@@ -665,8 +663,10 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 	Renderer_FilteringMode_Mag = GetPrivateProfileInt("Viewer", "TexFilterMag", GL_LINEAR, INIPath);
 	Renderer_EnableMapActors = GetPrivateProfileInt("Viewer", "RenderMapActors", true, INIPath);
 	Renderer_EnableSceneActors = GetPrivateProfileInt("Viewer", "RenderSceneActors", false, INIPath);
-	Renderer_EnableMap = GetPrivateProfileInt("Viewer", "RenderMaps", false, INIPath);
+	Renderer_EnableMap = GetPrivateProfileInt("Viewer", "RenderMaps", true, INIPath);
 	Renderer_EnableCollision = GetPrivateProfileInt("Viewer", "RenderCollision", true, INIPath);
+
+	if (!CreateGLTarget(640,480,16)) return 0;
 
 	ShowWindow(hwnd, nFunsterStil);
 

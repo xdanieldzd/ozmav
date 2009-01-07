@@ -305,13 +305,23 @@ int Viewer_GetSceneActors(int CurrentHeader)
 	return 0;
 }
 
-/* Viewer_GetMapDisplayLists - SCAN THE CURRENT MAP FOR F3DZEX DISPLAY LISTS AND STORE THEIR OFFSETS IN THE DLISTS STRUCT */
+/* VIEWER_GETMAPDISPLAYLISTS - SCAN THE CURRENT MAP FOR F3DZEX DISPLAY LISTS AND STORE THEIR OFFSETS IN THE DLISTS STRUCT */
 int Viewer_GetMapDisplayLists(unsigned long Fsize)
 {
 	DListInfo_CurrentCount[ROM_CurrentMap] = 0;
 	unsigned long TempOffset = 0;
 
-	/* EXPERIMENTAL dlist detection by mesh header data - watch out for missing geometry! (hope there isn't any tho) */
+	/* EXPERIMENTAL dlist detection by mesh header data - watch out for missing geometry! (there shouldn't be any tho) */
+
+	/* MESH HEADER LAYOUT:
+		[aa bb 0000 cccccccc dddddddd]
+		aa = map type
+		bb = number of dlists
+		cccccccc = pointer to offset w/ dlist pointers
+		dddddddd = [unknown pointer]
+
+		LAYOUT DIFFERS WITH TYPE 01 MAPS (prerendered jpeg background stuff)
+	*/
 	TempOffset = (MapHeader[ROM_CurrentMap][MapHeader_Current].MeshDataHeader / 4);
 	memcpy(&Readout_Current1, &ZMapBuffer[ROM_CurrentMap][TempOffset], 4);
 	HelperFunc_SplitCurrentVals(false);
@@ -323,6 +333,11 @@ int Viewer_GetMapDisplayLists(unsigned long Fsize)
 	switch(MeshHeaderSetup) {
 	case 0x00: {
 		/* simple maps, ex. besitu ??? */
+
+		/* LAYOUT:
+			[aaaaaaaa] [aaaaaaaa] [aaaaaaaa] ...
+			aaaaaaaa = pointer to dlist
+		*/
 		TempOffset = (MapHeader[ROM_CurrentMap][MapHeader_Current].MeshDataHeader / 4) + 3;
 		unsigned long MeshScanPosition = TempOffset;
 
@@ -344,6 +359,11 @@ int Viewer_GetMapDisplayLists(unsigned long Fsize)
 		}
 	case 0x01: {
 		/* static prerendered maps, ex. market_alley ??? */
+
+		/* LAYOUT:
+			[aaaaaaaa] [aaaaaaaa] [aaaaaaaa] ...
+			aaaaaaaa = pointer to dlist
+		*/
 		TempOffset = (MapHeader[ROM_CurrentMap][MapHeader_Current].MeshDataHeader / 4) + 1;
 		memcpy(&Readout_Current1, &ZMapBuffer[ROM_CurrentMap][TempOffset], 4);
 		memcpy(&Readout_Current2, &ZMapBuffer[ROM_CurrentMap][TempOffset + 1], 4);
@@ -371,6 +391,14 @@ int Viewer_GetMapDisplayLists(unsigned long Fsize)
 		}
 	case 0x02: {
 		/* complicated maps, ex. spot00 ??? */
+
+		/* LAYOUT:
+			[aaaaaaaa bbbbbbbb cccccccc dddddddd] [aaaaaaaa bbbbbbbb cccccccc dddddddd] ...
+			aaaaaaaa = unknown data
+			bbbbbbbb = unknown data
+			cccccccc = pointer to "primary" dlist (all 0 if not used)
+			dddddddd = pointer to "secondary" dlist (all 0 if not used)
+		*/
 		TempOffset = (MapHeader[ROM_CurrentMap][MapHeader_Current].MeshDataHeader / 4) + 3;
 		unsigned long MeshScanPosition = TempOffset;
 
@@ -431,7 +459,8 @@ int Viewer_GetMapDisplayLists(unsigned long Fsize)
 		}
 	}
 
-	/* crap, epic fail! no dlists found! */
+	/* crap, epic fail! no dlists found!
+	   (that shouldn't happen anymore tho) */
 	if(DListInfo_CurrentCount[ROM_CurrentMap] == 0) {
 		MessageBox(hwnd, "No Display Lists found!", "Error", MB_OK | MB_ICONEXCLAMATION);
 	}
