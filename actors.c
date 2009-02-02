@@ -84,7 +84,7 @@ int Viewer_RenderActor(int ID, GLshort X, GLshort Y, GLshort Z, signed int X_Rot
 	glRotatef((Y_Rot / 180), 0, 1, 0);
 	glRotatef((Z_Rot / 180), 0, 0, 1);
 
-/*	if(ActorTable[ID].Valid) {
+	/*if(ActorTable[ID].Valid) {
 		glScalef(0.05, 0.05, 0.05);
 		glCallList(Renderer_GLDisplayList + Renderer_GLDisplayList_Total + ID);
 	} else {*/
@@ -135,7 +135,7 @@ int Viewer_RenderActor(int ID, GLshort X, GLshort Y, GLshort Z, signed int X_Rot
 
 		glEnable(GL_LIGHT1);
 		glDisable(GL_LIGHTING);
-//	}
+	//}
 
 	glPopMatrix();
 

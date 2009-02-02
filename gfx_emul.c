@@ -1065,6 +1065,41 @@ int Viewer_RenderMap_CMDSetOtherModeH()
 
 int Viewer_RenderMap_CMDSetOtherModeL()
 {
+    unsigned int LowBits =	        (Readout_CurrentByte2 << 16) +
+									(Readout_CurrentByte3 << 8) +
+									(Readout_CurrentByte4);
+
+    unsigned int HighBits  =	    (Readout_CurrentByte5 * 0x1000000) +
+									(Readout_CurrentByte6 * 0x10000) +
+									(Readout_CurrentByte7 * 0x100) +
+									 Readout_CurrentByte8;
+
+    byte MDSFT = 32 - ((LowBits >> 8) & 0xFF) - (LowBits & 0xFF) - 2;
+    byte zmode = (HighBits >> 10) & 0x3;
+
+    switch(MDSFT)
+    {
+        case 0: // alphacompare
+            break;
+
+        case 1: //zsrcsel
+
+            break;
+        case 2: // rendermode
+            if(zmode==3)
+            {
+                glEnable(GL_POLYGON_OFFSET_FILL);
+                glPolygonOffset(-3.0,-3.0);
+            }
+            else
+            {
+                glDisable(GL_POLYGON_OFFSET_FILL);
+            }
+            break;
+        case 3: //
+
+            break;
+    }
 	Blender_Cycle1 =	Readout_CurrentByte5 * 0x1000000;
 	Blender_Cycle1 +=	Readout_CurrentByte6 * 0x10000;
 	Blender_Cycle1 >>=	16;
@@ -1079,7 +1114,6 @@ int Viewer_RenderMap_CMDSetOtherModeL()
 
 	switch (Blender_Cycle1 + Blender_Cycle2) {
 		case 0x0055 + 0x2048:
-
 		case 0xC811 + 0x2078:								//no blending
 		case 0xC811 + 0x3078:
 		case 0x0C19 + 0x2078:
