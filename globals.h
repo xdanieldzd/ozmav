@@ -215,6 +215,12 @@ extern unsigned char	* PaletteData;
 extern unsigned long	TexCachePosition;
 extern unsigned long	TotalTexCount;
 
+/* Combiner variables */
+unsigned int fragProg;
+int COMBINE0,COMBINE1;
+int cA0,cB0,cC0,cD0,aA0,aB0,aC0,aD0;
+int cA1,cB1,cC1,cD1,aA1,aB1,aC1,aD1;
+
 /* ZELDA ROM HANDLING VARIABLES */
 extern unsigned long	ROM_SceneTableOffset;
 extern unsigned int		ROM_SceneToLoad;

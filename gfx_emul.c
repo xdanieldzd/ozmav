@@ -399,8 +399,9 @@ int Viewer_RenderMap_DListParser(bool CalledFromRDPHalf, unsigned int DLToRender
 			break;
 		case G_SETCOMBINE:
 			sprintf(CurrentGFXCmd, "G_SETCOMBINE         ");
-			sprintf(CurrentGFXCmdNote, "<unemulated>");
+			sprintf(CurrentGFXCmdNote, "-");
 			HelperFunc_GFXLogCommand(Position);
+			Viewer_RenderMap_CMDSetCombine();
 			break;
 		case F3DEX2_DL:
 			sprintf(CurrentGFXCmd, "F3DEX2_DL            ");
@@ -1039,6 +1040,281 @@ int Viewer_RenderMap_CMDRDPHalf1_CMDDListStart_CMDDListStart(bool GetDLFromZMapS
 	return 0;
 }
 
+char ShaderArray[8192];
+int buildFragmentShader()
+{
+    char *ShaderString=&ShaderArray[0];
+    ShaderString+=sprintf(ShaderString,"!!ARBfp1.0\n");
+    ShaderString+=sprintf(ShaderString,"TEMP R0;\n");
+    ShaderString+=sprintf(ShaderString,"TEMP R1;\n");
+    ShaderString+=sprintf(ShaderString,"TEMP aR0;\n");
+    ShaderString+=sprintf(ShaderString,"TEMP aR1;\n");
+    ShaderString+=sprintf(ShaderString,"PARAM envcolor = program.env[0];\n");
+    ShaderString+=sprintf(ShaderString,"PARAM primcolor = program.env[1];\n");
+    switch(cA0)
+    {
+        case 1: // cTEXEL0
+            ShaderString+=sprintf(ShaderString,"TEX R0, fragment.texcoord[0], texture[0], 2D;\n");
+            break;
+        case 2: // cTEXEL1
+            ShaderString+=sprintf(ShaderString,"TEX R0, fragment.texcoord[0], texture[1], 2D;\n");
+            break;
+        case 3: // cPRIM
+            ShaderString+=sprintf(ShaderString,"MOV R0, primcolor;\n");
+            break;
+        case 4: // cSHADE
+            ShaderString+=sprintf(ShaderString,"MOV R0, fragment.color.primary;\n");
+            break;
+        case 5: // cENV
+            ShaderString+=sprintf(ShaderString,"MOV R0, envcolor;\n");
+            break;
+        case 6: // 1.0
+            ShaderString+=sprintf(ShaderString,"MOV R0, {1.0,1.0,1.0,1.0};\n");
+            break;
+        default:
+            ShaderString+=sprintf(ShaderString,"MOV R0, {0,0,0,0};\n");
+            break;
+    }
+    switch(cB0)
+    {
+        case 1: // cTEXEL0
+            ShaderString+=sprintf(ShaderString,"TEX R1, fragment.texcoord[0], texture[0], 2D;\n");
+            break;
+        case 2: // cTEXEL1
+            ShaderString+=sprintf(ShaderString,"TEX R1, fragment.texcoord[0], texture[1], 2D;\n");
+            break;
+        case 3: // cPRIM
+            ShaderString+=sprintf(ShaderString,"MOV R1, primcolor;\n");
+            break;
+        case 4: // cSHADE
+            ShaderString+=sprintf(ShaderString,"MOV R1, fragment.color.primary;\n");
+            break;
+        case 5: // cENV
+            ShaderString+=sprintf(ShaderString,"MOV R1, envcolor;\n");
+            break;
+        default:
+            ShaderString+=sprintf(ShaderString,"MOV R1, {0,0,0,0};\n");
+            break;
+    }
+    ShaderString+=sprintf(ShaderString,"SUB R0, R0, R1;\n");
+    switch(cC0)
+    {
+        case 1: // cTEXEL0
+            ShaderString+=sprintf(ShaderString,"TEX R1, fragment.texcoord[0], texture[0], 2D;\n");
+            break;
+        case 2: // cTEXEL1
+            ShaderString+=sprintf(ShaderString,"TEX R1, fragment.texcoord[0], texture[1], 2D;\n");
+            break;
+        case 3: // cPRIM
+            ShaderString+=sprintf(ShaderString,"MOV R1, primcolor;\n");
+            break;
+        case 4: // cSHADE
+            ShaderString+=sprintf(ShaderString,"MOV R1, fragment.color.primary;\n");
+            break;
+        case 5: // cENV
+            ShaderString+=sprintf(ShaderString,"MOV R1, envcolor;\n");
+            break;
+        case 8: // aTEXEL0
+            ShaderString+=sprintf(ShaderString,"TEX R1, fragment.texcoord[0], texture[0], 2D;\n");
+            ShaderString+=sprintf(ShaderString,"MOV R1, R1.aaaa;\n");
+            break;
+        case 9: // aTEXEL1
+            ShaderString+=sprintf(ShaderString,"TEX R1, fragment.texcoord[0], texture[1], 2D;\n");
+            ShaderString+=sprintf(ShaderString,"MOV R1, R1.aaaa;\n");
+            break;
+        case 10: // aPRIM
+            ShaderString+=sprintf(ShaderString,"MOV R1, primcolor;\n");
+            ShaderString+=sprintf(ShaderString,"MOV R1, R1.aaaa;\n");
+            break;
+        case 11: // aSHADE
+            ShaderString+=sprintf(ShaderString,"MOV R1, fragment.color.primary;\n");
+            ShaderString+=sprintf(ShaderString,"MOV R1, R1.aaaa;\n");
+            break;
+        case 12: // aENV
+            ShaderString+=sprintf(ShaderString,"MOV R1, envcolor;\n");
+            ShaderString+=sprintf(ShaderString,"MOV R1, R1.aaaa;\n");
+            break;
+        default:
+            ShaderString+=sprintf(ShaderString,"MOV R1, {0,0,0,0};\n");
+            break;
+
+    }
+    ShaderString+=sprintf(ShaderString,"MUL R0, R0, R1;\n");
+    switch(cD0)
+    {
+        case 1: // cTEXEL0
+            ShaderString+=sprintf(ShaderString,"TEX R1, fragment.texcoord[0], texture[0], 2D;\n");
+            break;
+        case 2: // cTEXEL1
+            ShaderString+=sprintf(ShaderString,"TEX R1, fragment.texcoord[0], texture[1], 2D;\n");
+            break;
+        case 3: // cPRIM
+            ShaderString+=sprintf(ShaderString,"MOV R1, primcolor;\n");
+            break;
+        case 4: // cSHADE
+            ShaderString+=sprintf(ShaderString,"MOV R1, fragment.color.primary;\n");
+            break;
+        case 5: // cENV
+            ShaderString+=sprintf(ShaderString,"MOV R1, envcolor;\n");
+            break;
+        case 6: // 1.0
+            ShaderString+=sprintf(ShaderString,"MOV R1, {1.0,1.0,1.0,1.0};\n");
+            break;
+        default:
+            ShaderString+=sprintf(ShaderString,"MOV R1, {0,0,0,0};\n");
+            break;
+    }
+    ShaderString+=sprintf(ShaderString,"ADD R0, R0, R1;\n");
+
+    switch(aA0)
+    {
+        case 1: // aTEXEL0
+            ShaderString+=sprintf(ShaderString,"TEX aR0, fragment.texcoord[0], texture[0], 2D;\n");
+            break;
+        case 2: // aTEXEL1
+            ShaderString+=sprintf(ShaderString,"TEX aR0, fragment.texcoord[0], texture[1], 2D;\n");
+            break;
+        case 3: // aPRIM
+            ShaderString+=sprintf(ShaderString,"MOV aR0, primcolor;\n");
+            break;
+        case 4: // aSHADE
+            ShaderString+=sprintf(ShaderString,"MOV aR0, fragment.color.primary;\n");
+            break;
+        case 5: // aENV
+            ShaderString+=sprintf(ShaderString,"MOV aR0, envcolor;\n");
+            break;
+        case 6: // 1.0
+            ShaderString+=sprintf(ShaderString,"MOV aR0, {1.0,1.0,1.0,1.0};\n");
+            break;
+        default:
+            ShaderString+=sprintf(ShaderString,"MOV aR0, {0,0,0,0};\n");
+            break;
+    }
+
+    switch(aB0)
+    {
+        case 1: // aTEXEL0
+            ShaderString+=sprintf(ShaderString,"TEX aR1, fragment.texcoord[0], texture[0], 2D;\n");
+            break;
+        case 2: // aTEXEL1
+            ShaderString+=sprintf(ShaderString,"TEX aR1, fragment.texcoord[0], texture[1], 2D;\n");
+            break;
+        case 3: // aPRIM
+            ShaderString+=sprintf(ShaderString,"MOV aR1, primcolor;\n");
+            break;
+        case 4: // aSHADE
+            ShaderString+=sprintf(ShaderString,"MOV aR1, fragment.color.primary;\n");
+            break;
+        case 5: // aENV
+            ShaderString+=sprintf(ShaderString,"MOV aR1, envcolor;\n");
+            break;
+        case 6: // 1.0
+            ShaderString+=sprintf(ShaderString,"MOV aR1, {1.0,1.0,1.0,1.0};\n");
+            break;
+        default:
+            ShaderString+=sprintf(ShaderString,"MOV aR1, {0,0,0,0};\n");
+            break;
+    }
+    ShaderString+=sprintf(ShaderString,"SUB aR0, aR0, aR1;\n");
+    switch(aC0)
+    {
+        case 1: // aTEXEL0
+            ShaderString+=sprintf(ShaderString,"TEX aR1, fragment.texcoord[0], texture[0], 2D;\n");
+            break;
+        case 2: // aTEXEL1
+            ShaderString+=sprintf(ShaderString,"TEX aR1, fragment.texcoord[0], texture[1], 2D;\n");
+            break;
+        case 3: // aPRIM
+            ShaderString+=sprintf(ShaderString,"MOV aR1, primcolor;\n");
+            break;
+        case 4: // aSHADE
+            ShaderString+=sprintf(ShaderString,"MOV aR1, fragment.color.primary;\n");
+            break;
+        case 5: // aENV
+            ShaderString+=sprintf(ShaderString,"MOV aR1, envcolor;\n");
+            break;
+        default:
+            ShaderString+=sprintf(ShaderString,"MOV aR1, {0,0,0,0};\n");
+            break;
+    }
+    ShaderString+=sprintf(ShaderString,"MUL aR0, aR0, aR1;\n");
+    switch(aD0)
+    {
+        case 1: // aTEXEL0
+            ShaderString+=sprintf(ShaderString,"TEX aR1, fragment.texcoord[0], texture[0], 2D;\n");
+            break;
+        case 2: // aTEXEL1
+            ShaderString+=sprintf(ShaderString,"TEX aR1, fragment.texcoord[0], texture[1], 2D;\n");
+            break;
+        case 3: // aPRIM
+            ShaderString+=sprintf(ShaderString,"MOV aR1, primcolor;\n");
+            break;
+        case 4: // aSHADE
+            ShaderString+=sprintf(ShaderString,"MOV aR1, fragment.color.primary;\n");
+            break;
+        case 5: // aENV
+            ShaderString+=sprintf(ShaderString,"MOV aR1, envcolor;\n");
+            break;
+        case 6: // 1.0
+            ShaderString+=sprintf(ShaderString,"MOV aR1, {1.0,1.0,1.0,1.0};\n");
+            break;
+        default:
+            ShaderString+=sprintf(ShaderString,"MOV aR1, {0,0,0,0};\n");
+            break;
+    }
+    ShaderString+=sprintf(ShaderString,"ADD aR0, aR0, aR1;\n");
+    ShaderString+=sprintf(ShaderString,"MOV R0.a, aR0.a;\n");
+    ShaderString+=sprintf(ShaderString,"MOV result.color, R0;\n");
+    ShaderString+=sprintf(ShaderString,"END\n");
+
+    //MessageBox(hwnd,ShaderString,"FRAGMENT SHADER!", MB_OK | MB_ICONINFORMATION);
+    /*glGenProgramsARB(1, &fragProg);
+    glBindProgramARB (GL_FRAGMENT_PROGRAM_ARB, fragProg);
+    glProgramStringARB(GL_FRAGMENT_PROGRAM_ARB, GL_PROGRAM_FORMAT_ASCII_ARB,
+        strlen(ShaderArray), ShaderArray);
+    glEnable(GL_FRAGMENT_PROGRAM_ARB);
+    glBindProgramARB(GL_FRAGMENT_PROGRAM_ARB, fragProg);*/
+
+    return 0;
+}
+
+
+int Viewer_RenderMap_CMDSetCombine()
+{
+    unsigned int COMBINE0 =	        (Readout_CurrentByte2 * 0x10000) +
+									(Readout_CurrentByte3 * 0x100) +
+									(Readout_CurrentByte4);
+
+    unsigned int COMBINE1  =	    (Readout_CurrentByte5 * 0x1000000) +
+									(Readout_CurrentByte6 * 0x10000) +
+									(Readout_CurrentByte7 * 0x100) +
+									 Readout_CurrentByte8;
+    cA0=(COMBINE0>>20)&0xF;
+    cB0=(COMBINE1>>28)&0xF;
+    cC0=(COMBINE0>>15)&0x1F;
+    cD0=(COMBINE1>>15)&0x7;
+
+    aA0=(COMBINE0>>12)&0x7;
+    aB0=(COMBINE1>>12)&0x7;
+    aC0=(COMBINE0>>9)&0x7;
+    aD0=(COMBINE1>>9)&0x7;
+
+    cA1=(COMBINE0>>5)&0xF;
+    cB1=(COMBINE1>>24)&0xF;
+    cC1=(COMBINE0>>0)&0x1F;
+    cD1=(COMBINE1>>6)&0x7;
+
+    aA1=(COMBINE1>>21)&0x7;
+    aB1=(COMBINE1>>3)&0x7;
+    aC1=(COMBINE1>>18)&0x7;
+    aD1=(COMBINE1>>0)&0x7;
+
+    buildFragmentShader();
+
+    return 0;
+
+}
+
 int Viewer_RenderMap_CMDSetOtherModeH()
 {
 	unsigned long TempExtract0 =	(Readout_CurrentByte1 * 0x1000000) +
@@ -1077,30 +1353,27 @@ int Viewer_RenderMap_CMDSetOtherModeL()
     byte MDSFT = 32 - ((LowBits >> 8) & 0xFF) - (LowBits & 0xFF) - 1;
     byte zmode = 0;
     byte forceblend = 0;
+
     switch(MDSFT)
     {
         case 0: // alphacompare
-
             break;
         case 2: //zsrcsel
-
             break;
         case 3: // rendermode
             zmode = (HighBits >> 10) &3;
             forceblend = (HighBits >> 14) &1;
-            if(zmode==3){glEnable(GL_POLYGON_OFFSET_FILL); glPolygonOffset(-3.0,-3.0);} else {glDisable(GL_POLYGON_OFFSET_FILL);}
+            if(zmode==3){glEnable(GL_POLYGON_OFFSET_FILL); glPolygonOffset(-1.0,-1.0);} else {glDisable(GL_POLYGON_OFFSET_FILL);}
             if(forceblend==1){glEnable(GL_BLEND);}else{glDisable(GL_BLEND);}
             break;
         case 16: // blender
-
             break;
     }
-	Blender_Cycle1 =	Readout_CurrentByte5 * 0x1000000;
-	Blender_Cycle1 +=	Readout_CurrentByte6 * 0x10000;
-	Blender_Cycle1 >>=	16;
 
-	Blender_Cycle2 =	Readout_CurrentByte7 * 0x100;
-	Blender_Cycle2 +=	Readout_CurrentByte8;
+    //FOR CORRECTNESS WE WILL NEED TO EVENTUALLY MIGRATE ALL BELOW FUNCTIONS TO THE ABOVE SWITCH BLOCK!!!
+
+	Blender_Cycle1 = HighBits >> 16;
+	Blender_Cycle2 = (HighBits << 16) >> 16;
 
 	GLenum Blender_SrcFactor =		GL_SRC_ALPHA;
 	GLenum Blender_DstFactor =		GL_ONE_MINUS_SRC_ALPHA;
