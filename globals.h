@@ -57,6 +57,8 @@ extern int Viewer_RenderMap_CMDSetTileSize();
 extern int Viewer_RenderMap_CMDGeometryMode();
 extern int Viewer_RenderMap_CMDSetFogColor();
 extern int Viewer_RenderMap_CMDSetPrimColor();
+extern int Viewer_RenderMap_CMDSetEnvColor();
+extern int Viewer_RenderMap_CMDSetCombine();
 extern int Viewer_RenderMap_CMDLoadTLUT(unsigned int, unsigned long);
 extern int Viewer_RenderMap_CMDRDPHalf1_CMDDListStart(bool);
 extern int Viewer_RenderMap_CMDSetOtherModeH();
@@ -276,6 +278,7 @@ extern GLfloat			LightPosition[];
 
 extern GLfloat			FogColor[];
 extern GLfloat			PrimColor[];
+extern GLfloat          EnvColor[];
 
 extern bool				Renderer_EnableMapActors;
 extern bool				Renderer_EnableSceneActors;

@@ -56,6 +56,11 @@ int Viewer_RenderMap()
 					PrimColor[2] = 0.0f;
 					PrimColor[3] = 1.0f;
 
+                    EnvColor[0] = 0.0f;
+					EnvColor[1] = 0.0f;
+					EnvColor[2] = 0.0f;
+					EnvColor[3] = 1.0f;
+
 					Blender_Cycle1 = 0x00;
 					Blender_Cycle2 = 0x00;
 
@@ -385,6 +390,12 @@ int Viewer_RenderMap_DListParser(bool CalledFromRDPHalf, unsigned int DLToRender
 			HelperFunc_GFXLogCommand(Position);
 			Viewer_RenderMap_CMDSetPrimColor();
 			break;
+        case G_SETENVCOLOR:
+            sprintf(CurrentGFXCmd, "G_SETENVCOLOR        ");
+			sprintf(CurrentGFXCmdNote, "-");
+			HelperFunc_GFXLogCommand(Position);
+			Viewer_RenderMap_CMDSetEnvColor();
+		    break;
 		case F3DEX2_RDPHALF_1:
 			sprintf(CurrentGFXCmd, "F3DEX2_RDPHALF_1     ");
 			sprintf(CurrentGFXCmdNote, "<unemulated>");
@@ -960,8 +971,16 @@ int Viewer_RenderMap_CMDSetPrimColor()
 	PrimColor[1] = (Readout_CurrentByte6 / 255.0f);
 	PrimColor[2] = (Readout_CurrentByte7 / 255.0f);
 	PrimColor[3] = (Readout_CurrentByte8 / 255.0f);
-
+	//glProgramEnvParamater4ARB(GL_FRAGMENT_PROGRAM_ARB, 1, PrimColor);
 	return 0;
+}
+int Viewer_RenderMap_CMDSetEnvColor()
+{
+    EnvColor[0] = (Readout_CurrentByte5 / 255.0f);
+	EnvColor[1] = (Readout_CurrentByte6 / 255.0f);
+	EnvColor[2] = (Readout_CurrentByte7 / 255.0f);
+	EnvColor[3] = (Readout_CurrentByte8 / 255.0f);
+	//glProgramEnvParamater4ARB(GL_FRAGMENT_PROGRAM_ARB, 0, EnvColor);
 }
 
 /* VIEWER_RENDERMAP_CMDLOADTLUT - G_LOADTLUT - GET PALETTE FOR CI TEXTURES FROM PREVIOUS TEXTURE OFFSET */

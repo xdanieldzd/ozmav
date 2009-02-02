@@ -194,12 +194,13 @@ char			Renderer_CoordDisp[256] = "";
 
 bool			Renderer_EnableLighting = true;
 
-GLfloat			LightAmbient[]= { 0.0f, 0.0f, 0.0f, 1.0f };
-GLfloat			LightDiffuse[]= { 1.0f, 1.0f, 1.0f, 1.0f };
-GLfloat			LightPosition[]= { 1.0f, 1.0f, 1.0f, 1.0f };
+GLfloat			LightAmbient[]=  {0.0f, 0.0f, 0.0f, 1.0f};
+GLfloat			LightDiffuse[]=  {1.0f, 1.0f, 1.0f, 1.0f};
+GLfloat			LightPosition[]= {1.0f, 1.0f, 1.0f, 1.0f};
 
-GLfloat			FogColor[]= { 0.0f, 0.0f, 0.0f, 0.5f };
-GLfloat			PrimColor[]= { 0.0f, 0.0f, 0.0f, 1.0f };
+GLfloat			FogColor[]=  {0.0f, 0.0f, 0.0f, 0.5f};
+GLfloat			PrimColor[]= {0.0f, 0.0f, 0.0f, 1.0f};
+GLfloat         EnvColor[]=  {0.0f, 0.0f, 0.0f, 1.0f};
 
 bool			Renderer_EnableMapActors = true;
 bool			Renderer_EnableSceneActors = true;
