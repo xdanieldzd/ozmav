@@ -1065,8 +1065,8 @@ int Viewer_RenderMap_CMDSetOtherModeH()
 
 int Viewer_RenderMap_CMDSetOtherModeL()
 {
-    unsigned int LowBits =	        (Readout_CurrentByte2 << 16) +
-									(Readout_CurrentByte3 << 8) +
+    unsigned int LowBits =	        (Readout_CurrentByte2 * 0x10000) +
+									(Readout_CurrentByte3 * 0x100) +
 									(Readout_CurrentByte4);
 
     unsigned int HighBits  =	    (Readout_CurrentByte5 * 0x1000000) +
@@ -1074,29 +1074,24 @@ int Viewer_RenderMap_CMDSetOtherModeL()
 									(Readout_CurrentByte7 * 0x100) +
 									 Readout_CurrentByte8;
 
-    byte MDSFT = 32 - ((LowBits >> 8) & 0xFF) - (LowBits & 0xFF) - 2;
-    byte zmode = (HighBits >> 10) & 0x3;
-
+    byte MDSFT = 32 - ((LowBits >> 8) & 0xFF) - (LowBits & 0xFF) - 1;
+    byte zmode = 0;
+    byte forceblend = 0;
     switch(MDSFT)
     {
         case 0: // alphacompare
-            break;
-
-        case 1: //zsrcsel
 
             break;
-        case 2: // rendermode
-            if(zmode==3)
-            {
-                glEnable(GL_POLYGON_OFFSET_FILL);
-                glPolygonOffset(-3.0,-3.0);
-            }
-            else
-            {
-                glDisable(GL_POLYGON_OFFSET_FILL);
-            }
+        case 2: //zsrcsel
+
             break;
-        case 3: //
+        case 3: // rendermode
+            zmode = (HighBits >> 10) &3;
+            forceblend = (HighBits >> 14) &1;
+            if(zmode==3){glEnable(GL_POLYGON_OFFSET_FILL); glPolygonOffset(-3.0,-3.0);} else {glDisable(GL_POLYGON_OFFSET_FILL);}
+            if(forceblend==1){glEnable(GL_BLEND);}else{glDisable(GL_BLEND);}
+            break;
+        case 16: // blender
 
             break;
     }
@@ -1188,7 +1183,6 @@ int Viewer_RenderMap_CMDSetOtherModeL()
 			break;
 	}
 
-	glEnable(GL_BLEND);
 	glBlendFunc(Blender_SrcFactor, Blender_DstFactor);
 	glAlphaFunc(Blender_AlphaFunc, Blender_AlphaRef);
 
