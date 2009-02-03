@@ -95,6 +95,12 @@ extern PFNGLMULTITEXCOORD4FARBPROC		glMultiTexCoord4fARB;
 extern PFNGLACTIVETEXTUREARBPROC		glActiveTextureARB;
 extern PFNGLCLIENTACTIVETEXTUREARBPROC	glClientActiveTextureARB;
 
+extern PFNGLGENPROGRAMSARBPROC			glGenProgramsARB;
+extern PFNGLBINDPROGRAMARBPROC			glBindProgramARB;
+extern PFNGLDELETEPROGRAMSARBPROC		glDeleteProgramsARB;
+extern PFNGLPROGRAMSTRINGARBPROC		glProgramStringARB;
+extern PFNGLPROGRAMENVPARAMETER4FARBPROC	glProgramEnvParameter4fARB;
+
 /*	------------------------------------------------------------
 	VARIABLES
 	------------------------------------------------------------ */
@@ -292,6 +298,7 @@ extern char				* GLExtension_List;
 extern bool				GLExtension_MultiTexture;
 extern bool				GLExtension_TextureMirror;
 extern bool				GLExtension_AnisoFilter;
+extern bool				GLExtension_FragmentProgram;
 extern char				GLExtensionsSupported[256];
 
 extern bool				GLExtensionsUnsupported;

@@ -971,16 +971,17 @@ int Viewer_RenderMap_CMDSetPrimColor()
 	PrimColor[1] = (Readout_CurrentByte6 / 255.0f);
 	PrimColor[2] = (Readout_CurrentByte7 / 255.0f);
 	PrimColor[3] = (Readout_CurrentByte8 / 255.0f);
-	//glProgramEnvParamater4ARB(GL_FRAGMENT_PROGRAM_ARB, 1, PrimColor);
+	glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 1, PrimColor[0], PrimColor[1], PrimColor[2], PrimColor[3]);
 	return 0;
 }
+
 int Viewer_RenderMap_CMDSetEnvColor()
 {
     EnvColor[0] = (Readout_CurrentByte5 / 255.0f);
 	EnvColor[1] = (Readout_CurrentByte6 / 255.0f);
 	EnvColor[2] = (Readout_CurrentByte7 / 255.0f);
 	EnvColor[3] = (Readout_CurrentByte8 / 255.0f);
-	//glProgramEnvParamater4ARB(GL_FRAGMENT_PROGRAM_ARB, 0, EnvColor);
+	glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 0, EnvColor[0], EnvColor[1], EnvColor[2], PrimColor[3]);
 }
 
 /* VIEWER_RENDERMAP_CMDLOADTLUT - G_LOADTLUT - GET PALETTE FOR CI TEXTURES FROM PREVIOUS TEXTURE OFFSET */
@@ -1062,241 +1063,239 @@ int Viewer_RenderMap_CMDRDPHalf1_CMDDListStart_CMDDListStart(bool GetDLFromZMapS
 char ShaderArray[8192];
 int buildFragmentShader()
 {
-    char *ShaderString=&ShaderArray[0];
-    ShaderString+=sprintf(ShaderString,"!!ARBfp1.0\n");
-    ShaderString+=sprintf(ShaderString,"TEMP R0;\n");
-    ShaderString+=sprintf(ShaderString,"TEMP R1;\n");
-    ShaderString+=sprintf(ShaderString,"TEMP aR0;\n");
-    ShaderString+=sprintf(ShaderString,"TEMP aR1;\n");
-    ShaderString+=sprintf(ShaderString,"PARAM envcolor = program.env[0];\n");
-    ShaderString+=sprintf(ShaderString,"PARAM primcolor = program.env[1];\n");
+	char *ShaderString=&ShaderArray[0];
+	sprintf(ShaderString,"!!ARBfp1.0\n");
+	sprintf(ShaderString,"%sTEMP R0;\n",ShaderString);
+    sprintf(ShaderString,"%sTEMP R1;\n",ShaderString);
+    sprintf(ShaderString,"%sTEMP aR0;\n",ShaderString);
+    sprintf(ShaderString,"%sTEMP aR1;\n",ShaderString);
+    sprintf(ShaderString,"%sPARAM envcolor = program.env[0];\n",ShaderString);
+    sprintf(ShaderString,"%sPARAM primcolor = program.env[1];\n",ShaderString);
     switch(cA0)
     {
         case 1: // cTEXEL0
-            ShaderString+=sprintf(ShaderString,"TEX R0, fragment.texcoord[0], texture[0], 2D;\n");
+            sprintf(ShaderString,"%sTEX R0, fragment.texcoord[0], texture[0], 2D;\n",ShaderString);
             break;
         case 2: // cTEXEL1
-            ShaderString+=sprintf(ShaderString,"TEX R0, fragment.texcoord[0], texture[1], 2D;\n");
+            sprintf(ShaderString,"%sTEX R0, fragment.texcoord[0], texture[1], 2D;\n",ShaderString);
             break;
         case 3: // cPRIM
-            ShaderString+=sprintf(ShaderString,"MOV R0, primcolor;\n");
+            sprintf(ShaderString,"%sMOV R0, primcolor;\n",ShaderString);
             break;
         case 4: // cSHADE
-            ShaderString+=sprintf(ShaderString,"MOV R0, fragment.color.primary;\n");
+            sprintf(ShaderString,"%sMOV R0, fragment.color.primary;\n",ShaderString);
             break;
         case 5: // cENV
-            ShaderString+=sprintf(ShaderString,"MOV R0, envcolor;\n");
+            sprintf(ShaderString,"%sMOV R0, envcolor;\n",ShaderString);
             break;
         case 6: // 1.0
-            ShaderString+=sprintf(ShaderString,"MOV R0, {1.0,1.0,1.0,1.0};\n");
+            sprintf(ShaderString,"%sMOV R0, {1.0,1.0,1.0,1.0};\n",ShaderString);
             break;
         default:
-            ShaderString+=sprintf(ShaderString,"MOV R0, {0,0,0,0};\n");
+            sprintf(ShaderString,"%sMOV R0, {0,0,0,0};\n",ShaderString);
             break;
     }
     switch(cB0)
     {
         case 1: // cTEXEL0
-            ShaderString+=sprintf(ShaderString,"TEX R1, fragment.texcoord[0], texture[0], 2D;\n");
+            sprintf(ShaderString,"%sTEX R1, fragment.texcoord[0], texture[0], 2D;\n",ShaderString);
             break;
         case 2: // cTEXEL1
-            ShaderString+=sprintf(ShaderString,"TEX R1, fragment.texcoord[0], texture[1], 2D;\n");
+            sprintf(ShaderString,"%sTEX R1, fragment.texcoord[0], texture[1], 2D;\n",ShaderString);
             break;
         case 3: // cPRIM
-            ShaderString+=sprintf(ShaderString,"MOV R1, primcolor;\n");
+            sprintf(ShaderString,"%sMOV R1, primcolor;\n",ShaderString);
             break;
         case 4: // cSHADE
-            ShaderString+=sprintf(ShaderString,"MOV R1, fragment.color.primary;\n");
+            sprintf(ShaderString,"%sMOV R1, fragment.color.primary;\n",ShaderString);
             break;
         case 5: // cENV
-            ShaderString+=sprintf(ShaderString,"MOV R1, envcolor;\n");
+            sprintf(ShaderString,"%sMOV R1, envcolor;\n",ShaderString);
             break;
         default:
-            ShaderString+=sprintf(ShaderString,"MOV R1, {0,0,0,0};\n");
+            sprintf(ShaderString,"%sMOV R1, {0,0,0,0};\n",ShaderString);
             break;
     }
-    ShaderString+=sprintf(ShaderString,"SUB R0, R0, R1;\n");
+    sprintf(ShaderString,"%sSUB R0, R0, R1;\n",ShaderString);
     switch(cC0)
     {
         case 1: // cTEXEL0
-            ShaderString+=sprintf(ShaderString,"TEX R1, fragment.texcoord[0], texture[0], 2D;\n");
+            sprintf(ShaderString,"%sTEX R1, fragment.texcoord[0], texture[0], 2D;\n",ShaderString);
             break;
         case 2: // cTEXEL1
-            ShaderString+=sprintf(ShaderString,"TEX R1, fragment.texcoord[0], texture[1], 2D;\n");
+            sprintf(ShaderString,"%sTEX R1, fragment.texcoord[0], texture[1], 2D;\n",ShaderString);
             break;
         case 3: // cPRIM
-            ShaderString+=sprintf(ShaderString,"MOV R1, primcolor;\n");
+            sprintf(ShaderString,"%sMOV R1, primcolor;\n",ShaderString);
             break;
         case 4: // cSHADE
-            ShaderString+=sprintf(ShaderString,"MOV R1, fragment.color.primary;\n");
+            sprintf(ShaderString,"%sMOV R1, fragment.color.primary;\n",ShaderString);
             break;
         case 5: // cENV
-            ShaderString+=sprintf(ShaderString,"MOV R1, envcolor;\n");
+            sprintf(ShaderString,"%sMOV R1, envcolor;\n",ShaderString);
             break;
         case 8: // aTEXEL0
-            ShaderString+=sprintf(ShaderString,"TEX R1, fragment.texcoord[0], texture[0], 2D;\n");
-            ShaderString+=sprintf(ShaderString,"MOV R1, R1.aaaa;\n");
+            sprintf(ShaderString,"%sTEX R1, fragment.texcoord[0], texture[0], 2D;\n",ShaderString);
+            sprintf(ShaderString,"%sMOV R1, R1.aaaa;\n",ShaderString);
             break;
         case 9: // aTEXEL1
-            ShaderString+=sprintf(ShaderString,"TEX R1, fragment.texcoord[0], texture[1], 2D;\n");
-            ShaderString+=sprintf(ShaderString,"MOV R1, R1.aaaa;\n");
+            sprintf(ShaderString,"%sTEX R1, fragment.texcoord[0], texture[1], 2D;\n",ShaderString);
+            sprintf(ShaderString,"%sMOV R1, R1.aaaa;\n",ShaderString);
             break;
         case 10: // aPRIM
-            ShaderString+=sprintf(ShaderString,"MOV R1, primcolor;\n");
-            ShaderString+=sprintf(ShaderString,"MOV R1, R1.aaaa;\n");
+            sprintf(ShaderString,"%sMOV R1, primcolor;\n",ShaderString);
+            sprintf(ShaderString,"%sMOV R1, R1.aaaa;\n",ShaderString);
             break;
         case 11: // aSHADE
-            ShaderString+=sprintf(ShaderString,"MOV R1, fragment.color.primary;\n");
-            ShaderString+=sprintf(ShaderString,"MOV R1, R1.aaaa;\n");
+            sprintf(ShaderString,"%sMOV R1, fragment.color.primary;\n",ShaderString);
+            sprintf(ShaderString,"%sMOV R1, R1.aaaa;\n",ShaderString);
             break;
         case 12: // aENV
-            ShaderString+=sprintf(ShaderString,"MOV R1, envcolor;\n");
-            ShaderString+=sprintf(ShaderString,"MOV R1, R1.aaaa;\n");
+            sprintf(ShaderString,"%sMOV R1, envcolor;\n",ShaderString);
+            sprintf(ShaderString,"%sMOV R1, R1.aaaa;\n",ShaderString);
             break;
         default:
-            ShaderString+=sprintf(ShaderString,"MOV R1, {0,0,0,0};\n");
+            sprintf(ShaderString,"%sMOV R1, {0,0,0,0};\n",ShaderString);
             break;
 
     }
-    ShaderString+=sprintf(ShaderString,"MUL R0, R0, R1;\n");
+    sprintf(ShaderString,"%sMUL R0, R0, R1;\n",ShaderString);
     switch(cD0)
     {
         case 1: // cTEXEL0
-            ShaderString+=sprintf(ShaderString,"TEX R1, fragment.texcoord[0], texture[0], 2D;\n");
+            sprintf(ShaderString,"%sTEX R1, fragment.texcoord[0], texture[0], 2D;\n",ShaderString);
             break;
         case 2: // cTEXEL1
-            ShaderString+=sprintf(ShaderString,"TEX R1, fragment.texcoord[0], texture[1], 2D;\n");
+            sprintf(ShaderString,"%sTEX R1, fragment.texcoord[0], texture[1], 2D;\n",ShaderString);
             break;
         case 3: // cPRIM
-            ShaderString+=sprintf(ShaderString,"MOV R1, primcolor;\n");
+            sprintf(ShaderString,"%sMOV R1, primcolor;\n",ShaderString);
             break;
         case 4: // cSHADE
-            ShaderString+=sprintf(ShaderString,"MOV R1, fragment.color.primary;\n");
+            sprintf(ShaderString,"%sMOV R1, fragment.color.primary;\n",ShaderString);
             break;
         case 5: // cENV
-            ShaderString+=sprintf(ShaderString,"MOV R1, envcolor;\n");
+            sprintf(ShaderString,"%sMOV R1, envcolor;\n",ShaderString);
             break;
         case 6: // 1.0
-            ShaderString+=sprintf(ShaderString,"MOV R1, {1.0,1.0,1.0,1.0};\n");
+            sprintf(ShaderString,"%sMOV R1, {1.0,1.0,1.0,1.0};\n",ShaderString);
             break;
         default:
-            ShaderString+=sprintf(ShaderString,"MOV R1, {0,0,0,0};\n");
+            sprintf(ShaderString,"%sMOV R1, {0,0,0,0};\n",ShaderString);
             break;
     }
-    ShaderString+=sprintf(ShaderString,"ADD R0, R0, R1;\n");
+    sprintf(ShaderString,"%sADD R0, R0, R1;\n",ShaderString);
 
     switch(aA0)
     {
         case 1: // aTEXEL0
-            ShaderString+=sprintf(ShaderString,"TEX aR0, fragment.texcoord[0], texture[0], 2D;\n");
+            sprintf(ShaderString,"%sTEX aR0, fragment.texcoord[0], texture[0], 2D;\n",ShaderString);
             break;
         case 2: // aTEXEL1
-            ShaderString+=sprintf(ShaderString,"TEX aR0, fragment.texcoord[0], texture[1], 2D;\n");
+            sprintf(ShaderString,"%sTEX aR0, fragment.texcoord[0], texture[1], 2D;\n",ShaderString);
             break;
         case 3: // aPRIM
-            ShaderString+=sprintf(ShaderString,"MOV aR0, primcolor;\n");
+            sprintf(ShaderString,"%sMOV aR0, primcolor;\n",ShaderString);
             break;
         case 4: // aSHADE
-            ShaderString+=sprintf(ShaderString,"MOV aR0, fragment.color.primary;\n");
+            sprintf(ShaderString,"%sMOV aR0, fragment.color.primary;\n",ShaderString);
             break;
         case 5: // aENV
-            ShaderString+=sprintf(ShaderString,"MOV aR0, envcolor;\n");
+            sprintf(ShaderString,"%sMOV aR0, envcolor;\n",ShaderString);
             break;
         case 6: // 1.0
-            ShaderString+=sprintf(ShaderString,"MOV aR0, {1.0,1.0,1.0,1.0};\n");
+            sprintf(ShaderString,"%sMOV aR0, {1.0,1.0,1.0,1.0};\n",ShaderString);
             break;
         default:
-            ShaderString+=sprintf(ShaderString,"MOV aR0, {0,0,0,0};\n");
+            sprintf(ShaderString,"%sMOV aR0, {0,0,0,0};\n",ShaderString);
             break;
     }
 
     switch(aB0)
     {
         case 1: // aTEXEL0
-            ShaderString+=sprintf(ShaderString,"TEX aR1, fragment.texcoord[0], texture[0], 2D;\n");
+            sprintf(ShaderString,"%sTEX aR1, fragment.texcoord[0], texture[0], 2D;\n",ShaderString);
             break;
         case 2: // aTEXEL1
-            ShaderString+=sprintf(ShaderString,"TEX aR1, fragment.texcoord[0], texture[1], 2D;\n");
+            sprintf(ShaderString,"%sTEX aR1, fragment.texcoord[0], texture[1], 2D;\n",ShaderString);
             break;
         case 3: // aPRIM
-            ShaderString+=sprintf(ShaderString,"MOV aR1, primcolor;\n");
+            sprintf(ShaderString,"%sMOV aR1, primcolor;\n",ShaderString);
             break;
         case 4: // aSHADE
-            ShaderString+=sprintf(ShaderString,"MOV aR1, fragment.color.primary;\n");
+            sprintf(ShaderString,"%sMOV aR1, fragment.color.primary;\n",ShaderString);
             break;
         case 5: // aENV
-            ShaderString+=sprintf(ShaderString,"MOV aR1, envcolor;\n");
+            sprintf(ShaderString,"%sMOV aR1, envcolor;\n",ShaderString);
             break;
         case 6: // 1.0
-            ShaderString+=sprintf(ShaderString,"MOV aR1, {1.0,1.0,1.0,1.0};\n");
+            sprintf(ShaderString,"%sMOV aR1, {1.0,1.0,1.0,1.0};\n",ShaderString);
             break;
         default:
-            ShaderString+=sprintf(ShaderString,"MOV aR1, {0,0,0,0};\n");
+            sprintf(ShaderString,"%sMOV aR1, {0,0,0,0};\n",ShaderString);
             break;
     }
-    ShaderString+=sprintf(ShaderString,"SUB aR0, aR0, aR1;\n");
+    sprintf(ShaderString,"%sSUB aR0, aR0, aR1;\n",ShaderString);
     switch(aC0)
     {
         case 1: // aTEXEL0
-            ShaderString+=sprintf(ShaderString,"TEX aR1, fragment.texcoord[0], texture[0], 2D;\n");
+            sprintf(ShaderString,"%sTEX aR1, fragment.texcoord[0], texture[0], 2D;\n",ShaderString);
             break;
         case 2: // aTEXEL1
-            ShaderString+=sprintf(ShaderString,"TEX aR1, fragment.texcoord[0], texture[1], 2D;\n");
+            sprintf(ShaderString,"%sTEX aR1, fragment.texcoord[0], texture[1], 2D;\n",ShaderString);
             break;
         case 3: // aPRIM
-            ShaderString+=sprintf(ShaderString,"MOV aR1, primcolor;\n");
+            sprintf(ShaderString,"%sMOV aR1, primcolor;\n",ShaderString);
             break;
         case 4: // aSHADE
-            ShaderString+=sprintf(ShaderString,"MOV aR1, fragment.color.primary;\n");
+            sprintf(ShaderString,"%sMOV aR1, fragment.color.primary;\n",ShaderString);
             break;
         case 5: // aENV
-            ShaderString+=sprintf(ShaderString,"MOV aR1, envcolor;\n");
+            sprintf(ShaderString,"%sMOV aR1, envcolor;\n",ShaderString);
             break;
         default:
-            ShaderString+=sprintf(ShaderString,"MOV aR1, {0,0,0,0};\n");
+            sprintf(ShaderString,"%sMOV aR1, {0,0,0,0};\n",ShaderString);
             break;
     }
-    ShaderString+=sprintf(ShaderString,"MUL aR0, aR0, aR1;\n");
+    sprintf(ShaderString,"%sMUL aR0, aR0, aR1;\n",ShaderString);
     switch(aD0)
     {
         case 1: // aTEXEL0
-            ShaderString+=sprintf(ShaderString,"TEX aR1, fragment.texcoord[0], texture[0], 2D;\n");
+            sprintf(ShaderString,"%sTEX aR1, fragment.texcoord[0], texture[0], 2D;\n",ShaderString);
             break;
         case 2: // aTEXEL1
-            ShaderString+=sprintf(ShaderString,"TEX aR1, fragment.texcoord[0], texture[1], 2D;\n");
+            sprintf(ShaderString,"%sTEX aR1, fragment.texcoord[0], texture[1], 2D;\n",ShaderString);
             break;
         case 3: // aPRIM
-            ShaderString+=sprintf(ShaderString,"MOV aR1, primcolor;\n");
+            sprintf(ShaderString,"%sMOV aR1, primcolor;\n",ShaderString);
             break;
         case 4: // aSHADE
-            ShaderString+=sprintf(ShaderString,"MOV aR1, fragment.color.primary;\n");
+            sprintf(ShaderString,"%sMOV aR1, fragment.color.primary;\n",ShaderString);
             break;
         case 5: // aENV
-            ShaderString+=sprintf(ShaderString,"MOV aR1, envcolor;\n");
+            sprintf(ShaderString,"%sMOV aR1, envcolor;\n",ShaderString);
             break;
         case 6: // 1.0
-            ShaderString+=sprintf(ShaderString,"MOV aR1, {1.0,1.0,1.0,1.0};\n");
+            sprintf(ShaderString,"%sMOV aR1, {1.0,1.0,1.0,1.0};\n",ShaderString);
             break;
         default:
-            ShaderString+=sprintf(ShaderString,"MOV aR1, {0,0,0,0};\n");
+            sprintf(ShaderString,"%sMOV aR1, {0,0,0,0};\n",ShaderString);
             break;
     }
-    ShaderString+=sprintf(ShaderString,"ADD aR0, aR0, aR1;\n");
-    ShaderString+=sprintf(ShaderString,"MOV R0.a, aR0.a;\n");
-    ShaderString+=sprintf(ShaderString,"MOV result.color, R0;\n");
-    ShaderString+=sprintf(ShaderString,"END\n");
+    sprintf(ShaderString,"%sADD aR0, aR0, aR1;\n",ShaderString);
+    sprintf(ShaderString,"%sMOV R0.a, aR0.a;\n",ShaderString);
+    sprintf(ShaderString,"%sMOV result.color, R0;\n",ShaderString);
+    sprintf(ShaderString,"%sEND\n",ShaderString);
 
-    //MessageBox(hwnd,ShaderString,"FRAGMENT SHADER!", MB_OK | MB_ICONINFORMATION);
-    /*glGenProgramsARB(1, &fragProg);
-    glBindProgramARB (GL_FRAGMENT_PROGRAM_ARB, fragProg);
-    glProgramStringARB(GL_FRAGMENT_PROGRAM_ARB, GL_PROGRAM_FORMAT_ASCII_ARB,
-        strlen(ShaderArray), ShaderArray);
-    glEnable(GL_FRAGMENT_PROGRAM_ARB);
-    glBindProgramARB(GL_FRAGMENT_PROGRAM_ARB, fragProg);*/
+//	MessageBox(hwnd,ShaderArray,"FRAGMENT SHADER!", MB_OK | MB_ICONINFORMATION);
+	glEnable(GL_FRAGMENT_PROGRAM_ARB);
+	glGenProgramsARB(1, &fragProg);
+	glBindProgramARB(GL_FRAGMENT_PROGRAM_ARB, fragProg);
+	glProgramStringARB(GL_FRAGMENT_PROGRAM_ARB, GL_PROGRAM_FORMAT_ASCII_ARB, strlen(ShaderArray), ShaderArray);
+	glBindProgramARB(GL_FRAGMENT_PROGRAM_ARB, fragProg);
 
     return 0;
 }
-
 
 int Viewer_RenderMap_CMDSetCombine()
 {

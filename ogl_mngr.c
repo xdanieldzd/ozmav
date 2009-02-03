@@ -85,6 +85,18 @@ int InitGLExtensions(void)
 		sprintf(GLExtensionsErrorMsg, "%sGL_EXT_texture_filter_anisotropic\n", GLExtensionsErrorMsg);
 	}
 
+	if(strstr(GLExtension_List, "GL_ARB_fragment_program")) {
+		GLExtension_FragmentProgram = true;
+		glGenProgramsARB			= (PFNGLGENPROGRAMSARBPROC) wglGetProcAddress("glGenProgramsARB");
+		glBindProgramARB			= (PFNGLBINDPROGRAMARBPROC) wglGetProcAddress("glBindProgramARB");
+		glDeleteProgramsARB			= (PFNGLDELETEPROGRAMSARBPROC) wglGetProcAddress("glDeleteProgramsARB");
+		glProgramStringARB			= (PFNGLPROGRAMSTRINGARBPROC) wglGetProcAddress("glProgramStringARB");
+		glProgramEnvParameter4fARB	= (PFNGLPROGRAMENVPARAMETER4FARBPROC) wglGetProcAddress("glProgramEnvParameter4fARB");
+	} else {
+		GLExtensionsUnsupported = true;
+		sprintf(GLExtensionsErrorMsg, "%sGL_ARB_fragment_program\n", GLExtensionsErrorMsg);
+	}
+
 	if(GLExtensionsUnsupported) {
 		sprintf(ErrorMsg, "The following OpenGL Extensions are not supported by your hardware:\n\n%s", GLExtensionsErrorMsg);
 		MessageBox(hwnd, ErrorMsg, "Extension Error", MB_OK | MB_ICONERROR);

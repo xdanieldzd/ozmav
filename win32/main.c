@@ -16,12 +16,18 @@
 int WINAPI WinMain (HINSTANCE, HINSTANCE, LPSTR, int);
 LRESULT CALLBACK WindowProcedure (HWND, UINT, WPARAM, LPARAM);
 
-PFNGLMULTITEXCOORD1FARBPROC		glMultiTexCoord1fARB		= NULL;
-PFNGLMULTITEXCOORD2FARBPROC		glMultiTexCoord2fARB		= NULL;
-PFNGLMULTITEXCOORD3FARBPROC		glMultiTexCoord3fARB		= NULL;
-PFNGLMULTITEXCOORD4FARBPROC		glMultiTexCoord4fARB		= NULL;
-PFNGLACTIVETEXTUREARBPROC		glActiveTextureARB			= NULL;
-PFNGLCLIENTACTIVETEXTUREARBPROC	glClientActiveTextureARB	= NULL;
+PFNGLMULTITEXCOORD1FARBPROC			glMultiTexCoord1fARB		= NULL;
+PFNGLMULTITEXCOORD2FARBPROC			glMultiTexCoord2fARB		= NULL;
+PFNGLMULTITEXCOORD3FARBPROC			glMultiTexCoord3fARB		= NULL;
+PFNGLMULTITEXCOORD4FARBPROC			glMultiTexCoord4fARB		= NULL;
+PFNGLACTIVETEXTUREARBPROC			glActiveTextureARB			= NULL;
+PFNGLCLIENTACTIVETEXTUREARBPROC		glClientActiveTextureARB	= NULL;
+
+PFNGLGENPROGRAMSARBPROC				glGenProgramsARB			= NULL;
+PFNGLBINDPROGRAMARBPROC				glBindProgramARB			= NULL;
+PFNGLDELETEPROGRAMSARBPROC			glDeleteProgramsARB			= NULL;
+PFNGLPROGRAMSTRINGARBPROC			glProgramStringARB			= NULL;
+PFNGLPROGRAMENVPARAMETER4FARBPROC	glProgramEnvParameter4fARB = NULL;
 
 /*	------------------------------------------------------------
 	VARIABLES
@@ -145,6 +151,12 @@ unsigned char	* PaletteData = NULL;
 unsigned long	TexCachePosition = 0;
 unsigned long	TotalTexCount = 0;
 
+/* Combiner variables */
+unsigned int fragProg = 0;
+int COMBINE0 = 0,COMBINE1 = 0;
+int cA0 = 0,cB0 = 0,cC0 = 0,cD0 = 0,aA0 = 0,aB0 = 0,aC0 = 0,aD0 = 0;
+int cA1 = 0,cB1 = 0,cC1 = 0,cD1 = 0,aA1 = 0,aB1 = 0,aC1 = 0,aD1 = 0;
+
 /* ZELDA ROM HANDLING VARIABLES */
 unsigned long	ROM_SceneTableOffset = 0x00;
 unsigned int	ROM_SceneToLoad = 0x00;
@@ -214,6 +226,7 @@ char			* GLExtension_List;
 bool			GLExtension_MultiTexture = false;
 bool			GLExtension_TextureMirror = false;
 bool			GLExtension_AnisoFilter = false;
+bool			GLExtension_FragmentProgram = false;
 char			GLExtensionsSupported[256] = "";
 
 bool			GLExtensionsUnsupported = false;
