@@ -459,11 +459,9 @@ int Viewer_RenderMap_DListParser(bool CalledFromRDPHalf, unsigned int DLToRender
 /* VIEWER_RENDERMAP_CMDVERTEXLIST - F3DEX2_VTX - GET OFFSET, AMOUNT & VERTEX BUFFER POSITION OF VERTICES TO USE */
 int Viewer_RenderMap_CMDVertexList()
 {
-	if(!Texture[0].DataSource == 0x00) {
-		glEnable(GL_TEXTURE_2D);
-		Renderer_GLTexture = Viewer_LoadTexture(0);
-		glBindTexture(GL_TEXTURE_2D, Renderer_GLTexture);
-	}
+	glEnable(GL_TEXTURE_2D);
+	Renderer_GLTexture = Viewer_LoadTexture(0);
+	glBindTexture(GL_TEXTURE_2D, Renderer_GLTexture);
 
 	unsigned int VertList_Temp = (Readout_CurrentByte2 * 0x10000) + (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
 	unsigned int TempVertCount = ((VertList_Temp & 0x000FFF) / 2);
@@ -485,9 +483,6 @@ int Viewer_GetVertexList(unsigned int Bank, unsigned long Offset, unsigned int V
 	unsigned long CurrentVert = TempVertListStartEntry;
 	unsigned long VertListPosition = 0;
 
-	unsigned long TempVal1 = 0;
-	unsigned short TempVal2 = 0;
-
 	unsigned char * VertListTempBuffer;
 	VertListTempBuffer = (unsigned char *) malloc ((VertCount + 1) * 0x10);
 	memset(VertListTempBuffer, 0x00, sizeof(VertListTempBuffer));
@@ -501,42 +496,36 @@ int Viewer_GetVertexList(unsigned int Bank, unsigned long Offset, unsigned int V
 	}
 
 	while(CurrentVert < VertCount + 1) {
-		// X + Y
-		memcpy(&TempVal1, &VertListTempBuffer[VertListPosition], 4);
-		Vertex[CurrentVert].Y = TempVal1 >> 16 << 8;
-		Vertex[CurrentVert].Y = Vertex[CurrentVert].Y + (TempVal1 >> 24);
-		Vertex[CurrentVert].X = TempVal1 << 8;
-		TempVal2 = (TempVal1 >> 8 << 8);
-		TempVal2 = TempVal2 >> 8;
-		Vertex[CurrentVert].X = Vertex[CurrentVert].X + TempVal2;
-		VertListPosition+=4;
-
+		// X
+		Vertex[CurrentVert].X = (VertListTempBuffer[VertListPosition] * 0x100) + VertListTempBuffer[VertListPosition + 1];
+		VertListPosition+=2;
+		// Y
+		Vertex[CurrentVert].Y = (VertListTempBuffer[VertListPosition] * 0x100) + VertListTempBuffer[VertListPosition + 1];
+		VertListPosition+=2;
 		// Z
-		memcpy(&TempVal1, &VertListTempBuffer[VertListPosition], 4);
-		Vertex[CurrentVert].Z = TempVal1 << 8;
-		TempVal2 = (TempVal1 >> 8 << 8);
-		TempVal2 = TempVal2 >> 8;
-		Vertex[CurrentVert].Z = Vertex[CurrentVert].Z + TempVal2;
+		Vertex[CurrentVert].Z = (VertListTempBuffer[VertListPosition] * 0x100) + VertListTempBuffer[VertListPosition + 1];
 		VertListPosition+=4;
 
-		// H + V
-		memcpy(&TempVal1, &VertListTempBuffer[VertListPosition], 4);
-		Vertex[CurrentVert].V = TempVal1 >> 16 << 8;
-		Vertex[CurrentVert].V = Vertex[CurrentVert].V + (TempVal1 >> 24);
-		Vertex[CurrentVert].H = TempVal1 << 8;
-		TempVal2 = (TempVal1 >> 8 << 8);
-		TempVal2 = TempVal2 >> 8;
-		Vertex[CurrentVert].H = Vertex[CurrentVert].H + TempVal2;
-		VertListPosition+=4;
+		// H
+		Vertex[CurrentVert].H = (VertListTempBuffer[VertListPosition] * 0x100) + VertListTempBuffer[VertListPosition + 1];
+		VertListPosition+=2;
+		// V
+		Vertex[CurrentVert].V = (VertListTempBuffer[VertListPosition] * 0x100) + VertListTempBuffer[VertListPosition + 1];
+		VertListPosition+=2;
 
 		// R, G, B, A
-		memcpy(&TempVal1, &VertListTempBuffer[VertListPosition], 4);
-		Vertex[CurrentVert].A = TempVal1 >> 24;
-		Vertex[CurrentVert].B = TempVal1 >> 16;
-		Vertex[CurrentVert].G = TempVal1 >> 8;
-		Vertex[CurrentVert].R = TempVal1;
+		Vertex[CurrentVert].R = VertListTempBuffer[VertListPosition];
+		Vertex[CurrentVert].G = VertListTempBuffer[VertListPosition + 1];
+		Vertex[CurrentVert].B = VertListTempBuffer[VertListPosition + 2];
+		Vertex[CurrentVert].A = VertListTempBuffer[VertListPosition + 3];
 		VertListPosition+=4;
 
+/*		sprintf(ErrorMsg, "Vertex: %x, %x, %x, %x, %x, %x, %x, %x, %x",
+			Vertex[CurrentVert].X, Vertex[CurrentVert].Y, Vertex[CurrentVert].Z,
+			Vertex[CurrentVert].H, Vertex[CurrentVert].V,
+			Vertex[CurrentVert].R, Vertex[CurrentVert].G, Vertex[CurrentVert].B, Vertex[CurrentVert].A);
+		MessageBox(hwnd, ErrorMsg, "Vertex", MB_OK | MB_ICONINFORMATION);
+*/
 		CurrentVert++;
 	}
 
@@ -1287,12 +1276,14 @@ int buildFragmentShader()
     sprintf(ShaderString,"%sMOV result.color, R0;\n",ShaderString);
     sprintf(ShaderString,"%sEND\n",ShaderString);
 
-//	MessageBox(hwnd,ShaderArray,"FRAGMENT SHADER!", MB_OK | MB_ICONINFORMATION);
-	glEnable(GL_FRAGMENT_PROGRAM_ARB);
-	glGenProgramsARB(1, &fragProg);
-	glBindProgramARB(GL_FRAGMENT_PROGRAM_ARB, fragProg);
-	glProgramStringARB(GL_FRAGMENT_PROGRAM_ARB, GL_PROGRAM_FORMAT_ASCII_ARB, strlen(ShaderArray), ShaderArray);
-	glBindProgramARB(GL_FRAGMENT_PROGRAM_ARB, fragProg);
+	if(GLExtension_FragmentProgram) {
+//		MessageBox(hwnd,ShaderArray,"FRAGMENT SHADER!", MB_OK | MB_ICONINFORMATION);
+//		glEnable(GL_FRAGMENT_PROGRAM_ARB);
+		glGenProgramsARB(1, &fragProg);
+		glBindProgramARB(GL_FRAGMENT_PROGRAM_ARB, fragProg);
+		glProgramStringARB(GL_FRAGMENT_PROGRAM_ARB, GL_PROGRAM_FORMAT_ASCII_ARB, strlen(ShaderArray), ShaderArray);
+		glBindProgramARB(GL_FRAGMENT_PROGRAM_ARB, fragProg);
+	}
 
     return 0;
 }

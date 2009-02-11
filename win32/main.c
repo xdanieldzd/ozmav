@@ -268,6 +268,7 @@ struct Vertex_Struct CollisionVertex[8192];
 
 int Viewer_Initialize()
 {
+	Viewer_ResetVariables();
 	Viewer_LoadAreaData();
 	Viewer_RenderMapRefresh();
 
@@ -294,6 +295,25 @@ int Viewer_Initialize()
 
 	sprintf(WindowTitle, "%s %s - %s", AppTitle, AppVersion, Filename_ROM);
 	SetWindowText(hwnd, WindowTitle);
+
+	return 0;
+}
+
+int Viewer_ResetVariables()
+{
+	/* resets some variables to fix problems when switching maps
+	   (ex. depth test not showing up anymore after viewing other maps) */
+	MapHeader_MultiHeaderMap = false;
+	MapHeader_Current = 0;
+	MapHeader_TotalCount = 0;
+	memset(MapHeader_List, 0x00, sizeof(MapHeader_List));
+	MapHeader_CurrentPosInList = 0;
+
+	SceneHeader_MultiHeaderMap = false;
+	SceneHeader_Current = 0;
+	SceneHeader_TotalCount = 0;
+	memset(SceneHeader_List, 0x00, sizeof(SceneHeader_List));
+	SceneHeader_CurrentPosInList = 0;
 
 	return 0;
 }
@@ -707,6 +727,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 						System_KbdKeys[VK_F1] = false;
 						if(!(ROM_SceneToLoad == 0)) {
 							ROM_SceneToLoad--;
+							Viewer_ResetVariables();
 							Viewer_LoadAreaData();
 							Viewer_RenderMapRefresh();
 						}
@@ -716,6 +737,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 						System_KbdKeys[VK_F2] = false;
 						if(!(ROM_SceneToLoad == 0x6D)) {
 							ROM_SceneToLoad++;
+							Viewer_ResetVariables();
 							Viewer_LoadAreaData();
 							Viewer_RenderMapRefresh();
 						}
