@@ -14,9 +14,7 @@
 /* VIEWER_RENDERALLACTORS - RENDERS THE CURRENT MAP'S MAP AND/OR SCENE ACTORS */
 int Viewer_RenderAllActors()
 {
-	if(GLExtension_FragmentProgram) {
-		glDisable(GL_FRAGMENT_PROGRAM_ARB);
-	}
+	if(GLExtension_FragmentProgram) glDisable(GL_FRAGMENT_PROGRAM_ARB);
 
 	glDisable(GL_TEXTURE_2D);
 	glDisable(GL_FOG);
@@ -28,27 +26,11 @@ int Viewer_RenderAllActors()
 		if(Renderer_EnableMapActors) {
 			if (MapHeader[ROM_CurrentMap][MapHeader_Current].Actor_Count > 0) {
 				while (!(ActorInfo_CurrentCount[ROM_CurrentMap] == MapHeader[ROM_CurrentMap][MapHeader_Current].Actor_Count)) {
-/*					glEnable(GL_LIGHT1);
-					glDisable(GL_LIGHTING);
-					glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-*/					Viewer_RenderActor(Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].Number,
+					Viewer_RenderActor(Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].Number,
 						Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].X_Position, Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].Y_Position, Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].Z_Position,
 						Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].X_Rotation, Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].Y_Rotation, Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].Z_Rotation,
 						true);
-/*					glEnable(GL_LIGHTING);
-					glDisable(GL_LIGHT1);
-					glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-					glEnable(GL_POLYGON_OFFSET_LINE);
-					glPolygonOffset(-1.0f,-1.0f);
-					glColor3f(1.0f, 1.0f, 1.0f);
-					Viewer_RenderActor(ActorInfo_CurrentCount[ROM_CurrentMap],
-						Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].X_Position, Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].Y_Position, Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].Z_Position,
-						Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].X_Rotation, Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].Y_Rotation, Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].Z_Rotation,
-						true);
-					glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-					glEnable(GL_LIGHT1);
-					glDisable(GL_LIGHTING);
-*/					ActorInfo_CurrentCount[ROM_CurrentMap]++;
+					ActorInfo_CurrentCount[ROM_CurrentMap]++;
 				}
 			}
 		}
@@ -56,21 +38,8 @@ int Viewer_RenderAllActors()
 		if(Renderer_EnableSceneActors) {
 			if (SceneHeader[SceneHeader_Current].ScActor_Count > 0) {
 				while (!(ScActorInfo_CurrentCount == SceneHeader[SceneHeader_Current].ScActor_Count)) {
-/*					glEnable(GL_LIGHT1);
-					glDisable(GL_LIGHTING);
-					glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-*/					Viewer_RenderActor(ScActors[ScActorInfo_CurrentCount].Number, ScActors[ScActorInfo_CurrentCount].X_Position, ScActors[ScActorInfo_CurrentCount].Y_Position, ScActors[ScActorInfo_CurrentCount].Z_Position, ScActors[ScActorInfo_CurrentCount].X_Rotation, ScActors[ScActorInfo_CurrentCount].Y_Rotation, ScActors[ScActorInfo_CurrentCount].Z_Rotation, false);
-/*					glEnable(GL_LIGHTING);
-					glDisable(GL_LIGHT1);
-					glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-					glEnable(GL_POLYGON_OFFSET_LINE);
-					glPolygonOffset(-1.0f,-1.0f);
-					glColor3f(1.0f, 1.0f, 1.0f);
-					Viewer_RenderActor(ScActorInfo_CurrentCount, ScActors[ScActorInfo_CurrentCount].X_Position, ScActors[ScActorInfo_CurrentCount].Y_Position, ScActors[ScActorInfo_CurrentCount].Z_Position, ScActors[ScActorInfo_CurrentCount].X_Rotation, ScActors[ScActorInfo_CurrentCount].Y_Rotation, ScActors[ScActorInfo_CurrentCount].Z_Rotation, false);
-					glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-					glEnable(GL_LIGHT1);
-					glDisable(GL_LIGHTING);
-*/					ScActorInfo_CurrentCount++;
+					Viewer_RenderActor(ScActors[ScActorInfo_CurrentCount].Number, ScActors[ScActorInfo_CurrentCount].X_Position, ScActors[ScActorInfo_CurrentCount].Y_Position, ScActors[ScActorInfo_CurrentCount].Z_Position, ScActors[ScActorInfo_CurrentCount].X_Rotation, ScActors[ScActorInfo_CurrentCount].Y_Rotation, ScActors[ScActorInfo_CurrentCount].Z_Rotation, false);
+					ScActorInfo_CurrentCount++;
 				}
 			}
 		}

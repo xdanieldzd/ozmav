@@ -29,6 +29,7 @@ enum { true = 1, false = 0 };
 	------------------------------------------------------------ */
 
 extern int Viewer_Initialize();
+extern int Viewer_ResetVariables();
 extern int Viewer_LoadAreaData();
 extern int Viewer_RenderMapRefresh();
 
