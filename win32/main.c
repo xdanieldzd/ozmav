@@ -68,8 +68,16 @@ char			CurrentGFXCmd[256] = "";
 char			CurrentGFXCmdNote[256] = "";
 char			GFXLogMsg[1024] = "";
 char			SystemLogMsg[1024] = "";
+char			WavefrontObjMsg[1024] = "";
+char			WavefrontMtlMsg[1024] = "";
 
 bool			GFXLogOpened = false;
+
+bool			WavefrontObjOpened = false;
+bool			WavefrontMtlOpened = false;
+
+unsigned int	WavefrontObjVertCount = 0;
+unsigned int	WavefrontObjVertCount_Previous = 0;
 
 /* CAMERA / VIEWPOINT VARIABLES */
 float			CamAngleX = 0, CamAngleY = 0;
@@ -115,6 +123,8 @@ bool			ROMExists = false;
 
 FILE			* FileGFXLog = NULL;
 FILE			* FileSystemLog = NULL;
+FILE			* FileWavefrontObj = NULL;
+FILE			* FileWavefrontMtl = NULL;
 
 /* DATA READOUT VARIABLES */
 unsigned long	Readout_Current1 = 0;

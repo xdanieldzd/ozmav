@@ -20,6 +20,12 @@ int Viewer_RenderMap()
 	/* OPEN GFX COMMAND LOG */
 	if(!GFXLogOpened) FileGFXLog = fopen("gfxlog.txt", "w"); GFXLogOpened = true;
 
+	if(!WavefrontObjOpened) FileWavefrontObj = fopen("map.obj", "w"); WavefrontObjOpened = true;
+	if(!WavefrontMtlOpened) FileWavefrontMtl = fopen("map.mtl", "w"); WavefrontMtlOpened = true;
+
+	WavefrontObjVertCount = 0;
+	WavefrontObjVertCount_Previous = 0;
+
 	/* IF GL DLISTS EXIST, DELETE THEM ALL */
 	if(Renderer_GLDisplayList != 0) glDeleteLists(Renderer_GLDisplayList, 4096);
 	/* REGENERATE GL DLISTS */
@@ -247,6 +253,9 @@ int Viewer_RenderMap()
 
 	fclose(FileGFXLog); GFXLogOpened = false;
 
+	fclose(FileWavefrontObj); WavefrontObjOpened = false;
+	fclose(FileWavefrontMtl); WavefrontMtlOpened = false;
+
 //	sprintf(ErrorMsg, "%d malloc operations, %d free operations while loading map", Debug_MallocOperations, Debug_FreeOperations);
 //	MessageBox(hwnd, ErrorMsg, "Memory", MB_OK | MB_ICONINFORMATION);
 
@@ -258,6 +267,9 @@ int Viewer_RenderMap()
 /* VIEWER_RENDERMAP_DLISTPARSER - DLIST INTERPRETER MAIN LOOP, SCANS AND EXECUTES DLIST COMMANDS */
 int Viewer_RenderMap_DListParser(bool CalledFromRDPHalf, unsigned int DLToRender, unsigned long Position)
 {
+	sprintf(WavefrontObjMsg, "mltlib map.mtl\n");
+	fprintf(FileWavefrontObj, WavefrontObjMsg);
+
 	if(CalledFromRDPHalf) {
 		sprintf(GFXLogMsg, "  [DList called via RDPHALF_1 (0x%08X)]\n", (unsigned int)Position * 4);
 		HelperFunc_LogMessage(1, GFXLogMsg);
@@ -398,7 +410,7 @@ int Viewer_RenderMap_DListParser(bool CalledFromRDPHalf, unsigned int DLToRender
 		    break;
 		case F3DEX2_RDPHALF_1:
 			sprintf(CurrentGFXCmd, "F3DEX2_RDPHALF_1     ");
-			sprintf(CurrentGFXCmdNote, "<unemulated>");
+			sprintf(CurrentGFXCmdNote, "-");
 			HelperFunc_GFXLogCommand(Position);
 			Viewer_RenderMap_CMDRDPHalf1_CMDDListStart_CMDDListStart(GetDLFromZMapScene);
 			break;
@@ -414,9 +426,16 @@ int Viewer_RenderMap_DListParser(bool CalledFromRDPHalf, unsigned int DLToRender
 			HelperFunc_GFXLogCommand(Position);
 			Viewer_RenderMap_CMDSetCombine();
 			break;
+		case F3DEX2_MTX:
+			sprintf(CurrentGFXCmd, "F3DEX2_MTX           ");
+			sprintf(CurrentGFXCmdNote, "<unemulated>");
+			HelperFunc_GFXLogCommand(Position);
+			Viewer_RenderMap_CMDMatrix();
+			break;
+
 		case F3DEX2_DL:
 			sprintf(CurrentGFXCmd, "F3DEX2_DL            ");
-			sprintf(CurrentGFXCmdNote, "<unemulated>");
+			sprintf(CurrentGFXCmdNote, "-");
 			HelperFunc_GFXLogCommand(Position);
 			Viewer_RenderMap_CMDRDPHalf1_CMDDListStart_CMDDListStart(GetDLFromZMapScene);
 			break;
@@ -435,6 +454,7 @@ int Viewer_RenderMap_DListParser(bool CalledFromRDPHalf, unsigned int DLToRender
 			sprintf(CurrentGFXCmd, "<unknown>            ");
 			sprintf(CurrentGFXCmdNote, "-");
 			HelperFunc_GFXLogCommand(Position);
+			MessageBox(hwnd, "ERROR UNKNOWN GFX COMMAND!!", "", 0);
 			break;
 		}
 
@@ -495,6 +515,11 @@ int Viewer_GetVertexList(unsigned int Bank, unsigned long Offset, unsigned int V
 		return 0;
 	}
 
+	WavefrontObjVertCount_Previous = WavefrontObjVertCount;
+
+	sprintf(WavefrontObjMsg, "usemtl material\n");
+	fprintf(FileWavefrontObj, WavefrontObjMsg);
+
 	while(CurrentVert < VertCount + 1) {
 		// X
 		Vertex[CurrentVert].X = (VertListTempBuffer[VertListPosition] * 0x100) + VertListTempBuffer[VertListPosition + 1];
@@ -519,6 +544,26 @@ int Viewer_GetVertexList(unsigned int Bank, unsigned long Offset, unsigned int V
 		Vertex[CurrentVert].B = VertListTempBuffer[VertListPosition + 2];
 		Vertex[CurrentVert].A = VertListTempBuffer[VertListPosition + 3];
 		VertListPosition+=4;
+
+		/* shitty obj extraction time! */
+
+		sprintf(WavefrontObjMsg, "v %4.2f %4.2f %4.2f\n", (float)Vertex[CurrentVert].X / 32, (float)Vertex[CurrentVert].Y / 32, (float)Vertex[CurrentVert].Z / 32);
+		fprintf(FileWavefrontObj, WavefrontObjMsg);
+		sprintf(WavefrontObjMsg, "vt %4.2f %4.2f\n", (float)Vertex[CurrentVert].H, (float)Vertex[CurrentVert].V);
+		fprintf(FileWavefrontObj, WavefrontObjMsg);
+		sprintf(WavefrontObjMsg, "vn %4.2f %4.2f %4.2f\n", (float)Vertex[CurrentVert].R, (float)Vertex[CurrentVert].G, (float)Vertex[CurrentVert].B);
+		fprintf(FileWavefrontObj, WavefrontObjMsg);
+
+		sprintf(WavefrontMtlMsg, "newmtl material\n");
+		fprintf(FileWavefrontMtl, WavefrontMtlMsg);
+		sprintf(WavefrontMtlMsg, "Ka %4.2f %4.2f %4.2f\n", (float)Vertex[CurrentVert].R / 2, (float)Vertex[CurrentVert].G / 2, (float)Vertex[CurrentVert].B / 2);
+		fprintf(FileWavefrontMtl, WavefrontMtlMsg);
+		sprintf(WavefrontMtlMsg, "Ka %4.2f %4.2f %4.2f\n", (float)Vertex[CurrentVert].R, (float)Vertex[CurrentVert].G, (float)Vertex[CurrentVert].B);
+		fprintf(FileWavefrontMtl, WavefrontMtlMsg);
+		sprintf(WavefrontMtlMsg, "illum 1\n");
+		fprintf(FileWavefrontMtl, WavefrontMtlMsg);
+
+		WavefrontObjVertCount++;
 
 /*		sprintf(ErrorMsg, "Vertex: %x, %x, %x, %x, %x, %x, %x, %x, %x",
 			Vertex[CurrentVert].X, Vertex[CurrentVert].Y, Vertex[CurrentVert].Z,
@@ -595,6 +640,11 @@ int Viewer_RenderMap_CMDDrawTri1()
 		glNormal3f (CurrentR1_3 / 255.0f, CurrentG1_3 / 255.0f, CurrentB1_3 / 255.0f);
 		glVertex3d(CurrentX1_3, CurrentY1_3, CurrentZ1_3);
 	glEnd();
+
+	/* MORE shitty obj extraction time! */
+
+	sprintf(WavefrontObjMsg, "f %d %d %d\n", (Readout_CurrentByte2 / 2) + 1 + WavefrontObjVertCount_Previous, (Readout_CurrentByte3 / 2) + 1 + WavefrontObjVertCount_Previous, (Readout_CurrentByte4 / 2) + 1 + WavefrontObjVertCount_Previous);
+	fprintf(FileWavefrontObj, WavefrontObjMsg);
 
 	return 0;
 }
@@ -710,6 +760,13 @@ int Viewer_RenderMap_CMDDrawTri2()
 		glNormal3f (CurrentR2_3 / 255.0f, CurrentG2_3 / 255.0f, CurrentB2_3 / 255.0f);
 		glVertex3d(CurrentX2_3, CurrentY2_3, CurrentZ2_3);
 	glEnd();
+
+	/* MORE AND MORE shitty obj extraction time!! */
+
+	sprintf(WavefrontObjMsg, "f %d %d %d\n", (Readout_CurrentByte2 / 2) + 1 + WavefrontObjVertCount_Previous, (Readout_CurrentByte3 / 2) + 1 + WavefrontObjVertCount_Previous, (Readout_CurrentByte4 / 2) + 1 + WavefrontObjVertCount_Previous);
+	fprintf(FileWavefrontObj, WavefrontObjMsg);
+	sprintf(WavefrontObjMsg, "f %d %d %d\n", (Readout_CurrentByte6 / 2) + 1 + WavefrontObjVertCount_Previous, (Readout_CurrentByte7 / 2) + 1 + WavefrontObjVertCount_Previous, (Readout_CurrentByte8 / 2) + 1 + WavefrontObjVertCount_Previous);
+	fprintf(FileWavefrontObj, WavefrontObjMsg);
 
 	return 0;
 }
@@ -1467,6 +1524,74 @@ int Viewer_RenderMap_CMDSetOtherModeL()
 
 	glBlendFunc(Blender_SrcFactor, Blender_DstFactor);
 	glAlphaFunc(Blender_AlphaFunc, Blender_AlphaRef);
+
+	return 0;
+}
+
+int Viewer_RenderMap_CMDMatrix()
+{
+	/* hacky implementation of F3DEX2_MTX - doesn't bloddy care about parameters or whatever */
+	/* we just get a matrix, multiply it with the existing one and be done with it*/
+
+	/* get shit ready */
+	int i = 0, j = 0, RawMatrixCnt = 0;
+	signed long TempMatrixData1 = 0, TempMatrixData2 = 0;
+
+	/* get the matrix data offset */
+	unsigned int MtxSegment = Readout_CurrentByte5;
+	unsigned long MtxOffset = (Readout_CurrentByte6 * 0x10000) + (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
+
+	/* make some space for the raw data */
+	unsigned char * RawMatrixData = (unsigned char *) malloc (sizeof(char) * 0x40);
+
+	/* and get more shit ready */
+	GLfloat Matrix[4][4];
+	float fRecip = 1.0f / 65536.0f;
+
+	/* no idea what offset(?) 0x0D000000 is, so let's just return when we get that */
+	if(MtxSegment == 0x0D) {
+		//????
+		return 0;
+	}
+
+	/* also, if the dlist tries to read from ram, just pop the ogl matrix and return */
+	/* (wonder if those 0x80 references are related to the wobblyness in jabu-jabu?) */
+	if(!(MtxSegment == 0x80)) {
+		/* load the raw data into the buffer */
+		if(Viewer_ZMemCopy(MtxSegment, MtxOffset, RawMatrixData, 16 * 4) == -1) {
+			sprintf(ErrorMsg, "Raw matrix data load FAILED! Offset 0x%02X|%06X", MtxSegment, MtxOffset);
+			MessageBox(hwnd, ErrorMsg, "", MB_OK | MB_ICONERROR);
+			return 0;
+		}
+	} else {
+		/* here's the pop */
+		glPopMatrix();
+		return 0;
+	}
+
+	sprintf(ErrorMsg, "MATRIX: offset 0x%02X|%06X\n\n", MtxSegment, MtxOffset);
+
+	/* getting ready to convert the raw data into a ogl compatible matrix */
+	/* (the original daedalus graphics 0.08 source helped in understanding the raw data layout) */
+	for(i = 0; i < 4; i++) {
+		for(j = 0; j < 4; j++) {
+			TempMatrixData1 = ((RawMatrixData[RawMatrixCnt		] * 0x100) + RawMatrixData[RawMatrixCnt + 1		]);
+			TempMatrixData2 = ((RawMatrixData[RawMatrixCnt + 32	] * 0x100) + RawMatrixData[RawMatrixCnt + 33	]);
+			Matrix[i][j] = ((TempMatrixData1 << 16) | TempMatrixData2) * fRecip;
+
+			sprintf(ErrorMsg, "%s[%12.5f]", ErrorMsg, Matrix[i][j]);
+
+			RawMatrixCnt+=2;
+		}
+		sprintf(ErrorMsg, "%s\n", ErrorMsg);
+	}
+
+	HelperFunc_LogMessage(2, ErrorMsg);
+	memset(ErrorMsg, 0x00, sizeof(ErrorMsg));
+
+	/* now push the matrix, multiply the existing one with the one we just loaded */
+	glPushMatrix();
+	glMultMatrixf(*Matrix);
 
 	return 0;
 }

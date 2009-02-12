@@ -18,6 +18,12 @@
 typedef int bool;
 enum { true = 1, false = 0 };
 
+/* SHIFT macros from glN64 source code */
+#define _SHIFTL( v, s, w )	\
+    (((unsigned long)v & ((0x01 << w) - 1)) << s)
+#define _SHIFTR( v, s, w )	\
+    (((unsigned long)v >> s) & ((0x01 << w) - 1))
+
 /*	------------------------------------------------------------
 	DEFINES
 	------------------------------------------------------------ */
@@ -64,6 +70,7 @@ extern int Viewer_RenderMap_CMDLoadTLUT(unsigned int, unsigned long);
 extern int Viewer_RenderMap_CMDRDPHalf1_CMDDListStart(bool);
 extern int Viewer_RenderMap_CMDSetOtherModeH();
 extern int Viewer_RenderMap_CMDSetOtherModeL();
+extern int Viewer_RenderMap_CMDMatrix();
 
 extern GLuint Viewer_LoadTexture(int);
 
@@ -141,8 +148,16 @@ extern char				CurrentGFXCmd[256];
 extern char				CurrentGFXCmdNote[256];
 extern char				GFXLogMsg[1024];
 extern char				SystemLogMsg[1024];
+extern char				WavefrontObjMsg[1024];
+extern char				WavefrontMtlMsg[1024];
 
 extern bool				GFXLogOpened;
+
+extern bool				WavefrontObjOpened;
+extern bool				WavefrontMtlOpened;
+
+extern unsigned int		WavefrontObjVertCount;
+extern unsigned int		WavefrontObjVertCount_Previous;
 
 /* CAMERA / VIEWPOINT VARIABLES */
 extern float			CamAngleX, CamAngleY;
@@ -188,6 +203,8 @@ extern bool				ROMExists;
 
 extern FILE				* FileGFXLog;
 extern FILE				* FileSystemLog;
+extern FILE				* FileWavefrontObj;
+extern FILE				* FileWavefrontMtl;
 
 /* DATA READOUT VARIABLES */
 extern unsigned long	Readout_Current1;
