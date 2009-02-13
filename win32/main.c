@@ -49,8 +49,8 @@ char			szClassName[] = "OZMAVClass";
 bool			System_KbdKeys[256];
 
 char			AppTitle[256] = "OZMAV";
-char			AppVersion[256] = "V0.6b";
-char			AppBuildName[256] = "interrupted stability";
+char			AppVersion[256] = "V0.7";
+char			AppBuildName[256] = "indifferent instability";
 char			AppPath[512] = "";
 char			INIPath[512] = "";
 char			WindowTitle[256] = "";
