@@ -27,8 +27,8 @@ int Viewer_ZMemCopy(unsigned int SourceBank, unsigned long SourceOffset, unsigne
 		break;
 	case 0x03:
 		/* data comes from map file */
-		if(SourceOffset < ZMapFilesize[ROM_CurrentMap]) {
-			memcpy(Target, &ZMapBuffer[ROM_CurrentMap][SourceOffset / 4], Size);
+		if(SourceOffset < ZMapFilesize[ROM_CurrentMap_Temp]) {
+			memcpy(Target, &ZMapBuffer[ROM_CurrentMap_Temp][SourceOffset / 4], Size);
 		} else {
 			return -1;
 		}

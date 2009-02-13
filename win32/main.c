@@ -27,7 +27,7 @@ PFNGLGENPROGRAMSARBPROC				glGenProgramsARB			= NULL;
 PFNGLBINDPROGRAMARBPROC				glBindProgramARB			= NULL;
 PFNGLDELETEPROGRAMSARBPROC			glDeleteProgramsARB			= NULL;
 PFNGLPROGRAMSTRINGARBPROC			glProgramStringARB			= NULL;
-PFNGLPROGRAMENVPARAMETER4FARBPROC	glProgramEnvParameter4fARB = NULL;
+PFNGLPROGRAMENVPARAMETER4FARBPROC	glProgramEnvParameter4fARB	= NULL;
 
 /*	------------------------------------------------------------
 	VARIABLES
@@ -174,7 +174,8 @@ unsigned int	ROM_SceneToLoad = 0x00;
 unsigned long	ROM_ObjectTableOffset = 0x00;
 unsigned long	ROM_ActorTableOffset = 0x00;
 
-unsigned int	ROM_CurrentMap = 0;
+int				ROM_CurrentMap = -1;
+int				ROM_CurrentMap_Temp = 0;
 
 /* ZELDA MAP & SCENE HEADER HANDLING VARIABLES */
 bool			MapHeader_MultiHeaderMap = false;
@@ -373,7 +374,8 @@ int Viewer_LoadAreaData()
 	DListInfo_DListToRender = -1;
 	ActorInfo_Selected = 0;
 
-	ROM_CurrentMap = 0;
+	ROM_CurrentMap = -1;
+	ROM_CurrentMap_Temp = 0;
 
 	Renderer_EnableLighting = true;
 
@@ -446,8 +448,6 @@ int Viewer_LoadAreaData()
 	/* ---- LOAD MAP DATA ---- */
 
 	for(i = 0; i < (SceneHeader[SceneHeader_Current].Map_Count); i++) {
-		ROM_CurrentMap = i;
-
 		memcpy(&Readout_Current1, &ZSceneBuffer[((SceneHeader[SceneHeader_Current].Map_ListOffset + (i * 0x08)) / 4)], 4);
 		memcpy(&Readout_Current2, &ZSceneBuffer[((SceneHeader[SceneHeader_Current].Map_ListOffset + (i * 0x08)) / 4) + 1], 4);
 		HelperFunc_SplitCurrentVals(true);
@@ -469,18 +469,18 @@ int Viewer_LoadAreaData()
 			if((Readout_CurrentByte1 == 0x18)) {
 				MapHeader_MultiHeaderMap = true;
 				unsigned long MapHeaderListPos = (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
-				Viewer_GetMapHeaderList(MapHeaderListPos);
+				Viewer_GetMapHeaderList(MapHeaderListPos, i);
 			} else {
 				MapHeader_TotalCount = 0;
 			}
 
-			Viewer_GetMapHeader(MapHeader_Current);
-			Viewer_GetMapActors(MapHeader_Current);
+			Viewer_GetMapHeader(MapHeader_Current, i);
+			Viewer_GetMapActors(MapHeader_Current, i);
 		} else {
 			MessageBox(hwnd, "Invalid or non-standard map header!", "Error", MB_OK | MB_ICONEXCLAMATION);
 		}
 
-		Viewer_GetMapDisplayLists(ZMapFilesize[i]);
+		Viewer_GetMapDisplayLists(ZMapFilesize[i], i);
 	}
 
 	/* ---- LOAD OBJECT DATA ---- */
@@ -755,29 +755,18 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 					}
 					if (System_KbdKeys[VK_F3]) {
 						System_KbdKeys[VK_F3] = false;
-						if(!(MapHeader_TotalCount == 0)) {
-							if(!(MapHeader_Current == 0)) {
-								MapHeader_Current--;
-								FileSystemLog = fopen("log.txt", "w");
-								Viewer_GetMapHeader(MapHeader_Current);
-								Viewer_GetMapActors(MapHeader_Current);
-								fclose(FileSystemLog);
-							}
-							sprintf(StatusMsg, "Map Header: #%d", MapHeader_Current);
+						if(!(ROM_CurrentMap == -1)) {
+							ROM_CurrentMap--;
 						}
+						sprintf(StatusMsg, "Map: 0x%02X", ROM_CurrentMap);
+						if(ROM_CurrentMap == -1) sprintf(StatusMsg, "Map: rendering all");
 					}
 					if (System_KbdKeys[VK_F4]) {
 						System_KbdKeys[VK_F4] = false;
-						if(!(MapHeader_TotalCount == 0)) {
-							if(!(MapHeader_Current == MapHeader_TotalCount - 1)) {
-								MapHeader_Current++;
-								FileSystemLog = fopen("log.txt", "w");
-								Viewer_GetMapHeader(MapHeader_Current);
-								Viewer_GetMapActors(MapHeader_Current);
-								fclose(FileSystemLog);
-							}
-							sprintf(StatusMsg, "Map Header: #%d", MapHeader_Current);
+						if(!(ROM_CurrentMap == SceneHeader[SceneHeader_Current].Map_Count - 1)) {
+							ROM_CurrentMap++;
 						}
+						sprintf(StatusMsg, "Map: 0x%02X", ROM_CurrentMap);
 					}
 /*					if (System_KbdKeys[VK_F5]) {
 						System_KbdKeys[VK_F5] = false;
@@ -1047,6 +1036,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 					if(GLExtension_MultiTexture) sprintf(GLExtensionsSupported, "%sGL_ARB_multitexture\n", GLExtensionsSupported);
 					if(GLExtension_TextureMirror) sprintf(GLExtensionsSupported, "%sGL_ARB_texture_mirrored_repeat\n", GLExtensionsSupported);
 					if(GLExtension_AnisoFilter) sprintf(GLExtensionsSupported, "%sGL_EXT_texture_filter_anisotropic\n", GLExtensionsSupported);
+					if(GLExtension_FragmentProgram) sprintf(GLExtensionsSupported, "%sGL_ARB_fragment_program\n", GLExtensionsSupported);
 
 					char AboutMsg[256] = "";
 					sprintf(AboutMsg, "%s %s (Build '%s') - OpenGL Zelda Map Viewer\n\nWritten 2008/2009 by xdaniel & contributors\nhttp://ozmav.googlecode.com/\n\n%s", AppTitle, AppVersion, AppBuildName, GLExtensionsSupported);

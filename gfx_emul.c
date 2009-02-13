@@ -39,13 +39,13 @@ int Viewer_RenderMap()
 	for(i = 0; i < SceneHeader[SceneHeader_Current].Map_Count; i++) {
 		sprintf(ErrorMsg, "");
 
-		ROM_CurrentMap = i;
+		ROM_CurrentMap_Temp = i;
 
 		int j = 0;
-		for(j = 0; j < DListInfo_CurrentCount[ROM_CurrentMap]; j++) {
+		for(j = 0; j < DListInfo_CurrentCount[i]; j++) {
 			if(Renderer_GLDisplayList_Current != 0) {
 				glNewList(Renderer_GLDisplayList_Current + j, GL_COMPILE);
-					DLTempPosition = DLists[ROM_CurrentMap][j] / 4;
+					DLTempPosition = DLists[i][j] / 4;
 
 					SubDLCall = false;
 
@@ -55,7 +55,8 @@ int Viewer_RenderMap()
 					glDisable(GL_CULL_FACE);
 
 					GetDLFromZMapScene = true;
-					Viewer_RenderMap_DListParser(false, j, DLTempPosition);
+					DLToRender = j + 1;
+					Viewer_RenderMap_DListParser(false, DLTempPosition, i);
 
 					PrimColor[0] = 0.0f;
 					PrimColor[1] = 0.0f;
@@ -265,7 +266,7 @@ int Viewer_RenderMap()
 /*	------------------------------------------------------------ */
 
 /* VIEWER_RENDERMAP_DLISTPARSER - DLIST INTERPRETER MAIN LOOP, SCANS AND EXECUTES DLIST COMMANDS */
-int Viewer_RenderMap_DListParser(bool CalledFromRDPHalf, unsigned int DLToRender, unsigned long Position)
+int Viewer_RenderMap_DListParser(bool CalledFromRDPHalf, unsigned long Position, int CurrentMap)
 {
 	sprintf(WavefrontObjMsg, "mltlib map.mtl\n");
 	fprintf(FileWavefrontObj, WavefrontObjMsg);
@@ -281,10 +282,10 @@ int Viewer_RenderMap_DListParser(bool CalledFromRDPHalf, unsigned int DLToRender
 	while (!DListHasEnded) {
 		if(GetDLFromZMapScene) {
 			/* get data from map */
-			memcpy(&Readout_Current1, &ZMapBuffer[ROM_CurrentMap][Position], 4);
-			memcpy(&Readout_Current2, &ZMapBuffer[ROM_CurrentMap][Position + 1], 4);
+			memcpy(&Readout_Current1, &ZMapBuffer[CurrentMap][Position], 4);
+			memcpy(&Readout_Current2, &ZMapBuffer[CurrentMap][Position + 1], 4);
 
-			memcpy(&Readout_NextGFXCommand1, &ZMapBuffer[ROM_CurrentMap][Position + 2], 4);
+			memcpy(&Readout_NextGFXCommand1, &ZMapBuffer[CurrentMap][Position + 2], 4);
 
 			HelperFunc_SplitCurrentVals(true);
 		} else {
@@ -412,7 +413,7 @@ int Viewer_RenderMap_DListParser(bool CalledFromRDPHalf, unsigned int DLToRender
 			sprintf(CurrentGFXCmd, "F3DEX2_RDPHALF_1     ");
 			sprintf(CurrentGFXCmdNote, "-");
 			HelperFunc_GFXLogCommand(Position);
-			Viewer_RenderMap_CMDRDPHalf1_CMDDListStart_CMDDListStart(GetDLFromZMapScene);
+			Viewer_RenderMap_CMDRDPHalf1_CMDDListStart(GetDLFromZMapScene, CurrentMap);
 			break;
 		case G_LOADTLUT:
 			sprintf(CurrentGFXCmd, "G_LOADTLUT           ");
@@ -437,7 +438,7 @@ int Viewer_RenderMap_DListParser(bool CalledFromRDPHalf, unsigned int DLToRender
 			sprintf(CurrentGFXCmd, "F3DEX2_DL            ");
 			sprintf(CurrentGFXCmdNote, "-");
 			HelperFunc_GFXLogCommand(Position);
-			Viewer_RenderMap_CMDRDPHalf1_CMDDListStart_CMDDListStart(GetDLFromZMapScene);
+			Viewer_RenderMap_CMDRDPHalf1_CMDDListStart(GetDLFromZMapScene, CurrentMap);
 			break;
 		case F3DEX2_BRANCH_Z:
 			sprintf(CurrentGFXCmd, "F3DEX2_BRANCH_Z      ");
@@ -1027,7 +1028,7 @@ int Viewer_RenderMap_CMDSetEnvColor()
 	EnvColor[1] = (Readout_CurrentByte6 / 255.0f);
 	EnvColor[2] = (Readout_CurrentByte7 / 255.0f);
 	EnvColor[3] = (Readout_CurrentByte8 / 255.0f);
-	glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 0, EnvColor[0], EnvColor[1], EnvColor[2], PrimColor[3]);
+	glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 0, EnvColor[0], EnvColor[1], EnvColor[2], EnvColor[3]);
 }
 
 /* VIEWER_RENDERMAP_CMDLOADTLUT - G_LOADTLUT - GET PALETTE FOR CI TEXTURES FROM PREVIOUS TEXTURE OFFSET */
@@ -1089,8 +1090,8 @@ int Viewer_RenderMap_CMDLoadTLUT(unsigned int PaletteSrc, unsigned long PaletteO
 	return 0;
 }
 
-/* Viewer_RenderMap_CMDRDPHalf1_CMDDListStart_CMDDListStart - F3DEX2_RDPHALF_1 & F3DEX2_DL - CALL AND RENDER ADDITIONAL DISPLAY LISTS FROM INSIDE OTHERS */
-int Viewer_RenderMap_CMDRDPHalf1_CMDDListStart_CMDDListStart(bool GetDLFromZMapScene)
+/* Viewer_RenderMap_CMDRDPHalf1_CMDDListStart - F3DEX2_RDPHALF_1 & F3DEX2_DL - CALL AND RENDER ADDITIONAL DISPLAY LISTS FROM INSIDE OTHERS */
+int Viewer_RenderMap_CMDRDPHalf1_CMDDListStart(bool GetDLFromZMapScene, int CurrentMap)
 {
 	if(Readout_CurrentByte5 == 0x03) {
 		unsigned long TempOffset;
@@ -1100,16 +1101,17 @@ int Viewer_RenderMap_CMDRDPHalf1_CMDDListStart_CMDDListStart(bool GetDLFromZMapS
 		TempOffset = TempOffset + Readout_CurrentByte8;
 
 		SubDLCall = true;
-		Viewer_RenderMap_DListParser(true, 0, TempOffset / 4);
+		Viewer_RenderMap_DListParser(true, TempOffset / 4, CurrentMap);
 	}
 
 	return 0;
 }
 
-char ShaderArray[8192];
+//char ShaderArray[8192];
 int buildFragmentShader()
 {
-	char *ShaderString=&ShaderArray[0];
+	//char *ShaderString=&ShaderArray[0];
+	char ShaderString[8192];
 	sprintf(ShaderString,"!!ARBfp1.0\n");
 	sprintf(ShaderString,"%sTEMP R0;\n",ShaderString);
     sprintf(ShaderString,"%sTEMP R1;\n",ShaderString);
@@ -1333,12 +1335,23 @@ int buildFragmentShader()
     sprintf(ShaderString,"%sMOV result.color, R0;\n",ShaderString);
     sprintf(ShaderString,"%sEND\n",ShaderString);
 
+	/*sprintf(ShaderString, "!!ARBfp1.0\n" \
+		"\tTEMP color;\n" \
+		"\tMUL color, fragment.texcoord[0].y, 2.0;\n" \
+		"\tADD color, 1.0, -color;\n" \
+		"\tABS color, color;\n" \
+		"\tADD result.color, 1.0, -color;\n" \
+		"\tMOV result.color.a, 1.0;\n" \
+		"END\n");
+*/
 	if(GLExtension_FragmentProgram) {
-//		MessageBox(hwnd,ShaderArray,"FRAGMENT SHADER!", MB_OK | MB_ICONINFORMATION);
+//		sprintf(ErrorMsg, "\nFRAGMENT SHADER!\n%s\n", ShaderString);
+//		HelperFunc_LogMessage(2, ErrorMsg);
+
 //		glEnable(GL_FRAGMENT_PROGRAM_ARB);
 		glGenProgramsARB(1, &fragProg);
 		glBindProgramARB(GL_FRAGMENT_PROGRAM_ARB, fragProg);
-		glProgramStringARB(GL_FRAGMENT_PROGRAM_ARB, GL_PROGRAM_FORMAT_ASCII_ARB, strlen(ShaderArray), ShaderArray);
+		glProgramStringARB(GL_FRAGMENT_PROGRAM_ARB, GL_PROGRAM_FORMAT_ASCII_ARB, strlen(ShaderString), ShaderString);
 		glBindProgramARB(GL_FRAGMENT_PROGRAM_ARB, fragProg);
 	}
 
@@ -1416,29 +1429,65 @@ int Viewer_RenderMap_CMDSetOtherModeL()
 									(Readout_CurrentByte7 * 0x100) +
 									 Readout_CurrentByte8;
 
-    byte MDSFT = 32 - ((LowBits >> 8) & 0xFF) - (LowBits & 0xFF) - 1;
-    byte zmode = 0;
-    byte forceblend = 0;
+	byte MDSFT = 32 - ((LowBits >> 8) & 0xFF) - (LowBits & 0xFF) - 1;
 
-    switch(MDSFT)
-    {
-        case 0: // alphacompare
-            break;
-        case 2: //zsrcsel
-            break;
-        case 3: // rendermode
-            zmode = (HighBits >> 10) &3;
-            forceblend = (HighBits >> 14) &1;
-            if(zmode==3){glEnable(GL_POLYGON_OFFSET_FILL); glPolygonOffset(-1.0,-1.0);} else {glDisable(GL_POLYGON_OFFSET_FILL);}
-            if(forceblend==1){glEnable(GL_BLEND);}else{glDisable(GL_BLEND);}
-            break;
-        case 16: // blender
-            break;
-    }
+	bool AA_EN			= (HighBits & 0x00000008) != 0;		/* anti-aliasing */
+	bool Z_CMP			= (HighBits & 0x00000010) != 0;		/* zbuffer compare */
+	bool Z_UPD			= (HighBits & 0x00000020) != 0;		/* zbuffer update */
+	bool IM_RD			= (HighBits & 0x00000040) != 0;		/* reduced anti-aliasing ?? */
+	bool CLR_ON_CVG		= (HighBits & 0x00000080) != 0;
+	bool CVG_DST_WRAP	= (HighBits & 0x00000100) != 0;
+	bool CVG_DST_FULL	= (HighBits & 0x00000200) != 0;
+	bool CVG_DST_SAVE	= (HighBits & 0x00000300) != 0;
+	bool ZMODE_INTER	= (HighBits & 0x00000400) != 0;
+	bool ZMODE_XLU		= (HighBits & 0x00000800) != 0;
+	bool ZMODE_DEC		= (HighBits & 0x00000C00) != 0;
+	bool CVG_X_ALPHA	= (HighBits & 0x00001000) != 0;
+	bool ALPHA_CVG_SEL	= (HighBits & 0x00002000) != 0;
+	bool FORCE_BL		= (HighBits & 0x00004000) != 0;		/* force alpha blending */
 
-    //FOR CORRECTNESS WE WILL NEED TO EVENTUALLY MIGRATE ALL BELOW FUNCTIONS TO THE ABOVE SWITCH BLOCK!!!
+	switch (MDSFT)
+	{
+		case 0: // alphacompare
+			MessageBox(hwnd, "alphacompare", "", 0);
+			break;
+		case 2: // zsrcsel
+			MessageBox(hwnd, "zsrcsel", "", 0);
+			break;
+		case 3: // rendermode
+			if(Z_CMP)		{ glEnable(GL_DEPTH_TEST); } else { glDisable(GL_DEPTH_TEST); }
+			if(Z_UPD)		{ glDepthMask(GL_TRUE); } else { glDepthMask(GL_FALSE); }
+			if(ZMODE_DEC)	{ glEnable(GL_POLYGON_OFFSET_FILL); glPolygonOffset(-1.0f, -1.0f); } else { glDisable(GL_POLYGON_OFFSET_FILL); }
+			if(FORCE_BL)	{ glEnable(GL_BLEND); } else { glDisable(GL_BLEND); }
 
-	Blender_Cycle1 = HighBits >> 16;
+/* ??? */	if(ZMODE_XLU)	{ glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); glAlphaFunc(GL_GREATER, 0.0f); } else { glBlendFunc(GL_ONE, GL_ZERO); glAlphaFunc(GL_GEQUAL, 0.5f); }
+
+			sprintf(ErrorMsg, \
+				"\nSETOTHERMODE_L - RENDERMODE:\n" \
+				" - Display List #%d\n" \
+				" ------------------\n" \
+				" - AA_EN %d\n" \
+				" - Z_CMP %d, Z_UPD %d, IM_RD %d, CLR_ON_CVG %d\n" \
+				" - CVG_DST_WRAP %d, CVG_DST_FULL %d, CVG_DST_SAVE %d, ZMODE_INTER %d\n" \
+				" - ZMODE_XLU %d, ZMODE_DEC %d\n" \
+				" - CVG_X_ALPHA %d, ALPHA_CVG_SEL %d, FORCE_BL %d\n\n",
+					DLToRender,
+					AA_EN,
+					Z_CMP, Z_UPD, IM_RD, CLR_ON_CVG,
+					CVG_DST_WRAP, CVG_DST_FULL, CVG_DST_SAVE, ZMODE_INTER,
+					ZMODE_XLU, ZMODE_DEC,
+					CVG_X_ALPHA, ALPHA_CVG_SEL, FORCE_BL);
+			HelperFunc_LogMessage(2, ErrorMsg);
+
+			break;
+		case 16: // blender
+			MessageBox(hwnd, "blender", "", 0);
+			break;
+	}
+
+	//FOR CORRECTNESS WE WILL NEED TO EVENTUALLY MIGRATE ALL BELOW FUNCTIONS TO THE ABOVE SWITCH BLOCK!!!
+
+/*	Blender_Cycle1 = HighBits >> 16;
 	Blender_Cycle2 = (HighBits << 16) >> 16;
 
 	GLenum Blender_SrcFactor =		GL_SRC_ALPHA;
@@ -1524,7 +1573,7 @@ int Viewer_RenderMap_CMDSetOtherModeL()
 
 	glBlendFunc(Blender_SrcFactor, Blender_DstFactor);
 	glAlphaFunc(Blender_AlphaFunc, Blender_AlphaRef);
-
+*/
 	return 0;
 }
 
@@ -1903,12 +1952,12 @@ GLuint Viewer_LoadTexture(int TextureID)
 					TextureData_OGL[LoadI_InTexturePosition_OGL]     = LoadI_IExtract1;
 					TextureData_OGL[LoadI_InTexturePosition_OGL + 1] = LoadI_IExtract1;
 					TextureData_OGL[LoadI_InTexturePosition_OGL + 2] = LoadI_IExtract1;
-					TextureData_OGL[LoadI_InTexturePosition_OGL + 3] = (PrimColor[3] * 255);
+					TextureData_OGL[LoadI_InTexturePosition_OGL + 3] = 0xFF;//(PrimColor[3] * 255);
 
 					TextureData_OGL[LoadI_InTexturePosition_OGL + 4] = LoadI_IExtract2;
 					TextureData_OGL[LoadI_InTexturePosition_OGL + 5] = LoadI_IExtract2;
 					TextureData_OGL[LoadI_InTexturePosition_OGL + 6] = LoadI_IExtract2;
-					TextureData_OGL[LoadI_InTexturePosition_OGL + 7] = (PrimColor[3] * 255);
+					TextureData_OGL[LoadI_InTexturePosition_OGL + 7] = 0xFF;//(PrimColor[3] * 255);
 
 					LoadI_InTexturePosition_N64 += 1;
 					LoadI_InTexturePosition_OGL += 8;
@@ -1932,7 +1981,7 @@ GLuint Viewer_LoadTexture(int TextureID)
 					TextureData_OGL[LoadI_InTexturePosition_OGL]     = LoadI_IData;
 					TextureData_OGL[LoadI_InTexturePosition_OGL + 1] = LoadI_IData;
 					TextureData_OGL[LoadI_InTexturePosition_OGL + 2] = LoadI_IData;
-					TextureData_OGL[LoadI_InTexturePosition_OGL + 3] = (PrimColor[3] * 255);
+					TextureData_OGL[LoadI_InTexturePosition_OGL + 3] = 0xFF;//(PrimColor[3] * 255);
 
 					LoadI_InTexturePosition_N64 += 1;
 					LoadI_InTexturePosition_OGL += 4;

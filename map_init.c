@@ -12,7 +12,7 @@
 /*	------------------------------------------------------------ */
 
 /* VIEWER_GETMAPHEADERLIST - IF THE LOADED MAP FILE CONTAINS MULTIPLE MAP HEADERS, STORE THE HEADER LIST FOR LATER USE */
-int Viewer_GetMapHeaderList(int HeaderListPos)
+int Viewer_GetMapHeaderList(int HeaderListPos, int CurrentMap)
 {
 	bool EndOfList = false;
 
@@ -22,7 +22,7 @@ int Viewer_GetMapHeaderList(int HeaderListPos)
 	MapHeader_TotalCount = 1;
 
 	while (!EndOfList) {
-		memcpy(&Readout_Current1, &ZMapBuffer[ROM_CurrentMap][HeaderListPos], 4);
+		memcpy(&Readout_Current1, &ZMapBuffer[CurrentMap][HeaderListPos], 4);
 
 		HelperFunc_SplitCurrentVals(false);
 
@@ -42,7 +42,7 @@ int Viewer_GetMapHeaderList(int HeaderListPos)
 }
 
 /* VIEWER_GETMAPHEADER - READ THE CURRENTLY SELECTED MAP HEADER AND STORE ITS INFORMATION IN THE MAPHEADER STRUCT */
-int Viewer_GetMapHeader(int CurrentHeader)
+int Viewer_GetMapHeader(int CurrentHeader, int CurrentMap)
 {
 	bool EndOfHeader = false;
 
@@ -52,48 +52,48 @@ int Viewer_GetMapHeader(int CurrentHeader)
 	HelperFunc_LogMessage(2, SystemLogMsg);
 
 	while(!EndOfHeader) {
-		memcpy(&Readout_Current1, &ZMapBuffer[ROM_CurrentMap][InHeaderPos], 4);
-		memcpy(&Readout_Current2, &ZMapBuffer[ROM_CurrentMap][InHeaderPos + 1], 4);
+		memcpy(&Readout_Current1, &ZMapBuffer[CurrentMap][InHeaderPos], 4);
+		memcpy(&Readout_Current2, &ZMapBuffer[CurrentMap][InHeaderPos + 1], 4);
 
 		HelperFunc_SplitCurrentVals(true);
 
 		switch(Readout_CurrentByte1) {
 		case 0x01:
-			MapHeader[ROM_CurrentMap][CurrentHeader].Actor_Count = Readout_CurrentByte2;
-			MapHeader[ROM_CurrentMap][CurrentHeader].Actor_DataOffset = ((Readout_CurrentByte6 * 0x10000) + Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
+			MapHeader[CurrentMap][CurrentHeader].Actor_Count = Readout_CurrentByte2;
+			MapHeader[CurrentMap][CurrentHeader].Actor_DataOffset = ((Readout_CurrentByte6 * 0x10000) + Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
 			sprintf(SystemLogMsg, "  0x%08X:\tActors: %d, Actor data offset: 0x%06X\n",
 				InHeaderPos * 4,
-				MapHeader[ROM_CurrentMap][CurrentHeader].Actor_Count, (unsigned int)MapHeader[ROM_CurrentMap][CurrentHeader].Actor_DataOffset);
+				MapHeader[CurrentMap][CurrentHeader].Actor_Count, (unsigned int)MapHeader[CurrentMap][CurrentHeader].Actor_DataOffset);
 			HelperFunc_LogMessage(2, SystemLogMsg);
 			break;
 		case 0x0A:
-			MapHeader[ROM_CurrentMap][CurrentHeader].MeshDataHeader = ((Readout_CurrentByte6 * 0x10000) + Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
+			MapHeader[CurrentMap][CurrentHeader].MeshDataHeader = ((Readout_CurrentByte6 * 0x10000) + Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
 			sprintf(SystemLogMsg, "  0x%08X:\tMesh data header: 0x%06X\n",
 				InHeaderPos * 4,
-				(unsigned int)MapHeader[ROM_CurrentMap][CurrentHeader].MeshDataHeader);
+				(unsigned int)MapHeader[CurrentMap][CurrentHeader].MeshDataHeader);
 			HelperFunc_LogMessage(2, SystemLogMsg);
 			break;
 		case 0x0B:
-			MapHeader[ROM_CurrentMap][CurrentHeader].Group_Count = Readout_CurrentByte2;
-			MapHeader[ROM_CurrentMap][CurrentHeader].Group_DataOffset = ((Readout_CurrentByte6 * 0x10000) + Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
+			MapHeader[CurrentMap][CurrentHeader].Group_Count = Readout_CurrentByte2;
+			MapHeader[CurrentMap][CurrentHeader].Group_DataOffset = ((Readout_CurrentByte6 * 0x10000) + Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
 			sprintf(SystemLogMsg, "  0x%08X:\tGroups: %d, Group data offset: 0x%06X\n",
 				InHeaderPos * 4,
-				MapHeader[ROM_CurrentMap][CurrentHeader].Group_Count, (unsigned int)MapHeader[ROM_CurrentMap][CurrentHeader].Group_DataOffset);
+				MapHeader[CurrentMap][CurrentHeader].Group_Count, (unsigned int)MapHeader[CurrentMap][CurrentHeader].Group_DataOffset);
 			HelperFunc_LogMessage(2, SystemLogMsg);
 			break;
 		case 0x10:
-			MapHeader[ROM_CurrentMap][CurrentHeader].MapTime = (Readout_CurrentByte5 * 0x100) + Readout_CurrentByte6;
-			MapHeader[ROM_CurrentMap][CurrentHeader].TimeFlow = Readout_CurrentByte7;
+			MapHeader[CurrentMap][CurrentHeader].MapTime = (Readout_CurrentByte5 * 0x100) + Readout_CurrentByte6;
+			MapHeader[CurrentMap][CurrentHeader].TimeFlow = Readout_CurrentByte7;
 			sprintf(SystemLogMsg, "  0x%08X:\tMap time: 0x%04X, Timeflow: 0x%02X\n",
 				InHeaderPos * 4,
-				(unsigned int)MapHeader[ROM_CurrentMap][CurrentHeader].MapTime, MapHeader[ROM_CurrentMap][CurrentHeader].TimeFlow);
+				(unsigned int)MapHeader[CurrentMap][CurrentHeader].MapTime, MapHeader[CurrentMap][CurrentHeader].TimeFlow);
 			HelperFunc_LogMessage(2, SystemLogMsg);
 			break;
 		case 0x12:
-			MapHeader[ROM_CurrentMap][CurrentHeader].Skybox = Readout_CurrentByte5;
+			MapHeader[CurrentMap][CurrentHeader].Skybox = Readout_CurrentByte5;
 			sprintf(SystemLogMsg, "  0x%08X:\tSkybox setting: 0x%02X\n",
 				InHeaderPos * 4,
-				MapHeader[ROM_CurrentMap][CurrentHeader].Skybox);
+				MapHeader[CurrentMap][CurrentHeader].Skybox);
 			HelperFunc_LogMessage(2, SystemLogMsg);
 			break;
 		case 0x14:
@@ -102,10 +102,10 @@ int Viewer_GetMapHeader(int CurrentHeader)
 			HelperFunc_LogMessage(2, SystemLogMsg);
 			break;
 		case 0x16:
-			MapHeader[ROM_CurrentMap][CurrentHeader].EchoLevel = Readout_CurrentByte8;
+			MapHeader[CurrentMap][CurrentHeader].EchoLevel = Readout_CurrentByte8;
 			sprintf(SystemLogMsg, "  0x%08X:\tEcho level: 0x%02X\n",
 				InHeaderPos * 4,
-				MapHeader[ROM_CurrentMap][CurrentHeader].EchoLevel);
+				MapHeader[CurrentMap][CurrentHeader].EchoLevel);
 			HelperFunc_LogMessage(2, SystemLogMsg);
 			break;
 		default:
@@ -230,36 +230,36 @@ int Viewer_GetSceneHeader(int CurrentHeader)
 }
 
 /* VIEWER_GETMAPACTORS - READ THE MAP ACTOR DATA FROM THE OFFSET SPECIFIED INSIDE THE CURRENT MAP HEADER */
-int Viewer_GetMapActors(int CurrentHeader)
+int Viewer_GetMapActors(int CurrentHeader, int CurrentMap)
 {
-	int InActorDataPos = MapHeader[ROM_CurrentMap][CurrentHeader].Actor_DataOffset / 4;
+	int InActorDataPos = MapHeader[CurrentMap][CurrentHeader].Actor_DataOffset / 4;
 
-	ActorInfo_CurrentCount[ROM_CurrentMap] = 0;
+	ActorInfo_CurrentCount[CurrentMap] = 0;
 	ActorInfo_Selected = 0;
 
-	if(!(MapHeader[ROM_CurrentMap][CurrentHeader].Actor_Count) == 0) {
-		while (!(ActorInfo_CurrentCount[ROM_CurrentMap] == MapHeader[ROM_CurrentMap][CurrentHeader].Actor_Count)) {
-			memcpy(&Readout_Current1, &ZMapBuffer[ROM_CurrentMap][InActorDataPos], 4);
-			memcpy(&Readout_Current2, &ZMapBuffer[ROM_CurrentMap][InActorDataPos + 1], 4);
+	if(!(MapHeader[CurrentMap][CurrentHeader].Actor_Count) == 0) {
+		while (!(ActorInfo_CurrentCount[CurrentMap] == MapHeader[CurrentMap][CurrentHeader].Actor_Count)) {
+			memcpy(&Readout_Current1, &ZMapBuffer[CurrentMap][InActorDataPos], 4);
+			memcpy(&Readout_Current2, &ZMapBuffer[CurrentMap][InActorDataPos + 1], 4);
 
 			HelperFunc_SplitCurrentVals(true);
 
-			Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].Number = (Readout_CurrentByte1 * 0x100) + Readout_CurrentByte2;
-			Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].X_Position = (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
-			Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].Y_Position = (Readout_CurrentByte5 * 0x100) + Readout_CurrentByte6;
-			Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].Z_Position = (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
+			Actors[CurrentMap][ActorInfo_CurrentCount[CurrentMap]].Number = (Readout_CurrentByte1 * 0x100) + Readout_CurrentByte2;
+			Actors[CurrentMap][ActorInfo_CurrentCount[CurrentMap]].X_Position = (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
+			Actors[CurrentMap][ActorInfo_CurrentCount[CurrentMap]].Y_Position = (Readout_CurrentByte5 * 0x100) + Readout_CurrentByte6;
+			Actors[CurrentMap][ActorInfo_CurrentCount[CurrentMap]].Z_Position = (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
 
-			memcpy(&Readout_Current1, &ZMapBuffer[ROM_CurrentMap][InActorDataPos + 2], 4);
-			memcpy(&Readout_Current2, &ZMapBuffer[ROM_CurrentMap][InActorDataPos + 3], 4);
+			memcpy(&Readout_Current1, &ZMapBuffer[CurrentMap][InActorDataPos + 2], 4);
+			memcpy(&Readout_Current2, &ZMapBuffer[CurrentMap][InActorDataPos + 3], 4);
 
 			HelperFunc_SplitCurrentVals(true);
 
-			Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].X_Rotation = (Readout_CurrentByte1 * 0x100) + Readout_CurrentByte2;
-			Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].Y_Rotation = (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
-			Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].Z_Rotation = (Readout_CurrentByte5 * 0x100) + Readout_CurrentByte6;
-			Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].Variable = (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
+			Actors[CurrentMap][ActorInfo_CurrentCount[CurrentMap]].X_Rotation = (Readout_CurrentByte1 * 0x100) + Readout_CurrentByte2;
+			Actors[CurrentMap][ActorInfo_CurrentCount[CurrentMap]].Y_Rotation = (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
+			Actors[CurrentMap][ActorInfo_CurrentCount[CurrentMap]].Z_Rotation = (Readout_CurrentByte5 * 0x100) + Readout_CurrentByte6;
+			Actors[CurrentMap][ActorInfo_CurrentCount[CurrentMap]].Variable = (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
 
-			ActorInfo_CurrentCount[ROM_CurrentMap]++;
+			ActorInfo_CurrentCount[CurrentMap]++;
 			InActorDataPos += 4;
 		}
 	}
@@ -306,9 +306,9 @@ int Viewer_GetSceneActors(int CurrentHeader)
 }
 
 /* VIEWER_GETMAPDISPLAYLISTS - SCAN THE CURRENT MAP FOR F3DZEX DISPLAY LISTS AND STORE THEIR OFFSETS IN THE DLISTS STRUCT */
-int Viewer_GetMapDisplayLists(unsigned long Fsize)
+int Viewer_GetMapDisplayLists(unsigned long Fsize, int CurrentMap)
 {
-	DListInfo_CurrentCount[ROM_CurrentMap] = 0;
+	DListInfo_CurrentCount[CurrentMap] = 0;
 	unsigned long TempOffset = 0;
 
 	/* EXPERIMENTAL dlist detection by mesh header data - watch out for missing geometry! (there shouldn't be any tho) */
@@ -322,8 +322,8 @@ int Viewer_GetMapDisplayLists(unsigned long Fsize)
 
 		LAYOUT DIFFERS WITH TYPE 01 MAPS (prerendered jpeg background stuff)
 	*/
-	TempOffset = (MapHeader[ROM_CurrentMap][MapHeader_Current].MeshDataHeader / 4);
-	memcpy(&Readout_Current1, &ZMapBuffer[ROM_CurrentMap][TempOffset], 4);
+	TempOffset = (MapHeader[CurrentMap][MapHeader_Current].MeshDataHeader / 4);
+	memcpy(&Readout_Current1, &ZMapBuffer[CurrentMap][TempOffset], 4);
 	HelperFunc_SplitCurrentVals(false);
 
 	unsigned int MeshHeaderSetup = Readout_CurrentByte1;
@@ -338,16 +338,16 @@ int Viewer_GetMapDisplayLists(unsigned long Fsize)
 			[aaaaaaaa] [aaaaaaaa] [aaaaaaaa] ...
 			aaaaaaaa = pointer to dlist
 		*/
-		TempOffset = (MapHeader[ROM_CurrentMap][MapHeader_Current].MeshDataHeader / 4) + 3;
+		TempOffset = (MapHeader[CurrentMap][MapHeader_Current].MeshDataHeader / 4) + 3;
 		unsigned long MeshScanPosition = TempOffset;
 
 		while(TotalMeshCount < MeshAmount + 1) {
-			memcpy(&Readout_Current1, &ZMapBuffer[ROM_CurrentMap][MeshScanPosition], 4);
+			memcpy(&Readout_Current1, &ZMapBuffer[CurrentMap][MeshScanPosition], 4);
 			HelperFunc_SplitCurrentVals(false);
 
 			if(Readout_CurrentByte1 == 0x03) {
-				DLists[ROM_CurrentMap][DListInfo_CurrentCount[ROM_CurrentMap]] = (Readout_CurrentByte2 * 0x10000) + (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
-				DListInfo_CurrentCount[ROM_CurrentMap]++;
+				DLists[CurrentMap][DListInfo_CurrentCount[CurrentMap]] = (Readout_CurrentByte2 * 0x10000) + (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
+				DListInfo_CurrentCount[CurrentMap]++;
 				DListInfo_TotalCount++;
 			}
 
@@ -364,16 +364,16 @@ int Viewer_GetMapDisplayLists(unsigned long Fsize)
 			[aaaaaaaa] [aaaaaaaa] [aaaaaaaa] ...
 			aaaaaaaa = pointer to dlist
 		*/
-		TempOffset = (MapHeader[ROM_CurrentMap][MapHeader_Current].MeshDataHeader / 4) + 1;
-		memcpy(&Readout_Current1, &ZMapBuffer[ROM_CurrentMap][TempOffset], 4);
-		memcpy(&Readout_Current2, &ZMapBuffer[ROM_CurrentMap][TempOffset + 1], 4);
+		TempOffset = (MapHeader[CurrentMap][MapHeader_Current].MeshDataHeader / 4) + 1;
+		memcpy(&Readout_Current1, &ZMapBuffer[CurrentMap][TempOffset], 4);
+		memcpy(&Readout_Current2, &ZMapBuffer[CurrentMap][TempOffset + 1], 4);
 		HelperFunc_SplitCurrentVals(true);
 
 		if((Readout_CurrentByte1 == 0x03)) {
 			TempOffset = ((Readout_CurrentByte2 * 0x10000) + (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4) / 4;
 
-			memcpy(&Readout_Current1, &ZMapBuffer[ROM_CurrentMap][TempOffset], 4);
-			memcpy(&Readout_Current2, &ZMapBuffer[ROM_CurrentMap][TempOffset + 1], 4);
+			memcpy(&Readout_Current1, &ZMapBuffer[CurrentMap][TempOffset], 4);
+			memcpy(&Readout_Current2, &ZMapBuffer[CurrentMap][TempOffset + 1], 4);
 			HelperFunc_SplitCurrentVals(true);
 
 			if((Readout_CurrentByte1 == 0x03)) {
@@ -381,9 +381,9 @@ int Viewer_GetMapDisplayLists(unsigned long Fsize)
 				TempOffset = TempOffset + (Readout_CurrentByte3 << 8);
 				TempOffset = TempOffset + Readout_CurrentByte4;
 
-				DLists[ROM_CurrentMap][DListInfo_CurrentCount[ROM_CurrentMap]] = TempOffset;
+				DLists[CurrentMap][DListInfo_CurrentCount[CurrentMap]] = TempOffset;
 
-				DListInfo_CurrentCount[ROM_CurrentMap]++;
+				DListInfo_CurrentCount[CurrentMap]++;
 				DListInfo_TotalCount++;
 			}
 		}
@@ -399,7 +399,7 @@ int Viewer_GetMapDisplayLists(unsigned long Fsize)
 			cccccccc = pointer to "primary" dlist (all 0 if not used)
 			dddddddd = pointer to "secondary" dlist (all 0 if not used)
 		*/
-		TempOffset = (MapHeader[ROM_CurrentMap][MapHeader_Current].MeshDataHeader / 4) + 3;
+		TempOffset = (MapHeader[CurrentMap][MapHeader_Current].MeshDataHeader / 4) + 3;
 		unsigned long MeshScanPosition = TempOffset;
 
 		unsigned long Unknown1 = 0;
@@ -411,23 +411,23 @@ int Viewer_GetMapDisplayLists(unsigned long Fsize)
 		unsigned int DListInfo_SecondaryCount = 0;
 
 		while(TotalMeshCount < MeshAmount) {
-			memcpy(&Readout_Current1, &ZMapBuffer[ROM_CurrentMap][MeshScanPosition], 4);
-			memcpy(&Readout_Current2, &ZMapBuffer[ROM_CurrentMap][MeshScanPosition + 1], 4);
+			memcpy(&Readout_Current1, &ZMapBuffer[CurrentMap][MeshScanPosition], 4);
+			memcpy(&Readout_Current2, &ZMapBuffer[CurrentMap][MeshScanPosition + 1], 4);
 			HelperFunc_SplitCurrentVals(true);
 
 			Unknown1 = (Readout_CurrentByte1 * 0x1000000) + (Readout_CurrentByte2 * 0x10000) + (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
 			Unknown2 = (Readout_CurrentByte5 * 0x1000000) + (Readout_CurrentByte6 * 0x10000) + (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
 			MeshScanPosition += 2;
 
-			memcpy(&Readout_Current1, &ZMapBuffer[ROM_CurrentMap][MeshScanPosition], 4);
-			memcpy(&Readout_Current2, &ZMapBuffer[ROM_CurrentMap][MeshScanPosition + 1], 4);
+			memcpy(&Readout_Current1, &ZMapBuffer[CurrentMap][MeshScanPosition], 4);
+			memcpy(&Readout_Current2, &ZMapBuffer[CurrentMap][MeshScanPosition + 1], 4);
 			HelperFunc_SplitCurrentVals(true);
 
 			if(Readout_CurrentByte1 == 0x03) {
 				/* primary dlists - terrain geometry, etc */
 				DListStart1 = (Readout_CurrentByte2 * 0x10000) + (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
-				DLists[ROM_CurrentMap][DListInfo_CurrentCount[ROM_CurrentMap]] = DListStart1;
-				DListInfo_CurrentCount[ROM_CurrentMap]++;
+				DLists[CurrentMap][DListInfo_CurrentCount[CurrentMap]] = DListStart1;
+				DListInfo_CurrentCount[CurrentMap]++;
 				DListInfo_TotalCount++;
 			}
 
@@ -447,8 +447,8 @@ int Viewer_GetMapDisplayLists(unsigned long Fsize)
 		int i = 0;
 		for(i = 0; i < DListInfo_SecondaryCount; i++) {
 			/* add secondary dlists to main dlist array */
-			DLists[ROM_CurrentMap][DListInfo_CurrentCount[ROM_CurrentMap]] = DLSecondary[i];
-			DListInfo_CurrentCount[ROM_CurrentMap]++;
+			DLists[CurrentMap][DListInfo_CurrentCount[CurrentMap]] = DLSecondary[i];
+			DListInfo_CurrentCount[CurrentMap]++;
 		}
 
 		break;
@@ -461,7 +461,7 @@ int Viewer_GetMapDisplayLists(unsigned long Fsize)
 
 	/* crap, epic fail! no dlists found!
 	   (that shouldn't happen anymore tho) */
-	if(DListInfo_CurrentCount[ROM_CurrentMap] == 0) {
+	if(DListInfo_CurrentCount[CurrentMap] == 0) {
 		MessageBox(hwnd, "No Display Lists found!", "Error", MB_OK | MB_ICONEXCLAMATION);
 	}
 

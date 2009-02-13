@@ -39,19 +39,19 @@ extern int Viewer_ResetVariables();
 extern int Viewer_LoadAreaData();
 extern int Viewer_RenderMapRefresh();
 
-extern int Viewer_GetMapHeaderList(int);
-extern int Viewer_GetMapHeader(int);
+extern int Viewer_GetMapHeaderList(int, int);
+extern int Viewer_GetMapHeader(int, int);
 extern int Viewer_GetSceneHeaderList(int);
 extern int Viewer_GetSceneHeader(int);
-extern int Viewer_GetMapActors(int);
+extern int Viewer_GetMapActors(int, int);
 extern int Viewer_GetSceneActors(int);
 
-extern int Viewer_GetMapDisplayLists(unsigned long);
+extern int Viewer_GetMapDisplayLists(unsigned long, int);
 
 extern int Viewer_GetMapCollision(int);
 
 extern int Viewer_RenderMap();
-extern int Viewer_RenderMap_DListParser(bool, unsigned int, unsigned long);
+extern int Viewer_RenderMap_DListParser(bool, unsigned long, int);
 
 extern int Viewer_RenderMap_CMDVertexList();
 extern int Viewer_GetVertexList(unsigned int, unsigned long, unsigned int, unsigned int);
@@ -67,7 +67,7 @@ extern int Viewer_RenderMap_CMDSetPrimColor();
 extern int Viewer_RenderMap_CMDSetEnvColor();
 extern int Viewer_RenderMap_CMDSetCombine();
 extern int Viewer_RenderMap_CMDLoadTLUT(unsigned int, unsigned long);
-extern int Viewer_RenderMap_CMDRDPHalf1_CMDDListStart(bool);
+extern int Viewer_RenderMap_CMDRDPHalf1_CMDDListStart(bool, int);
 extern int Viewer_RenderMap_CMDSetOtherModeH();
 extern int Viewer_RenderMap_CMDSetOtherModeL();
 extern int Viewer_RenderMap_CMDMatrix();
@@ -254,7 +254,8 @@ extern unsigned int		ROM_SceneToLoad;
 extern unsigned long	ROM_ObjectTableOffset;
 extern unsigned long	ROM_ActorTableOffset;
 
-extern unsigned int		ROM_CurrentMap;
+extern int				ROM_CurrentMap;
+extern int				ROM_CurrentMap_Temp;
 
 /* ZELDA MAP & SCENE HEADER HANDLING VARIABLES */
 extern bool				MapHeader_MultiHeaderMap;

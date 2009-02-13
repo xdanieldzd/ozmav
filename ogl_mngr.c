@@ -147,12 +147,25 @@ int DrawGLScene(void)
 		/* #2 - RENDER MAP */
 		Renderer_GLDisplayList_Current = Renderer_GLDisplayList;
 
-		for(i = 0; i < SceneHeader[SceneHeader_Current].Map_Count; i++) {
+		int StartMap = 0, EndMap = 0, SkipDLs = 0;
+		if(ROM_CurrentMap == -1) {
+			StartMap = 0;
+			EndMap = SceneHeader[SceneHeader_Current].Map_Count;
+		} else {
+			StartMap = ROM_CurrentMap;
+			EndMap = ROM_CurrentMap + 1;
+		}
+
+		for(i = 0; i < StartMap; i++) {
+			SkipDLs += DListInfo_CurrentCount[i];
+		}
+
+		for(i = StartMap; i < EndMap; i++) {
 			int j = 0;
 			for(j = 0; j < DListInfo_CurrentCount[i]; j++) {
-				if(Renderer_EnableMap) glCallList(Renderer_GLDisplayList_Current + j);
+				if(Renderer_EnableMap) glCallList(Renderer_GLDisplayList_Current + SkipDLs + j);
 			}
-			Renderer_GLDisplayList_Current += j;
+			Renderer_GLDisplayList_Current += SkipDLs + j;
 		}
 
 		/* #3 - RENDER COLLISION */

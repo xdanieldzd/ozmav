@@ -16,21 +16,31 @@ int Viewer_RenderAllActors()
 {
 	if(GLExtension_FragmentProgram) glDisable(GL_FRAGMENT_PROGRAM_ARB);
 
+	glEnable(GL_DEPTH_TEST);
+	glDepthMask(GL_TRUE);
+
 	glDisable(GL_TEXTURE_2D);
 	glDisable(GL_FOG);
 
-	int i;
-	for(i = 0; i < (SceneHeader[SceneHeader_Current].Map_Count); i++) {
-		ROM_CurrentMap = i;
+	int StartMap = 0, EndMap = 0;
+	if(ROM_CurrentMap == -1) {
+		StartMap = 0;
+		EndMap = SceneHeader[SceneHeader_Current].Map_Count;
+	} else {
+		StartMap = ROM_CurrentMap;
+		EndMap = ROM_CurrentMap + 1;
+	}
 
+	int i;
+	for(i = StartMap; i < EndMap; i++) {
 		if(Renderer_EnableMapActors) {
-			if (MapHeader[ROM_CurrentMap][MapHeader_Current].Actor_Count > 0) {
-				while (!(ActorInfo_CurrentCount[ROM_CurrentMap] == MapHeader[ROM_CurrentMap][MapHeader_Current].Actor_Count)) {
-					Viewer_RenderActor(Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].Number,
-						Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].X_Position, Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].Y_Position, Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].Z_Position,
-						Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].X_Rotation, Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].Y_Rotation, Actors[ROM_CurrentMap][ActorInfo_CurrentCount[ROM_CurrentMap]].Z_Rotation,
+			if (MapHeader[i][MapHeader_Current].Actor_Count > 0) {
+				while (!(ActorInfo_CurrentCount[i] == MapHeader[i][MapHeader_Current].Actor_Count)) {
+					Viewer_RenderActor(Actors[i][ActorInfo_CurrentCount[i]].Number,
+						Actors[i][ActorInfo_CurrentCount[i]].X_Position, Actors[i][ActorInfo_CurrentCount[i]].Y_Position, Actors[i][ActorInfo_CurrentCount[i]].Z_Position,
+						Actors[i][ActorInfo_CurrentCount[i]].X_Rotation, Actors[i][ActorInfo_CurrentCount[i]].Y_Rotation, Actors[i][ActorInfo_CurrentCount[i]].Z_Rotation,
 						true);
-					ActorInfo_CurrentCount[ROM_CurrentMap]++;
+					ActorInfo_CurrentCount[i]++;
 				}
 			}
 		}
