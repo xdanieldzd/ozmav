@@ -36,7 +36,7 @@ int Viewer_ZMemCopy(unsigned int SourceBank, unsigned long SourceOffset, unsigne
 	case 0x04:
 		/* data comes from gameplay_keep */
 		if(SourceOffset < GameplayKeepFilesize) {
-//			memcpy(Target, &GameplayKeepBuffer[SourceOffset / 4], Size);
+			memcpy(Target, &GameplayKeepBuffer[SourceOffset / 4], Size);
 		} else {
 			return -1;
 		}
@@ -44,7 +44,7 @@ int Viewer_ZMemCopy(unsigned int SourceBank, unsigned long SourceOffset, unsigne
 	case 0x05:
 		/* data comes from gameplay_dangeon_keep */
 		if(SourceOffset < GameplayFDKeepFilesize) {
-//			memcpy(Target, &GameplayFDKeepBuffer[SourceOffset / 4], Size);
+			memcpy(Target, &GameplayFDKeepBuffer[SourceOffset / 4], Size);
 		} else {
 			return -1;
 		}

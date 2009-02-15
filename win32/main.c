@@ -55,7 +55,7 @@ char			AppPath[512] = "";
 char			INIPath[512] = "";
 char			WindowTitle[256] = "";
 char			StatusMsg[256] = "";
-char			ErrorMsg[1024] = "";
+char			ErrorMsg[2048] = "";
 
 char			MapActorMsg[256] = "";
 char			SceneActorMsg[256] = "";
@@ -106,7 +106,7 @@ bool			TempObjectBuffer_Allocated;
 unsigned int	Debug_MallocOperations;
 unsigned int	Debug_FreeOperations;
 
-bool			GetDLFromZMapScene;
+bool			GetDLFromZMapScene = true;
 
 unsigned long	ROMFilesize = 0;
 unsigned long	ZMapFilesize[256];
@@ -152,6 +152,22 @@ bool			DListHasEnded = false;
 
 bool			SubDLCall = false;
 
+unsigned long	Storage_RDPHalf1 = 0;
+
+bool 			G_TEXTURE_ENABLE = false;
+bool			G_ZBUFFER = false;
+bool			G_SHADE = false;
+bool			G_CULL_FRONT = false;
+bool			G_CULL_BACK = false;
+bool			G_CULL_BOTH = false;
+bool			G_FOG = false;
+bool			G_LIGHTING = false;
+bool			G_TEXTURE_GEN = false;
+bool			G_TEXTURE_GEN_LINEAR = false;
+bool			G_LOD = false;
+bool			G_SHADING_SMOOTH = false;
+bool			G_CLIPPING = false;
+
 /* F3DZEX TEXTURE HANDLING VARIABLES */
 unsigned char	* TextureData_OGL = NULL;
 unsigned char	* TextureData_N64 = NULL;
@@ -176,6 +192,8 @@ unsigned long	ROM_ActorTableOffset = 0x00;
 
 int				ROM_CurrentMap = -1;
 int				ROM_CurrentMap_Temp = 0;
+
+int				DListParser_CurrentMap = 0;
 
 /* ZELDA MAP & SCENE HEADER HANDLING VARIABLES */
 bool			MapHeader_MultiHeaderMap = false;
@@ -215,15 +233,18 @@ char			Renderer_FPSMessage[32] = "";
 
 char			Renderer_CoordDisp[256] = "";
 
-bool			Renderer_EnableLighting = true;
+bool			Renderer_IsRGBANormals = false;
 
 GLfloat			LightAmbient[]=  {0.0f, 0.0f, 0.0f, 1.0f};
 GLfloat			LightDiffuse[]=  {1.0f, 1.0f, 1.0f, 1.0f};
 GLfloat			LightPosition[]= {1.0f, 1.0f, 1.0f, 1.0f};
 
-GLfloat			FogColor[]=  {0.0f, 0.0f, 0.0f, 0.5f};
+GLfloat			FogColor[]=  {0.75f, 0.75f, 0.75f, 1.0f};
 GLfloat			PrimColor[]= {0.0f, 0.0f, 0.0f, 1.0f};
 GLfloat         EnvColor[]=  {0.0f, 0.0f, 0.0f, 1.0f};
+
+int				HACK_UseColorSource = 0;	/* 0 = primcolor, 1 = envcolor, 2 = 1.0 */
+int				HACK_UseAlphaSource = 0;	/* 0 = primcolor, 1 = evncolor, 2 = 1.0 */
 
 bool			Renderer_EnableMapActors = true;
 bool			Renderer_EnableSceneActors = true;
@@ -304,8 +325,8 @@ int Viewer_Initialize()
 	EnableMenuItem(hmenu, IDM_OPTIONS_RENDERMAPS, MF_BYCOMMAND | MF_ENABLED);
 	EnableMenuItem(hmenu, IDM_OPTIONS_RENDERCOLLISION, MF_BYCOMMAND | MF_ENABLED);
 
-	sprintf(WindowTitle, "%s %s - %s", AppTitle, AppVersion, Filename_ROM);
-	SetWindowText(hwnd, WindowTitle);
+//	sprintf(WindowTitle, "%s %s - %s", AppTitle, AppVersion, Filename_ROM);
+//	SetWindowText(hwnd, WindowTitle);
 
 	return 0;
 }
@@ -377,7 +398,7 @@ int Viewer_LoadAreaData()
 	ROM_CurrentMap = -1;
 	ROM_CurrentMap_Temp = 0;
 
-	Renderer_EnableLighting = true;
+	Renderer_IsRGBANormals = false;
 
 	memset(MapHeader, 0x00, sizeof(MapHeader));
 	memset(SceneHeader, 0x00, sizeof(SceneHeader));
@@ -539,8 +560,6 @@ int Viewer_LoadAreaData()
 //	sprintf(StatusMsg, "Level loaded successfully!");
 	sprintf(StatusMsg, "Level: 0x%02X", ROM_SceneToLoad);
 
-	if(ROMBuffer != NULL) free(ROMBuffer);
-
 	return 0;
 }
 
@@ -559,6 +578,8 @@ int Viewer_RenderMapRefresh()
 	Viewer_RenderMap();
 	DrawGLScene();
 	Viewer_RenderMap();
+
+	if(ROMBuffer != NULL) free(ROMBuffer);
 
 	return 0;
 }

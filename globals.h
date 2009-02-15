@@ -18,11 +18,31 @@
 typedef int bool;
 enum { true = 1, false = 0 };
 
-/* SHIFT macros from glN64 source code */
+/* macros from glN64 source code */
 #define _SHIFTL( v, s, w )	\
     (((unsigned long)v & ((0x01 << w) - 1)) << s)
 #define _SHIFTR( v, s, w )	\
     (((unsigned long)v >> s) & ((0x01 << w) - 1))
+
+#define FIXED2FLOATRECIP1	0.5f
+#define FIXED2FLOATRECIP2	0.25f
+#define FIXED2FLOATRECIP3	0.125f
+#define FIXED2FLOATRECIP4	0.0625f
+#define FIXED2FLOATRECIP5	0.03125f
+#define FIXED2FLOATRECIP6	0.015625f
+#define FIXED2FLOATRECIP7	0.0078125f
+#define FIXED2FLOATRECIP8	0.00390625f
+#define FIXED2FLOATRECIP9	0.001953125f
+#define FIXED2FLOATRECIP10	0.0009765625f
+#define FIXED2FLOATRECIP11	0.00048828125f
+#define FIXED2FLOATRECIP12	0.00024414063f
+#define FIXED2FLOATRECIP13	0.00012207031f
+#define FIXED2FLOATRECIP14	6.1035156e-05f
+#define FIXED2FLOATRECIP15	3.0517578e-05f
+#define FIXED2FLOATRECIP16	1.5258789e-05f
+
+#define _FIXED2FLOAT( v, b ) \
+	((float)v * FIXED2FLOATRECIP##b)
 
 /*	------------------------------------------------------------
 	DEFINES
@@ -51,7 +71,7 @@ extern int Viewer_GetMapDisplayLists(unsigned long, int);
 extern int Viewer_GetMapCollision(int);
 
 extern int Viewer_RenderMap();
-extern int Viewer_RenderMap_DListParser(bool, unsigned long, int);
+extern int Viewer_RenderMap_DListParser(bool, unsigned long);
 
 extern int Viewer_RenderMap_CMDVertexList();
 extern int Viewer_GetVertexList(unsigned int, unsigned long, unsigned int, unsigned int);
@@ -62,15 +82,21 @@ extern int Viewer_RenderMap_CMDSetTImage();
 extern int Viewer_RenderMap_CMDSetTile();
 extern int Viewer_RenderMap_CMDSetTileSize();
 extern int Viewer_RenderMap_CMDGeometryMode();
+extern int Viewer_ClearGeometryMode();
+extern int Viewer_SetGeometryMode();
 extern int Viewer_RenderMap_CMDSetFogColor();
 extern int Viewer_RenderMap_CMDSetPrimColor();
 extern int Viewer_RenderMap_CMDSetEnvColor();
+extern int Viewer_RenderMap_CMDRDPHalf1();
+extern int Viewer_RenderMap_CMDBranchZ();
 extern int Viewer_RenderMap_CMDSetCombine();
 extern int Viewer_RenderMap_CMDLoadTLUT(unsigned int, unsigned long);
-extern int Viewer_RenderMap_CMDRDPHalf1_CMDDListStart(bool, int);
+extern int Viewer_RenderMap_CMDCallDList(bool);
 extern int Viewer_RenderMap_CMDSetOtherModeH();
 extern int Viewer_RenderMap_CMDSetOtherModeL();
 extern int Viewer_RenderMap_CMDMatrix();
+
+extern int Viewer_RenderObject_HACKSelectClrAlpSource();
 
 extern GLuint Viewer_LoadTexture(int);
 
@@ -135,7 +161,7 @@ extern char				AppPath[512];
 extern char				INIPath[512];
 extern char				WindowTitle[256];
 extern char				StatusMsg[256];
-extern char				ErrorMsg[1024];
+extern char				ErrorMsg[2048];
 
 extern char				MapActorMsg[256];
 extern char				SceneActorMsg[256];
@@ -232,6 +258,22 @@ extern bool				DListHasEnded;
 
 extern bool				SubDLCall;
 
+extern unsigned long	Storage_RDPHalf1;
+
+extern bool 			G_TEXTURE_ENABLE;
+extern bool				G_ZBUFFER;
+extern bool				G_SHADE;
+extern bool				G_CULL_FRONT;
+extern bool				G_CULL_BACK;
+extern bool				G_CULL_BOTH;
+extern bool				G_FOG;
+extern bool				G_LIGHTING;
+extern bool				G_TEXTURE_GEN;
+extern bool				G_TEXTURE_GEN_LINEAR;
+extern bool				G_LOD;
+extern bool				G_SHADING_SMOOTH;
+extern bool				G_CLIPPING;
+
 /* F3DZEX TEXTURE HANDLING VARIABLES */
 extern unsigned char	* TextureData_OGL;
 extern unsigned char	* TextureData_N64;
@@ -256,6 +298,8 @@ extern unsigned long	ROM_ActorTableOffset;
 
 extern int				ROM_CurrentMap;
 extern int				ROM_CurrentMap_Temp;
+
+extern int				DListParser_CurrentMap;
 
 /* ZELDA MAP & SCENE HEADER HANDLING VARIABLES */
 extern bool				MapHeader_MultiHeaderMap;
@@ -295,7 +339,7 @@ extern char				Renderer_FPSMessage[32];
 
 extern char				Renderer_CoordDisp[256];
 
-extern bool				Renderer_EnableLighting;
+extern bool				Renderer_IsRGBANormals;
 
 extern GLfloat			LightAmbient[];
 extern GLfloat			LightDiffuse[];
@@ -304,6 +348,9 @@ extern GLfloat			LightPosition[];
 extern GLfloat			FogColor[];
 extern GLfloat			PrimColor[];
 extern GLfloat          EnvColor[];
+
+extern int				HACK_UseColorSource;
+extern int				HACK_UseAlphaSource;
 
 extern bool				Renderer_EnableMapActors;
 extern bool				Renderer_EnableSceneActors;

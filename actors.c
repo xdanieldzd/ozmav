@@ -70,8 +70,11 @@ int Viewer_RenderActor(int ID, GLshort X, GLshort Y, GLshort Z, signed int X_Rot
 /*	if(ActorTable[ID].Valid) {
 		glScalef(0.05, 0.05, 0.05);
 		glCallList(Renderer_GLDisplayList + Renderer_GLDisplayList_Total + ID);
-	} else {*/
-		glDisable(GL_LIGHTING);
+
+		glEnable(GL_DEPTH_TEST);
+		glDepthMask(GL_TRUE);
+	} else {
+*/		glDisable(GL_LIGHTING);
 		glDisable(GL_TEXTURE_2D);
 		glDisable(GL_FOG);
 

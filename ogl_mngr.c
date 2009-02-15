@@ -20,7 +20,8 @@ int InitGL(void)
 
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-	glClearColor(0.2f, 0.5f, 0.7f, 1.0f);
+//	glClearColor(0.2f, 0.5f, 0.7f, 1.0f);
+	glClearColor(FogColor[0], FogColor[1], FogColor[2], FogColor[3]);
 	glClearDepth(1.0f);
 
 	glEnable(GL_DEPTH_TEST);
@@ -35,11 +36,13 @@ int InitGL(void)
 
 	glEnable(GL_ALPHA_TEST);
 
+	/* fake fog */
 	glFogi(GL_FOG_MODE, GL_LINEAR);
-	glFogf(GL_FOG_DENSITY, 0.15f);
-	glHint(GL_FOG_HINT, GL_DONT_CARE);
+	glHint(GL_FOG_HINT, GL_NICEST);
 	glFogf(GL_FOG_START, 1.0f);
 	glFogf(GL_FOG_END, 75.0f);
+
+	glFogfv(GL_FOG_COLOR, FogColor);
 
 	glEnable(GL_COLOR_MATERIAL);
 	glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);

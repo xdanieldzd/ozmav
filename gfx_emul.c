@@ -49,27 +49,10 @@ int Viewer_RenderMap()
 
 					SubDLCall = false;
 
-					/* reset stuff set by geometrymode */
-					glDisable(GL_FOG);
-					glDisable(GL_LIGHTING); glDisable(GL_NORMALIZE); Renderer_EnableLighting = false;
-					glDisable(GL_CULL_FACE);
-
 					GetDLFromZMapScene = true;
 					DLToRender = j + 1;
-					Viewer_RenderMap_DListParser(false, DLTempPosition, i);
-
-					PrimColor[0] = 0.0f;
-					PrimColor[1] = 0.0f;
-					PrimColor[2] = 0.0f;
-					PrimColor[3] = 1.0f;
-
-                    EnvColor[0] = 0.0f;
-					EnvColor[1] = 0.0f;
-					EnvColor[2] = 0.0f;
-					EnvColor[3] = 1.0f;
-
-					Blender_Cycle1 = 0x00;
-					Blender_Cycle2 = 0x00;
+					DListParser_CurrentMap = i;
+					Viewer_RenderMap_DListParser(false, DLTempPosition);
 
 					DListHasEnded = false;
 				glEndList();
@@ -93,12 +76,10 @@ int Viewer_RenderMap()
 /*	for(i = 0; i < SceneHeader[SceneHeader_Current].Map_Count; i++) {
 		sprintf(ErrorMsg, "");
 
-		ROM_CurrentMap = i;
-
 		int j = 0;
-		if(!(MapHeader[ROM_CurrentMap][MapHeader_Current].Actor_Count) == 0) {
-			for(j = 0; j < MapHeader[ROM_CurrentMap][MapHeader_Current].Actor_Count; j++) {
-				unsigned int ID = Actors[ROM_CurrentMap][j].Number;
+		if(!(MapHeader[i][MapHeader_Current].Actor_Count) == 0) {
+			for(j = 0; j < MapHeader[i][MapHeader_Current].Actor_Count; j++) {
+				unsigned int ID = Actors[i][j].Number;
 
 				if(ActorTable[ID].Valid) {
 					unsigned long ActorData_Start = ActorTable[ID].StartOffset;
@@ -181,7 +162,7 @@ int Viewer_RenderMap()
 										SubDLCall = false;
 										GetDLFromZMapScene = false;
 										if(DListCnt == 0) {
-											Viewer_RenderMap_DListParser(false, j, DListScanPosition);
+											Viewer_RenderMap_DListParser(false, DListScanPosition);
 											DListFound = true;
 										}
 
@@ -204,44 +185,7 @@ int Viewer_RenderMap()
 
 						if(TempObjectBuffer_Allocated) { free(TempObjectBuffer); TempObjectBuffer_Allocated = false; Debug_FreeOperations++; }
 					} else {
-						glNewList(Renderer_GLDisplayList + Renderer_GLDisplayList_Total + ID, GL_COMPILE);
-							glBegin(GL_QUADS);
-								glColor3f(0.0f, 1.0f, 0.0f);
-
-								glVertex3s( 12, 12, 12);   //V2
-								glVertex3s( 12,-12, 12);   //V1
-								glVertex3s( 12,-12,-12);   //V3
-								glVertex3s( 12, 12,-12);   //V4
-
-								glVertex3s( 12, 12,-12);   //V4
-								glVertex3s( 12,-12,-12);   //V3
-								glVertex3s(-12,-12,-12);   //V5
-								glVertex3s(-12, 12,-12);   //V6
-
-								glVertex3s(-12, 12,-12);   //V6
-								glVertex3s(-12,-12,-12);   //V5
-								glVertex3s(-12,-12, 12);   //V7
-								glVertex3s(-12, 12, 12);   //V8
-
-								glVertex3s(-12, 12,-12);   //V6
-								glVertex3s(-12, 12, 12);   //V8
-								glVertex3s( 12, 12, 12);   //V2
-								glVertex3s( 12, 12,-12);   //V4
-
-								glVertex3s(-12,-12, 12);   //V7
-								glVertex3s(-12,-12,-12);   //V5
-								glVertex3s( 12,-12,-12);   //V3
-								glVertex3s( 12,-12, 12);   //V1
-
-								//front
-								glColor3f(1.0f, 1.0f, 1.0f);
-
-								glVertex3s(-12, 12, 12);   //V8
-								glVertex3s(-12,-12, 12);   //V7
-								glVertex3s( 12,-12, 12);   //V1
-								glVertex3s( 12, 12, 12);   //V2
-							glEnd();
-						glEndList();
+						ActorTable[ID].Valid = false;
 					}
 
 					if(TempActorBuffer_Allocated) { free(TempActorBuffer); TempActorBuffer_Allocated = false; Debug_FreeOperations++; }
@@ -266,26 +210,26 @@ int Viewer_RenderMap()
 /*	------------------------------------------------------------ */
 
 /* VIEWER_RENDERMAP_DLISTPARSER - DLIST INTERPRETER MAIN LOOP, SCANS AND EXECUTES DLIST COMMANDS */
-int Viewer_RenderMap_DListParser(bool CalledFromRDPHalf, unsigned long Position, int CurrentMap)
+int Viewer_RenderMap_DListParser(bool CalledViaCmd, unsigned long Position)
 {
 	sprintf(WavefrontObjMsg, "mltlib map.mtl\n");
 	fprintf(FileWavefrontObj, WavefrontObjMsg);
 
-	if(CalledFromRDPHalf) {
-		sprintf(GFXLogMsg, "  [DList called via RDPHALF_1 (0x%08X)]\n", (unsigned int)Position * 4);
+	if(CalledViaCmd) {
+		sprintf(GFXLogMsg, "  [Calling DList at 0x%08X]\n", (unsigned int)Position * 4);
 		HelperFunc_LogMessage(1, GFXLogMsg);
 	} else {
-		sprintf(GFXLogMsg, "Display List #%d (0x%08X):\n", DLToRender + 1, (unsigned int)Position * 4);
+		sprintf(GFXLogMsg, "Display List #%d (0x%08X):\n", DLToRender, (unsigned int)Position * 4);
 		HelperFunc_LogMessage(1, GFXLogMsg);
 	}
 
 	while (!DListHasEnded) {
 		if(GetDLFromZMapScene) {
 			/* get data from map */
-			memcpy(&Readout_Current1, &ZMapBuffer[CurrentMap][Position], 4);
-			memcpy(&Readout_Current2, &ZMapBuffer[CurrentMap][Position + 1], 4);
+			memcpy(&Readout_Current1, &ZMapBuffer[DListParser_CurrentMap][Position], 4);
+			memcpy(&Readout_Current2, &ZMapBuffer[DListParser_CurrentMap][Position + 1], 4);
 
-			memcpy(&Readout_NextGFXCommand1, &ZMapBuffer[CurrentMap][Position + 2], 4);
+			memcpy(&Readout_NextGFXCommand1, &ZMapBuffer[DListParser_CurrentMap][Position + 2], 4);
 
 			HelperFunc_SplitCurrentVals(true);
 		} else {
@@ -298,7 +242,7 @@ int Viewer_RenderMap_DListParser(bool CalledFromRDPHalf, unsigned long Position,
 			HelperFunc_SplitCurrentVals(true);
 		}
 
-		if(CalledFromRDPHalf) HelperFunc_LogMessage(1, " ");
+		if(CalledViaCmd) HelperFunc_LogMessage(1, " ");
 
 		switch(Readout_CurrentByte1) {
 		case F3DEX2_VTX:
@@ -370,7 +314,7 @@ int Viewer_RenderMap_DListParser(bool CalledFromRDPHalf, unsigned long Position,
 			break;
 		case F3DEX2_GEOMETRYMODE:
 			sprintf(CurrentGFXCmd, "F3DEX2_GEOMETRYMODE  ");
-			sprintf(CurrentGFXCmdNote, "<partially handled>");
+			sprintf(CurrentGFXCmdNote, "-");
 			HelperFunc_GFXLogCommand(Position);
 			Viewer_RenderMap_CMDGeometryMode();
 			break;
@@ -413,7 +357,7 @@ int Viewer_RenderMap_DListParser(bool CalledFromRDPHalf, unsigned long Position,
 			sprintf(CurrentGFXCmd, "F3DEX2_RDPHALF_1     ");
 			sprintf(CurrentGFXCmdNote, "-");
 			HelperFunc_GFXLogCommand(Position);
-			Viewer_RenderMap_CMDRDPHalf1_CMDDListStart(GetDLFromZMapScene, CurrentMap);
+			Viewer_RenderMap_CMDRDPHalf1();
 			break;
 		case G_LOADTLUT:
 			sprintf(CurrentGFXCmd, "G_LOADTLUT           ");
@@ -429,21 +373,27 @@ int Viewer_RenderMap_DListParser(bool CalledFromRDPHalf, unsigned long Position,
 			break;
 		case F3DEX2_MTX:
 			sprintf(CurrentGFXCmd, "F3DEX2_MTX           ");
-			sprintf(CurrentGFXCmdNote, "<unemulated>");
+			sprintf(CurrentGFXCmdNote, "<partially handled>");
 			HelperFunc_GFXLogCommand(Position);
 			Viewer_RenderMap_CMDMatrix();
+			break;
+		case F3DEX2_MODIFYVTX:
+			sprintf(CurrentGFXCmd, "F3DEX2_MODIFYVTX     ");
+			sprintf(CurrentGFXCmdNote, "<unemulated>");
+			HelperFunc_GFXLogCommand(Position);
 			break;
 
 		case F3DEX2_DL:
 			sprintf(CurrentGFXCmd, "F3DEX2_DL            ");
 			sprintf(CurrentGFXCmdNote, "-");
 			HelperFunc_GFXLogCommand(Position);
-			Viewer_RenderMap_CMDRDPHalf1_CMDDListStart(GetDLFromZMapScene, CurrentMap);
+			Viewer_RenderMap_CMDCallDList(GetDLFromZMapScene);
 			break;
 		case F3DEX2_BRANCH_Z:
 			sprintf(CurrentGFXCmd, "F3DEX2_BRANCH_Z      ");
-			sprintf(CurrentGFXCmdNote, "<unemulated>");
+			sprintf(CurrentGFXCmdNote, "-");
 			HelperFunc_GFXLogCommand(Position);
+			Viewer_RenderMap_CMDBranchZ();
 			break;
 		case F3DEX2_ENDDL:
 			sprintf(CurrentGFXCmd, "F3DEX2_ENDDL         ");
@@ -455,12 +405,12 @@ int Viewer_RenderMap_DListParser(bool CalledFromRDPHalf, unsigned long Position,
 			sprintf(CurrentGFXCmd, "<unknown>            ");
 			sprintf(CurrentGFXCmdNote, "-");
 			HelperFunc_GFXLogCommand(Position);
-			MessageBox(hwnd, "ERROR UNKNOWN GFX COMMAND!!", "", 0);
+			MessageBox(hwnd, "ERROR UNKNOWN GFX COMMAND!!", "ERROR", MB_OK | MB_ICONERROR);
 			break;
 		}
 
 		if(DListHasEnded) {
-			if(CalledFromRDPHalf) {
+			if(CalledViaCmd) {
 				HelperFunc_LogMessage(1, "  [Return to original DList]\n");
 			} else {
 				HelperFunc_LogMessage(1, "\n");
@@ -470,7 +420,7 @@ int Viewer_RenderMap_DListParser(bool CalledFromRDPHalf, unsigned long Position,
 		Position+=2;
 	}
 
-	if(CalledFromRDPHalf) DListHasEnded = false;
+	if(CalledViaCmd) DListHasEnded = false;
 
 	SubDLCall = false;
 
@@ -480,10 +430,6 @@ int Viewer_RenderMap_DListParser(bool CalledFromRDPHalf, unsigned long Position,
 /* VIEWER_RENDERMAP_CMDVERTEXLIST - F3DEX2_VTX - GET OFFSET, AMOUNT & VERTEX BUFFER POSITION OF VERTICES TO USE */
 int Viewer_RenderMap_CMDVertexList()
 {
-	glEnable(GL_TEXTURE_2D);
-	Renderer_GLTexture = Viewer_LoadTexture(0);
-	glBindTexture(GL_TEXTURE_2D, Renderer_GLTexture);
-
 	unsigned int VertList_Temp = (Readout_CurrentByte2 * 0x10000) + (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
 	unsigned int TempVertCount = ((VertList_Temp & 0x000FFF) / 2);
 	unsigned int TempVertListStartEntry = TempVertCount - ((VertList_Temp & 0xFFF000) >> 12);
@@ -494,6 +440,10 @@ int Viewer_RenderMap_CMDVertexList()
 	TempVertListOffset = TempVertListOffset + Readout_CurrentByte8;
 
 	Viewer_GetVertexList(TempVertListBank, TempVertListOffset, TempVertCount, TempVertListStartEntry);
+
+	glEnable(GL_TEXTURE_2D);
+	Renderer_GLTexture = Viewer_LoadTexture(0);
+	glBindTexture(GL_TEXTURE_2D, Renderer_GLTexture);
 
 	return 0;
 }
@@ -521,7 +471,7 @@ int Viewer_GetVertexList(unsigned int Bank, unsigned long Offset, unsigned int V
 	sprintf(WavefrontObjMsg, "usemtl material\n");
 	fprintf(FileWavefrontObj, WavefrontObjMsg);
 
-	while(CurrentVert < VertCount + 1) {
+	while(CurrentVert < VertCount) {
 		// X
 		Vertex[CurrentVert].X = (VertListTempBuffer[VertListPosition] * 0x100) + VertListTempBuffer[VertListPosition + 1];
 		VertListPosition+=2;
@@ -617,27 +567,28 @@ int Viewer_RenderMap_CMDDrawTri1()
 	float TempU = 0, TempU2 = 0;
 	float TempV = 0, TempV2 = 0;
 
-	glColor4f(PrimColor[0], PrimColor[1], PrimColor[2], PrimColor[3]);
+	Viewer_RenderObject_HACKSelectClrAlpSource();
+//	glColor4f(PrimColor[0], PrimColor[1], PrimColor[2], PrimColor[3]);
 
 	glBegin(GL_TRIANGLES);
 		TempU = (float) CurrentH1_1 * Texture[0].S_Scale / 32 / Texture[0].WidthRender;
 		TempV = (float) CurrentV1_1 * Texture[0].T_Scale / 32 / Texture[0].HeightRender;
 		glTexCoord2f(TempU, TempV);
-		if(!Renderer_EnableLighting) { glColor4ub (CurrentR1_1, CurrentG1_1, CurrentB1_1, CurrentA1_1); }
+		if(!Renderer_IsRGBANormals) { glColor4ub (CurrentR1_1, CurrentG1_1, CurrentB1_1, CurrentA1_1); }
 		glNormal3f (CurrentR1_1 / 255.0f, CurrentG1_1 / 255.0f, CurrentB1_1 / 255.0f);
 		glVertex3d(CurrentX1_1, CurrentY1_1, CurrentZ1_1);
 
 		TempU = (float) CurrentH1_2 * Texture[0].S_Scale / 32 / Texture[0].WidthRender;
 		TempV = (float) CurrentV1_2 * Texture[0].T_Scale / 32 / Texture[0].HeightRender;
 		glTexCoord2f(TempU, TempV);
-		if(!Renderer_EnableLighting) { glColor4ub (CurrentR1_2, CurrentG1_2, CurrentB1_2, CurrentA1_2); }
+		if(!Renderer_IsRGBANormals) { glColor4ub (CurrentR1_2, CurrentG1_2, CurrentB1_2, CurrentA1_2); }
 		glNormal3f (CurrentR1_2 / 255.0f, CurrentG1_2 / 255.0f, CurrentB1_2 / 255.0f);
 		glVertex3d(CurrentX1_2, CurrentY1_2, CurrentZ1_2);
 
 		TempU = (float) CurrentH1_3 * Texture[0].S_Scale / 32 / Texture[0].WidthRender;
 		TempV = (float) CurrentV1_3 * Texture[0].T_Scale / 32 / Texture[0].HeightRender;
 		glTexCoord2f(TempU, TempV);
-		if(!Renderer_EnableLighting) { glColor4ub (CurrentR1_3, CurrentG1_3, CurrentB1_3, CurrentA1_3); }
+		if(!Renderer_IsRGBANormals) { glColor4ub (CurrentR1_3, CurrentG1_3, CurrentB1_3, CurrentA1_3); }
 		glNormal3f (CurrentR1_3 / 255.0f, CurrentG1_3 / 255.0f, CurrentB1_3 / 255.0f);
 		glVertex3d(CurrentX1_3, CurrentY1_3, CurrentZ1_3);
 	glEnd();
@@ -716,48 +667,49 @@ int Viewer_RenderMap_CMDDrawTri2()
 	float TempU = 0, TempU2 = 0;
 	float TempV = 0, TempV2 = 0;
 
-	glColor4f(PrimColor[0], PrimColor[1], PrimColor[2], PrimColor[3]);
+	Viewer_RenderObject_HACKSelectClrAlpSource();
+//	glColor4f(PrimColor[0], PrimColor[1], PrimColor[2], PrimColor[3]);
 
 	glBegin(GL_TRIANGLES);
 		TempU = (float) CurrentH1_1 * Texture[0].S_Scale / 32 / Texture[0].WidthRender;
 		TempV = (float) CurrentV1_1 * Texture[0].T_Scale / 32 / Texture[0].HeightRender;
 		glTexCoord2f(TempU, TempV);
-		if(!Renderer_EnableLighting) { glColor4ub (CurrentR1_1, CurrentG1_1, CurrentB1_1, CurrentA1_1); }
+		if(!Renderer_IsRGBANormals) { glColor4ub (CurrentR1_1, CurrentG1_1, CurrentB1_1, CurrentA1_1); }
 		glNormal3f (CurrentR1_1 / 255.0f, CurrentG1_1 / 255.0f, CurrentB1_1 / 255.0f);
 		glVertex3d(CurrentX1_1, CurrentY1_1, CurrentZ1_1);
 
 		TempU = (float) CurrentH1_2 * Texture[0].S_Scale / 32 / Texture[0].WidthRender;
 		TempV = (float) CurrentV1_2 * Texture[0].T_Scale / 32 / Texture[0].HeightRender;
 		glTexCoord2f(TempU, TempV);
-		if(!Renderer_EnableLighting) { glColor4ub (CurrentR1_2, CurrentG1_2, CurrentB1_2, CurrentA1_2); }
+		if(!Renderer_IsRGBANormals) { glColor4ub (CurrentR1_2, CurrentG1_2, CurrentB1_2, CurrentA1_2); }
 		glNormal3f (CurrentR1_2 / 255.0f, CurrentG1_2 / 255.0f, CurrentB1_2 / 255.0f);
 		glVertex3d(CurrentX1_2, CurrentY1_2, CurrentZ1_2);
 
 		TempU = (float) CurrentH1_3 * Texture[0].S_Scale / 32 / Texture[0].WidthRender;
 		TempV = (float) CurrentV1_3 * Texture[0].T_Scale / 32 / Texture[0].HeightRender;
 		glTexCoord2f(TempU, TempV);
-		if(!Renderer_EnableLighting) { glColor4ub (CurrentR1_3, CurrentG1_3, CurrentB1_3, CurrentA1_3); }
+		if(!Renderer_IsRGBANormals) { glColor4ub (CurrentR1_3, CurrentG1_3, CurrentB1_3, CurrentA1_3); }
 		glNormal3f (CurrentR1_3 / 255.0f, CurrentG1_3 / 255.0f, CurrentB1_3 / 255.0f);
 		glVertex3d(CurrentX1_3, CurrentY1_3, CurrentZ1_3);
 
 		TempU = (float) CurrentH2_1 * Texture[0].S_Scale / 32 / Texture[0].WidthRender;
 		TempV = (float) CurrentV2_1 * Texture[0].T_Scale / 32 / Texture[0].HeightRender;
 		glTexCoord2f(TempU, TempV);
-		if(!Renderer_EnableLighting) { glColor4ub (CurrentR2_1, CurrentG2_1, CurrentB2_1, CurrentA2_1); }
+		if(!Renderer_IsRGBANormals) { glColor4ub (CurrentR2_1, CurrentG2_1, CurrentB2_1, CurrentA2_1); }
 		glNormal3f (CurrentR2_1 / 255.0f, CurrentG2_1 / 255.0f, CurrentB2_1 / 255.0f);
 		glVertex3d(CurrentX2_1, CurrentY2_1, CurrentZ2_1);
 
 		TempU = (float) CurrentH2_2 * Texture[0].S_Scale / 32 / Texture[0].WidthRender;
 		TempV = (float) CurrentV2_2 * Texture[0].T_Scale / 32 / Texture[0].HeightRender;
 		glTexCoord2f(TempU, TempV);
-		if(!Renderer_EnableLighting) { glColor4ub (CurrentR2_2, CurrentG2_2, CurrentB2_2, CurrentA2_2); }
+		if(!Renderer_IsRGBANormals) { glColor4ub (CurrentR2_2, CurrentG2_2, CurrentB2_2, CurrentA2_2); }
 		glNormal3f (CurrentR2_2 / 255.0f, CurrentG2_2 / 255.0f, CurrentB2_2 / 255.0f);
 		glVertex3d(CurrentX2_2, CurrentY2_2, CurrentZ2_2);
 
 		TempU = (float) CurrentH2_3 * Texture[0].S_Scale / 32 / Texture[0].WidthRender;
 		TempV = (float) CurrentV2_3 * Texture[0].T_Scale / 32 / Texture[0].HeightRender;
 		glTexCoord2f(TempU, TempV);
-		if(!Renderer_EnableLighting) { glColor4ub (CurrentR2_3, CurrentG2_3, CurrentB2_3, CurrentA2_3); }
+		if(!Renderer_IsRGBANormals) { glColor4ub (CurrentR2_3, CurrentG2_3, CurrentB2_3, CurrentA2_3); }
 		glNormal3f (CurrentR2_3 / 255.0f, CurrentG2_3 / 255.0f, CurrentB2_3 / 255.0f);
 		glVertex3d(CurrentX2_3, CurrentY2_3, CurrentZ2_3);
 	glEnd();
@@ -775,8 +727,14 @@ int Viewer_RenderMap_CMDDrawTri2()
 /* VIEWER_RENDERMAP_CMDTEXTURE - F3DEX2_TEXTURE */
 int Viewer_RenderMap_CMDTexture()
 {
-	Texture[0].S_Scale = ((Readout_CurrentByte5 * 0x100) + Readout_CurrentByte6) + 2;
-	Texture[0].T_Scale = ((Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8) + 2;
+	unsigned long W0 = (Readout_CurrentByte1 * 0x1000000) + (Readout_CurrentByte2 * 0x10000) + (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
+	unsigned long W1 = (Readout_CurrentByte5 * 0x1000000) + (Readout_CurrentByte6 * 0x10000) + (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
+
+	Texture[0].S_Scale = (float) _FIXED2FLOAT(_SHIFTR(W1, 16, 16), 16);
+	Texture[0].T_Scale = (float) _FIXED2FLOAT(_SHIFTR(W1, 0, 16), 16);
+
+	if(Texture[0].S_Scale == 0.0f) Texture[0].S_Scale = 1.0f;
+	if(Texture[0].T_Scale == 0.0f) Texture[0].T_Scale = 1.0f;
 
 	return 0;
 }
@@ -802,18 +760,27 @@ int Viewer_RenderMap_CMDSetTImage()
 			break;
 	}
 
+	Texture[0].Format_OGL = GL_RGBA;
+	Texture[0].Format_OGLPixel = GL_RGBA;
+
 	return 0;
 }
 
 /* VIEWER_RENDERMAP_CMDSETTILE - G_SETTILE - GET TEXTURE PROPERTIES AND STORE THEM FOR FUTURE USE (MIRROR, ETC.) */
 int Viewer_RenderMap_CMDSetTile()
 {
+	unsigned long W0 = (Readout_CurrentByte1 * 0x1000000) + (Readout_CurrentByte2 * 0x10000) + (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
+	unsigned long W1 = (Readout_CurrentByte5 * 0x1000000) + (Readout_CurrentByte6 * 0x10000) + (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
+
 	/* FIX FOR CI TEXTURES - IF BYTES 5-8 ARE 07000000, LEAVE CURRENT PROPERTY SETTINGS ALONE */
-	if(Readout_Current2 == 0x00000007) return 0;
+	if(W1 == 0x07000000) return 0;
 
-	unsigned char TempXParameter = Readout_CurrentByte7 * 0x10;
+	unsigned char TempYParam = (Readout_CurrentByte6 << 4);
+	TempYParam >>= 4;
+	unsigned char TempXParam = (Readout_CurrentByte7 << 4);
+	TempXParam >>= 4;
 
-	switch(Readout_CurrentByte6) {
+	switch(TempYParam) {
 		case 0x01:
 			Texture[0].Y_Parameter = 1;
 			break;
@@ -828,14 +795,14 @@ int Viewer_RenderMap_CMDSetTile()
 			break;
 	}
 
-	switch(TempXParameter) {
+	switch(TempXParam) {
 		case 0x00:
 			Texture[0].X_Parameter = 1;
 			break;
-		case 0x20:
+		case 0x02:
 			Texture[0].X_Parameter = 2;
 			break;
-		case 0x10:
+		case 0x01:
 			Texture[0].X_Parameter = 3;
 			break;
 		default:
@@ -843,11 +810,10 @@ int Viewer_RenderMap_CMDSetTile()
 			break;
 	}
 
-	Texture[0].LineSize = Readout_CurrentByte3 / 2;
 	Texture[0].Format_N64 = Readout_CurrentByte2;
-	Texture[0].Palette = (Readout_Current1 >> 20) & 0x0F;
-	Texture[0].Format_OGL = GL_RGBA;
-	Texture[0].Format_OGLPixel = GL_RGBA;
+
+	Texture[0].Palette = _SHIFTR( W1, 20, 4 );
+	Texture[0].LineSize = _SHIFTR( W0, 9, 9 );
 
 	return 0;
 }
@@ -888,112 +854,99 @@ int Viewer_RenderMap_CMDSetTileSize()
 /* VIEWER_RENDERMAP_CMDGEOMETRYMODE - F3DEX2_GEOMETRYMODE - GET GEOMETRY PARAMETERS AND EN-/DISABLE THEIR OGL EQUIVALENTS */
 int Viewer_RenderMap_CMDGeometryMode()
 {
-	int Convert;
-	int Counter, Counter2;
-	bool Binary[4];
+	unsigned int Mode_Clear = (Readout_CurrentByte2 * 0x10000) + (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
+	unsigned int Mode_Set = (Readout_CurrentByte6 * 0x10000) + (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
 
-	/* ---- FOG, LIGHTING, AUTOMATIC TEXTURE MAPPING (SPHERICAL + LINEAR) ---- */
-	Convert = Readout_CurrentByte2;
-	Counter = 0, Counter2 = 4;
-	for(Counter = 0; Counter < 4; Counter++) {
-		Binary[Counter] = Convert % 2;
-		Convert = Convert / 2;
-	}
-	if(!Binary[0]) {
-		/*disable fog*/ }
-		glDisable(GL_FOG);
-	if(!Binary[1]) {
-		/*disable lighting*/
-		glDisable(GL_LIGHTING); glDisable(GL_NORMALIZE); Renderer_EnableLighting = false; }
-	if(!Binary[2]) {
-		/*disable tex-mapping spherical*/ }
-	if(!Binary[3]) {
-		/*disable tex-mapping linear*/ }
+	unsigned int ModeSwitch = 0;
+	unsigned char ModeName[16];
 
-	Convert = Readout_CurrentByte6;
-	Counter = 0, Counter2 = 4;
-	for(Counter = 0; Counter < 4; Counter++) {
-		Binary[Counter] = Convert % 2;
-		Convert = Convert / 2;
+	if(Mode_Clear == 0xFFFFFF) {
+		ModeSwitch = Mode_Set;
+		sprintf(ModeName, "SET");
+	} else {
+		ModeSwitch = Mode_Clear;
+		sprintf(ModeName, "CLEAR");
 	}
-	if(Binary[0]) {
-		/*enable fog*/ }
-//		glEnable(GL_FOG);
-	if(Binary[1]) {
-		/*enable lighting*/
-		glEnable(GL_LIGHTING); glEnable(GL_NORMALIZE); Renderer_EnableLighting = true; }
-	if(Binary[2]) {
-		/*enable tex-mapping spherical*/ }
-	if(Binary[3]) {
-		/*disable tex-mapping linear*/ }
 
-	/* ---- FACE CULLING ---- */
-	Convert = Readout_CurrentByte3;
-	Counter = 0, Counter2 = 4;
-	for(Counter = 0; Counter < 4; Counter++) {
-		Binary[Counter] = Convert % 2;
-		Convert = Convert / 2;
-	}
-	if(!Binary[0]) {
-		/*UNUSED?*/ }
-	if(!Binary[1]) {
-		/*disable front-face culling*/
-		glDisable(GL_CULL_FACE); }
-	if(!Binary[2]) {
-		/*disable back-face culling*/
-		glDisable(GL_CULL_FACE); }
-	if(!Binary[3]) {
-		/*UNUSED?*/ }
+	G_TEXTURE_ENABLE		= (ModeSwitch & 0x000000) != 0;		// texturing
+	G_ZBUFFER				= (ModeSwitch & 0x000001) != 0;		// z buffering
+	G_SHADE					= (ModeSwitch & 0x000004) != 0;		// shading
+	G_CULL_FRONT			= (ModeSwitch & 0x000200) != 0;		// front-face culling
+	G_CULL_BACK				= (ModeSwitch & 0x000400) != 0;		// back-face culling
+	G_CULL_BOTH				= (ModeSwitch & 0x000600) != 0;		// front-/back-face culling
+	G_FOG					= (ModeSwitch & 0x010000) != 0;		// fog
+	G_LIGHTING				= (ModeSwitch & 0x020000) != 0;		// lighting
+	G_TEXTURE_GEN			= (ModeSwitch & 0x040000) != 0;		// texture coord generation (spherical)
+	G_TEXTURE_GEN_LINEAR	= (ModeSwitch & 0x080000) != 0;		// texture coord generation (linear)
+	G_LOD					= (ModeSwitch & 0x100000) != 0;		// level-of-detail
+	G_SHADING_SMOOTH		= (ModeSwitch & 0x200000) != 0;		// smooth shading
+	G_CLIPPING				= (ModeSwitch & 0x800000) != 0;		// clipping
 
-	Convert = Readout_CurrentByte7;
-	Counter = 0, Counter2 = 4;
-	for(Counter = 0; Counter < 4; Counter++) {
-		Binary[Counter] = Convert % 2;
-		Convert = Convert / 2;
-	}
-	if(Binary[0]) {
-		/*UNUSED?*/ }
-	if(Binary[1]) {
-		/*enable front-face culling*/
-		glEnable(GL_CULL_FACE); glCullFace(GL_FRONT); }
-	if(Binary[2]) {
-		/*enable back-face culling*/
-		glEnable(GL_CULL_FACE); glCullFace(GL_BACK); }
-	if(Binary[3]) {
-		/*UNUSED?*/ }
+	memset(ErrorMsg, 0x00, sizeof(ErrorMsg));
+	sprintf(ErrorMsg, \
+		"GEOMETRYMODE | %s (DList #%d): %s%s%s%s%s%s%s%s%s%s%s%s%s\n",
+			ModeName,
+			DLToRender,
+			G_TEXTURE_ENABLE ? "G_TEXTURE_ENABLE | " : "",
+			G_ZBUFFER ? "G_ZBUFFER | " : "",
+			G_SHADE ? "G_SHADE | " : "",
+			G_CULL_FRONT ? "G_CULL_FRONT | " : "",
+			G_CULL_BACK ? "G_CULL_BACK | " : "",
+			G_CULL_BOTH ? "G_CULL_BOTH | " : "",
+			G_FOG ? "G_FOG | " : "",
+			G_LIGHTING ? "G_LIGHTING | " : "",
+			G_TEXTURE_GEN ? "G_TEXTURE_GEN | " : "",
+			G_TEXTURE_GEN_LINEAR ? "G_TEXTURE_GEN_LINEAR | " : "",
+			G_LOD ? "G_LOD | " : "",
+			G_SHADING_SMOOTH ? "G_SHADING_SMOOTH | " : "",
+			G_CLIPPING ? "G_CLIPPING" : "");
+	HelperFunc_LogMessage(2, ErrorMsg);
 
-	/* ---- VERTEX COLOR SHADING, Z-BUFFERING ---- */
-	Convert = Readout_CurrentByte4;
-	Counter = 0, Counter2 = 4;
-	for(Counter = 0; Counter < 4; Counter++) {
-		Binary[Counter] = Convert % 2;
-		Convert = Convert / 2;
+	if(Mode_Clear == 0xFFFFFF) {
+		Viewer_SetGeometryMode();
+		return 0;
+	} else {
+		Viewer_ClearGeometryMode();
+		return 0;
 	}
-	if(!Binary[0]) {
-		/*UNUSED?*/ }
-	if(!Binary[1]) {
-		/*disable vertex color shading*/ }
-	if(!Binary[2]) {
-		/*disable z-buffering*/
-		glDisable(GL_DEPTH_TEST); }
-	if(!Binary[3]) {
-		/*UNUSED?*/ }
 
-	Convert = Readout_CurrentByte8;
-	Counter = 0, Counter2 = 4;
-	for(Counter = 0; Counter < 4; Counter++) {
-		Binary[Counter] = Convert % 2;
-		Convert = Convert / 2;
-	}
-	if(Binary[0]) {
-		/*UNUSED?*/ }
-	if(Binary[1]) {
-		/*enable vertex color shading*/ }
-	if(Binary[2]) {
-		/*enable z-buffering*/
-		glEnable(GL_DEPTH_TEST); }
-	if(Binary[3]) {
-		/*UNUSED?*/ }
+	return 0;
+}
+
+int Viewer_ClearGeometryMode()
+{
+	if(!G_TEXTURE_ENABLE)		{ glDisable(GL_TEXTURE_2D); }
+	if(!G_ZBUFFER)				{ glDisable(GL_DEPTH_TEST); }
+	if(!G_SHADE)				{ /* ignore */ }
+	if(!G_CULL_FRONT)			{ glDisable(GL_CULL_FACE); }
+	if(!G_CULL_BACK)			{ glDisable(GL_CULL_FACE); }
+	if(!G_CULL_BOTH)			{ /* ignore */ }
+	if(!G_FOG)					{ /* ignore */ }
+	if(!G_LIGHTING)				{ glDisable(GL_LIGHTING); glDisable(GL_NORMALIZE); Renderer_IsRGBANormals = false; }
+	if(!G_TEXTURE_GEN)			{ /* ignore */ }
+	if(!G_TEXTURE_GEN_LINEAR)	{ /* ignore */ }
+	if(!G_LOD)					{ /* ignore */ }
+	if(!G_SHADING_SMOOTH)		{ /* ignore */ }
+	if(!G_CLIPPING)				{ /* ignore */ }
+
+	return 0;
+}
+
+int Viewer_SetGeometryMode()
+{
+	if(G_TEXTURE_ENABLE)		{ glEnable(GL_TEXTURE_2D); }
+	if(G_ZBUFFER)				{ glEnable(GL_DEPTH_TEST); }
+	if(G_SHADE)					{ /* ignore */ }
+	if(G_CULL_FRONT)			{ glEnable(GL_CULL_FACE); }
+	if(G_CULL_BACK)				{ glEnable(GL_CULL_FACE); }
+	if(G_CULL_BOTH)				{ /* ignore */ }
+	if(G_FOG)					{ /* ignore */ }
+	if(G_LIGHTING)				{ glEnable(GL_LIGHTING); glEnable(GL_NORMALIZE); Renderer_IsRGBANormals = true; }
+	if(G_TEXTURE_GEN)			{ /* ignore */ }
+	if(G_TEXTURE_GEN_LINEAR)	{ /* ignore */ }
+	if(G_LOD)					{ /* ignore */ }
+	if(G_SHADING_SMOOTH)		{ /* ignore */ }
+	if(G_CLIPPING)				{ /* ignore */ }
 
 	return 0;
 }
@@ -1007,6 +960,7 @@ int Viewer_RenderMap_CMDSetFogColor()
 	FogColor[3] = (Readout_CurrentByte8 / 255.0f);
 
 	glFogfv(GL_FOG_COLOR, FogColor);
+	glClearColor(FogColor[0], FogColor[1], FogColor[2], FogColor[3]);
 
 	return 0;
 }
@@ -1029,6 +983,26 @@ int Viewer_RenderMap_CMDSetEnvColor()
 	EnvColor[2] = (Readout_CurrentByte7 / 255.0f);
 	EnvColor[3] = (Readout_CurrentByte8 / 255.0f);
 	glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 0, EnvColor[0], EnvColor[1], EnvColor[2], EnvColor[3]);
+}
+
+int Viewer_RenderMap_CMDRDPHalf1()
+{
+	Storage_RDPHalf1 = (Readout_CurrentByte5 * 0x1000000) + (Readout_CurrentByte6 * 0x10000) + (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
+
+	return 0;
+}
+
+int Viewer_RenderMap_CMDBranchZ()
+{
+	unsigned int TempRAMSeg = (Storage_RDPHalf1 & 0xFF000000) >> 24;
+	unsigned long TempDLOffset = (Storage_RDPHalf1 & 0x00FFFFFF);
+
+	if(TempRAMSeg == 0x03) {
+		SubDLCall = true;
+		Viewer_RenderMap_DListParser(true, TempDLOffset / 4);
+	}
+
+	return 0;
 }
 
 /* VIEWER_RENDERMAP_CMDLOADTLUT - G_LOADTLUT - GET PALETTE FOR CI TEXTURES FROM PREVIOUS TEXTURE OFFSET */
@@ -1090,8 +1064,8 @@ int Viewer_RenderMap_CMDLoadTLUT(unsigned int PaletteSrc, unsigned long PaletteO
 	return 0;
 }
 
-/* Viewer_RenderMap_CMDRDPHalf1_CMDDListStart - F3DEX2_RDPHALF_1 & F3DEX2_DL - CALL AND RENDER ADDITIONAL DISPLAY LISTS FROM INSIDE OTHERS */
-int Viewer_RenderMap_CMDRDPHalf1_CMDDListStart(bool GetDLFromZMapScene, int CurrentMap)
+/* VIEWER_RENDERMAP_CMDCALLDLIST - F3DEX2_DL - CALL AND RENDER ADDITIONAL DISPLAY LISTS FROM INSIDE OTHERS */
+int Viewer_RenderMap_CMDCallDList(bool GetDLFromZMapScene)
 {
 	if(Readout_CurrentByte5 == 0x03) {
 		unsigned long TempOffset;
@@ -1101,7 +1075,7 @@ int Viewer_RenderMap_CMDRDPHalf1_CMDDListStart(bool GetDLFromZMapScene, int Curr
 		TempOffset = TempOffset + Readout_CurrentByte8;
 
 		SubDLCall = true;
-		Viewer_RenderMap_DListParser(true, TempOffset / 4, CurrentMap);
+		Viewer_RenderMap_DListParser(true, TempOffset / 4);
 	}
 
 	return 0;
@@ -1129,15 +1103,18 @@ int buildFragmentShader()
             break;
         case 3: // cPRIM
             sprintf(ShaderString,"%sMOV R0, primcolor;\n",ShaderString);
+/* !!! */	HACK_UseColorSource = 0;
             break;
         case 4: // cSHADE
             sprintf(ShaderString,"%sMOV R0, fragment.color.primary;\n",ShaderString);
             break;
         case 5: // cENV
             sprintf(ShaderString,"%sMOV R0, envcolor;\n",ShaderString);
+/* !!! */	HACK_UseColorSource = 1;
             break;
         case 6: // 1.0
             sprintf(ShaderString,"%sMOV R0, {1.0,1.0,1.0,1.0};\n",ShaderString);
+/* !!! */	HACK_UseColorSource = 2;
             break;
         default:
             sprintf(ShaderString,"%sMOV R0, {0,0,0,0};\n",ShaderString);
@@ -1244,15 +1221,18 @@ int buildFragmentShader()
             break;
         case 3: // aPRIM
             sprintf(ShaderString,"%sMOV aR0, primcolor;\n",ShaderString);
+/* !!! */	HACK_UseAlphaSource = 0;
             break;
         case 4: // aSHADE
             sprintf(ShaderString,"%sMOV aR0, fragment.color.primary;\n",ShaderString);
             break;
         case 5: // aENV
             sprintf(ShaderString,"%sMOV aR0, envcolor;\n",ShaderString);
+/* !!! */	HACK_UseAlphaSource = 1;
             break;
         case 6: // 1.0
             sprintf(ShaderString,"%sMOV aR0, {1.0,1.0,1.0,1.0};\n",ShaderString);
+/* !!! */	HACK_UseAlphaSource = 2;
             break;
         default:
             sprintf(ShaderString,"%sMOV aR0, {0,0,0,0};\n",ShaderString);
@@ -1597,8 +1577,8 @@ int Viewer_RenderMap_CMDMatrix()
 	GLfloat Matrix[4][4];
 	float fRecip = 1.0f / 65536.0f;
 
-	/* no idea what offset(?) 0x0D000000 is, so let's just return when we get that */
-	if(MtxSegment == 0x0D) {
+	/* no idea what segments 0x0C & 0x0D are, so let's just return when we get those */
+	if((MtxSegment == 0x0C) || (MtxSegment == 0x0D)) {
 		//????
 		return 0;
 	}
@@ -1645,13 +1625,36 @@ int Viewer_RenderMap_CMDMatrix()
 	return 0;
 }
 
+int Viewer_RenderObject_HACKSelectClrAlpSource()
+{
+	/* this allows selecting which color or alpha values to use without working combiner emulation.
+	   it can however only select either prim, env or full 1.0f for either color or alpha, not multiply values or anything...
+	   it MIGHT be possible to have it do color combining, but we should rather get the actual combiner emulation to work */
+
+	float TempAlpha = 0.0f;
+	switch(HACK_UseAlphaSource) {
+		case 0: TempAlpha = PrimColor[3]; break;	/* prim alpha */
+		case 1: TempAlpha = EnvColor[3]; break;		/* env alpha */
+		case 2: TempAlpha = 1.0f; break;			/* full */
+
+		default: TempAlpha = 1.0f; break;			/* default to full */
+	}
+	switch(HACK_UseColorSource) {
+		case 0: glColor4f(PrimColor[0], PrimColor[1], PrimColor[2], TempAlpha); break;		/* prim color + previous alpha */
+		case 1: glColor4f(EnvColor[0], EnvColor[1], EnvColor[2], TempAlpha); break;			/* env color + previous alpha */
+		case 2: glColor4f(1.0f, 1.0f, 1.0f, TempAlpha); break;								/* full + previous alpha */
+
+		default: glColor4f(1.0f, 1.0f, 0.0f, TempAlpha); break;								/* full + previous alpha */
+	}
+}
+
 /*	------------------------------------------------------------ */
 
 /* VIEWER_LOADTEXTURE - FETCH THE TEXTURE DATA AND CREATE AN OGL TEXTURE */
 GLuint Viewer_LoadTexture(int TextureID)
 {
 	/* for now, don't do any texturing for objects - REALLY crashy-crashy atm */
-//	if(!GetDLFromZMapScene) return 0;
+	if(!GetDLFromZMapScene) return 0;
 
 	if((Readout_NextGFXCommand1 == 0x00000003) || (Readout_NextGFXCommand1 == 0x000000E1)) return 0;
 
@@ -1671,21 +1674,14 @@ GLuint Viewer_LoadTexture(int TextureID)
 	MessageBox(hwnd, ErrorMsg, "Texture", MB_OK | MB_ICONINFORMATION);
 	HelperFunc_LogMessage(2, ErrorMsg);
 */
-	int i = 0;
-	int j = 0;
+	int i = 0, j = 0;
 
-//	unsigned long TextureBufferSize = 0x10000;
-	unsigned long TextureBufferSize = (Texture[TextureID].Height * Texture[TextureID].Width) * 8;
+	unsigned long TextureBufferSize = (Texture[0].Height * Texture[0].Width) * 0x08;
 
-/*	if(TextureBufferSize > 0x10000) {
-		sprintf(ErrorMsg, "warning: texture buffer > 0x10000!!\n%d * %d * 4 = 0x%08x", Texture[TextureID].Height, Texture[TextureID].Width, TextureBufferSize);
-		MessageBox(hwnd, ErrorMsg, "", 0);
-	}
-*/
 	bool UnhandledTextureSource = false;
 
-	TextureData_OGL = (unsigned char *) malloc (sizeof(char) * TextureBufferSize);
-	TextureData_N64 = (unsigned char *) malloc (sizeof(char) * TextureBufferSize);
+	TextureData_OGL = (unsigned char *) malloc (TextureBufferSize);
+	TextureData_N64 = (unsigned char *) malloc (TextureBufferSize);
 
 	memset(TextureData_OGL, 0x00, TextureBufferSize);
 	memset(TextureData_N64, 0x00, TextureBufferSize);
@@ -1725,7 +1721,7 @@ GLuint Viewer_LoadTexture(int TextureID)
 	}
 
 	if(!UnhandledTextureSource) {
-		switch(Texture[TextureID].Format_N64) {
+		switch(Texture[0].Format_N64) {
 		/* RGBA FORMAT */
 		case 0x00:
 		case 0x08:
@@ -1741,8 +1737,8 @@ GLuint Viewer_LoadTexture(int TextureID)
 			unsigned int LoadRGBA_InTexturePosition_N64 = 0;
 			unsigned int LoadRGBA_InTexturePosition_OGL = 0;
 
-			for(j = 0; j < Texture[TextureID].Height; j++) {
-				for(i = 0; i < Texture[TextureID].Width; i++) {
+			for(j = 0; j < Texture[0].Height; j++) {
+				for(i = 0; i < Texture[0].Width; i++) {
 					LoadRGBA_RGBA5551 = (TextureData_N64[LoadRGBA_InTexturePosition_N64] * 0x100) + TextureData_N64[LoadRGBA_InTexturePosition_N64 + 1];
 
 					LoadRGBA_RExtract = (LoadRGBA_RGBA5551 & 0xF800);
@@ -1768,7 +1764,76 @@ GLuint Viewer_LoadTexture(int TextureID)
 					LoadRGBA_InTexturePosition_N64 += 2;
 					LoadRGBA_InTexturePosition_OGL += 4;
 				}
-				LoadRGBA_InTexturePosition_N64 += Texture[TextureID].LineSize * 4 - Texture[TextureID].Width;
+				LoadRGBA_InTexturePosition_N64 += Texture[0].LineSize * 4 - Texture[0].Width;
+			}
+
+			break;
+			}
+		case 0x18:
+			{
+			/* 32-bit RGBA - not used in levels */
+			unsigned int LoadRGBA_RGBA5551 = 0;
+
+			unsigned int LoadRGBA_RExtract = 0;
+			unsigned int LoadRGBA_GExtract = 0;
+			unsigned int LoadRGBA_BExtract = 0;
+			unsigned int LoadRGBA_AExtract = 0;
+
+			unsigned int LoadRGBA_InTexturePosition_N64 = 0;
+			unsigned int LoadRGBA_InTexturePosition_OGL = 0;
+
+			for(j = 0; j < Texture[0].Height; j++) {
+				for(i = 0; i < Texture[0].Width; i++) {
+					LoadRGBA_RGBA5551 = (TextureData_N64[LoadRGBA_InTexturePosition_N64] * 0x100) + TextureData_N64[LoadRGBA_InTexturePosition_N64 + 1];
+
+					LoadRGBA_RExtract = (LoadRGBA_RGBA5551 & 0xF800);
+					LoadRGBA_RExtract >>= 8;
+					LoadRGBA_GExtract = (LoadRGBA_RGBA5551 & 0x07C0);
+					LoadRGBA_GExtract <<= 5;
+					LoadRGBA_GExtract >>= 8;
+					LoadRGBA_BExtract = (LoadRGBA_RGBA5551 & 0x003E);
+					LoadRGBA_BExtract <<= 18;
+					LoadRGBA_BExtract >>= 16;
+
+					if((LoadRGBA_RGBA5551 & 0x0001)) {
+						LoadRGBA_AExtract = 0xFF;
+					} else {
+						LoadRGBA_AExtract = 0x00;
+					}
+
+					TextureData_OGL[LoadRGBA_InTexturePosition_OGL]     = LoadRGBA_RExtract;
+					TextureData_OGL[LoadRGBA_InTexturePosition_OGL + 1] = LoadRGBA_GExtract;
+					TextureData_OGL[LoadRGBA_InTexturePosition_OGL + 2] = LoadRGBA_BExtract;
+					TextureData_OGL[LoadRGBA_InTexturePosition_OGL + 3] = LoadRGBA_AExtract;
+
+					LoadRGBA_InTexturePosition_N64 += 2;
+
+					LoadRGBA_RGBA5551 = (TextureData_N64[LoadRGBA_InTexturePosition_N64] * 0x100) + TextureData_N64[LoadRGBA_InTexturePosition_N64 + 1];
+
+					LoadRGBA_RExtract = (LoadRGBA_RGBA5551 & 0xF800);
+					LoadRGBA_RExtract >>= 8;
+					LoadRGBA_GExtract = (LoadRGBA_RGBA5551 & 0x07C0);
+					LoadRGBA_GExtract <<= 5;
+					LoadRGBA_GExtract >>= 8;
+					LoadRGBA_BExtract = (LoadRGBA_RGBA5551 & 0x003E);
+					LoadRGBA_BExtract <<= 18;
+					LoadRGBA_BExtract >>= 16;
+
+					if((LoadRGBA_RGBA5551 & 0x0001)) {
+						LoadRGBA_AExtract = 0xFF;
+					} else {
+						LoadRGBA_AExtract = 0x00;
+					}
+
+					TextureData_OGL[LoadRGBA_InTexturePosition_OGL]     = LoadRGBA_RExtract;
+					TextureData_OGL[LoadRGBA_InTexturePosition_OGL + 1] = LoadRGBA_GExtract;
+					TextureData_OGL[LoadRGBA_InTexturePosition_OGL + 2] = LoadRGBA_BExtract;
+					TextureData_OGL[LoadRGBA_InTexturePosition_OGL + 3] = LoadRGBA_AExtract;
+
+					LoadRGBA_InTexturePosition_N64 += 2;
+					LoadRGBA_InTexturePosition_OGL += 4;
+				}
+				LoadRGBA_InTexturePosition_N64 += Texture[0].LineSize * 2 - (Texture[0].Width / 2);
 			}
 
 			break;
@@ -1783,8 +1848,8 @@ GLuint Viewer_LoadTexture(int TextureID)
 			unsigned int LoadCI_InTexturePosition_N64 = 0;
 			unsigned int LoadCI_InTexturePosition_OGL = 0;
 
-			for(j = 0; j < Texture[TextureID].Height; j++) {
-				for(i = 0; i < Texture[TextureID].Width / 2; i++) {
+			for(j = 0; j < Texture[0].Height; j++) {
+				for(i = 0; i < Texture[0].Width / 2; i++) {
 					LoadCI_CIData1 = (TextureData_N64[LoadCI_InTexturePosition_N64] & 0xF0) >> 4;
 					LoadCI_CIData2 = TextureData_N64[LoadCI_InTexturePosition_N64] & 0x0F;
 
@@ -1800,7 +1865,7 @@ GLuint Viewer_LoadTexture(int TextureID)
 					LoadCI_InTexturePosition_N64 += 1;
 					LoadCI_InTexturePosition_OGL += 8;
 				}
-				LoadCI_InTexturePosition_N64 += Texture[TextureID].LineSize * 8 - (Texture[TextureID].Width / 2);
+				LoadCI_InTexturePosition_N64 += Texture[0].LineSize * 8 - (Texture[0].Width / 2);
 			}
 
 			break;
@@ -1812,8 +1877,8 @@ GLuint Viewer_LoadTexture(int TextureID)
 			unsigned int LoadCI_InTexturePosition_N64 = 0;
 			unsigned int LoadCI_InTexturePosition_OGL = 0;
 
-			for(j = 0; j < Texture[TextureID].Height; j++) {
-				for(i = 0; i < Texture[TextureID].Width; i++) {
+			for(j = 0; j < Texture[0].Height; j++) {
+				for(i = 0; i < Texture[0].Width; i++) {
 					LoadCI_CIData = TextureData_N64[LoadCI_InTexturePosition_N64];
 
 					TextureData_OGL[LoadCI_InTexturePosition_OGL]     = Palette[LoadCI_CIData].R;
@@ -1824,7 +1889,7 @@ GLuint Viewer_LoadTexture(int TextureID)
 					LoadCI_InTexturePosition_N64 += 1;
 					LoadCI_InTexturePosition_OGL += 4;
 				}
-				LoadCI_InTexturePosition_N64 += Texture[TextureID].LineSize * 8 - Texture[TextureID].Width;
+				LoadCI_InTexturePosition_N64 += Texture[0].LineSize * 8 - Texture[0].Width;
 			}
 
 			break;
@@ -1842,8 +1907,8 @@ GLuint Viewer_LoadTexture(int TextureID)
 			unsigned int LoadIA_InTexturePosition_N64 = 0;
 			unsigned int LoadIA_InTexturePosition_OGL = 0;
 
-			for(j = 0; j < Texture[TextureID].Height; j++) {
-				for(i = 0; i < Texture[TextureID].Width / 2; i++) {
+			for(j = 0; j < Texture[0].Height; j++) {
+				for(i = 0; i < Texture[0].Width / 2; i++) {
 					LoadIA_IAData = (TextureData_N64[LoadIA_InTexturePosition_N64] & 0xF0) >> 4;
 					LoadIA_IExtract1 = (LoadIA_IAData & 0x0E) << 4;
 					if((LoadIA_IAData & 0x01)) { LoadIA_AExtract1 = 0xFF; } else { LoadIA_AExtract1 = 0x00; }
@@ -1864,7 +1929,7 @@ GLuint Viewer_LoadTexture(int TextureID)
 					LoadIA_InTexturePosition_N64 += 1;
 					LoadIA_InTexturePosition_OGL += 8;
 				}
-				LoadIA_InTexturePosition_N64 += Texture[TextureID].LineSize * 8 - (Texture[TextureID].Width / 2);
+				LoadIA_InTexturePosition_N64 += Texture[0].LineSize * 8 - (Texture[0].Width / 2);
 			}
 
 			break;
@@ -1879,8 +1944,8 @@ GLuint Viewer_LoadTexture(int TextureID)
 			unsigned int LoadIA_InTexturePosition_N64 = 0;
 			unsigned int LoadIA_InTexturePosition_OGL = 0;
 
-			for(j = 0; j < Texture[TextureID].Height; j++) {
-				for(i = 0; i < Texture[TextureID].Width; i++) {
+			for(j = 0; j < Texture[0].Height; j++) {
+				for(i = 0; i < Texture[0].Width; i++) {
 					LoadIA_IAData = TextureData_N64[LoadIA_InTexturePosition_N64];
 					LoadIA_IExtract = (LoadIA_IAData & 0xFE);
 					if((LoadIA_IAData & 0x01)) { LoadIA_AExtract = 0xFF; } else { LoadIA_AExtract = 0x00; }
@@ -1893,7 +1958,7 @@ GLuint Viewer_LoadTexture(int TextureID)
 					LoadIA_InTexturePosition_N64 += 1;
 					LoadIA_InTexturePosition_OGL += 4;
 				}
-				LoadIA_InTexturePosition_N64 += Texture[TextureID].LineSize * 8 - Texture[TextureID].Width;
+				LoadIA_InTexturePosition_N64 += Texture[0].LineSize * 8 - Texture[0].Width;
 			}
 
 			break;
@@ -1908,8 +1973,8 @@ GLuint Viewer_LoadTexture(int TextureID)
 			unsigned int LoadIA_InTexturePosition_N64 = 0;
 			unsigned int LoadIA_InTexturePosition_OGL = 0;
 
-			for(j = 0; j < Texture[TextureID].Height; j++) {
-				for(i = 0; i < Texture[TextureID].Width; i++) {
+			for(j = 0; j < Texture[0].Height; j++) {
+				for(i = 0; i < Texture[0].Width; i++) {
 					LoadIA_IAData = TextureData_N64[LoadIA_InTexturePosition_N64];
 					LoadIA_IExtract = LoadIA_IAData;
 
@@ -1924,7 +1989,7 @@ GLuint Viewer_LoadTexture(int TextureID)
 					LoadIA_InTexturePosition_N64 += 2;
 					LoadIA_InTexturePosition_OGL += 4;
 				}
-				LoadIA_InTexturePosition_N64 += Texture[TextureID].LineSize * 4 - Texture[TextureID].Width;
+				LoadIA_InTexturePosition_N64 += Texture[0].LineSize * 4 - Texture[0].Width;
 			}
 
 			break;
@@ -1941,8 +2006,8 @@ GLuint Viewer_LoadTexture(int TextureID)
 			unsigned int LoadI_InTexturePosition_N64 = 0;
 			unsigned int LoadI_InTexturePosition_OGL = 0;
 
-			for(j = 0; j < Texture[TextureID].Height; j++) {
-				for(i = 0; i < Texture[TextureID].Width / 2; i++) {
+			for(j = 0; j < Texture[0].Height; j++) {
+				for(i = 0; i < Texture[0].Width / 2; i++) {
 					LoadI_IData = (TextureData_N64[LoadI_InTexturePosition_N64] & 0xF0) >> 4;
 					LoadI_IExtract1 = (LoadI_IData & 0x0F) << 4;
 
@@ -1962,7 +2027,7 @@ GLuint Viewer_LoadTexture(int TextureID)
 					LoadI_InTexturePosition_N64 += 1;
 					LoadI_InTexturePosition_OGL += 8;
 				}
-				LoadI_InTexturePosition_N64 += Texture[TextureID].LineSize * 8 - (Texture[TextureID].Width / 2);
+				LoadI_InTexturePosition_N64 += Texture[0].LineSize * 8 - (Texture[0].Width / 2);
 			}
 
 			break;
@@ -1974,8 +2039,8 @@ GLuint Viewer_LoadTexture(int TextureID)
 			unsigned int LoadI_InTexturePosition_N64 = 0;
 			unsigned int LoadI_InTexturePosition_OGL = 0;
 
-			for(j = 0; j < Texture[TextureID].Height; j++) {
-				for(i = 0; i < Texture[TextureID].Width; i++) {
+			for(j = 0; j < Texture[0].Height; j++) {
+				for(i = 0; i < Texture[0].Width; i++) {
 					LoadI_IData = TextureData_N64[LoadI_InTexturePosition_N64];
 
 					TextureData_OGL[LoadI_InTexturePosition_OGL]     = LoadI_IData;
@@ -1986,7 +2051,7 @@ GLuint Viewer_LoadTexture(int TextureID)
 					LoadI_InTexturePosition_N64 += 1;
 					LoadI_InTexturePosition_OGL += 4;
 				}
-				LoadI_InTexturePosition_N64 += Texture[TextureID].LineSize * 8 - Texture[TextureID].Width;
+				LoadI_InTexturePosition_N64 += Texture[0].LineSize * 8 - Texture[0].Width;
 			}
 
 			break;
