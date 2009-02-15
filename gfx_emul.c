@@ -1676,7 +1676,7 @@ GLuint Viewer_LoadTexture(int TextureID)
 */
 	int i = 0, j = 0;
 
-	unsigned long TextureBufferSize = (Texture[0].Height * Texture[0].Width) * 0x08;
+	unsigned long TextureBufferSize = (Texture[TextureID].Height * Texture[TextureID].Width) * 0x08;
 
 	bool UnhandledTextureSource = false;
 
@@ -1721,7 +1721,7 @@ GLuint Viewer_LoadTexture(int TextureID)
 	}
 
 	if(!UnhandledTextureSource) {
-		switch(Texture[0].Format_N64) {
+		switch(Texture[TextureID].Format_N64) {
 		/* RGBA FORMAT */
 		case 0x00:
 		case 0x08:
@@ -1737,8 +1737,8 @@ GLuint Viewer_LoadTexture(int TextureID)
 			unsigned int LoadRGBA_InTexturePosition_N64 = 0;
 			unsigned int LoadRGBA_InTexturePosition_OGL = 0;
 
-			for(j = 0; j < Texture[0].Height; j++) {
-				for(i = 0; i < Texture[0].Width; i++) {
+			for(j = 0; j < Texture[TextureID].Height; j++) {
+				for(i = 0; i < Texture[TextureID].Width; i++) {
 					LoadRGBA_RGBA5551 = (TextureData_N64[LoadRGBA_InTexturePosition_N64] * 0x100) + TextureData_N64[LoadRGBA_InTexturePosition_N64 + 1];
 
 					LoadRGBA_RExtract = (LoadRGBA_RGBA5551 & 0xF800);
@@ -1764,7 +1764,7 @@ GLuint Viewer_LoadTexture(int TextureID)
 					LoadRGBA_InTexturePosition_N64 += 2;
 					LoadRGBA_InTexturePosition_OGL += 4;
 				}
-				LoadRGBA_InTexturePosition_N64 += Texture[0].LineSize * 4 - Texture[0].Width;
+				LoadRGBA_InTexturePosition_N64 += Texture[TextureID].LineSize * 4 - Texture[TextureID].Width;
 			}
 
 			break;
@@ -1782,8 +1782,8 @@ GLuint Viewer_LoadTexture(int TextureID)
 			unsigned int LoadRGBA_InTexturePosition_N64 = 0;
 			unsigned int LoadRGBA_InTexturePosition_OGL = 0;
 
-			for(j = 0; j < Texture[0].Height; j++) {
-				for(i = 0; i < Texture[0].Width; i++) {
+			for(j = 0; j < Texture[TextureID].Height; j++) {
+				for(i = 0; i < Texture[TextureID].Width; i++) {
 					LoadRGBA_RGBA5551 = (TextureData_N64[LoadRGBA_InTexturePosition_N64] * 0x100) + TextureData_N64[LoadRGBA_InTexturePosition_N64 + 1];
 
 					LoadRGBA_RExtract = (LoadRGBA_RGBA5551 & 0xF800);
@@ -1833,7 +1833,7 @@ GLuint Viewer_LoadTexture(int TextureID)
 					LoadRGBA_InTexturePosition_N64 += 2;
 					LoadRGBA_InTexturePosition_OGL += 4;
 				}
-				LoadRGBA_InTexturePosition_N64 += Texture[0].LineSize * 2 - (Texture[0].Width / 2);
+				LoadRGBA_InTexturePosition_N64 += Texture[TextureID].LineSize * 2 - (Texture[TextureID].Width / 2);
 			}
 
 			break;
@@ -1848,8 +1848,8 @@ GLuint Viewer_LoadTexture(int TextureID)
 			unsigned int LoadCI_InTexturePosition_N64 = 0;
 			unsigned int LoadCI_InTexturePosition_OGL = 0;
 
-			for(j = 0; j < Texture[0].Height; j++) {
-				for(i = 0; i < Texture[0].Width / 2; i++) {
+			for(j = 0; j < Texture[TextureID].Height; j++) {
+				for(i = 0; i < Texture[TextureID].Width / 2; i++) {
 					LoadCI_CIData1 = (TextureData_N64[LoadCI_InTexturePosition_N64] & 0xF0) >> 4;
 					LoadCI_CIData2 = TextureData_N64[LoadCI_InTexturePosition_N64] & 0x0F;
 
@@ -1865,7 +1865,7 @@ GLuint Viewer_LoadTexture(int TextureID)
 					LoadCI_InTexturePosition_N64 += 1;
 					LoadCI_InTexturePosition_OGL += 8;
 				}
-				LoadCI_InTexturePosition_N64 += Texture[0].LineSize * 8 - (Texture[0].Width / 2);
+				LoadCI_InTexturePosition_N64 += Texture[TextureID].LineSize * 8 - (Texture[TextureID].Width / 2);
 			}
 
 			break;
@@ -1877,8 +1877,8 @@ GLuint Viewer_LoadTexture(int TextureID)
 			unsigned int LoadCI_InTexturePosition_N64 = 0;
 			unsigned int LoadCI_InTexturePosition_OGL = 0;
 
-			for(j = 0; j < Texture[0].Height; j++) {
-				for(i = 0; i < Texture[0].Width; i++) {
+			for(j = 0; j < Texture[TextureID].Height; j++) {
+				for(i = 0; i < Texture[TextureID].Width; i++) {
 					LoadCI_CIData = TextureData_N64[LoadCI_InTexturePosition_N64];
 
 					TextureData_OGL[LoadCI_InTexturePosition_OGL]     = Palette[LoadCI_CIData].R;
@@ -1889,7 +1889,7 @@ GLuint Viewer_LoadTexture(int TextureID)
 					LoadCI_InTexturePosition_N64 += 1;
 					LoadCI_InTexturePosition_OGL += 4;
 				}
-				LoadCI_InTexturePosition_N64 += Texture[0].LineSize * 8 - Texture[0].Width;
+				LoadCI_InTexturePosition_N64 += Texture[TextureID].LineSize * 8 - Texture[TextureID].Width;
 			}
 
 			break;
@@ -1907,8 +1907,8 @@ GLuint Viewer_LoadTexture(int TextureID)
 			unsigned int LoadIA_InTexturePosition_N64 = 0;
 			unsigned int LoadIA_InTexturePosition_OGL = 0;
 
-			for(j = 0; j < Texture[0].Height; j++) {
-				for(i = 0; i < Texture[0].Width / 2; i++) {
+			for(j = 0; j < Texture[TextureID].Height; j++) {
+				for(i = 0; i < Texture[TextureID].Width / 2; i++) {
 					LoadIA_IAData = (TextureData_N64[LoadIA_InTexturePosition_N64] & 0xF0) >> 4;
 					LoadIA_IExtract1 = (LoadIA_IAData & 0x0E) << 4;
 					if((LoadIA_IAData & 0x01)) { LoadIA_AExtract1 = 0xFF; } else { LoadIA_AExtract1 = 0x00; }
@@ -1929,7 +1929,7 @@ GLuint Viewer_LoadTexture(int TextureID)
 					LoadIA_InTexturePosition_N64 += 1;
 					LoadIA_InTexturePosition_OGL += 8;
 				}
-				LoadIA_InTexturePosition_N64 += Texture[0].LineSize * 8 - (Texture[0].Width / 2);
+				LoadIA_InTexturePosition_N64 += Texture[TextureID].LineSize * 8 - (Texture[TextureID].Width / 2);
 			}
 
 			break;
@@ -1944,8 +1944,8 @@ GLuint Viewer_LoadTexture(int TextureID)
 			unsigned int LoadIA_InTexturePosition_N64 = 0;
 			unsigned int LoadIA_InTexturePosition_OGL = 0;
 
-			for(j = 0; j < Texture[0].Height; j++) {
-				for(i = 0; i < Texture[0].Width; i++) {
+			for(j = 0; j < Texture[TextureID].Height; j++) {
+				for(i = 0; i < Texture[TextureID].Width; i++) {
 					LoadIA_IAData = TextureData_N64[LoadIA_InTexturePosition_N64];
 					LoadIA_IExtract = (LoadIA_IAData & 0xFE);
 					if((LoadIA_IAData & 0x01)) { LoadIA_AExtract = 0xFF; } else { LoadIA_AExtract = 0x00; }
@@ -1958,7 +1958,7 @@ GLuint Viewer_LoadTexture(int TextureID)
 					LoadIA_InTexturePosition_N64 += 1;
 					LoadIA_InTexturePosition_OGL += 4;
 				}
-				LoadIA_InTexturePosition_N64 += Texture[0].LineSize * 8 - Texture[0].Width;
+				LoadIA_InTexturePosition_N64 += Texture[TextureID].LineSize * 8 - Texture[TextureID].Width;
 			}
 
 			break;
@@ -1973,8 +1973,8 @@ GLuint Viewer_LoadTexture(int TextureID)
 			unsigned int LoadIA_InTexturePosition_N64 = 0;
 			unsigned int LoadIA_InTexturePosition_OGL = 0;
 
-			for(j = 0; j < Texture[0].Height; j++) {
-				for(i = 0; i < Texture[0].Width; i++) {
+			for(j = 0; j < Texture[TextureID].Height; j++) {
+				for(i = 0; i < Texture[TextureID].Width; i++) {
 					LoadIA_IAData = TextureData_N64[LoadIA_InTexturePosition_N64];
 					LoadIA_IExtract = LoadIA_IAData;
 
@@ -1989,7 +1989,7 @@ GLuint Viewer_LoadTexture(int TextureID)
 					LoadIA_InTexturePosition_N64 += 2;
 					LoadIA_InTexturePosition_OGL += 4;
 				}
-				LoadIA_InTexturePosition_N64 += Texture[0].LineSize * 4 - Texture[0].Width;
+				LoadIA_InTexturePosition_N64 += Texture[TextureID].LineSize * 4 - Texture[TextureID].Width;
 			}
 
 			break;
@@ -2006,8 +2006,8 @@ GLuint Viewer_LoadTexture(int TextureID)
 			unsigned int LoadI_InTexturePosition_N64 = 0;
 			unsigned int LoadI_InTexturePosition_OGL = 0;
 
-			for(j = 0; j < Texture[0].Height; j++) {
-				for(i = 0; i < Texture[0].Width / 2; i++) {
+			for(j = 0; j < Texture[TextureID].Height; j++) {
+				for(i = 0; i < Texture[TextureID].Width / 2; i++) {
 					LoadI_IData = (TextureData_N64[LoadI_InTexturePosition_N64] & 0xF0) >> 4;
 					LoadI_IExtract1 = (LoadI_IData & 0x0F) << 4;
 
@@ -2027,7 +2027,7 @@ GLuint Viewer_LoadTexture(int TextureID)
 					LoadI_InTexturePosition_N64 += 1;
 					LoadI_InTexturePosition_OGL += 8;
 				}
-				LoadI_InTexturePosition_N64 += Texture[0].LineSize * 8 - (Texture[0].Width / 2);
+				LoadI_InTexturePosition_N64 += Texture[TextureID].LineSize * 8 - (Texture[TextureID].Width / 2);
 			}
 
 			break;
@@ -2039,8 +2039,8 @@ GLuint Viewer_LoadTexture(int TextureID)
 			unsigned int LoadI_InTexturePosition_N64 = 0;
 			unsigned int LoadI_InTexturePosition_OGL = 0;
 
-			for(j = 0; j < Texture[0].Height; j++) {
-				for(i = 0; i < Texture[0].Width; i++) {
+			for(j = 0; j < Texture[TextureID].Height; j++) {
+				for(i = 0; i < Texture[TextureID].Width; i++) {
 					LoadI_IData = TextureData_N64[LoadI_InTexturePosition_N64];
 
 					TextureData_OGL[LoadI_InTexturePosition_OGL]     = LoadI_IData;
@@ -2051,7 +2051,7 @@ GLuint Viewer_LoadTexture(int TextureID)
 					LoadI_InTexturePosition_N64 += 1;
 					LoadI_InTexturePosition_OGL += 4;
 				}
-				LoadI_InTexturePosition_N64 += Texture[0].LineSize * 8 - Texture[0].Width;
+				LoadI_InTexturePosition_N64 += Texture[TextureID].LineSize * 8 - Texture[TextureID].Width;
 			}
 
 			break;
