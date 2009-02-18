@@ -972,7 +972,11 @@ int Viewer_RenderMap_CMDSetPrimColor()
 	PrimColor[1] = (Readout_CurrentByte6 / 255.0f);
 	PrimColor[2] = (Readout_CurrentByte7 / 255.0f);
 	PrimColor[3] = (Readout_CurrentByte8 / 255.0f);
-	glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 1, PrimColor[0], PrimColor[1], PrimColor[2], PrimColor[3]);
+
+	if(GLExtension_FragmentProgram) {
+		glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 1, PrimColor[0], PrimColor[1], PrimColor[2], PrimColor[3]);
+	}
+
 	return 0;
 }
 
@@ -982,7 +986,12 @@ int Viewer_RenderMap_CMDSetEnvColor()
 	EnvColor[1] = (Readout_CurrentByte6 / 255.0f);
 	EnvColor[2] = (Readout_CurrentByte7 / 255.0f);
 	EnvColor[3] = (Readout_CurrentByte8 / 255.0f);
-	glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 0, EnvColor[0], EnvColor[1], EnvColor[2], EnvColor[3]);
+
+	if(GLExtension_FragmentProgram) {
+		glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 0, EnvColor[0], EnvColor[1], EnvColor[2], EnvColor[3]);
+	}
+
+	return 0;
 }
 
 int Viewer_RenderMap_CMDRDPHalf1()
@@ -1438,7 +1447,7 @@ int Viewer_RenderMap_CMDSetOtherModeL()
 			if(Z_CMP)		{ glEnable(GL_DEPTH_TEST); } else { glDisable(GL_DEPTH_TEST); }
 			if(Z_UPD)		{ glDepthMask(GL_TRUE); } else { glDepthMask(GL_FALSE); }
 			if(ZMODE_DEC)	{ glEnable(GL_POLYGON_OFFSET_FILL); glPolygonOffset(-1.0f, -1.0f); } else { glDisable(GL_POLYGON_OFFSET_FILL); }
-			if(FORCE_BL)	{ glEnable(GL_BLEND); } else { glDisable(GL_BLEND); }
+			if(FORCE_BL)	{ glEnable(GL_BLEND); } else { /*glDisable(GL_BLEND);*/ }
 
 /* ??? */	if(ZMODE_XLU)	{ glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); glAlphaFunc(GL_GREATER, 0.0f); } else { glBlendFunc(GL_ONE, GL_ZERO); glAlphaFunc(GL_GEQUAL, 0.5f); }
 
