@@ -54,85 +54,99 @@ enum { true = 1, false = 0 };
 	SYSTEM FUNCTIONS - OPENGL & WINDOWS
 	------------------------------------------------------------ */
 
+/* win32/main.c */
 extern int Viewer_Initialize();
 extern int Viewer_ResetVariables();
 extern int Viewer_LoadAreaData();
 extern int Viewer_RenderMapRefresh();
-
-extern int Viewer_GetMapHeaderList(int, int);
-extern int Viewer_GetMapHeader(int, int);
-extern int Viewer_GetSceneHeaderList(int);
-extern int Viewer_GetSceneHeader(int);
-extern int Viewer_GetMapActors(int, int);
-extern int Viewer_GetSceneActors(int);
-
-extern int Viewer_GetMapDisplayLists(unsigned long, int);
-
-extern int Viewer_GetMapCollision(int);
-
-extern int Viewer_RenderMap();
-extern int Viewer_RenderMap_DListParser(bool, unsigned long);
-
-extern int Viewer_RenderMap_CMDVertexList();
-extern int Viewer_GetVertexList(unsigned int, unsigned long, unsigned int, unsigned int);
-extern int Viewer_RenderMap_CMDDrawTri1();
-extern int Viewer_RenderMap_CMDDrawTri2();
-extern int Viewer_RenderMap_CMDTexture();
-extern int Viewer_RenderMap_CMDSetTImage();
-extern int Viewer_RenderMap_CMDSetTile();
-extern int Viewer_RenderMap_CMDSetTileSize();
-extern int Viewer_RenderMap_CMDGeometryMode();
-extern int Viewer_ClearGeometryMode();
-extern int Viewer_SetGeometryMode();
-extern int Viewer_RenderMap_CMDSetFogColor();
-extern int Viewer_RenderMap_CMDSetPrimColor();
-extern int Viewer_RenderMap_CMDSetEnvColor();
-extern int Viewer_RenderMap_CMDRDPHalf1();
-extern int Viewer_RenderMap_CMDBranchZ();
-extern int Viewer_RenderMap_CMDSetCombine();
-extern int Viewer_RenderMap_CMDLoadTLUT(unsigned int, unsigned long);
-extern int Viewer_RenderMap_CMDCallDList(bool);
-extern int Viewer_RenderMap_CMDSetOtherModeH();
-extern int Viewer_RenderMap_CMDSetOtherModeL();
-extern int Viewer_RenderMap_CMDMatrix();
-
-extern int Viewer_RenderObject_HACKSelectClrAlpSource();
-
-extern GLuint Viewer_LoadTexture(int);
-
-extern int Viewer_ZMemCopy(unsigned int, unsigned long, unsigned char *, unsigned long);
-
-extern int Viewer_RenderAllActors();
-extern int Viewer_RenderActor(int, GLshort, GLshort, GLshort, signed int, signed int, signed int, bool);
-
-extern void HelperFunc_SplitCurrentVals(bool);
-extern int HelperFunc_LogMessage(int, char[]);
-extern int HelperFunc_GFXLogCommand(unsigned int);
-extern int HelperFunc_CalculateFPS();
-
-extern int InitGL(void);
-extern int InitGLExtensions(void);
-extern int DrawGLScene(void);
-extern void KillGLTarget(void);
-extern bool CreateGLTarget(int, int, int);
-
 extern void GLUTCamera_Orientation(float,float);
 extern void GLUTCamera_Movement(int);
 extern void Camera_MouseMove(int, int);
-
 extern void Dialog_OpenROM(HWND);
+extern int WINAPI WinMain (HINSTANCE, HINSTANCE, LPSTR, int);
+extern LRESULT CALLBACK WindowProcedure (HWND, UINT, WPARAM, LPARAM);
 
-extern PFNGLMULTITEXCOORD1FARBPROC		glMultiTexCoord1fARB;
-extern PFNGLMULTITEXCOORD2FARBPROC		glMultiTexCoord2fARB;
-extern PFNGLMULTITEXCOORD3FARBPROC		glMultiTexCoord3fARB;
-extern PFNGLMULTITEXCOORD4FARBPROC		glMultiTexCoord4fARB;
-extern PFNGLACTIVETEXTUREARBPROC		glActiveTextureARB;
-extern PFNGLCLIENTACTIVETEXTUREARBPROC	glClientActiveTextureARB;
+/* actors.c */
+extern int Viewer_RenderAllActors();
+extern int Viewer_RenderActor(int, GLshort, GLshort, GLshort, signed int, signed int, signed int, bool);
 
-extern PFNGLGENPROGRAMSARBPROC			glGenProgramsARB;
-extern PFNGLBINDPROGRAMARBPROC			glBindProgramARB;
-extern PFNGLDELETEPROGRAMSARBPROC		glDeleteProgramsARB;
-extern PFNGLPROGRAMSTRINGARBPROC		glProgramStringARB;
+/* gfx_emul.c */
+extern int Viewer_RenderMap();
+extern int Viewer_RenderMap_DListParser(bool, unsigned long);
+
+/* helpers.c */
+extern int Zelda_MemCopy(unsigned int, unsigned long, unsigned char *, unsigned long);
+extern void Helper_SplitCurrentVals(bool);
+extern int Helper_LogMessage(int, char[]);
+extern int Helper_GFXLogCommand(unsigned int);
+extern int Helper_CalculateFPS();
+
+/* map_init.c */
+extern int Zelda_GetMapHeaderList(int, int);
+extern int Zelda_GetMapHeader(int, int);
+extern int Zelda_GetSceneHeaderList(int);
+extern int Zelda_GetSceneHeader(int);
+extern int Zelda_GetMapActors(int, int);
+extern int Zelda_GetSceneActors(int);
+extern int Zelda_GetMapDisplayLists(unsigned long, int);
+extern int Zelda_GetMapCollision(int);
+
+/* ogl_mngr.c */
+extern int GL_Init(void);
+extern int GL_InitExtensions(void);
+extern int GL_DrawScene(void);
+extern void GL_KillTarget(void);
+extern bool GL_CreateTarget(int, int, int);
+
+/* uc_comb.c */
+extern int F3DEX2_Cmd_SETCOMBINE();
+extern int F3DEX2_BuildFragmentShader();
+extern int F3DEX2_Cmd_SETFOGCOLOR();
+extern int F3DEX2_Cmd_SETPRIMCOLOR();
+extern int F3DEX2_Cmd_SETENVCOLOR();
+extern int F3DEX2_HACKSelectClrAlpSource();
+
+/* uc_misc.c */
+extern int F3DEX2_Cmd_RDPHALF_1();
+extern int F3DEX2_Cmd_BRANCH_Z();
+extern int F3DEX2_Cmd_DL(bool);
+
+/* uc_modes.c */
+extern int F3DEX2_Cmd_GEOMETRYMODE();
+extern int F3DEX2_UpdateGeoMode();
+extern int F3DEX2_Cmd_SETOTHERMODE_H();
+extern int F3DEX2_Cmd_SETOTHERMODE_L();
+
+/* uc_tex.c */
+extern int F3DEX2_Cmd_TEXTURE();
+extern int F3DEX2_Cmd_SETTIMG();
+extern int F3DEX2_Cmd_SETTILE();
+extern int F3DEX2_Cmd_SETTILESIZE();
+extern int F3DEX2_ChangeTileSize(unsigned int, unsigned int, unsigned int, unsigned int, unsigned int);
+extern int F3DEX2_Cmd_LOADTLUT(unsigned int, unsigned long);
+extern GLuint F3DEX2_LoadTexture(int);
+
+/* uc_tri.c */
+extern int F3DEX2_Cmd_VTX();
+extern int F3DEX2_GetVertexList(unsigned int, unsigned long, unsigned int, unsigned int);
+extern int F3DEX2_Cmd_TRI1();
+extern int F3DEX2_Cmd_TRI2();
+extern int F3DEX2_DrawVertexPoint(unsigned int);
+extern int F3DEX2_Cmd_MTX();
+
+/* GL extension functions */
+
+extern PFNGLMULTITEXCOORD1FARBPROC			glMultiTexCoord1fARB;
+extern PFNGLMULTITEXCOORD2FARBPROC			glMultiTexCoord2fARB;
+extern PFNGLMULTITEXCOORD3FARBPROC			glMultiTexCoord3fARB;
+extern PFNGLMULTITEXCOORD4FARBPROC			glMultiTexCoord4fARB;
+extern PFNGLACTIVETEXTUREARBPROC			glActiveTextureARB;
+extern PFNGLCLIENTACTIVETEXTUREARBPROC		glClientActiveTextureARB;
+
+extern PFNGLGENPROGRAMSARBPROC				glGenProgramsARB;
+extern PFNGLBINDPROGRAMARBPROC				glBindProgramARB;
+extern PFNGLDELETEPROGRAMSARBPROC			glDeleteProgramsARB;
+extern PFNGLPROGRAMSTRINGARBPROC			glProgramStringARB;
 extern PFNGLPROGRAMENVPARAMETER4FARBPROC	glProgramEnvParameter4fARB;
 
 /*	------------------------------------------------------------
@@ -246,7 +260,7 @@ extern unsigned int		Readout_CurrentByte8;
 
 extern unsigned long	Readout_NextGFXCommand1 ;
 
-/* F3DZEX DISPLAY LIST HANDLING VARIABLES */
+/* F3DEX2 DISPLAY LIST HANDLING VARIABLES */
 extern unsigned long	DLists[256][2048];
 extern signed long		DListInfo_CurrentCount[256];
 extern signed long		DListInfo_TotalCount;
@@ -260,21 +274,14 @@ extern bool				SubDLCall;
 
 extern unsigned long	Storage_RDPHalf1;
 
-extern bool 			G_TEXTURE_ENABLE;
-extern bool				G_ZBUFFER;
-extern bool				G_SHADE;
-extern bool				G_CULL_FRONT;
-extern bool				G_CULL_BACK;
-extern bool				G_CULL_BOTH;
-extern bool				G_FOG;
-extern bool				G_LIGHTING;
-extern bool				G_TEXTURE_GEN;
-extern bool				G_TEXTURE_GEN_LINEAR;
-extern bool				G_LOD;
-extern bool				G_SHADING_SMOOTH;
-extern bool				G_CLIPPING;
+extern GLfloat			Matrix[4][4];
+extern GLfloat			Matrix_Stack[32][4][4];
+extern GLfloat			ProjMatrix[4][4];
+extern int				MVMatrixCount;
 
-/* F3DZEX TEXTURE HANDLING VARIABLES */
+extern unsigned long	N64_GeometryMode;
+
+/* F3DEX2 TEXTURE HANDLING VARIABLES */
 extern unsigned char	* TextureData_OGL;
 extern unsigned char	* TextureData_N64;
 
@@ -435,7 +442,7 @@ struct ScActors_Struct {
 };
 extern struct ScActors_Struct ScActors[1024];
 
-/* F3DZEX VERTEX DATA STRUCTURE */
+/* F3DEX2 VERTEX DATA STRUCTURE */
 struct Vertex_Struct {
 	signed short X;
 	signed short Y;
@@ -449,7 +456,7 @@ struct Vertex_Struct {
 };
 extern struct Vertex_Struct Vertex[4096];
 
-/* F3DZEX TEXTURE DATA STRUCTURE */
+/* F3DEX2 TEXTURE DATA STRUCTURE */
 struct Texture_Struct {
 	unsigned int Height;
 	unsigned int HeightRender;

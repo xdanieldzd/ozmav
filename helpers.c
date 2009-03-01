@@ -11,7 +11,7 @@
 
 /*	------------------------------------------------------------ */
 
-int Viewer_ZMemCopy(unsigned int SourceBank, unsigned long SourceOffset, unsigned char * Target, unsigned long Size)
+int Zelda_MemCopy(unsigned int SourceBank, unsigned long SourceOffset, unsigned char * Target, unsigned long Size)
 {
 	switch(SourceBank) {
 	case 0x00:
@@ -64,16 +64,16 @@ int Viewer_ZMemCopy(unsigned int SourceBank, unsigned long SourceOffset, unsigne
 		break;
 	}
 
-	sprintf(SystemLogMsg, "ZMemCopy: Copying 0x%04X bytes from 0x%02X|%06X\n", Size, SourceBank, SourceOffset);
-	HelperFunc_LogMessage(2, SystemLogMsg);
+//	memset(SystemLogMsg, 0x00, sizeof(SystemLogMsg));
+//	sprintf(SystemLogMsg, "ZMemCopy: Copying 0x%04X bytes from 0x%02X|%06X\n", Size, SourceBank, SourceOffset);
+//	Helper_LogMessage(2, SystemLogMsg);
 
 	return 0;
 }
 
 /*	------------------------------------------------------------ */
 
-/* HELPERFUNC_SPLITCURRENTVALS - TAKES THE 4 BYTES OF THE LONG VARIABLE(S) USED FOR DATA FETCHING AND SPLITS THEM APART */
-void HelperFunc_SplitCurrentVals(bool SplitDual)
+void Helper_SplitCurrentVals(bool SplitDual)
 {
 	Readout_CurrentByte1 = Readout_Current1 << 24;
 	Readout_CurrentByte1 = Readout_CurrentByte1 >> 24;
@@ -96,8 +96,7 @@ void HelperFunc_SplitCurrentVals(bool SplitDual)
 	}
 }
 
-/* HELPERFUNC_LOGMESSAGE - WRITES GIVEN STRING INTO PREVIOUSLY OPENED LOG FILE */
-int HelperFunc_LogMessage(int LogType, char Message[])
+int Helper_LogMessage(int LogType, char Message[])
 {
 	switch(LogType) {
 	case 1:
@@ -110,21 +109,19 @@ int HelperFunc_LogMessage(int LogType, char Message[])
 	return 0;
 }
 
-/* HELPERFUNC_GFXLOGCOMMAND - WRITES INFORMATION ABOUT CURRENTLY PROCESSED COMMAND INTO LOG FILE */
-int HelperFunc_GFXLogCommand(unsigned int Position)
+int Helper_GFXLogCommand(unsigned int Position)
 {
 	sprintf(GFXLogMsg, "  0x%08X:\t%s\t\t[%02X%02X%02X%02X %02X%02X%02X%02X] %s\n",
 		Position * 4, CurrentGFXCmd,
 		Readout_CurrentByte1, Readout_CurrentByte2, Readout_CurrentByte3, Readout_CurrentByte4,
 		Readout_CurrentByte5, Readout_CurrentByte6, Readout_CurrentByte7, Readout_CurrentByte8,
 		CurrentGFXCmdNote);
-	HelperFunc_LogMessage(1, GFXLogMsg);
+	Helper_LogMessage(1, GFXLogMsg);
 
 	return 0;
 }
 
-/* HELPERFUNC_CALCULATEFPS - CALCULATE THE VIEWER'S CURRENT FPS */
-int HelperFunc_CalculateFPS()
+int Helper_CalculateFPS()
 {
 	if(GetTickCount() - Renderer_LastFPS >= 1000)
 	{

@@ -11,8 +11,7 @@
 
 /*	------------------------------------------------------------ */
 
-/* VIEWER_GETMAPHEADERLIST - IF THE LOADED MAP FILE CONTAINS MULTIPLE MAP HEADERS, STORE THE HEADER LIST FOR LATER USE */
-int Viewer_GetMapHeaderList(int HeaderListPos, int CurrentMap)
+int Zelda_GetMapHeaderList(int HeaderListPos, int CurrentMap)
 {
 	bool EndOfList = false;
 
@@ -24,7 +23,7 @@ int Viewer_GetMapHeaderList(int HeaderListPos, int CurrentMap)
 	while (!EndOfList) {
 		memcpy(&Readout_Current1, &ZMapBuffer[CurrentMap][HeaderListPos], 4);
 
-		HelperFunc_SplitCurrentVals(false);
+		Helper_SplitCurrentVals(false);
 
 		if ((Readout_CurrentByte1 == 0x03)) {
 			MapHeader_List[MapHeader_TotalCount] = (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
@@ -41,21 +40,20 @@ int Viewer_GetMapHeaderList(int HeaderListPos, int CurrentMap)
 	return 0;
 }
 
-/* VIEWER_GETMAPHEADER - READ THE CURRENTLY SELECTED MAP HEADER AND STORE ITS INFORMATION IN THE MAPHEADER STRUCT */
-int Viewer_GetMapHeader(int CurrentHeader, int CurrentMap)
+int Zelda_GetMapHeader(int CurrentHeader, int CurrentMap)
 {
 	bool EndOfHeader = false;
 
 	unsigned int InHeaderPos = MapHeader_List[CurrentHeader] / 4;
 
 	sprintf(SystemLogMsg, "Map Header #%d (0x%08X):\n", CurrentHeader + 1, InHeaderPos * 4);
-	HelperFunc_LogMessage(2, SystemLogMsg);
+	Helper_LogMessage(2, SystemLogMsg);
 
 	while(!EndOfHeader) {
 		memcpy(&Readout_Current1, &ZMapBuffer[CurrentMap][InHeaderPos], 4);
 		memcpy(&Readout_Current2, &ZMapBuffer[CurrentMap][InHeaderPos + 1], 4);
 
-		HelperFunc_SplitCurrentVals(true);
+		Helper_SplitCurrentVals(true);
 
 		switch(Readout_CurrentByte1) {
 		case 0x01:
@@ -64,14 +62,14 @@ int Viewer_GetMapHeader(int CurrentHeader, int CurrentMap)
 			sprintf(SystemLogMsg, "  0x%08X:\tActors: %d, Actor data offset: 0x%06X\n",
 				InHeaderPos * 4,
 				MapHeader[CurrentMap][CurrentHeader].Actor_Count, (unsigned int)MapHeader[CurrentMap][CurrentHeader].Actor_DataOffset);
-			HelperFunc_LogMessage(2, SystemLogMsg);
+			Helper_LogMessage(2, SystemLogMsg);
 			break;
 		case 0x0A:
 			MapHeader[CurrentMap][CurrentHeader].MeshDataHeader = ((Readout_CurrentByte6 * 0x10000) + Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
 			sprintf(SystemLogMsg, "  0x%08X:\tMesh data header: 0x%06X\n",
 				InHeaderPos * 4,
 				(unsigned int)MapHeader[CurrentMap][CurrentHeader].MeshDataHeader);
-			HelperFunc_LogMessage(2, SystemLogMsg);
+			Helper_LogMessage(2, SystemLogMsg);
 			break;
 		case 0x0B:
 			MapHeader[CurrentMap][CurrentHeader].Group_Count = Readout_CurrentByte2;
@@ -79,7 +77,7 @@ int Viewer_GetMapHeader(int CurrentHeader, int CurrentMap)
 			sprintf(SystemLogMsg, "  0x%08X:\tGroups: %d, Group data offset: 0x%06X\n",
 				InHeaderPos * 4,
 				MapHeader[CurrentMap][CurrentHeader].Group_Count, (unsigned int)MapHeader[CurrentMap][CurrentHeader].Group_DataOffset);
-			HelperFunc_LogMessage(2, SystemLogMsg);
+			Helper_LogMessage(2, SystemLogMsg);
 			break;
 		case 0x10:
 			MapHeader[CurrentMap][CurrentHeader].MapTime = (Readout_CurrentByte5 * 0x100) + Readout_CurrentByte6;
@@ -87,33 +85,33 @@ int Viewer_GetMapHeader(int CurrentHeader, int CurrentMap)
 			sprintf(SystemLogMsg, "  0x%08X:\tMap time: 0x%04X, Timeflow: 0x%02X\n",
 				InHeaderPos * 4,
 				(unsigned int)MapHeader[CurrentMap][CurrentHeader].MapTime, MapHeader[CurrentMap][CurrentHeader].TimeFlow);
-			HelperFunc_LogMessage(2, SystemLogMsg);
+			Helper_LogMessage(2, SystemLogMsg);
 			break;
 		case 0x12:
 			MapHeader[CurrentMap][CurrentHeader].Skybox = Readout_CurrentByte5;
 			sprintf(SystemLogMsg, "  0x%08X:\tSkybox setting: 0x%02X\n",
 				InHeaderPos * 4,
 				MapHeader[CurrentMap][CurrentHeader].Skybox);
-			HelperFunc_LogMessage(2, SystemLogMsg);
+			Helper_LogMessage(2, SystemLogMsg);
 			break;
 		case 0x14:
 			EndOfHeader = true;
 			sprintf(SystemLogMsg, "  0x%08X:\tEnd of header\n", InHeaderPos * 4);
-			HelperFunc_LogMessage(2, SystemLogMsg);
+			Helper_LogMessage(2, SystemLogMsg);
 			break;
 		case 0x16:
 			MapHeader[CurrentMap][CurrentHeader].EchoLevel = Readout_CurrentByte8;
 			sprintf(SystemLogMsg, "  0x%08X:\tEcho level: 0x%02X\n",
 				InHeaderPos * 4,
 				MapHeader[CurrentMap][CurrentHeader].EchoLevel);
-			HelperFunc_LogMessage(2, SystemLogMsg);
+			Helper_LogMessage(2, SystemLogMsg);
 			break;
 		default:
 			sprintf(SystemLogMsg, "  0x%08X:\t<Unknown header option (%02X%02X%02X%02X %02X%02X%02X%02X)>\n",
 				InHeaderPos * 4,
 				Readout_CurrentByte1, Readout_CurrentByte2, Readout_CurrentByte3, Readout_CurrentByte4,
 				Readout_CurrentByte5, Readout_CurrentByte6, Readout_CurrentByte7, Readout_CurrentByte8);
-			HelperFunc_LogMessage(2, SystemLogMsg);
+			Helper_LogMessage(2, SystemLogMsg);
 			break;
 		}
 
@@ -123,13 +121,12 @@ int Viewer_GetMapHeader(int CurrentHeader, int CurrentMap)
 	Readout_Current1 = 0x00;
 	Readout_Current2 = 0x00;
 
-	HelperFunc_LogMessage(2, "\n");
+	Helper_LogMessage(2, "\n");
 
 	return 0;
 }
 
-/* VIEWER_GETSCENEHEADERLIST - IF THE LOADED SCENE FILE CONTAINS MULTIPLE SCENE HEADERS, STORE THE HEADER LIST FOR LATER USE */
-int Viewer_GetSceneHeaderList(int HeaderListPos)
+int Zelda_GetSceneHeaderList(int HeaderListPos)
 {
 	bool EndOfList = false;
 
@@ -141,7 +138,7 @@ int Viewer_GetSceneHeaderList(int HeaderListPos)
 	while (!EndOfList) {
 		memcpy(&Readout_Current1, &ZSceneBuffer[HeaderListPos], 4);
 
-		HelperFunc_SplitCurrentVals(false);
+		Helper_SplitCurrentVals(false);
 
 		if ((Readout_CurrentByte1 == 0x02)) {
 			SceneHeader_List[SceneHeader_TotalCount] = (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
@@ -158,21 +155,20 @@ int Viewer_GetSceneHeaderList(int HeaderListPos)
 	return 0;
 }
 
-/* VIEWER_GETSCENEHEADER - READ THE CURRENT SCENE HEADER AND STORE ITS INFORMATION IN THE SCENEHEADER STRUCT */
-int Viewer_GetSceneHeader(int CurrentHeader)
+int Zelda_GetSceneHeader(int CurrentHeader)
 {
 	bool EndOfHeader = false;
 
 	int InHeaderPos = SceneHeader_List[CurrentHeader] / 4;
 
 	sprintf(SystemLogMsg, "Scene Header #%d (0x%08X):\n", CurrentHeader + 1, InHeaderPos * 4);
-	HelperFunc_LogMessage(2, SystemLogMsg);
+	Helper_LogMessage(2, SystemLogMsg);
 
 	while(!EndOfHeader) {
 		memcpy(&Readout_Current1, &ZSceneBuffer[InHeaderPos], 4);
 		memcpy(&Readout_Current2, &ZSceneBuffer[InHeaderPos + 1], 4);
 
-		HelperFunc_SplitCurrentVals(true);
+		Helper_SplitCurrentVals(true);
 
 		switch(Readout_CurrentByte1) {
 		/* scene actors */
@@ -182,7 +178,7 @@ int Viewer_GetSceneHeader(int CurrentHeader)
 			sprintf(SystemLogMsg, "  0x%08X:\tActors: %d, Actor data offset: 0x%06X\n",
 				InHeaderPos * 4,
 				SceneHeader[CurrentHeader].ScActor_Count, (unsigned int)SceneHeader[CurrentHeader].ScActor_DataOffset);
-			HelperFunc_LogMessage(2, SystemLogMsg);
+			Helper_LogMessage(2, SystemLogMsg);
 			break;
 		/* collision */
 		case 0x03:
@@ -191,7 +187,7 @@ int Viewer_GetSceneHeader(int CurrentHeader)
 			sprintf(SystemLogMsg, "  0x%08X:\tCollision data offset: 0x%06X\n",
 				InHeaderPos * 4,
 				(unsigned int)SceneHeader[CurrentHeader].Col_DataOffset);
-			HelperFunc_LogMessage(2, SystemLogMsg);
+			Helper_LogMessage(2, SystemLogMsg);
 			break;
 		/* maps */
 		case 0x04:
@@ -200,13 +196,13 @@ int Viewer_GetSceneHeader(int CurrentHeader)
 			sprintf(SystemLogMsg, "  0x%08X:\tMaps: %d, Map list offset: 0x%06X\n",
 				InHeaderPos * 4,
 				SceneHeader[CurrentHeader].Map_Count, (unsigned int)SceneHeader[CurrentHeader].Map_ListOffset);
-			HelperFunc_LogMessage(2, SystemLogMsg);
+			Helper_LogMessage(2, SystemLogMsg);
 			break;
 		/* end of header */
 		case 0x14:
 			EndOfHeader = true;
 			sprintf(SystemLogMsg, "  0x%08X:\tEnd of header\n", InHeaderPos * 4);
-			HelperFunc_LogMessage(2, SystemLogMsg);
+			Helper_LogMessage(2, SystemLogMsg);
 			break;
 		/* unhandled option */
 		default:
@@ -214,7 +210,7 @@ int Viewer_GetSceneHeader(int CurrentHeader)
 				InHeaderPos * 4,
 				Readout_CurrentByte1, Readout_CurrentByte2, Readout_CurrentByte3, Readout_CurrentByte4,
 				Readout_CurrentByte5, Readout_CurrentByte6, Readout_CurrentByte7, Readout_CurrentByte8);
-			HelperFunc_LogMessage(2, SystemLogMsg);
+			Helper_LogMessage(2, SystemLogMsg);
 			break;
 		}
 
@@ -224,13 +220,12 @@ int Viewer_GetSceneHeader(int CurrentHeader)
 	Readout_Current1 = 0x00;
 	Readout_Current2 = 0x00;
 
-	HelperFunc_LogMessage(2, "\n");
+	Helper_LogMessage(2, "\n");
 
 	return 0;
 }
 
-/* VIEWER_GETMAPACTORS - READ THE MAP ACTOR DATA FROM THE OFFSET SPECIFIED INSIDE THE CURRENT MAP HEADER */
-int Viewer_GetMapActors(int CurrentHeader, int CurrentMap)
+int Zelda_GetMapActors(int CurrentHeader, int CurrentMap)
 {
 	int InActorDataPos = MapHeader[CurrentMap][CurrentHeader].Actor_DataOffset / 4;
 
@@ -242,7 +237,7 @@ int Viewer_GetMapActors(int CurrentHeader, int CurrentMap)
 			memcpy(&Readout_Current1, &ZMapBuffer[CurrentMap][InActorDataPos], 4);
 			memcpy(&Readout_Current2, &ZMapBuffer[CurrentMap][InActorDataPos + 1], 4);
 
-			HelperFunc_SplitCurrentVals(true);
+			Helper_SplitCurrentVals(true);
 
 			Actors[CurrentMap][ActorInfo_CurrentCount[CurrentMap]].Number = (Readout_CurrentByte1 * 0x100) + Readout_CurrentByte2;
 			Actors[CurrentMap][ActorInfo_CurrentCount[CurrentMap]].X_Position = (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
@@ -252,7 +247,7 @@ int Viewer_GetMapActors(int CurrentHeader, int CurrentMap)
 			memcpy(&Readout_Current1, &ZMapBuffer[CurrentMap][InActorDataPos + 2], 4);
 			memcpy(&Readout_Current2, &ZMapBuffer[CurrentMap][InActorDataPos + 3], 4);
 
-			HelperFunc_SplitCurrentVals(true);
+			Helper_SplitCurrentVals(true);
 
 			Actors[CurrentMap][ActorInfo_CurrentCount[CurrentMap]].X_Rotation = (Readout_CurrentByte1 * 0x100) + Readout_CurrentByte2;
 			Actors[CurrentMap][ActorInfo_CurrentCount[CurrentMap]].Y_Rotation = (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
@@ -267,8 +262,7 @@ int Viewer_GetMapActors(int CurrentHeader, int CurrentMap)
 	return 0;
 }
 
-/* VIEWER_GETSCENEACTORS - READ THE SCENE ACTOR DATA FROM THE OFFSET SPECIFIED INSIDE THE CURRENT SCENE HEADER */
-int Viewer_GetSceneActors(int CurrentHeader)
+int Zelda_GetSceneActors(int CurrentHeader)
 {
 	int InScActorDataPos = SceneHeader[CurrentHeader].ScActor_DataOffset / 4;
 
@@ -280,7 +274,7 @@ int Viewer_GetSceneActors(int CurrentHeader)
 			memcpy(&Readout_Current1, &ZSceneBuffer[InScActorDataPos], 4);
 			memcpy(&Readout_Current2, &ZSceneBuffer[InScActorDataPos + 1], 4);
 
-			HelperFunc_SplitCurrentVals(true);
+			Helper_SplitCurrentVals(true);
 
 			ScActors[ScActorInfo_CurrentCount].Number = (Readout_CurrentByte1 * 0x100) + Readout_CurrentByte2;
 			ScActors[ScActorInfo_CurrentCount].X_Position = (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
@@ -290,7 +284,7 @@ int Viewer_GetSceneActors(int CurrentHeader)
 			memcpy(&Readout_Current1, &ZSceneBuffer[InScActorDataPos + 2], 4);
 			memcpy(&Readout_Current2, &ZSceneBuffer[InScActorDataPos + 3], 4);
 
-			HelperFunc_SplitCurrentVals(true);
+			Helper_SplitCurrentVals(true);
 
 			ScActors[ScActorInfo_CurrentCount].X_Rotation = (Readout_CurrentByte1 * 0x100) + Readout_CurrentByte2;
 			ScActors[ScActorInfo_CurrentCount].Y_Rotation = (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
@@ -305,8 +299,7 @@ int Viewer_GetSceneActors(int CurrentHeader)
 	return 0;
 }
 
-/* VIEWER_GETMAPDISPLAYLISTS - SCAN THE CURRENT MAP FOR F3DZEX DISPLAY LISTS AND STORE THEIR OFFSETS IN THE DLISTS STRUCT */
-int Viewer_GetMapDisplayLists(unsigned long Fsize, int CurrentMap)
+int Zelda_GetMapDisplayLists(unsigned long Fsize, int CurrentMap)
 {
 	DListInfo_CurrentCount[CurrentMap] = 0;
 	unsigned long TempOffset = 0;
@@ -324,7 +317,7 @@ int Viewer_GetMapDisplayLists(unsigned long Fsize, int CurrentMap)
 	*/
 	TempOffset = (MapHeader[CurrentMap][MapHeader_Current].MeshDataHeader / 4);
 	memcpy(&Readout_Current1, &ZMapBuffer[CurrentMap][TempOffset], 4);
-	HelperFunc_SplitCurrentVals(false);
+	Helper_SplitCurrentVals(false);
 
 	unsigned int MeshHeaderSetup = Readout_CurrentByte1;
 	unsigned int MeshAmount = Readout_CurrentByte2;
@@ -343,7 +336,7 @@ int Viewer_GetMapDisplayLists(unsigned long Fsize, int CurrentMap)
 
 		while(TotalMeshCount < MeshAmount + 1) {
 			memcpy(&Readout_Current1, &ZMapBuffer[CurrentMap][MeshScanPosition], 4);
-			HelperFunc_SplitCurrentVals(false);
+			Helper_SplitCurrentVals(false);
 
 			if(Readout_CurrentByte1 == 0x03) {
 				DLists[CurrentMap][DListInfo_CurrentCount[CurrentMap]] = (Readout_CurrentByte2 * 0x10000) + (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
@@ -367,14 +360,14 @@ int Viewer_GetMapDisplayLists(unsigned long Fsize, int CurrentMap)
 		TempOffset = (MapHeader[CurrentMap][MapHeader_Current].MeshDataHeader / 4) + 1;
 		memcpy(&Readout_Current1, &ZMapBuffer[CurrentMap][TempOffset], 4);
 		memcpy(&Readout_Current2, &ZMapBuffer[CurrentMap][TempOffset + 1], 4);
-		HelperFunc_SplitCurrentVals(true);
+		Helper_SplitCurrentVals(true);
 
 		if((Readout_CurrentByte1 == 0x03)) {
 			TempOffset = ((Readout_CurrentByte2 * 0x10000) + (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4) / 4;
 
 			memcpy(&Readout_Current1, &ZMapBuffer[CurrentMap][TempOffset], 4);
 			memcpy(&Readout_Current2, &ZMapBuffer[CurrentMap][TempOffset + 1], 4);
-			HelperFunc_SplitCurrentVals(true);
+			Helper_SplitCurrentVals(true);
 
 			if((Readout_CurrentByte1 == 0x03)) {
 				TempOffset = Readout_CurrentByte2 << 16;
@@ -413,7 +406,7 @@ int Viewer_GetMapDisplayLists(unsigned long Fsize, int CurrentMap)
 		while(TotalMeshCount < MeshAmount) {
 			memcpy(&Readout_Current1, &ZMapBuffer[CurrentMap][MeshScanPosition], 4);
 			memcpy(&Readout_Current2, &ZMapBuffer[CurrentMap][MeshScanPosition + 1], 4);
-			HelperFunc_SplitCurrentVals(true);
+			Helper_SplitCurrentVals(true);
 
 			Unknown1 = (Readout_CurrentByte1 * 0x1000000) + (Readout_CurrentByte2 * 0x10000) + (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
 			Unknown2 = (Readout_CurrentByte5 * 0x1000000) + (Readout_CurrentByte6 * 0x10000) + (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
@@ -421,7 +414,7 @@ int Viewer_GetMapDisplayLists(unsigned long Fsize, int CurrentMap)
 
 			memcpy(&Readout_Current1, &ZMapBuffer[CurrentMap][MeshScanPosition], 4);
 			memcpy(&Readout_Current2, &ZMapBuffer[CurrentMap][MeshScanPosition + 1], 4);
-			HelperFunc_SplitCurrentVals(true);
+			Helper_SplitCurrentVals(true);
 
 			if(Readout_CurrentByte1 == 0x03) {
 				/* primary dlists - terrain geometry, etc */
@@ -468,20 +461,20 @@ int Viewer_GetMapDisplayLists(unsigned long Fsize, int CurrentMap)
 	return 0;
 }
 
-int Viewer_GetMapCollision(int CurrentHeader)
+int Zelda_GetMapCollision(int CurrentHeader)
 {
 	unsigned int TotalColPoly = 0;
 	unsigned int TotalColVert = 0;
 
 	unsigned long TempOffset = (SceneHeader[CurrentHeader].Col_DataOffset / 4) + 3;
 	memcpy(&Readout_Current1, &ZSceneBuffer[TempOffset], 4);
-	HelperFunc_SplitCurrentVals(false);
+	Helper_SplitCurrentVals(false);
 
 	unsigned long ColVertAmount = (Readout_CurrentByte1 * 0x100) + Readout_CurrentByte2;
 
 	TempOffset = (SceneHeader[CurrentHeader].Col_DataOffset / 4) + 4;
 	memcpy(&Readout_Current1, &ZSceneBuffer[TempOffset], 4);
-	HelperFunc_SplitCurrentVals(false);
+	Helper_SplitCurrentVals(false);
 
 	if((Readout_CurrentByte1 == 0x02)) {
 		TempOffset = Readout_CurrentByte2 << 16;
@@ -495,7 +488,7 @@ int Viewer_GetMapCollision(int CurrentHeader)
 			/* vertex 2 - x.. */
 			memcpy(&Readout_Current1, &ZSceneBuffer[ColVertScanPosition], 4);
 			memcpy(&Readout_Current2, &ZSceneBuffer[ColVertScanPosition + 1], 4);
-			HelperFunc_SplitCurrentVals(true);
+			Helper_SplitCurrentVals(true);
 
 			CollisionVertex[TotalColVert].X = (Readout_CurrentByte1 * 0x100) + Readout_CurrentByte2;
 			CollisionVertex[TotalColVert].Y = (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
@@ -509,7 +502,7 @@ int Viewer_GetMapCollision(int CurrentHeader)
 			/* vertex 3 - xy. */
 			memcpy(&Readout_Current1, &ZSceneBuffer[ColVertScanPosition], 4);
 			memcpy(&Readout_Current2, &ZSceneBuffer[ColVertScanPosition + 1], 4);
-			HelperFunc_SplitCurrentVals(true);
+			Helper_SplitCurrentVals(true);
 
 			CollisionVertex[TotalColVert].Y = (Readout_CurrentByte1 * 0x100) + Readout_CurrentByte2;
 			CollisionVertex[TotalColVert].Z = (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
@@ -523,7 +516,7 @@ int Viewer_GetMapCollision(int CurrentHeader)
 			/* vertex 4 - xyz */
 			memcpy(&Readout_Current1, &ZSceneBuffer[ColVertScanPosition], 4);
 			memcpy(&Readout_Current2, &ZSceneBuffer[ColVertScanPosition + 1], 4);
-			HelperFunc_SplitCurrentVals(true);
+			Helper_SplitCurrentVals(true);
 
 			CollisionVertex[TotalColVert].Z = (Readout_CurrentByte1 * 0x100) + Readout_CurrentByte2;
 			TotalColVert++;
@@ -536,24 +529,24 @@ int Viewer_GetMapCollision(int CurrentHeader)
 		}
 	}
 
-	HelperFunc_LogMessage(2, "COLLISION RENDERING:\n");
+	Helper_LogMessage(2, "COLLISION RENDERING:\n");
 	int i = 0;
 	for(i = 0; i < TotalColVert; i++) {
 		sprintf(SystemLogMsg, " - Vertex #%5d: X %5d, Y %5d, Z %5d\n", i, CollisionVertex[i].X, CollisionVertex[i].Y, CollisionVertex[i].Z);
-		HelperFunc_LogMessage(2, SystemLogMsg);
+		Helper_LogMessage(2, SystemLogMsg);
 	}
 
 	TempOffset = (SceneHeader[CurrentHeader].Col_DataOffset / 4) + 5;
 	memcpy(&Readout_Current1, &ZSceneBuffer[TempOffset], 4);
-	HelperFunc_SplitCurrentVals(false);
+	Helper_SplitCurrentVals(false);
 
 	unsigned long ColPolyAmount = ((Readout_CurrentByte1 * 0x100) + Readout_CurrentByte2);
 
 	TempOffset = (SceneHeader[CurrentHeader].Col_DataOffset / 4) + 6;
 	memcpy(&Readout_Current1, &ZSceneBuffer[TempOffset], 4);
-	HelperFunc_SplitCurrentVals(false);
+	Helper_SplitCurrentVals(false);
 
-	HelperFunc_LogMessage(2, "\n");
+	Helper_LogMessage(2, "\n");
 
 	if((Readout_CurrentByte1 == 0x02)) {
 		TempOffset = Readout_CurrentByte2 << 16;
@@ -574,7 +567,7 @@ int Viewer_GetMapCollision(int CurrentHeader)
 				while (TotalColPoly < ColPolyAmount) {
 					memcpy(&Readout_Current1, &ZSceneBuffer[ColPolyScanPosition], 4);
 					memcpy(&Readout_Current2, &ZSceneBuffer[ColPolyScanPosition + 1], 4);
-					HelperFunc_SplitCurrentVals(true);
+					Helper_SplitCurrentVals(true);
 
 					unsigned int ColType = ((Readout_CurrentByte1 * 0x100) + Readout_CurrentByte2);
 
@@ -589,7 +582,7 @@ int Viewer_GetMapCollision(int CurrentHeader)
 
 					if((ColVertex1 >= TotalColVert) || (ColVertex2 >= TotalColVert) || (ColVertex2 >= TotalColVert)) {
 						sprintf(SystemLogMsg, " - WARNING! Requested vertex (%d, %d, %d) > vertex count %d!\n\n", ColVertex1, ColVertex2, ColVertex3, TotalColVert);
-						HelperFunc_LogMessage(2, SystemLogMsg);
+						Helper_LogMessage(2, SystemLogMsg);
 					} else {
 						switch(ColType) {
 							case 0: glColor4f(0.0f, 1.0f, 0.0f, Renderer_CollisionAlpha); break;
@@ -614,7 +607,7 @@ int Viewer_GetMapCollision(int CurrentHeader)
 							ColVertex1, CollisionVertex[ColVertex1].X, CollisionVertex[ColVertex1].Y, CollisionVertex[ColVertex1].Z,
 							ColVertex2, CollisionVertex[ColVertex2].X, CollisionVertex[ColVertex2].Y, CollisionVertex[ColVertex2].Z,
 							ColVertex3, CollisionVertex[ColVertex3].X, CollisionVertex[ColVertex3].Y, CollisionVertex[ColVertex3].Z);
-						HelperFunc_LogMessage(2, SystemLogMsg);
+						Helper_LogMessage(2, SystemLogMsg);
 					}
 
 					TotalColPoly++;

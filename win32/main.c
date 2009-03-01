@@ -13,9 +13,6 @@
 	SYSTEM FUNCTIONS - OPENGL & WINDOWS
 	------------------------------------------------------------ */
 
-int WINAPI WinMain (HINSTANCE, HINSTANCE, LPSTR, int);
-LRESULT CALLBACK WindowProcedure (HWND, UINT, WPARAM, LPARAM);
-
 PFNGLMULTITEXCOORD1FARBPROC			glMultiTexCoord1fARB		= NULL;
 PFNGLMULTITEXCOORD2FARBPROC			glMultiTexCoord2fARB		= NULL;
 PFNGLMULTITEXCOORD3FARBPROC			glMultiTexCoord3fARB		= NULL;
@@ -140,7 +137,7 @@ unsigned int	Readout_CurrentByte8 = 0;
 
 unsigned long	Readout_NextGFXCommand1 = 0;
 
-/* F3DZEX DISPLAY LIST HANDLING VARIABLES */
+/* F3DEX2 DISPLAY LIST HANDLING VARIABLES */
 unsigned long	DLists[256][2048];
 signed long		DListInfo_CurrentCount[256];
 signed long		DListInfo_TotalCount = 0;
@@ -154,21 +151,14 @@ bool			SubDLCall = false;
 
 unsigned long	Storage_RDPHalf1 = 0;
 
-bool 			G_TEXTURE_ENABLE = false;
-bool			G_ZBUFFER = false;
-bool			G_SHADE = false;
-bool			G_CULL_FRONT = false;
-bool			G_CULL_BACK = false;
-bool			G_CULL_BOTH = false;
-bool			G_FOG = false;
-bool			G_LIGHTING = false;
-bool			G_TEXTURE_GEN = false;
-bool			G_TEXTURE_GEN_LINEAR = false;
-bool			G_LOD = false;
-bool			G_SHADING_SMOOTH = false;
-bool			G_CLIPPING = false;
+GLfloat			Matrix[4][4];
+GLfloat			Matrix_Stack[32][4][4];
+GLfloat			ProjMatrix[4][4];
+int				MVMatrixCount = 0;
 
-/* F3DZEX TEXTURE HANDLING VARIABLES */
+unsigned long	N64_GeometryMode = 0x00;
+
+/* F3DEX2 TEXTURE HANDLING VARIABLES */
 unsigned char	* TextureData_OGL = NULL;
 unsigned char	* TextureData_N64 = NULL;
 
@@ -233,7 +223,7 @@ char			Renderer_FPSMessage[32] = "";
 
 char			Renderer_CoordDisp[256] = "";
 
-bool			Renderer_IsRGBANormals = false;
+bool			Renderer_IsRGBANormals = true;
 
 GLfloat			LightAmbient[]=  {0.0f, 0.0f, 0.0f, 1.0f};
 GLfloat			LightDiffuse[]=  {1.0f, 1.0f, 1.0f, 1.0f};
@@ -282,9 +272,9 @@ struct SceneHeader_Struct SceneHeader[256];
 struct Actors_Struct Actors[256][1024];
 struct ScActors_Struct ScActors[1024];
 
-/* F3DZEX VERTEX DATA STRUCTURE */
+/* F3DEX2 VERTEX DATA STRUCTURE */
 struct Vertex_Struct Vertex[4096];
-/* F3DZEX TEXTURE DATA STRUCTURE */
+/* F3DEX2 TEXTURE DATA STRUCTURE */
 struct Texture_Struct Texture[0];
 /* CI TEXTURE PALETTE STRUCTURE */
 struct Palette_Struct Palette[512];
@@ -398,7 +388,7 @@ int Viewer_LoadAreaData()
 	ROM_CurrentMap = -1;
 	ROM_CurrentMap_Temp = 0;
 
-	Renderer_IsRGBANormals = false;
+	Renderer_IsRGBANormals = true;
 
 	memset(MapHeader, 0x00, sizeof(MapHeader));
 	memset(SceneHeader, 0x00, sizeof(SceneHeader));
@@ -437,7 +427,7 @@ int Viewer_LoadAreaData()
 	TempOffset = (ROM_SceneTableOffset / 4) + (ROM_SceneToLoad * 0x14) / 4;
 	memcpy(&Readout_Current1, &ROMBuffer[TempOffset], 4);
 	memcpy(&Readout_Current2, &ROMBuffer[TempOffset + 1], 4);
-	HelperFunc_SplitCurrentVals(true);
+	Helper_SplitCurrentVals(true);
 
 	unsigned long Scene_Start = (Readout_CurrentByte1 * 0x1000000) + (Readout_CurrentByte2 * 0x10000) + (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
 	unsigned long Scene_End = (Readout_CurrentByte5 * 0x1000000) + (Readout_CurrentByte6 * 0x10000) + (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
@@ -452,26 +442,26 @@ int Viewer_LoadAreaData()
 	/* check for multiple scene headers */
 	memcpy(&Readout_Current1, &ZSceneBuffer[0], 4);
 	memcpy(&Readout_Current2, &ZSceneBuffer[0 + 1], 4);
-	HelperFunc_SplitCurrentVals(true);
+	Helper_SplitCurrentVals(true);
 
 	if((Readout_CurrentByte1 == 0x18)) {
 		SceneHeader_MultiHeaderMap = true;
 		unsigned long SceneHeaderListPos = (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
-		Viewer_GetSceneHeaderList(SceneHeaderListPos);
+		Zelda_GetSceneHeaderList(SceneHeaderListPos);
 	} else {
 		SceneHeader_TotalCount = 0;
 	}
 
-	Viewer_GetSceneHeader(SceneHeader_Current);
-	Viewer_GetSceneActors(SceneHeader_Current);
-//	Viewer_GetMapCollision(SceneHeader_Current);			/* do when rendering map */
+	Zelda_GetSceneHeader(SceneHeader_Current);
+	Zelda_GetSceneActors(SceneHeader_Current);
+//	Zelda_GetMapCollision(SceneHeader_Current);			/* do when rendering map */
 
 	/* ---- LOAD MAP DATA ---- */
 
 	for(i = 0; i < (SceneHeader[SceneHeader_Current].Map_Count); i++) {
 		memcpy(&Readout_Current1, &ZSceneBuffer[((SceneHeader[SceneHeader_Current].Map_ListOffset + (i * 0x08)) / 4)], 4);
 		memcpy(&Readout_Current2, &ZSceneBuffer[((SceneHeader[SceneHeader_Current].Map_ListOffset + (i * 0x08)) / 4) + 1], 4);
-		HelperFunc_SplitCurrentVals(true);
+		Helper_SplitCurrentVals(true);
 
 		unsigned long Map_Start = (Readout_CurrentByte1 * 0x1000000) + (Readout_CurrentByte2 * 0x10000) + (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
 		unsigned long Map_End = (Readout_CurrentByte5 * 0x1000000) + (Readout_CurrentByte6 * 0x10000) + (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
@@ -484,24 +474,24 @@ int Viewer_LoadAreaData()
 
 		memcpy(&Readout_Current1, &ZMapBuffer[i][0], 4);
 		memcpy(&Readout_Current2, &ZMapBuffer[i][1], 4);
-		HelperFunc_SplitCurrentVals(true);
+		Helper_SplitCurrentVals(true);
 
 		if((Readout_CurrentByte1 == 0x08) || (Readout_CurrentByte1 == 0x16) || (Readout_CurrentByte1 == 0x18)) {
 			if((Readout_CurrentByte1 == 0x18)) {
 				MapHeader_MultiHeaderMap = true;
 				unsigned long MapHeaderListPos = (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
-				Viewer_GetMapHeaderList(MapHeaderListPos, i);
+				Zelda_GetMapHeaderList(MapHeaderListPos, i);
 			} else {
 				MapHeader_TotalCount = 0;
 			}
 
-			Viewer_GetMapHeader(MapHeader_Current, i);
-			Viewer_GetMapActors(MapHeader_Current, i);
+			Zelda_GetMapHeader(MapHeader_Current, i);
+			Zelda_GetMapActors(MapHeader_Current, i);
 		} else {
 			MessageBox(hwnd, "Invalid or non-standard map header!", "Error", MB_OK | MB_ICONEXCLAMATION);
 		}
 
-		Viewer_GetMapDisplayLists(ZMapFilesize[i], i);
+		Zelda_GetMapDisplayLists(ZMapFilesize[i], i);
 	}
 
 	/* ---- LOAD OBJECT DATA ---- */
@@ -511,7 +501,7 @@ int Viewer_LoadAreaData()
 	for(i = 0; i < (0x192 * 2); i+=2) {
 		memcpy(&Readout_Current1, &ROMBuffer[(ROM_ObjectTableOffset / 4) + i], 4);
 		memcpy(&Readout_Current2, &ROMBuffer[(ROM_ObjectTableOffset / 4) + i + 1], 4);
-		HelperFunc_SplitCurrentVals(true);
+		Helper_SplitCurrentVals(true);
 
 		ObjectTable[i / 2].StartOffset = (Readout_CurrentByte1 * 0x1000000) + (Readout_CurrentByte2 * 0x10000) + (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
 		ObjectTable[i / 2].EndOffset = (Readout_CurrentByte5 * 0x1000000) + (Readout_CurrentByte6 * 0x10000) + (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
@@ -533,7 +523,7 @@ int Viewer_LoadAreaData()
 	for(i = 0; i < (0x1D7 * 8); i+=8) {
 		memcpy(&Readout_Current1, &ROMBuffer[(ROM_ActorTableOffset / 4) + i], 4);
 		memcpy(&Readout_Current2, &ROMBuffer[(ROM_ActorTableOffset / 4) + i + 1], 4);
-		HelperFunc_SplitCurrentVals(true);
+		Helper_SplitCurrentVals(true);
 
 		ActorTable[i / 8].StartOffset = (Readout_CurrentByte1 * 0x1000000) + (Readout_CurrentByte2 * 0x10000) + (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
 		ActorTable[i / 8].EndOffset = (Readout_CurrentByte5 * 0x1000000) + (Readout_CurrentByte6 * 0x10000) + (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
@@ -576,7 +566,7 @@ int Viewer_RenderMapRefresh()
 	   tradeoff isn't too bad :) */
 
 	Viewer_RenderMap();
-	DrawGLScene();
+	GL_DrawScene();
 	Viewer_RenderMap();
 
 	if(ROMBuffer != NULL) free(ROMBuffer);
@@ -635,7 +625,6 @@ void Dialog_OpenROM(HWND hwnd)
 
 /*	------------------------------------------------------------ */
 
-/* WINMAIN - WINDOWS PROGRAM MAIN FUNCTION */
 int WINAPI WinMain (HINSTANCE hThisInstance,
 					HINSTANCE hPrevInstance,
 					LPSTR lpszArgument,
@@ -731,7 +720,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 	Renderer_EnableMap = GetPrivateProfileInt("Viewer", "RenderMaps", true, INIPath);
 	Renderer_EnableCollision = GetPrivateProfileInt("Viewer", "RenderCollision", true, INIPath);
 
-	if (!CreateGLTarget(640,480,16)) return 0;
+	if (!GL_CreateTarget(640,480,16)) return 0;
 
 	ShowWindow(hwnd, nFunsterStil);
 
@@ -816,8 +805,8 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 							if(!(SceneHeader_Current == 0)) {
 								SceneHeader_Current--;
 								FileSystemLog = fopen("log.txt", "w");
-								Viewer_GetSceneHeader(SceneHeader_Current);
-								Viewer_GetSceneActors(SceneHeader_Current);
+								Zelda_GetSceneHeader(SceneHeader_Current);
+								Zelda_GetSceneActors(SceneHeader_Current);
 								fclose(FileSystemLog);
 							}
 							sprintf(StatusMsg, "Scene Header: #%d", SceneHeader_Current);
@@ -829,8 +818,8 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 							if(!(SceneHeader_Current == SceneHeader_TotalCount - 1)) {
 								SceneHeader_Current++;
 								FileSystemLog = fopen("log.txt", "w");
-								Viewer_GetSceneHeader(SceneHeader_Current);
-								Viewer_GetSceneActors(SceneHeader_Current);
+								Zelda_GetSceneHeader(SceneHeader_Current);
+								Zelda_GetSceneActors(SceneHeader_Current);
 								fclose(FileSystemLog);
 							}
 							sprintf(StatusMsg, "Scene Header: #%d", SceneHeader_Current);
@@ -895,7 +884,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 
 			GLUTCamera_Orientation(CamAngleX, CamAngleY);
 
-			DrawGLScene();
+			GL_DrawScene();
 			SwapBuffers(hDC_ogl);
 		}
 	}
@@ -920,7 +909,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 	sprintf(TempStr, "%d", Renderer_EnableCollision);
 	WritePrivateProfileString("Viewer", "RenderCollision", TempStr, INIPath);
 
-	KillGLTarget();
+	GL_KillTarget();
 	DestroyWindow(hwnd);
 
 	return (messages.wParam);
@@ -951,7 +940,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			GetWindowRect(hstatus, &rcStatus);
 
 			ReSizeGLScene(rcClient.right, rcClient.bottom);
-			DrawGLScene();
+			GL_DrawScene();
 			SwapBuffers(hDC_ogl);
 			break;
 		}

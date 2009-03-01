@@ -11,8 +11,7 @@
 
 /*	------------------------------------------------------------ */
 
-/* INITGL - INITIALIZE OPENGL RENDERING SYSTEM */
-int InitGL(void)
+int GL_Init(void)
 {
 	glShadeModel(GL_SMOOTH);
 	glEnable(GL_POINT_SMOOTH);
@@ -34,6 +33,12 @@ int InitGL(void)
 	glLightfv(GL_LIGHT1, GL_POSITION,LightPosition);
 	glEnable(GL_LIGHT1);
 
+	glEnable(GL_LIGHTING);
+	glEnable(GL_NORMALIZE);
+
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_BACK);
+
 	glEnable(GL_ALPHA_TEST);
 
 	/* fake fog */
@@ -44,15 +49,15 @@ int InitGL(void)
 
 	glFogfv(GL_FOG_COLOR, FogColor);
 
-	glEnable(GL_COLOR_MATERIAL);
 	glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+	glEnable(GL_COLOR_MATERIAL);
 
-	InitGLExtensions();
+	GL_InitExtensions();
 
 	return true;
 }
 
-int InitGLExtensions(void)
+int GL_InitExtensions(void)
 {
 	GLExtension_List = strdup(glGetString(GL_EXTENSIONS));
 	int ExtListLen = strlen(GLExtension_List);
@@ -108,15 +113,14 @@ int InitGLExtensions(void)
 	return 0;
 }
 
-/* DRAWGLSCENE - DRAW THE CURRENT SCENE USING THE MAP AND ACTOR DATA GATHERED BEFORE */
-int DrawGLScene(void)
+int GL_DrawScene(void)
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	int i = 0;
 
 	if(AreaLoaded) {
-		HelperFunc_CalculateFPS();
+		Helper_CalculateFPS();
 
 		sprintf(Renderer_CoordDisp, "Cam X: %4.2f, Y: %4.2f, Z: %4.2f", CamX, CamY, CamZ);
 
@@ -201,7 +205,6 @@ int DrawGLScene(void)
 	return true;
 }
 
-/* RESIZEGLSCENE - RESIZES THE OPENGL RENDERING TARGET ALONG WITH THE MAIN WINDOW */
 void ReSizeGLScene(GLsizei width, GLsizei height)
 {
 	if (height == 0) height = 1;
@@ -217,8 +220,7 @@ void ReSizeGLScene(GLsizei width, GLsizei height)
 	glLoadIdentity();
 }
 
-/* KILLGLTARGET - DESTROYS THE OPENGL RENDERING TARGET FOR PROPER EXITING */
-void KillGLTarget(void)
+void GL_KillTarget(void)
 {
 	if (hRC)
 	{
@@ -234,8 +236,7 @@ void KillGLTarget(void)
 	}
 }
 
-/* CREATEGLTARGET - CREATE AN OPENGL RENDERING TARGET WITH THE SPECIFIED PARAMETERS */
-BOOL CreateGLTarget(int width, int height, int bits)
+BOOL GL_CreateTarget(int width, int height, int bits)
 {
 	GLuint PixelFormat;
 
@@ -264,42 +265,42 @@ BOOL CreateGLTarget(int width, int height, int bits)
 
 	if (!(hDC_ogl = GetDC(hogl)))
 	{
-		KillGLTarget();
+		GL_KillTarget();
 		MessageBox(NULL, "Can't create OpenGL Device Context!", "Error", MB_OK | MB_ICONEXCLAMATION);
 		return FALSE;
 	}
 
 	if (!(PixelFormat = ChoosePixelFormat(hDC_ogl, &pfd)))
 	{
-		KillGLTarget();
+		GL_KillTarget();
 		MessageBox(NULL, "Can't find suitable PixelFormat!", "Error", MB_OK | MB_ICONEXCLAMATION);
 		return FALSE;
 	}
 
 	if(!SetPixelFormat(hDC_ogl, PixelFormat, &pfd))
 	{
-		KillGLTarget();
+		GL_KillTarget();
 		MessageBox(NULL,"Can't set PixelFormat!", "Error", MB_OK | MB_ICONEXCLAMATION);
 		return FALSE;
 	}
 
 	if (!(hRC = wglCreateContext(hDC_ogl)))
 	{
-		KillGLTarget();
+		GL_KillTarget();
 		MessageBox(NULL, "Can't create OpenGL Rendering Context!", "Error", MB_OK | MB_ICONEXCLAMATION);
 		return FALSE;
 	}
 
 	if(!wglMakeCurrent(hDC_ogl, hRC))
 	{
-		KillGLTarget();
+		GL_KillTarget();
 		MessageBox(NULL, "Can't activate OpenGL Rendering Context!", "Error", MB_OK | MB_ICONEXCLAMATION);
 		return FALSE;
 	}
 
-	if (!InitGL())
+	if (!GL_Init())
 	{
-		KillGLTarget();
+		GL_KillTarget();
 		MessageBox(NULL, "Initialization failed!", "Error", MB_OK | MB_ICONEXCLAMATION);
 		return FALSE;
 	}
