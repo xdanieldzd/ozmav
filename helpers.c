@@ -35,19 +35,19 @@ int Zelda_MemCopy(unsigned int SourceBank, unsigned long SourceOffset, unsigned 
 		break;
 	case 0x04:
 		/* data comes from gameplay_keep */
-		if(SourceOffset < GameplayKeepFilesize) {
+/*		if(SourceOffset < GameplayKeepFilesize) {
 			memcpy(Target, &GameplayKeepBuffer[SourceOffset / 4], Size);
 		} else {
 			return -1;
-		}
+		}*/
 		break;
 	case 0x05:
 		/* data comes from gameplay_dangeon_keep */
-		if(SourceOffset < GameplayFDKeepFilesize) {
+/*		if(SourceOffset < GameplayFDKeepFilesize) {
 			memcpy(Target, &GameplayFDKeepBuffer[SourceOffset / 4], Size);
 		} else {
 			return -1;
-		}
+		}*/
 		break;
 	case 0x06:
 		/* data comes from object file */

@@ -363,4 +363,6 @@ int F3DEX2_HACKSelectClrAlpSource()
 
 		default: glColor4f(1.0f, 1.0f, 0.0f, TempAlpha); break;								/* full + previous alpha */
 	}
+
+	return 0;
 }

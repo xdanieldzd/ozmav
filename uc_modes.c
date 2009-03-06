@@ -40,7 +40,7 @@ int F3DEX2_Cmd_GEOMETRYMODE()
 		Mode_Set & G_CULL_BACK ? "G_CULL_BACK | " : "",
 		Mode_Set & G_FOG ? "G_FOG | " : "",
 		Mode_Set & G_CLIPPING ? "G_CLIPPING" : "" );
-	Helper_LogMessage(2, ErrorMsg);
+//	Helper_LogMessage(2, ErrorMsg);
 
 	return 0;
 }
@@ -142,7 +142,27 @@ int F3DEX2_Cmd_SETOTHERMODE_L()
 	bool ZMODE_DEC		= (HighBits & 0x00000C00) != 0;
 	bool CVG_X_ALPHA	= (HighBits & 0x00001000) != 0;
 	bool ALPHA_CVG_SEL	= (HighBits & 0x00002000) != 0;
-	bool FORCE_BL		= (HighBits & 0x00004000) != 0;		/* force alpha blending */
+	bool FORCE_BL		= (HighBits & 0x00004000) != 0;		/* force blending */
+
+/*	sprintf(ErrorMsg, \
+		"\nSETOTHERMODE_L - RENDERMODE:\n" \
+		" - Display List #%d\n" \
+		" ------------------\n" \
+		" - AA_EN %d\n" \
+		" - Z_CMP %d, Z_UPD %d, IM_RD %d, CLR_ON_CVG %d\n" \
+		" - CVG_DST_WRAP %d, CVG_DST_FULL %d, CVG_DST_SAVE %d, ZMODE_INTER %d\n" \
+		" - ZMODE_XLU %d, ZMODE_DEC %d\n" \
+		" - CVG_X_ALPHA %d, ALPHA_CVG_SEL %d, FORCE_BL %d\n\n",
+			DLToRender,
+			AA_EN,
+			Z_CMP, Z_UPD, IM_RD, CLR_ON_CVG,
+			CVG_DST_WRAP, CVG_DST_FULL, CVG_DST_SAVE, ZMODE_INTER,
+			ZMODE_XLU, ZMODE_DEC,
+			CVG_X_ALPHA, ALPHA_CVG_SEL, FORCE_BL);
+	Helper_LogMessage(2, ErrorMsg);
+*/
+	GLenum BlendSrcFactor = GL_ZERO;
+	GLenum BlendDstFactor = GL_ZERO;
 
 	switch (MDSFT)
 	{
@@ -162,38 +182,39 @@ int F3DEX2_Cmd_SETOTHERMODE_L()
 			if(ZMODE_DEC)
 				{ glEnable(GL_POLYGON_OFFSET_FILL); glPolygonOffset(-1.0f, -1.0f); } else { glDisable(GL_POLYGON_OFFSET_FILL); }
 
-			if(FORCE_BL)
-				{ glEnable(GL_BLEND); } else { /*glDisable(GL_BLEND);*/ }
-
 /* ??? */	if(ZMODE_XLU)
 				{ glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); glAlphaFunc(GL_GREATER, 0.0f); } else { glBlendFunc(GL_ONE, GL_ZERO); glAlphaFunc(GL_GEQUAL, 0.5f); }
 
-/*			sprintf(ErrorMsg, \
-				"\nSETOTHERMODE_L - RENDERMODE:\n" \
-				" - Display List #%d\n" \
-				" ------------------\n" \
-				" - AA_EN %d\n" \
-				" - Z_CMP %d, Z_UPD %d, IM_RD %d, CLR_ON_CVG %d\n" \
-				" - CVG_DST_WRAP %d, CVG_DST_FULL %d, CVG_DST_SAVE %d, ZMODE_INTER %d\n" \
-				" - ZMODE_XLU %d, ZMODE_DEC %d\n" \
-				" - CVG_X_ALPHA %d, ALPHA_CVG_SEL %d, FORCE_BL %d\n\n",
-					DLToRender,
-					AA_EN,
-					Z_CMP, Z_UPD, IM_RD, CLR_ON_CVG,
-					CVG_DST_WRAP, CVG_DST_FULL, CVG_DST_SAVE, ZMODE_INTER,
-					ZMODE_XLU, ZMODE_DEC,
-					CVG_X_ALPHA, ALPHA_CVG_SEL, FORCE_BL);
-			Helper_LogMessage(2, ErrorMsg);
-*/
-			break;
-		case 16: // blender
-			MessageBox(hwnd, "blender", "", 0);
+			if((FORCE_BL) && !(ALPHA_CVG_SEL)) {
+				glEnable(GL_BLEND);
+
+				switch(HighBits >> 16)
+				{
+					case 0x0C18:
+					case 0xC810:
+					case 0xC811:
+						BlendSrcFactor = GL_SRC_ALPHA;
+						BlendDstFactor = GL_ONE_MINUS_SRC_ALPHA;
+						break;
+					default:
+						sprintf(SystemLogMsg, "blender dbg test - %04x\n", HighBits >> 16);
+						Helper_LogMessage(2, SystemLogMsg);
+
+						BlendSrcFactor = GL_SRC_ALPHA;
+						BlendDstFactor = GL_ONE_MINUS_SRC_ALPHA;
+				}
+
+				glBlendFunc(BlendSrcFactor, BlendDstFactor);
+			} else {
+				glDisable(GL_BLEND);
+			}
+
 			break;
 	}
 
 	//FOR CORRECTNESS WE WILL NEED TO EVENTUALLY MIGRATE ALL BELOW FUNCTIONS TO THE ABOVE SWITCH BLOCK!!!
 
-/*	Blender_Cycle1 = HighBits >> 16;
+/*	Blender_Cycle1 = 0;
 	Blender_Cycle2 = (HighBits << 16) >> 16;
 
 	GLenum Blender_SrcFactor =		GL_SRC_ALPHA;
@@ -256,8 +277,8 @@ int F3DEX2_Cmd_SETOTHERMODE_L()
 			Blender_DstFactor = GL_ZERO;
 			Blender_AlphaFunc = GL_GEQUAL;
 			Blender_AlphaRef = 0.5f;
-			break;
-		case 0x0C18 + 0x4F50:								//
+			break;*/
+/*		case 0x0C18 + 0x4F50:								//
 		case 0xC810 + 0x4F50:								//spot00, spot02, spot04 - pathways
 		case 0xC818 + 0x4F50:								//
 			Blender_SrcFactor = GL_SRC_ALPHA;
@@ -272,13 +293,10 @@ int F3DEX2_Cmd_SETOTHERMODE_L()
 			Blender_AlphaRef = 0.0f;
 			break;
 		default:
-			sprintf(ErrorMsg, "Unsupported mode 0x%04X 0x%04X.\nUsing default settings...", (unsigned int)Blender_Cycle1, (unsigned int)Blender_Cycle2);
-			MessageBox(hwnd, ErrorMsg, "SetOtherMode_L Error", MB_OK | MB_ICONERROR);
 			break;
 	}
 
-	glBlendFunc(Blender_SrcFactor, Blender_DstFactor);
-	glAlphaFunc(Blender_AlphaFunc, Blender_AlphaRef);
+//	glAlphaFunc(Blender_AlphaFunc, Blender_AlphaRef);
 */
 	return 0;
 }

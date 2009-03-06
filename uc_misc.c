@@ -18,13 +18,19 @@ int F3DEX2_Cmd_RDPHALF_1()
 	return 0;
 }
 
+int F3DEX2_Cmd_RDPHALF_2()
+{
+	Storage_RDPHalf2 = (Readout_CurrentByte5 * 0x1000000) + (Readout_CurrentByte6 * 0x10000) + (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
+
+	return 0;
+}
+
 int F3DEX2_Cmd_BRANCH_Z()
 {
 	unsigned int TempRAMSeg = (Storage_RDPHalf1 & 0xFF000000) >> 24;
 	unsigned long TempDLOffset = (Storage_RDPHalf1 & 0x00FFFFFF);
 
 	if(TempRAMSeg == 0x03) {
-		SubDLCall = true;
 		Viewer_RenderMap_DListParser(true, TempDLOffset / 4);
 	}
 
@@ -40,7 +46,6 @@ int F3DEX2_Cmd_DL(bool GetDLFromZMapScene)
 		TempOffset = TempOffset + (Readout_CurrentByte7 << 8);
 		TempOffset = TempOffset + Readout_CurrentByte8;
 
-		SubDLCall = true;
 		Viewer_RenderMap_DListParser(true, TempOffset / 4);
 	}
 

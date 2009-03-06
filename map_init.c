@@ -46,6 +46,7 @@ int Zelda_GetMapHeader(int CurrentHeader, int CurrentMap)
 
 	unsigned int InHeaderPos = MapHeader_List[CurrentHeader] / 4;
 
+	memset(SystemLogMsg, 0x00, sizeof(SystemLogMsg));
 	sprintf(SystemLogMsg, "Map Header #%d (0x%08X):\n", CurrentHeader + 1, InHeaderPos * 4);
 	Helper_LogMessage(2, SystemLogMsg);
 
@@ -161,6 +162,7 @@ int Zelda_GetSceneHeader(int CurrentHeader)
 
 	int InHeaderPos = SceneHeader_List[CurrentHeader] / 4;
 
+	memset(SystemLogMsg, 0x00, sizeof(SystemLogMsg));
 	sprintf(SystemLogMsg, "Scene Header #%d (0x%08X):\n", CurrentHeader + 1, InHeaderPos * 4);
 	Helper_LogMessage(2, SystemLogMsg);
 
@@ -529,13 +531,13 @@ int Zelda_GetMapCollision(int CurrentHeader)
 		}
 	}
 
-	Helper_LogMessage(2, "COLLISION RENDERING:\n");
+/*	Helper_LogMessage(2, "COLLISION RENDERING:\n");
 	int i = 0;
 	for(i = 0; i < TotalColVert; i++) {
 		sprintf(SystemLogMsg, " - Vertex #%5d: X %5d, Y %5d, Z %5d\n", i, CollisionVertex[i].X, CollisionVertex[i].Y, CollisionVertex[i].Z);
 		Helper_LogMessage(2, SystemLogMsg);
 	}
-
+*/
 	TempOffset = (SceneHeader[CurrentHeader].Col_DataOffset / 4) + 5;
 	memcpy(&Readout_Current1, &ZSceneBuffer[TempOffset], 4);
 	Helper_SplitCurrentVals(false);
@@ -546,7 +548,7 @@ int Zelda_GetMapCollision(int CurrentHeader)
 	memcpy(&Readout_Current1, &ZSceneBuffer[TempOffset], 4);
 	Helper_SplitCurrentVals(false);
 
-	Helper_LogMessage(2, "\n");
+//	Helper_LogMessage(2, "\n");
 
 	if((Readout_CurrentByte1 == 0x02)) {
 		TempOffset = Readout_CurrentByte2 << 16;
@@ -601,14 +603,14 @@ int Zelda_GetMapCollision(int CurrentHeader)
 							glVertex3d(CollisionVertex[ColVertex3].X, CollisionVertex[ColVertex3].Y, CollisionVertex[ColVertex3].Z);
 						glEnd();
 
-						sprintf(SystemLogMsg, " - Polygon %5d:\n  - Collision type: 0x%04X\n  - Vertex 1 (#%5d), X %5d, Y %5d, Z %5d\n  - Vertex 2 (#%5d), X %5d, Y %5d, Z %5d\n  - Vertex 3 (#%5d), X %5d, Y %5d, Z %5d\n\n",
+/*						sprintf(SystemLogMsg, " - Polygon %5d:\n  - Collision type: 0x%04X\n  - Vertex 1 (#%5d), X %5d, Y %5d, Z %5d\n  - Vertex 2 (#%5d), X %5d, Y %5d, Z %5d\n  - Vertex 3 (#%5d), X %5d, Y %5d, Z %5d\n\n",
 							TotalColPoly,
 							ColType,
 							ColVertex1, CollisionVertex[ColVertex1].X, CollisionVertex[ColVertex1].Y, CollisionVertex[ColVertex1].Z,
 							ColVertex2, CollisionVertex[ColVertex2].X, CollisionVertex[ColVertex2].Y, CollisionVertex[ColVertex2].Z,
 							ColVertex3, CollisionVertex[ColVertex3].X, CollisionVertex[ColVertex3].Y, CollisionVertex[ColVertex3].Z);
 						Helper_LogMessage(2, SystemLogMsg);
-					}
+	*/				}
 
 					TotalColPoly++;
 					ColPolyScanPosition += 4;

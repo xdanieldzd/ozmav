@@ -147,9 +147,8 @@ unsigned long	DLTempPosition = 0;
 unsigned int	DLToRender = 0;
 bool			DListHasEnded = false;
 
-bool			SubDLCall = false;
-
 unsigned long	Storage_RDPHalf1 = 0;
+unsigned long	Storage_RDPHalf2 = 0;
 
 GLfloat			Matrix[4][4];
 GLfloat			Matrix_Stack[32][4][4];
@@ -222,8 +221,6 @@ int				Renderer_FPS, Renderer_FrameNo = 0;
 char			Renderer_FPSMessage[32] = "";
 
 char			Renderer_CoordDisp[256] = "";
-
-bool			Renderer_IsRGBANormals = true;
 
 GLfloat			LightAmbient[]=  {0.0f, 0.0f, 0.0f, 1.0f};
 GLfloat			LightDiffuse[]=  {1.0f, 1.0f, 1.0f, 1.0f};
@@ -362,8 +359,8 @@ int Viewer_LoadAreaData()
 	/* CLOSE FILE */
 	fclose(FileROM);
 
-	free(GameplayKeepBuffer);
-	free(GameplayFDKeepBuffer);
+//	if(GameplayKeepBuffer != NULL) free(GameplayKeepBuffer);
+//	if(GameplayFDKeepBuffer != NULL) free(GameplayFDKeepBuffer);
 
 	int i = 0;
 
@@ -388,8 +385,6 @@ int Viewer_LoadAreaData()
 	ROM_CurrentMap = -1;
 	ROM_CurrentMap_Temp = 0;
 
-	Renderer_IsRGBANormals = true;
-
 	memset(MapHeader, 0x00, sizeof(MapHeader));
 	memset(SceneHeader, 0x00, sizeof(SceneHeader));
 	memset(Actors, 0x00, sizeof(Actors));
@@ -411,7 +406,7 @@ int Viewer_LoadAreaData()
 	/* ---- LOAD GAMEPLAY DATA FILES ---- */
 
 	unsigned long TempOffset = 0;
-	TempOffset = 0xF5E000;
+/*	TempOffset = 0xF5E000;
 	GameplayKeepFilesize = 0x0567B0;
 	GameplayKeepBuffer = (unsigned int*) malloc (sizeof(int) * GameplayKeepFilesize);
 	memcpy(GameplayKeepBuffer, &ROMBuffer[TempOffset / 4], GameplayKeepFilesize);
@@ -420,7 +415,7 @@ int Viewer_LoadAreaData()
 	GameplayFDKeepFilesize = 0x017AF0;
 	GameplayFDKeepBuffer = (unsigned int*) malloc (sizeof(int) * GameplayFDKeepFilesize);
 	memcpy(GameplayFDKeepBuffer, &ROMBuffer[TempOffset / 4], GameplayFDKeepFilesize);
-
+*/
 	/* ---- LOAD SCENE DATA ---- */
 
 	/* get current scene's offset */
@@ -540,6 +535,7 @@ int Viewer_LoadAreaData()
 
 	CamAngleX = 0.0f, CamAngleY = 0.0f;
 	CamX = 0.0f, CamY = 0.0f, CamZ = 5.0f;
+	//CamX = 0.0f, CamY = 1.0f, CamZ = 15.0f;
 	CamLX = 0.0f, CamLY = 0.0f, CamLZ = -1.0f;
 
 	memset(CurrentGFXCmd, 0x00, sizeof(CurrentGFXCmd));
@@ -566,7 +562,7 @@ int Viewer_RenderMapRefresh()
 	   tradeoff isn't too bad :) */
 
 	Viewer_RenderMap();
-	GL_DrawScene();
+	OGL_DrawScene();
 	Viewer_RenderMap();
 
 	if(ROMBuffer != NULL) free(ROMBuffer);
@@ -720,7 +716,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 	Renderer_EnableMap = GetPrivateProfileInt("Viewer", "RenderMaps", true, INIPath);
 	Renderer_EnableCollision = GetPrivateProfileInt("Viewer", "RenderCollision", true, INIPath);
 
-	if (!GL_CreateTarget(640,480,16)) return 0;
+	if (!OGL_CreateTarget(640,480,16)) return 0;
 
 	ShowWindow(hwnd, nFunsterStil);
 
@@ -825,6 +821,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 							sprintf(StatusMsg, "Scene Header: #%d", SceneHeader_Current);
 						}
 					}
+
 /*					if (System_KbdKeys[VK_SUBTRACT]) {
 						System_KbdKeys[VK_SUBTRACT] = false;
 						if(!(ScActorInfo_Selected == 0)) {
@@ -842,32 +839,57 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 						if(System_KbdKeys[VK_SHIFT]) {
 							GLUTCamera_Movement(6);
 						} else if(System_KbdKeys[VK_CONTROL]) {
-							GLUTCamera_Movement(1);
+							GLUTCamera_Movement(2);
 						} else {
-							GLUTCamera_Movement(3);
+							GLUTCamera_Movement(4);
 						}
 					}
 					if (System_KbdKeys['S']) {
 						if(System_KbdKeys[VK_SHIFT]) {
 							GLUTCamera_Movement(-6);
 						} else if(System_KbdKeys[VK_CONTROL]) {
-							GLUTCamera_Movement(-1);
+							GLUTCamera_Movement(-2);
 						} else {
-							GLUTCamera_Movement(-3);
+							GLUTCamera_Movement(-4);
 						}
 					}
+
 					if (System_KbdKeys[VK_LEFT]) {
-						CamAngleX -= 0.025f;
+						if(System_KbdKeys[VK_SHIFT]) {
+							CamAngleX -= 0.0375;
+						} else if(System_KbdKeys[VK_CONTROL]) {
+							CamAngleX -= 0.0125f;
+						} else {
+							CamAngleX -= 0.025f;
+						}
 					}
 					if (System_KbdKeys[VK_RIGHT]) {
-						CamAngleX += 0.025f;
+						if(System_KbdKeys[VK_SHIFT]) {
+							CamAngleX += 0.0375;
+						} else if(System_KbdKeys[VK_CONTROL]) {
+							CamAngleX += 0.0125f;
+						} else {
+							CamAngleX += 0.025f;
+						}
 					}
 
 					if (System_KbdKeys[VK_UP]) {
-						CamAngleY += 0.01f;
+						if(System_KbdKeys[VK_SHIFT]) {
+							CamAngleY += 0.020f;
+						} else if(System_KbdKeys[VK_CONTROL]) {
+							CamAngleY += 0.010f;
+						} else {
+							CamAngleY += 0.015f;
+						}
 					}
 					if (System_KbdKeys[VK_DOWN]) {
-						CamAngleY -= 0.01f;
+						if(System_KbdKeys[VK_SHIFT]) {
+							CamAngleY -= 0.020f;
+						} else if(System_KbdKeys[VK_CONTROL]) {
+							CamAngleY -= 0.010f;
+						} else {
+							CamAngleY -= 0.015f;
+						}
 					}
 
 					if (System_KbdKeys[VK_TAB]) {
@@ -884,7 +906,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 
 			GLUTCamera_Orientation(CamAngleX, CamAngleY);
 
-			GL_DrawScene();
+			OGL_DrawScene();
 			SwapBuffers(hDC_ogl);
 		}
 	}
@@ -892,7 +914,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 	WritePrivateProfileString("Viewer", "LastROM", Filename_ROM, INIPath);
 	char TempStr[256];
 
-	sprintf(TempStr, "%d", ROM_SceneTableOffset);
+	sprintf(TempStr, "%d", (unsigned int)ROM_SceneTableOffset);
 	WritePrivateProfileString("Viewer", "SceneTable", TempStr, INIPath);
 	sprintf(TempStr, "%d", ROM_SceneToLoad);
 	WritePrivateProfileString("Viewer", "LastScene", TempStr, INIPath);
@@ -909,7 +931,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 	sprintf(TempStr, "%d", Renderer_EnableCollision);
 	WritePrivateProfileString("Viewer", "RenderCollision", TempStr, INIPath);
 
-	GL_KillTarget();
+	OGL_KillTarget();
 	DestroyWindow(hwnd);
 
 	return (messages.wParam);
@@ -939,8 +961,8 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			SendMessage(hstatus, WM_SIZE, 0, 0);
 			GetWindowRect(hstatus, &rcStatus);
 
-			ReSizeGLScene(rcClient.right, rcClient.bottom);
-			GL_DrawScene();
+			OGL_ResizeScene(rcClient.right, rcClient.bottom);
+			OGL_DrawScene();
 			SwapBuffers(hDC_ogl);
 			break;
 		}

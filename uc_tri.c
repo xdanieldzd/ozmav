@@ -157,6 +157,30 @@ int F3DEX2_Cmd_TRI2()
 	return 0;
 }
 
+int F3DEX2_Cmd_QUAD()
+{
+	F3DEX2_UpdateGeoMode();
+
+	glBegin(GL_TRIANGLES);
+		F3DEX2_DrawVertexPoint(Readout_CurrentByte2 / 2);
+		F3DEX2_DrawVertexPoint(Readout_CurrentByte3 / 2);
+		F3DEX2_DrawVertexPoint(Readout_CurrentByte4 / 2);
+	glEnd();
+
+	glBegin(GL_TRIANGLES);
+		F3DEX2_DrawVertexPoint(Readout_CurrentByte6 / 2);
+		F3DEX2_DrawVertexPoint(Readout_CurrentByte7 / 2);
+		F3DEX2_DrawVertexPoint(Readout_CurrentByte8 / 2);
+	glEnd();
+
+	sprintf(WavefrontObjMsg, "f %d %d %d\n", (Readout_CurrentByte2 / 2) + 1 + WavefrontObjVertCount_Previous, (Readout_CurrentByte3 / 2) + 1 + WavefrontObjVertCount_Previous, (Readout_CurrentByte4 / 2) + 1 + WavefrontObjVertCount_Previous);
+	fprintf(FileWavefrontObj, WavefrontObjMsg);
+	sprintf(WavefrontObjMsg, "f %d %d %d\n", (Readout_CurrentByte6 / 2) + 1 + WavefrontObjVertCount_Previous, (Readout_CurrentByte7 / 2) + 1 + WavefrontObjVertCount_Previous, (Readout_CurrentByte8 / 2) + 1 + WavefrontObjVertCount_Previous);
+	fprintf(FileWavefrontObj, WavefrontObjMsg);
+
+	return 0;
+}
+
 int F3DEX2_DrawVertexPoint(unsigned int VertexID)
 {
 	float TempH = (float)Vertex[VertexID].H * Texture[0].S_Scale / 32 / Texture[0].WidthRender;
@@ -207,7 +231,7 @@ int F3DEX2_Cmd_MTX()
 	if(!(MtxSegment == 0x80)) {
 		/* load the raw data into the buffer */
 		if(Zelda_MemCopy(MtxSegment, MtxOffset, RawMatrixData, 16 * 4) == -1) {
-			sprintf(ErrorMsg, "Raw matrix data load FAILED! Offset 0x%02X|%06X", MtxSegment, MtxOffset);
+			sprintf(ErrorMsg, "Raw matrix data load FAILED! Offset 0x%02X|%06X", MtxSegment, (unsigned int)MtxOffset);
 			MessageBox(hwnd, ErrorMsg, "", MB_OK | MB_ICONERROR);
 			return 0;
 		}
@@ -217,7 +241,7 @@ int F3DEX2_Cmd_MTX()
 		return 0;
 	}
 
-	sprintf(ErrorMsg, "MATRIX: offset 0x%02X|%06X\n\n", MtxSegment, MtxOffset);
+	sprintf(ErrorMsg, "MATRIX: offset 0x%02X|%06X\n\n", MtxSegment, (unsigned int)MtxOffset);
 
 	/* getting ready to convert the raw data into a ogl compatible matrix */
 	/* (the original daedalus graphics 0.08 source helped in understanding the raw data layout) */

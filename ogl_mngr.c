@@ -11,7 +11,7 @@
 
 /*	------------------------------------------------------------ */
 
-int GL_Init(void)
+int OGL_Init(void)
 {
 	glShadeModel(GL_SMOOTH);
 	glEnable(GL_POINT_SMOOTH);
@@ -52,12 +52,12 @@ int GL_Init(void)
 	glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
 	glEnable(GL_COLOR_MATERIAL);
 
-	GL_InitExtensions();
+	OGL_InitExtensions();
 
 	return true;
 }
 
-int GL_InitExtensions(void)
+int OGL_InitExtensions(void)
 {
 	GLExtension_List = strdup(glGetString(GL_EXTENSIONS));
 	int ExtListLen = strlen(GLExtension_List);
@@ -113,7 +113,7 @@ int GL_InitExtensions(void)
 	return 0;
 }
 
-int GL_DrawScene(void)
+int OGL_DrawScene(void)
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -205,7 +205,7 @@ int GL_DrawScene(void)
 	return true;
 }
 
-void ReSizeGLScene(GLsizei width, GLsizei height)
+void OGL_ResizeScene(GLsizei width, GLsizei height)
 {
 	if (height == 0) height = 1;
 
@@ -220,7 +220,7 @@ void ReSizeGLScene(GLsizei width, GLsizei height)
 	glLoadIdentity();
 }
 
-void GL_KillTarget(void)
+void OGL_KillTarget(void)
 {
 	if (hRC)
 	{
@@ -236,7 +236,7 @@ void GL_KillTarget(void)
 	}
 }
 
-BOOL GL_CreateTarget(int width, int height, int bits)
+BOOL OGL_CreateTarget(int width, int height, int bits)
 {
 	GLuint PixelFormat;
 
@@ -265,42 +265,42 @@ BOOL GL_CreateTarget(int width, int height, int bits)
 
 	if (!(hDC_ogl = GetDC(hogl)))
 	{
-		GL_KillTarget();
+		OGL_KillTarget();
 		MessageBox(NULL, "Can't create OpenGL Device Context!", "Error", MB_OK | MB_ICONEXCLAMATION);
 		return FALSE;
 	}
 
 	if (!(PixelFormat = ChoosePixelFormat(hDC_ogl, &pfd)))
 	{
-		GL_KillTarget();
+		OGL_KillTarget();
 		MessageBox(NULL, "Can't find suitable PixelFormat!", "Error", MB_OK | MB_ICONEXCLAMATION);
 		return FALSE;
 	}
 
 	if(!SetPixelFormat(hDC_ogl, PixelFormat, &pfd))
 	{
-		GL_KillTarget();
+		OGL_KillTarget();
 		MessageBox(NULL,"Can't set PixelFormat!", "Error", MB_OK | MB_ICONEXCLAMATION);
 		return FALSE;
 	}
 
 	if (!(hRC = wglCreateContext(hDC_ogl)))
 	{
-		GL_KillTarget();
+		OGL_KillTarget();
 		MessageBox(NULL, "Can't create OpenGL Rendering Context!", "Error", MB_OK | MB_ICONEXCLAMATION);
 		return FALSE;
 	}
 
 	if(!wglMakeCurrent(hDC_ogl, hRC))
 	{
-		GL_KillTarget();
+		OGL_KillTarget();
 		MessageBox(NULL, "Can't activate OpenGL Rendering Context!", "Error", MB_OK | MB_ICONEXCLAMATION);
 		return FALSE;
 	}
 
-	if (!GL_Init())
+	if (!OGL_Init())
 	{
-		GL_KillTarget();
+		OGL_KillTarget();
 		MessageBox(NULL, "Initialization failed!", "Error", MB_OK | MB_ICONEXCLAMATION);
 		return FALSE;
 	}

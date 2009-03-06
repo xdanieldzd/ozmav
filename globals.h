@@ -92,11 +92,12 @@ extern int Zelda_GetMapDisplayLists(unsigned long, int);
 extern int Zelda_GetMapCollision(int);
 
 /* ogl_mngr.c */
-extern int GL_Init(void);
-extern int GL_InitExtensions(void);
-extern int GL_DrawScene(void);
-extern void GL_KillTarget(void);
-extern bool GL_CreateTarget(int, int, int);
+extern int OGL_Init(void);
+extern int OGL_InitExtensions(void);
+extern int OGL_DrawScene(void);
+extern void OGL_ResizeScene(GLsizei, GLsizei);
+extern void OGL_KillTarget(void);
+extern bool OGL_CreateTarget(int, int, int);
 
 /* uc_comb.c */
 extern int F3DEX2_Cmd_SETCOMBINE();
@@ -108,6 +109,7 @@ extern int F3DEX2_HACKSelectClrAlpSource();
 
 /* uc_misc.c */
 extern int F3DEX2_Cmd_RDPHALF_1();
+extern int F3DEX2_Cmd_RDPHALF_2();
 extern int F3DEX2_Cmd_BRANCH_Z();
 extern int F3DEX2_Cmd_DL(bool);
 
@@ -131,6 +133,7 @@ extern int F3DEX2_Cmd_VTX();
 extern int F3DEX2_GetVertexList(unsigned int, unsigned long, unsigned int, unsigned int);
 extern int F3DEX2_Cmd_TRI1();
 extern int F3DEX2_Cmd_TRI2();
+extern int F3DEX2_Cmd_QUAD();
 extern int F3DEX2_DrawVertexPoint(unsigned int);
 extern int F3DEX2_Cmd_MTX();
 
@@ -270,9 +273,8 @@ extern unsigned long	DLTempPosition;
 extern unsigned int		DLToRender;
 extern bool				DListHasEnded;
 
-extern bool				SubDLCall;
-
 extern unsigned long	Storage_RDPHalf1;
+extern unsigned long	Storage_RDPHalf2;
 
 extern GLfloat			Matrix[4][4];
 extern GLfloat			Matrix_Stack[32][4][4];
