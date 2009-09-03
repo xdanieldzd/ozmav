@@ -17,13 +17,41 @@ int Viewer_RenderMap()
 	Debug_FreeOperations = 0;
 
 	/* OPEN GFX COMMAND LOG */
-	if(!GFXLogOpened) FileGFXLog = fopen("gfxlog.txt", "w"); GFXLogOpened = true;
+	char Temp[1024];
+	sprintf(Temp, "%s\\gfxlog.txt", AppPath);
+	if(!GFXLogOpened) FileGFXLog = fopen(Temp, "w"); GFXLogOpened = true;
 
-	if(!WavefrontObjOpened) FileWavefrontObj = fopen("map.obj", "w"); WavefrontObjOpened = true;
-	if(!WavefrontMtlOpened) FileWavefrontMtl = fopen("map.mtl", "w"); WavefrontMtlOpened = true;
+	/* OPEN COMBINER LOG */
+	sprintf(Temp, "%s\\comb.txt", AppPath);
+	FileCombinerLog = fopen(Temp, "w");
 
-	WavefrontObjVertCount = 0;
-	WavefrontObjVertCount_Previous = 0;
+	int i = 0;
+	for(i = 0; i < 257; i++) {
+		glDeleteProgramsARB(1, &FPCache[i].FragProg);
+		FPCache[i].Combine0 = 0;
+		FPCache[i].Combine1 = 0;
+		FPCache[i].FragProg = 0;
+	}
+	FPCachePosition = 0;
+
+	if(Renderer_EnableWavefrontDump) {
+		static char WavefrontFilename[] = "";
+		sprintf(WavefrontFilename, "%s\\dump\\0x%02X.obj", AppPath, (unsigned int)ROM_SceneToLoad);
+		if(!WavefrontObjOpened) FileWavefrontObj = fopen(WavefrontFilename, "w"); WavefrontObjOpened = true;
+		sprintf(WavefrontFilename, "%s\\dump\\0x%02X.mtl", AppPath, (unsigned int)ROM_SceneToLoad);
+		if(!WavefrontMtlOpened) FileWavefrontMtl = fopen(WavefrontFilename, "w"); WavefrontMtlOpened = true;
+
+		sprintf(WavefrontFilename, "%s\\dump\\0x%02X_col.obj", AppPath, (unsigned int)ROM_SceneToLoad);
+		if(!WavefrontObjColOpened) FileWavefrontObjCol = fopen(WavefrontFilename, "w"); WavefrontObjColOpened = true;
+
+		WavefrontObjVertCount = 0;
+		WavefrontObjVertCount_Previous = 0;
+
+		WavefrontObjMaterialCnt = 0;
+
+		WavefrontObjColVertCount = 0;
+		WavefrontObjColVertCount_Previous = 0;
+	}
 
 	/* IF GL DLISTS EXIST, DELETE THEM ALL */
 	if(Renderer_GLDisplayList != 0) glDeleteLists(Renderer_GLDisplayList, 4096);
@@ -36,14 +64,15 @@ int Viewer_RenderMap()
 
 	MVMatrixCount = 0;
 
-	int i = 0;
 	for(i = 0; i < SceneHeader[SceneHeader_Current].Map_Count; i++) {
-		memset(ErrorMsg, 0x00, sizeof(ErrorMsg));
-
 		ROM_CurrentMap_Temp = i;
+
+//		static unsigned char Msg[8192];
+//		memset(Msg, 0x00, sizeof(Msg));
 
 		int j = 0;
 		for(j = 0; j < DListInfo_CurrentCount[i]; j++) {
+		//for(j = 6; j < 7; j++) {
 			if(Renderer_GLDisplayList_Current != 0) {
 				glNewList(Renderer_GLDisplayList_Current + j, GL_COMPILE);
 					DLTempPosition = DLists[i][j] / 4;
@@ -58,11 +87,11 @@ int Viewer_RenderMap()
 
 				Renderer_GLDisplayList_Total++;
 
-//				sprintf(ErrorMsg, "%s- DLists[%d][%d] = 0x%08X\n", ErrorMsg, ROM_CurrentMap, j, DLists[ROM_CurrentMap][j]);
+//				sprintf(Msg, "%s- DLists[%d][%d] = 0x%08X\n", Msg, i, j, DLists[i][j]);
 			}
 		}
-//		sprintf(ErrorMsg, "%s\n- Filesize 0x%08X\n", ErrorMsg, ZMapFilesize[i]);
-//		MessageBox(hwnd, ErrorMsg, "", 0);
+//		sprintf(Msg, "%s\n- Filesize 0x%08X\n", Msg, ZMapFilesize[i]);
+//		MessageBox(hwnd, Msg, "", 0);
 
 		Renderer_GLDisplayList_Current += j;
 	}
@@ -198,10 +227,14 @@ int Viewer_RenderMap()
 */
 	AreaLoaded = true;
 
+	fclose(FileCombinerLog);
 	fclose(FileGFXLog); GFXLogOpened = false;
 
-	fclose(FileWavefrontObj); WavefrontObjOpened = false;
-	fclose(FileWavefrontMtl); WavefrontMtlOpened = false;
+	if(Renderer_EnableWavefrontDump) {
+		fclose(FileWavefrontObj); WavefrontObjOpened = false;
+		fclose(FileWavefrontMtl); WavefrontMtlOpened = false;
+		fclose(FileWavefrontObjCol); WavefrontObjColOpened = false;
+	}
 
 //	sprintf(ErrorMsg, "%d malloc operations, %d free operations while loading map", Debug_MallocOperations, Debug_FreeOperations);
 //	MessageBox(hwnd, ErrorMsg, "Memory", MB_OK | MB_ICONINFORMATION);
@@ -213,8 +246,10 @@ int Viewer_RenderMap()
 
 int Viewer_RenderMap_DListParser(bool CalledViaCmd, unsigned long Position)
 {
-	sprintf(WavefrontObjMsg, "mltlib map.mtl\n");
-	fprintf(FileWavefrontObj, WavefrontObjMsg);
+	if(Renderer_EnableWavefrontDump) {
+		sprintf(WavefrontObjMsg, "mltlib 0x%02X.mtl\n", (unsigned int)ROM_SceneToLoad);
+		fprintf(FileWavefrontObj, WavefrontObjMsg);
+	}
 
 	if(CalledViaCmd) {
 		sprintf(GFXLogMsg, "  [Calling DList at 0x%08X]\n", (unsigned int)Position * 4);
@@ -227,6 +262,8 @@ int Viewer_RenderMap_DListParser(bool CalledViaCmd, unsigned long Position)
 	while (!DListHasEnded) {
 		if(GetDLFromZMapScene) {
 			/* get data from map */
+			memcpy(&Readout_PrevGFXCommand1, &ZMapBuffer[DListParser_CurrentMap][Position - 2], 4);
+
 			memcpy(&Readout_Current1, &ZMapBuffer[DListParser_CurrentMap][Position], 4);
 			memcpy(&Readout_Current2, &ZMapBuffer[DListParser_CurrentMap][Position + 1], 4);
 
@@ -235,6 +272,8 @@ int Viewer_RenderMap_DListParser(bool CalledViaCmd, unsigned long Position)
 			Helper_SplitCurrentVals(true);
 		} else {
 			/* get data from temp object */
+			memcpy(&Readout_PrevGFXCommand1, &TempObjectBuffer[Position - 1], 4);
+
 			memcpy(&Readout_Current1, &TempObjectBuffer[Position], 4);
 			memcpy(&Readout_Current2, &TempObjectBuffer[Position + 1], 4);
 
@@ -349,8 +388,10 @@ int Viewer_RenderMap_DListParser(bool CalledViaCmd, unsigned long Position)
 		/* 0xD8 */
 		case F3DEX2_POPMTX:
 			sprintf(CurrentGFXCmd, "F3DEX2_POPMTX        ");
-			sprintf(CurrentGFXCmdNote, "<unemulated>");
+			sprintf(CurrentGFXCmdNote, "<partially handled>");
 			Helper_GFXLogCommand(Position);
+
+			F3DEX2_Cmd_POPMTX();
 			break;
 
 		/* 0xD9 */
@@ -560,6 +601,8 @@ int Viewer_RenderMap_DListParser(bool CalledViaCmd, unsigned long Position)
 			sprintf(CurrentGFXCmd, "G_LOADBLOCK          ");
 			sprintf(CurrentGFXCmdNote, "<unemulated>");
 			Helper_GFXLogCommand(Position);
+
+			F3DEX2_Cmd_LOADBLOCK();
 			break;
 
 		/* 0xF4 */

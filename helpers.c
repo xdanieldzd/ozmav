@@ -19,7 +19,7 @@ int Zelda_MemCopy(unsigned int SourceBank, unsigned long SourceOffset, unsigned 
 		break;
 	case 0x02:
 		/* data comes from scene file */
-		if(SourceOffset < ZSceneFilesize) {
+		if(((SourceOffset + Size) / 4) < ZSceneFilesize) {
 			memcpy(Target, &ZSceneBuffer[SourceOffset / 4], Size);
 		} else {
 			return -1;
@@ -27,37 +27,47 @@ int Zelda_MemCopy(unsigned int SourceBank, unsigned long SourceOffset, unsigned 
 		break;
 	case 0x03:
 		/* data comes from map file */
-		if(SourceOffset < ZMapFilesize[ROM_CurrentMap_Temp]) {
+		if(((SourceOffset + Size) / 4) < ZMapFilesize[ROM_CurrentMap_Temp]) {
 			memcpy(Target, &ZMapBuffer[ROM_CurrentMap_Temp][SourceOffset / 4], Size);
 		} else {
 			return -1;
 		}
 		break;
-	case 0x04:
-		/* data comes from gameplay_keep */
-/*		if(SourceOffset < GameplayKeepFilesize) {
-			memcpy(Target, &GameplayKeepBuffer[SourceOffset / 4], Size);
+
+	/* MM TEST */
+/*	case 0x06:
+		if((SourceOffset + Size / 4) < ROMFilesize) {
+			memcpy(Target, &ROMBuffer[(0x650ef0 * 7 / 4) + (SourceOffset / 4)], Size);		// MM JPN 1.0 - mountain village (snow) ????
 		} else {
 			return -1;
-		}*/
+		}
 		break;
-	case 0x05:
-		/* data comes from gameplay_dangeon_keep */
-/*		if(SourceOffset < GameplayFDKeepFilesize) {
-			memcpy(Target, &GameplayFDKeepBuffer[SourceOffset / 4], Size);
-		} else {
-			return -1;
-		}*/
-		break;
-	case 0x06:
+*/
+//	case 0x04:
+//		/* data comes from gameplay_keep */
+//		if((SourceOffset + Size / 4) < GameplayKeepFilesize) {
+//			memcpy(Target, &GameplayKeepBuffer[SourceOffset / 4], Size);
+//		} else {
+//			return -1;
+//		}
+//		break;
+//	case 0x05:
+//		/* data comes from gameplay_dangeon_keep */
+//		if((SourceOffset + Size / 4) < GameplayFDKeepFilesize) {
+//			memcpy(Target, &GameplayFDKeepBuffer[SourceOffset / 4], Size);
+//		} else {
+//			return -1;
+//		}
+//		break;
+//	case 0x06:
 		/* data comes from object file */
-		if((SourceOffset < CurrentObject_Length) && (TempObjectBuffer_Allocated)) {
+/*		if(((SourceOffset + Size / 4) < CurrentObject_Length) && (TempObjectBuffer_Allocated)) {
 			memcpy(Target, &TempObjectBuffer[SourceOffset / 4], Size);
 		} else {
 			return -1;
 		}
 		break;
-	default:
+*/	default:
 		/* fallback if source is not handled / no valid source was found */
 		memset(Target, 0xFF, Size);
 		return -1;
@@ -133,6 +143,25 @@ int Helper_CalculateFPS()
 
 	sprintf(Renderer_FPSMessage, "%d FPS", Renderer_FPS);
 	SendMessage(hstatus, SB_SETTEXT, 0, (LPARAM)Renderer_FPSMessage);
+
+	return 0;
+}
+
+/*	------------------------------------------------------------ */
+
+int Helper_FileReadLine(FILE * Source, int End, unsigned char * Target)
+{
+	if(ftell(Source) >= End) return -1;
+
+	memset(Target, 0x00, sizeof(Target));
+	char CurChar = 0; int Length = 0;
+
+	while((CurChar != 0x0D) && (CurChar != 0x0A)) {
+		fread(&CurChar, 1, 1, Source);
+		if((CurChar != 0x0D) && (CurChar != 0x0A)) { sprintf(Target, "%s%c", Target, CurChar); Length++; }
+	}
+
+	fseek(Source, 1, SEEK_CUR);
 
 	return 0;
 }

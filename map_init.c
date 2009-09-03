@@ -9,6 +9,13 @@
 
 #include "globals.h"
 
+typedef struct _SceneNameDataStruct {
+	unsigned long Offset;
+	char *Name;
+} SceneNameDataStruct;
+
+SceneNameDataStruct SceneNameData[256];
+
 /*	------------------------------------------------------------ */
 
 int Zelda_GetMapHeaderList(int HeaderListPos, int CurrentMap)
@@ -57,6 +64,7 @@ int Zelda_GetMapHeader(int CurrentHeader, int CurrentMap)
 		Helper_SplitCurrentVals(true);
 
 		switch(Readout_CurrentByte1) {
+		/* actors */
 		case 0x01:
 			MapHeader[CurrentMap][CurrentHeader].Actor_Count = Readout_CurrentByte2;
 			MapHeader[CurrentMap][CurrentHeader].Actor_DataOffset = ((Readout_CurrentByte6 * 0x10000) + Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
@@ -65,6 +73,7 @@ int Zelda_GetMapHeader(int CurrentHeader, int CurrentMap)
 				MapHeader[CurrentMap][CurrentHeader].Actor_Count, (unsigned int)MapHeader[CurrentMap][CurrentHeader].Actor_DataOffset);
 			Helper_LogMessage(2, SystemLogMsg);
 			break;
+		/* mesh data */
 		case 0x0A:
 			MapHeader[CurrentMap][CurrentHeader].MeshDataHeader = ((Readout_CurrentByte6 * 0x10000) + Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
 			sprintf(SystemLogMsg, "  0x%08X:\tMesh data header: 0x%06X\n",
@@ -72,6 +81,7 @@ int Zelda_GetMapHeader(int CurrentHeader, int CurrentMap)
 				(unsigned int)MapHeader[CurrentMap][CurrentHeader].MeshDataHeader);
 			Helper_LogMessage(2, SystemLogMsg);
 			break;
+		/* actor groups */
 		case 0x0B:
 			MapHeader[CurrentMap][CurrentHeader].Group_Count = Readout_CurrentByte2;
 			MapHeader[CurrentMap][CurrentHeader].Group_DataOffset = ((Readout_CurrentByte6 * 0x10000) + Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
@@ -80,6 +90,7 @@ int Zelda_GetMapHeader(int CurrentHeader, int CurrentMap)
 				MapHeader[CurrentMap][CurrentHeader].Group_Count, (unsigned int)MapHeader[CurrentMap][CurrentHeader].Group_DataOffset);
 			Helper_LogMessage(2, SystemLogMsg);
 			break;
+		/* time-related */
 		case 0x10:
 			MapHeader[CurrentMap][CurrentHeader].MapTime = (Readout_CurrentByte5 * 0x100) + Readout_CurrentByte6;
 			MapHeader[CurrentMap][CurrentHeader].TimeFlow = Readout_CurrentByte7;
@@ -88,6 +99,7 @@ int Zelda_GetMapHeader(int CurrentHeader, int CurrentMap)
 				(unsigned int)MapHeader[CurrentMap][CurrentHeader].MapTime, MapHeader[CurrentMap][CurrentHeader].TimeFlow);
 			Helper_LogMessage(2, SystemLogMsg);
 			break;
+		/* skybox */
 		case 0x12:
 			MapHeader[CurrentMap][CurrentHeader].Skybox = Readout_CurrentByte5;
 			sprintf(SystemLogMsg, "  0x%08X:\tSkybox setting: 0x%02X\n",
@@ -95,11 +107,13 @@ int Zelda_GetMapHeader(int CurrentHeader, int CurrentMap)
 				MapHeader[CurrentMap][CurrentHeader].Skybox);
 			Helper_LogMessage(2, SystemLogMsg);
 			break;
+		/* end of header */
 		case 0x14:
 			EndOfHeader = true;
 			sprintf(SystemLogMsg, "  0x%08X:\tEnd of header\n", InHeaderPos * 4);
 			Helper_LogMessage(2, SystemLogMsg);
 			break;
+		/* echo level */
 		case 0x16:
 			MapHeader[CurrentMap][CurrentHeader].EchoLevel = Readout_CurrentByte8;
 			sprintf(SystemLogMsg, "  0x%08X:\tEcho level: 0x%02X\n",
@@ -107,6 +121,7 @@ int Zelda_GetMapHeader(int CurrentHeader, int CurrentMap)
 				MapHeader[CurrentMap][CurrentHeader].EchoLevel);
 			Helper_LogMessage(2, SystemLogMsg);
 			break;
+		/* unhandled option */
 		default:
 			sprintf(SystemLogMsg, "  0x%08X:\t<Unknown header option (%02X%02X%02X%02X %02X%02X%02X%02X)>\n",
 				InHeaderPos * 4,
@@ -200,6 +215,24 @@ int Zelda_GetSceneHeader(int CurrentHeader)
 				SceneHeader[CurrentHeader].Map_Count, (unsigned int)SceneHeader[CurrentHeader].Map_ListOffset);
 			Helper_LogMessage(2, SystemLogMsg);
 			break;
+		/* doors */
+		case 0x0E:
+			SceneHeader[CurrentHeader].Door_Count = Readout_CurrentByte2;
+			SceneHeader[CurrentHeader].Door_DataOffset = ((Readout_CurrentByte6 * 0x10000) + Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
+			sprintf(SystemLogMsg, "  0x%08X:\tDoors: %d, Door data offset: 0x%06X\n",
+				InHeaderPos * 4,
+				SceneHeader[CurrentHeader].Door_Count, (unsigned int)SceneHeader[CurrentHeader].Door_DataOffset);
+			Helper_LogMessage(2, SystemLogMsg);
+			break;
+		/* environment */
+		case 0x0F:
+			SceneHeader[CurrentHeader].EnvSetting_Count = Readout_CurrentByte2;
+			SceneHeader[CurrentHeader].EnvSetting_DataOffset = ((Readout_CurrentByte6 * 0x10000) + Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
+			sprintf(SystemLogMsg, "  0x%08X:\tEnvironments: %d, environment data offset: 0x%06X\n",
+				InHeaderPos * 4,
+				SceneHeader[CurrentHeader].EnvSetting_Count, (unsigned int)SceneHeader[CurrentHeader].EnvSetting_DataOffset);
+			Helper_LogMessage(2, SystemLogMsg);
+			break;
 		/* end of header */
 		case 0x14:
 			EndOfHeader = true;
@@ -229,6 +262,14 @@ int Zelda_GetSceneHeader(int CurrentHeader)
 
 int Zelda_GetMapActors(int CurrentHeader, int CurrentMap)
 {
+	if(!(MapHeader[CurrentMap][CurrentHeader].Actor_Count) == 0) {
+		unsigned long DataOffset = (Map_Start[CurrentMap] + MapHeader[CurrentMap][CurrentHeader].Actor_DataOffset);
+		int DataLength = MapHeader[CurrentMap][CurrentHeader].Actor_Count * 0x10;
+
+		memcpy(&Actors[CurrentMap], &ROMBuffer[DataOffset / 4], DataLength);
+		swab((const void*)Actors[CurrentMap], (void*)Actors[CurrentMap], sizeof(Actors[CurrentMap]));
+	}
+/*
 	int InActorDataPos = MapHeader[CurrentMap][CurrentHeader].Actor_DataOffset / 4;
 
 	ActorInfo_CurrentCount[CurrentMap] = 0;
@@ -260,13 +301,21 @@ int Zelda_GetMapActors(int CurrentHeader, int CurrentMap)
 			InActorDataPos += 4;
 		}
 	}
-
+*/
 	return 0;
 }
 
 int Zelda_GetSceneActors(int CurrentHeader)
 {
-	int InScActorDataPos = SceneHeader[CurrentHeader].ScActor_DataOffset / 4;
+	if(!(SceneHeader[CurrentHeader].ScActor_Count) == 0) {
+		unsigned long DataOffset = (Scene_Start + SceneHeader[CurrentHeader].ScActor_DataOffset);
+		int DataLength = SceneHeader[CurrentHeader].ScActor_Count * 0x10;
+
+		memcpy(&ScActors, &ROMBuffer[DataOffset / 4], DataLength);
+		swab((const void*)ScActors, (void*)ScActors, sizeof(ScActors));
+	}
+
+/*	int InScActorDataPos = SceneHeader[CurrentHeader].ScActor_DataOffset / 4;
 
 	ScActorInfo_CurrentCount = 0;
 	ScActorInfo_Selected = 0;
@@ -297,7 +346,65 @@ int Zelda_GetSceneActors(int CurrentHeader)
 			InScActorDataPos += 4;
 		}
 	}
+*/
+	return 0;
+}
 
+int Zelda_GetDoorData(int CurrentHeader)
+{
+	if(!(SceneHeader[CurrentHeader].Door_Count) == 0) {
+		unsigned long DataOffset = (Scene_Start + SceneHeader[CurrentHeader].Door_DataOffset);
+		int DataLength = SceneHeader[CurrentHeader].Door_Count * 0x10;
+
+		memcpy(&Doors, &ROMBuffer[DataOffset / 4], DataLength);
+		swab((const void*)Doors, (void*)Doors, sizeof(Doors));
+	}
+
+/*	char temp[256];
+	sprintf(temp, "offset %08x, len %02x\n\nactor %04x",
+		DataOffset, DataLength,
+		Doors[0].Number);
+	MessageBox(hwnd, temp, "", 0);
+*/
+/*	int InDoorDataPos = SceneHeader[CurrentHeader].Door_DataOffset / 4;
+
+	DoorInfo_CurrentCount = 0;
+	DoorInfo_Selected = 0;
+
+	if(!(SceneHeader[CurrentHeader].Door_Count) == 0) {
+		while (!(DoorInfo_CurrentCount == SceneHeader[CurrentHeader].Door_Count)) {
+			memcpy(&Readout_Current1, &ZSceneBuffer[InDoorDataPos], 4);
+			memcpy(&Readout_Current2, &ZSceneBuffer[InDoorDataPos + 1], 4);
+
+			Helper_SplitCurrentVals(true);
+
+			Doors[DoorInfo_CurrentCount].Unknown1 = (Readout_CurrentByte1 * 0x100) + Readout_CurrentByte2;
+			Doors[DoorInfo_CurrentCount].Unknown2 = (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
+			Doors[DoorInfo_CurrentCount].Number = (Readout_CurrentByte5 * 0x100) + Readout_CurrentByte6;
+			Doors[DoorInfo_CurrentCount].X_Position = (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
+
+			memcpy(&Readout_Current1, &ZSceneBuffer[InDoorDataPos + 2], 4);
+			memcpy(&Readout_Current2, &ZSceneBuffer[InDoorDataPos + 3], 4);
+
+			Helper_SplitCurrentVals(true);
+
+			Doors[DoorInfo_CurrentCount].Y_Position = (Readout_CurrentByte1 * 0x100) + Readout_CurrentByte2;
+			Doors[DoorInfo_CurrentCount].Z_Position = (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
+			Doors[DoorInfo_CurrentCount].Y_Rotation = (Readout_CurrentByte5 * 0x100) + Readout_CurrentByte6;
+			Doors[DoorInfo_CurrentCount].Variable = (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
+*//*
+			sprintf(SystemLogMsg, "unk1 %d, unk2 %d, number %d, xpos %d, ypos %d, zpos %d, yrot %d, var %d\n",
+				Doors[DoorInfo_CurrentCount].Unknown1, Doors[DoorInfo_CurrentCount].Unknown2,
+				Doors[DoorInfo_CurrentCount].Number, Doors[DoorInfo_CurrentCount].X_Position,
+				Doors[DoorInfo_CurrentCount].Y_Position, Doors[DoorInfo_CurrentCount].Z_Position,
+				Doors[DoorInfo_CurrentCount].Y_Rotation, Doors[DoorInfo_CurrentCount].Variable);
+			Helper_LogMessage(2, SystemLogMsg);
+*/
+/*			DoorInfo_CurrentCount++;
+			InDoorDataPos += 4;
+		}
+	}
+*/
 	return 0;
 }
 
@@ -528,6 +635,33 @@ int Zelda_GetMapCollision(int CurrentHeader)
 			TotalColVert++;
 
 			ColVertScanPosition += 2;
+
+			if(Renderer_EnableWavefrontDump) {
+				sprintf(WavefrontObjColMsg, "v %4.2f %4.2f %4.2f\n",
+					(float)CollisionVertex[TotalColVert - 4].X / 32,
+					(float)CollisionVertex[TotalColVert - 4].Y / 32,
+					(float)CollisionVertex[TotalColVert - 4].Z / 32);
+				fprintf(FileWavefrontObjCol, WavefrontObjColMsg);
+				WavefrontObjVertCount++;
+				sprintf(WavefrontObjColMsg, "v %4.2f %4.2f %4.2f\n",
+					(float)CollisionVertex[TotalColVert - 3].X / 32,
+					(float)CollisionVertex[TotalColVert - 3].Y / 32,
+					(float)CollisionVertex[TotalColVert - 3].Z / 32);
+				fprintf(FileWavefrontObjCol, WavefrontObjColMsg);
+				WavefrontObjVertCount++;
+				sprintf(WavefrontObjColMsg, "v %4.2f %4.2f %4.2f\n",
+					(float)CollisionVertex[TotalColVert - 2].X / 32,
+					(float)CollisionVertex[TotalColVert - 2].Y / 32,
+					(float)CollisionVertex[TotalColVert - 2].Z / 32);
+				fprintf(FileWavefrontObjCol, WavefrontObjColMsg);
+				WavefrontObjVertCount++;
+				sprintf(WavefrontObjColMsg, "v %4.2f %4.2f %4.2f\n",
+					(float)CollisionVertex[TotalColVert - 1].X / 32,
+					(float)CollisionVertex[TotalColVert - 1].Y / 32,
+					(float)CollisionVertex[TotalColVert - 1].Z / 32);
+				fprintf(FileWavefrontObjCol, WavefrontObjColMsg);
+				WavefrontObjVertCount++;
+			}
 		}
 	}
 
@@ -603,6 +737,17 @@ int Zelda_GetMapCollision(int CurrentHeader)
 							glVertex3d(CollisionVertex[ColVertex3].X, CollisionVertex[ColVertex3].Y, CollisionVertex[ColVertex3].Z);
 						glEnd();
 
+						if(Renderer_EnableWavefrontDump) {
+							unsigned int Vert1 = (ColVertex1) + 1 + WavefrontObjColVertCount_Previous;
+							unsigned int Vert2 = (ColVertex2) + 1 + WavefrontObjColVertCount_Previous;
+							unsigned int Vert3 = (ColVertex3) + 1 + WavefrontObjColVertCount_Previous;
+							sprintf(WavefrontObjColMsg, "f %d/%d/%d %d/%d/%d %d/%d/%d\n",
+								Vert1, Vert1, Vert1,
+								Vert2, Vert2, Vert2,
+								Vert3, Vert3, Vert3);
+							fprintf(FileWavefrontObjCol, WavefrontObjColMsg);
+						}
+
 /*						sprintf(SystemLogMsg, " - Polygon %5d:\n  - Collision type: 0x%04X\n  - Vertex 1 (#%5d), X %5d, Y %5d, Z %5d\n  - Vertex 2 (#%5d), X %5d, Y %5d, Z %5d\n  - Vertex 3 (#%5d), X %5d, Y %5d, Z %5d\n\n",
 							TotalColPoly,
 							ColType,
@@ -626,6 +771,162 @@ int Zelda_GetMapCollision(int CurrentHeader)
 			glEndList();
 		}
 	}
+
+	return 0;
+}
+
+int Zelda_GetEnvironmentSettings(int CurrentHeader)
+{
+	/* PROBABLY NOT POSSIBLE SINCE SWAB FUNCTION SWAPS BYTES REGARDLESS OF TYPE (CHAR, SHORT, LONG)! */
+/*	unsigned long DataOffset = (Scene_Start + SceneHeader[CurrentHeader].EnvSetting_DataOffset);
+	int DataLength = SceneHeader[CurrentHeader].EnvSetting_Count * 0x16;
+
+	memcpy(&EnvSetting, &ROMBuffer[DataOffset / 4], DataLength);
+	swab((const void*)EnvSetting, (void*)EnvSetting, sizeof(EnvSetting));
+
+//	EnvSetting[0].FogDistance = EndianSwap(EnvSetting[0].FogDistance, sizeof(EnvSetting[0].FogDistance));
+*/
+	int InEnvDataPos = SceneHeader[CurrentHeader].EnvSetting_DataOffset / 4;
+
+	int EnvSetting_CurrentCount = 0;
+
+	if(!(SceneHeader[CurrentHeader].EnvSetting_Count) == 0) {
+		while (EnvSetting_CurrentCount <= SceneHeader[CurrentHeader].EnvSetting_Count) {
+			memcpy(&Readout_Current1, &ZSceneBuffer[InEnvDataPos], 4);
+			memcpy(&Readout_Current2, &ZSceneBuffer[InEnvDataPos + 1], 4);
+			Helper_SplitCurrentVals(true);
+			InEnvDataPos += 2;
+
+			EnvSetting[EnvSetting_CurrentCount].Color1.R = Readout_CurrentByte1;
+			EnvSetting[EnvSetting_CurrentCount].Color1.G = Readout_CurrentByte2;
+			EnvSetting[EnvSetting_CurrentCount].Color1.B = Readout_CurrentByte3;
+			EnvSetting[EnvSetting_CurrentCount].Color2.R = Readout_CurrentByte4;
+			EnvSetting[EnvSetting_CurrentCount].Color2.G = Readout_CurrentByte5;
+			EnvSetting[EnvSetting_CurrentCount].Color2.B = Readout_CurrentByte6;
+			EnvSetting[EnvSetting_CurrentCount].Color3.R = Readout_CurrentByte7;
+			EnvSetting[EnvSetting_CurrentCount].Color3.G = Readout_CurrentByte8;
+
+			memcpy(&Readout_Current1, &ZSceneBuffer[InEnvDataPos], 4);
+			memcpy(&Readout_Current2, &ZSceneBuffer[InEnvDataPos + 1], 4);
+			Helper_SplitCurrentVals(true);
+			InEnvDataPos += 2;
+
+			EnvSetting[EnvSetting_CurrentCount].Color3.B = Readout_CurrentByte1;
+			EnvSetting[EnvSetting_CurrentCount].Color4.R = Readout_CurrentByte2;
+			EnvSetting[EnvSetting_CurrentCount].Color4.G = Readout_CurrentByte3;
+			EnvSetting[EnvSetting_CurrentCount].Color4.B = Readout_CurrentByte4;
+			EnvSetting[EnvSetting_CurrentCount].Color5.R = Readout_CurrentByte5;
+			EnvSetting[EnvSetting_CurrentCount].Color5.G = Readout_CurrentByte6;
+			EnvSetting[EnvSetting_CurrentCount].Color5.B = Readout_CurrentByte7;
+			EnvSetting[EnvSetting_CurrentCount].FogColor.R = Readout_CurrentByte8;
+
+			memcpy(&Readout_Current1, &ZSceneBuffer[InEnvDataPos], 4);
+			memcpy(&Readout_Current2, &ZSceneBuffer[InEnvDataPos + 1], 4);
+			Helper_SplitCurrentVals(true);
+			InEnvDataPos += 2;
+
+			EnvSetting[EnvSetting_CurrentCount].FogColor.G = Readout_CurrentByte1;
+			EnvSetting[EnvSetting_CurrentCount].FogColor.B = Readout_CurrentByte2;
+			EnvSetting[EnvSetting_CurrentCount].FogDistance = (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
+			EnvSetting[EnvSetting_CurrentCount].DrawDistance = (Readout_CurrentByte5 * 0x100) + Readout_CurrentByte6;
+			EnvSetting_CurrentCount++;
+			EnvSetting[EnvSetting_CurrentCount].Color1.R = Readout_CurrentByte7;
+			EnvSetting[EnvSetting_CurrentCount].Color1.G = Readout_CurrentByte8;
+
+			memcpy(&Readout_Current1, &ZSceneBuffer[InEnvDataPos], 4);
+			memcpy(&Readout_Current2, &ZSceneBuffer[InEnvDataPos + 1], 4);
+			Helper_SplitCurrentVals(true);
+			InEnvDataPos += 2;
+
+			EnvSetting[EnvSetting_CurrentCount].Color1.B = Readout_CurrentByte1;
+			EnvSetting[EnvSetting_CurrentCount].Color2.R = Readout_CurrentByte2;
+			EnvSetting[EnvSetting_CurrentCount].Color2.G = Readout_CurrentByte3;
+			EnvSetting[EnvSetting_CurrentCount].Color2.B = Readout_CurrentByte4;
+			EnvSetting[EnvSetting_CurrentCount].Color3.R = Readout_CurrentByte5;
+			EnvSetting[EnvSetting_CurrentCount].Color3.G = Readout_CurrentByte6;
+			EnvSetting[EnvSetting_CurrentCount].Color3.B = Readout_CurrentByte7;
+			EnvSetting[EnvSetting_CurrentCount].Color4.R = Readout_CurrentByte8;
+
+			memcpy(&Readout_Current1, &ZSceneBuffer[InEnvDataPos], 4);
+			memcpy(&Readout_Current2, &ZSceneBuffer[InEnvDataPos + 1], 4);
+			Helper_SplitCurrentVals(true);
+			InEnvDataPos += 2;
+
+			EnvSetting[EnvSetting_CurrentCount].Color4.G = Readout_CurrentByte1;
+			EnvSetting[EnvSetting_CurrentCount].Color4.B = Readout_CurrentByte2;
+			EnvSetting[EnvSetting_CurrentCount].Color5.R = Readout_CurrentByte3;
+			EnvSetting[EnvSetting_CurrentCount].Color5.G = Readout_CurrentByte4;
+			EnvSetting[EnvSetting_CurrentCount].Color5.B = Readout_CurrentByte5;
+			EnvSetting[EnvSetting_CurrentCount].FogColor.R = Readout_CurrentByte6;
+			EnvSetting[EnvSetting_CurrentCount].FogColor.G = Readout_CurrentByte7;
+			EnvSetting[EnvSetting_CurrentCount].FogColor.B = Readout_CurrentByte8;
+
+			memcpy(&Readout_Current1, &ZSceneBuffer[InEnvDataPos], 4);
+			Helper_SplitCurrentVals(false);
+			InEnvDataPos++;
+
+			EnvSetting[EnvSetting_CurrentCount].FogDistance = (Readout_CurrentByte1 * 0x100) + Readout_CurrentByte2;
+			EnvSetting[EnvSetting_CurrentCount].DrawDistance = (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
+			EnvSetting_CurrentCount++;
+		}
+
+		FogColor[0] = (EnvSetting[0].FogColor.R / 255.0f);
+		FogColor[1] = (EnvSetting[0].FogColor.G / 255.0f);
+		FogColor[2] = (EnvSetting[0].FogColor.B / 255.0f);
+
+		float FogDistance = ((EnvSetting[0].FogDistance & 0x00FF) / 6.0f);	//utterly wrong, but looks okay
+		glFogf(GL_FOG_END, FogDistance);
+
+		glFogfv(GL_FOG_COLOR, FogColor);
+		glClearColor(FogColor[0], FogColor[1], FogColor[2], FogColor[3]);
+/*
+		char temp[256];
+//		sprintf(temp, "offset %08x, len %02x\n\ncolor1 %02x %02x %02x\ncolor2 %02x %02x %02x\n\nfogdist (raw) %04x\nfogdist (conv) %f",
+		sprintf(temp, "color1 %02x %02x %02x\ncolor2 %02x %02x %02x\n\nfogdist (raw) %04x\nfogdist (conv) %f",
+//			DataOffset, DataLength,
+			EnvSetting[0].Color1.R, EnvSetting[0].Color1.G, EnvSetting[0].Color1.B,
+			EnvSetting[0].Color2.R, EnvSetting[0].Color2.G, EnvSetting[0].Color2.B,
+			EnvSetting[0].FogDistance,
+			FogDistance);
+		MessageBox(hwnd, temp, "env", 0);
+	*/
+	}
+
+	return 0;
+}
+
+int Zelda_GetSceneName()
+{
+	memset(Scene_Name, 0x00, sizeof(Scene_Name));
+
+	unsigned long Offset = 0; char Name[256];
+
+	FILE * SceneNames;
+	char Temp[256]; int NameCount = 0;
+	sprintf(Temp, "%s\\scenes.txt", AppPath);
+	SceneNames = fopen(Temp, "rb");
+
+	if(SceneNames) {
+		fseek(SceneNames, 0, SEEK_END);
+		int End = ftell(SceneNames);
+		rewind(SceneNames);
+
+		while(NameCount < ROM_MaxSceneCount) {
+			/* get offset */
+			if(Helper_FileReadLine(SceneNames, End, Temp) == -1) break;
+			sscanf(Temp, "%x", &Offset);
+			/* get name */
+			if(Helper_FileReadLine(SceneNames, End, Name) == -1) break;
+
+			/* if offset matches currently loaded scene, set scene name and break out */
+			if(Offset == Scene_Start) { strcpy(Scene_Name, Name); break; }
+
+			NameCount++;
+		}
+	}
+
+	/* if scene name isn't equal last name read out (= not found) OR scenes.txt wasn't found, set scene name to display offset */
+	if(strcmp(Scene_Name, Name)) sprintf(Scene_Name, "0x%08X", Scene_Start);
 
 	return 0;
 }

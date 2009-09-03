@@ -16,7 +16,8 @@ int F3DEX2_Cmd_GEOMETRYMODE()
 	unsigned int Mode_Clear = (Readout_CurrentByte2 * 0x10000) + (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
 	unsigned int Mode_Set = (Readout_CurrentByte6 * 0x10000) + (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
 
-	N64_GeometryMode = (N64_GeometryMode & Mode_Clear) | Mode_Set;
+	N64_GeometryMode &= Mode_Clear;
+	N64_GeometryMode |= Mode_Set;
 
 	memset(ErrorMsg, 0x00, sizeof(ErrorMsg));
 	sprintf(ErrorMsg, "GEOMETRYMODE | CLEAR: %s%s%s%s%s%s%s%s%s%s\nGEOMETRYMODE | SET:   %s%s%s%s%s%s%s%s%s%s\n",
@@ -61,20 +62,21 @@ int F3DEX2_UpdateGeoMode()
 
 	/* fog */
 	if(N64_GeometryMode & G_FOG) {
-		glEnable(GL_FOG);
+//		glEnable(GL_FOG);
 	} else {
-		glDisable(GL_FOG);
+//		glDisable(GL_FOG);
 	}
+	/* commented out in favor of manual fog en-/disable via menu*/
 
 	/* zbuffer */
 	if(N64_GeometryMode & G_ZBUFFER) {
-		glDisable(GL_DEPTH_TEST);
-	} else {
 		glEnable(GL_DEPTH_TEST);
+	} else {
+//		glDisable(GL_DEPTH_TEST);
 	}
 
 	/* shading */
-	if((N64_GeometryMode & G_SHADE) && (N64_GeometryMode & G_SHADING_SMOOTH)) {
+	if((N64_GeometryMode & G_TEXTURE_GEN_LINEAR)) {
 		glShadeModel(GL_FLAT);
 	} else {
 		glShadeModel(GL_SMOOTH);
@@ -94,22 +96,25 @@ int F3DEX2_UpdateGeoMode()
 
 int F3DEX2_Cmd_SETOTHERMODE_H()
 {
-	unsigned long TempExtract0 =	(Readout_CurrentByte1 * 0x1000000) +
-									(Readout_CurrentByte2 * 0x10000) +
-									(Readout_CurrentByte3 * 0x100) +
-									Readout_CurrentByte4;
+	unsigned long W0 =	(Readout_CurrentByte1 * 0x1000000) +
+						(Readout_CurrentByte2 * 0x10000) +
+						(Readout_CurrentByte3 * 0x100) +
+						Readout_CurrentByte4;
 
-	unsigned long TempExtract1 =	(Readout_CurrentByte5 * 0x1000000) +
-									(Readout_CurrentByte6 * 0x10000) +
-									(Readout_CurrentByte7 * 0x100) +
-									Readout_CurrentByte8;
+	unsigned long W1 =	(Readout_CurrentByte5 * 0x1000000) +
+						(Readout_CurrentByte6 * 0x10000) +
+						(Readout_CurrentByte7 * 0x100) +
+						Readout_CurrentByte8;
 
-	switch((TempExtract0 >> 8) & 0xFF) {
-		case 0x14:
-			RDPCycleMode = ((TempExtract1 >> 0x14) & 0x03);
+	int Mode = (32 - _SHIFTR( W0, 8, 8 ) - (_SHIFTR( W0, 0, 8 ) + 1));
+	switch(Mode) {
+		case G_MDSFT_CYCLETYPE:
+			RDPCycleMode = (W1 >> G_MDSFT_CYCLETYPE);
 			break;
 		default:
 			//unknown mode
+//			sprintf(ErrorMsg, "mode: %d, val: %d", Mode, (W1 >> Mode));
+//			MessageBox(hwnd, ErrorMsg, "" ,0);
 			break;
 	}
 
@@ -127,54 +132,53 @@ int F3DEX2_Cmd_SETOTHERMODE_L()
 									(Readout_CurrentByte7 * 0x100) +
 									 Readout_CurrentByte8;
 
-	byte MDSFT = 32 - ((LowBits >> 8) & 0xFF) - (LowBits & 0xFF) - 1;
+	byte MDSFT = (32 - _SHIFTR( LowBits, 8, 8 ) - (_SHIFTR( LowBits, 0, 8 ) + 1));
 
-	bool AA_EN			= (HighBits & 0x00000008) != 0;		/* anti-aliasing */
-	bool Z_CMP			= (HighBits & 0x00000010) != 0;		/* zbuffer compare */
-	bool Z_UPD			= (HighBits & 0x00000020) != 0;		/* zbuffer update */
-	bool IM_RD			= (HighBits & 0x00000040) != 0;		/* reduced anti-aliasing ?? */
-	bool CLR_ON_CVG		= (HighBits & 0x00000080) != 0;
-	bool CVG_DST_WRAP	= (HighBits & 0x00000100) != 0;
-	bool CVG_DST_FULL	= (HighBits & 0x00000200) != 0;
-	bool CVG_DST_SAVE	= (HighBits & 0x00000300) != 0;
-	bool ZMODE_INTER	= (HighBits & 0x00000400) != 0;
-	bool ZMODE_XLU		= (HighBits & 0x00000800) != 0;
-	bool ZMODE_DEC		= (HighBits & 0x00000C00) != 0;
-	bool CVG_X_ALPHA	= (HighBits & 0x00001000) != 0;
-	bool ALPHA_CVG_SEL	= (HighBits & 0x00002000) != 0;
-	bool FORCE_BL		= (HighBits & 0x00004000) != 0;		/* force blending */
-
-/*	sprintf(ErrorMsg, \
-		"\nSETOTHERMODE_L - RENDERMODE:\n" \
-		" - Display List #%d\n" \
-		" ------------------\n" \
-		" - AA_EN %d\n" \
-		" - Z_CMP %d, Z_UPD %d, IM_RD %d, CLR_ON_CVG %d\n" \
-		" - CVG_DST_WRAP %d, CVG_DST_FULL %d, CVG_DST_SAVE %d, ZMODE_INTER %d\n" \
-		" - ZMODE_XLU %d, ZMODE_DEC %d\n" \
-		" - CVG_X_ALPHA %d, ALPHA_CVG_SEL %d, FORCE_BL %d\n\n",
-			DLToRender,
-			AA_EN,
-			Z_CMP, Z_UPD, IM_RD, CLR_ON_CVG,
-			CVG_DST_WRAP, CVG_DST_FULL, CVG_DST_SAVE, ZMODE_INTER,
-			ZMODE_XLU, ZMODE_DEC,
-			CVG_X_ALPHA, ALPHA_CVG_SEL, FORCE_BL);
-	Helper_LogMessage(2, ErrorMsg);
-*/
 	GLenum BlendSrcFactor = GL_ZERO;
 	GLenum BlendDstFactor = GL_ZERO;
 
-	switch (MDSFT)
-	{
-		case 0: // alphacompare
+	switch(MDSFT) {
+		case G_MDSFT_ALPHACOMPARE:
 			MessageBox(hwnd, "alphacompare", "", 0);
 			break;
-		case 2: // zsrcsel
+		case G_MDSFT_ZSRCSEL:
 			MessageBox(hwnd, "zsrcsel", "", 0);
 			break;
-		case 3: // rendermode
+		case G_MDSFT_RENDERMODE: {
+			bool AA_EN			= (HighBits & 0x00000008) != 0;		/* anti-aliasing */
+			bool Z_CMP			= (HighBits & 0x00000010) != 0;		/* zbuffer compare */
+			bool Z_UPD			= (HighBits & 0x00000020) != 0;		/* zbuffer update */
+			bool IM_RD			= (HighBits & 0x00000040) != 0;
+			bool CLR_ON_CVG		= (HighBits & 0x00000080) != 0;
+			bool CVG_DST_WRAP	= (HighBits & 0x00000100) != 0;
+			bool CVG_DST_FULL	= (HighBits & 0x00000200) != 0;
+			bool CVG_DST_SAVE	= (HighBits & 0x00000300) != 0;
+			bool ZMODE_INTER	= (HighBits & 0x00000400) != 0;
+			bool ZMODE_XLU		= (HighBits & 0x00000800) != 0;
+			bool ZMODE_DEC		= (HighBits & 0x00000C00) != 0;		/* decal */
+			bool CVG_X_ALPHA	= (HighBits & 0x00001000) != 0;
+			bool ALPHA_CVG_SEL	= (HighBits & 0x00002000) != 0;
+			bool FORCE_BL		= (HighBits & 0x00004000) != 0;		/* force blending */
+
+		/*	sprintf(ErrorMsg, \
+				"\nSETOTHERMODE_L - RENDERMODE:\n" \
+				" - Display List #%d\n" \
+				" ------------------\n" \
+				" - AA_EN %d\n" \
+				" - Z_CMP %d, Z_UPD %d, IM_RD %d, CLR_ON_CVG %d\n" \
+				" - CVG_DST_WRAP %d, CVG_DST_FULL %d, CVG_DST_SAVE %d, ZMODE_INTER %d\n" \
+				" - ZMODE_XLU %d, ZMODE_DEC %d\n" \
+				" - CVG_X_ALPHA %d, ALPHA_CVG_SEL %d, FORCE_BL %d\n\n",
+					DLToRender,
+					AA_EN,
+					Z_CMP, Z_UPD, IM_RD, CLR_ON_CVG,
+					CVG_DST_WRAP, CVG_DST_FULL, CVG_DST_SAVE, ZMODE_INTER,
+					ZMODE_XLU, ZMODE_DEC,
+					CVG_X_ALPHA, ALPHA_CVG_SEL, FORCE_BL);
+			Helper_LogMessage(2, ErrorMsg);
+		*/
 			if(Z_CMP)
-				{ glEnable(GL_DEPTH_TEST); } else { glDisable(GL_DEPTH_TEST); }
+				{ glDepthFunc(GL_LEQUAL); } else { glDepthFunc(GL_ALWAYS); }
 
 			if((Z_UPD) && !(ZMODE_INTER && ZMODE_XLU))
 				{ glDepthMask(GL_TRUE); } else { glDepthMask(GL_FALSE); }
@@ -183,18 +187,39 @@ int F3DEX2_Cmd_SETOTHERMODE_L()
 				{ glEnable(GL_POLYGON_OFFSET_FILL); glPolygonOffset(-1.0f, -1.0f); } else { glDisable(GL_POLYGON_OFFSET_FILL); }
 
 /* ??? */	if(ZMODE_XLU)
-				{ glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); glAlphaFunc(GL_GREATER, 0.0f); } else { glBlendFunc(GL_ONE, GL_ZERO); glAlphaFunc(GL_GEQUAL, 0.5f); }
+				{ glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); glAlphaFunc(GL_GREATER, 0.0f); } else { /*glBlendFunc(GL_ONE, GL_ZERO);*/ glAlphaFunc(GL_GEQUAL, 0.5f); }
 
-			if((FORCE_BL) && !(ALPHA_CVG_SEL)) {
+			if(CVG_X_ALPHA && (ALPHA_CVG_SEL || AA_EN))
+				{ glEnable(GL_ALPHA_TEST); glAlphaFunc(GL_GEQUAL, 0.5f); } else { glDisable(GL_ALPHA_TEST); }
+
+			if((FORCE_BL) && (RDPCycleMode != G_CYC_COPY) && (RDPCycleMode != G_CYC_FILL) && !(ALPHA_CVG_SEL)) {
 				glEnable(GL_BLEND);
 
 				switch(HighBits >> 16)
 				{
-					case 0x0C18:
+					case 0x0448:
+					case 0x055A:
+						BlendSrcFactor = GL_ONE;
+						BlendDstFactor = GL_ONE;
+						break;
+					case 0x0C08:
+					case 0x0F0A:
+						BlendSrcFactor = GL_ONE;
+						BlendDstFactor = GL_ZERO;
+						break;
 					case 0xC810:
 					case 0xC811:
+					case 0x0C18:
+					case 0x0C19:
+					case 0x0050:
+					case 0x0055:
 						BlendSrcFactor = GL_SRC_ALPHA;
 						BlendDstFactor = GL_ONE_MINUS_SRC_ALPHA;
+						break;
+					case 0x0FA5:
+					case 0x5055:
+						BlendSrcFactor = GL_ZERO;
+						BlendDstFactor = GL_ONE;
 						break;
 					default:
 						sprintf(SystemLogMsg, "blender dbg test - %04x\n", HighBits >> 16);
@@ -209,7 +234,15 @@ int F3DEX2_Cmd_SETOTHERMODE_L()
 				glDisable(GL_BLEND);
 			}
 
-			break;
+			if(RDPCycleMode == G_CYC_FILL) {
+				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+				glEnable(GL_BLEND);
+			}
+
+			RDPOtherMode_CvgXAlpha = CVG_X_ALPHA;
+			RDPOtherMode_AlphaCvgSel = ALPHA_CVG_SEL;
+
+			break; }
 	}
 
 	//FOR CORRECTNESS WE WILL NEED TO EVENTUALLY MIGRATE ALL BELOW FUNCTIONS TO THE ABOVE SWITCH BLOCK!!!

@@ -54,21 +54,30 @@ enum { true = 1, false = 0 };
 	SYSTEM FUNCTIONS - OPENGL & WINDOWS
 	------------------------------------------------------------ */
 
+/* win32/bmp.c */
+extern bool SaveBMP(BYTE* Buffer, int width, int height, long paddedsize, char* bmpfile);
+extern BYTE* ConvertToBMP(BYTE* Buffer, int width, int height, long* newsize);
+
 /* win32/main.c */
 extern int Viewer_Initialize();
 extern int Viewer_ResetVariables();
 extern int Viewer_LoadAreaData();
+extern int Viewer_GetGameVersion();
+extern int Viewer_InitLevelSelector();
 extern int Viewer_RenderMapRefresh();
-extern void GLUTCamera_Orientation(float,float);
-extern void GLUTCamera_Movement(int);
+extern void GLUTCamera_Orientation(float, float);
+extern void GLUTCamera_Movement(int, bool);
 extern void Camera_MouseMove(int, int);
+extern int Viewer_SelectActor(int, int);
+extern int CheckUncheckMenu(unsigned int, int);
+extern int CheckUncheckMenu_Filters();
 extern void Dialog_OpenROM(HWND);
 extern int WINAPI WinMain (HINSTANCE, HINSTANCE, LPSTR, int);
 extern LRESULT CALLBACK WindowProcedure (HWND, UINT, WPARAM, LPARAM);
 
 /* actors.c */
 extern int Viewer_RenderAllActors();
-extern int Viewer_RenderActor(int, GLshort, GLshort, GLshort, signed int, signed int, signed int, bool);
+extern int Viewer_RenderActor(int, GLshort, GLshort, GLshort, signed int, signed int, signed int, float, float, float);
 
 /* gfx_emul.c */
 extern int Viewer_RenderMap();
@@ -88,11 +97,15 @@ extern int Zelda_GetSceneHeaderList(int);
 extern int Zelda_GetSceneHeader(int);
 extern int Zelda_GetMapActors(int, int);
 extern int Zelda_GetSceneActors(int);
+extern int Zelda_GetDoorData(int);
 extern int Zelda_GetMapDisplayLists(unsigned long, int);
 extern int Zelda_GetMapCollision(int);
+extern int Zelda_GetEnvironmentSettings(int);
+extern int Zelda_GetSceneName();
 
 /* ogl_mngr.c */
 extern int OGL_Init(void);
+extern int OGL_ResetProperties(void);
 extern int OGL_InitExtensions(void);
 extern int OGL_DrawScene(void);
 extern void OGL_ResizeScene(GLsizei, GLsizei);
@@ -105,7 +118,6 @@ extern int F3DEX2_BuildFragmentShader();
 extern int F3DEX2_Cmd_SETFOGCOLOR();
 extern int F3DEX2_Cmd_SETPRIMCOLOR();
 extern int F3DEX2_Cmd_SETENVCOLOR();
-extern int F3DEX2_HACKSelectClrAlpSource();
 
 /* uc_misc.c */
 extern int F3DEX2_Cmd_RDPHALF_1();
@@ -126,6 +138,7 @@ extern int F3DEX2_Cmd_SETTILE();
 extern int F3DEX2_Cmd_SETTILESIZE();
 extern int F3DEX2_ChangeTileSize(unsigned int, unsigned int, unsigned int, unsigned int, unsigned int);
 extern int F3DEX2_Cmd_LOADTLUT(unsigned int, unsigned long);
+extern int F3DEX2_Cmd_LOADBLOCK();
 extern GLuint F3DEX2_LoadTexture(int);
 
 /* uc_tri.c */
@@ -136,6 +149,7 @@ extern int F3DEX2_Cmd_TRI2();
 extern int F3DEX2_Cmd_QUAD();
 extern int F3DEX2_DrawVertexPoint(unsigned int);
 extern int F3DEX2_Cmd_MTX();
+extern int F3DEX2_Cmd_POPMTX();
 
 /* GL extension functions */
 
@@ -151,6 +165,7 @@ extern PFNGLBINDPROGRAMARBPROC				glBindProgramARB;
 extern PFNGLDELETEPROGRAMSARBPROC			glDeleteProgramsARB;
 extern PFNGLPROGRAMSTRINGARBPROC			glProgramStringARB;
 extern PFNGLPROGRAMENVPARAMETER4FARBPROC	glProgramEnvParameter4fARB;
+extern PFNGLPROGRAMLOCALPARAMETER4FARBPROC	glProgramLocalParameter4fARB;
 
 /*	------------------------------------------------------------
 	VARIABLES
@@ -161,6 +176,7 @@ extern HWND				hwnd;
 extern HMENU			hmenu;
 extern HWND				hogl;
 extern HWND				hstatus;
+extern HWND				hlvlcombo;
 
 extern HDC				hDC_ogl;
 extern HGLRC			hRC;
@@ -171,14 +187,14 @@ extern char				szClassName[];
 /* GENERAL GLOBAL PROGRAM VARIABLES */
 extern bool				System_KbdKeys[256];
 
-extern char				AppTitle[256];
-extern char				AppVersion[256];
-extern char				AppBuildName[256];
+extern char				AppTitle[32];
+extern char				AppVersion[32];
+extern char				AppBuildName[64];
 extern char				AppPath[512];
 extern char				INIPath[512];
 extern char				WindowTitle[256];
 extern char				StatusMsg[256];
-extern char				ErrorMsg[2048];
+extern char				ErrorMsg[8192];
 
 extern char				MapActorMsg[256];
 extern char				SceneActorMsg[256];
@@ -193,14 +209,21 @@ extern char				GFXLogMsg[1024];
 extern char				SystemLogMsg[1024];
 extern char				WavefrontObjMsg[1024];
 extern char				WavefrontMtlMsg[1024];
+extern char				WavefrontObjColMsg[1024];
 
 extern bool				GFXLogOpened;
 
 extern bool				WavefrontObjOpened;
 extern bool				WavefrontMtlOpened;
+extern bool				WavefrontObjColOpened;
 
 extern unsigned int		WavefrontObjVertCount;
 extern unsigned int		WavefrontObjVertCount_Previous;
+
+extern unsigned int		WavefrontObjMaterialCnt;
+
+extern unsigned int		WavefrontObjColVertCount;
+extern unsigned int		WavefrontObjColVertCount_Previous;
 
 /* CAMERA / VIEWPOINT VARIABLES */
 extern float			CamAngleX, CamAngleY;
@@ -231,6 +254,11 @@ extern unsigned int		Debug_FreeOperations;
 
 extern bool				GetDLFromZMapScene;
 
+extern unsigned int		Scene_Start;
+extern char				Scene_Name[256];
+
+extern unsigned int		Map_Start[256];
+
 extern unsigned long	ROMFilesize;
 extern unsigned long	ZMapFilesize[256];
 extern unsigned long	ZSceneFilesize;
@@ -246,8 +274,12 @@ extern bool				ROMExists;
 
 extern FILE				* FileGFXLog;
 extern FILE				* FileSystemLog;
+extern FILE				* FileCombinerLog;
 extern FILE				* FileWavefrontObj;
 extern FILE				* FileWavefrontMtl;
+extern FILE				* FileWavefrontObjCol;
+
+extern int				GameMode;				/* 0 = OoT, 1 = MM */
 
 /* DATA READOUT VARIABLES */
 extern unsigned long	Readout_Current1;
@@ -261,7 +293,8 @@ extern unsigned int		Readout_CurrentByte6;
 extern unsigned int		Readout_CurrentByte7;
 extern unsigned int		Readout_CurrentByte8;
 
-extern unsigned long	Readout_NextGFXCommand1 ;
+extern unsigned long	Readout_NextGFXCommand1;
+extern unsigned long	Readout_PrevGFXCommand1;
 
 /* F3DEX2 DISPLAY LIST HANDLING VARIABLES */
 extern unsigned long	DLists[256][2048];
@@ -293,14 +326,19 @@ extern unsigned long	TexCachePosition;
 extern unsigned long	TotalTexCount;
 
 /* Combiner variables */
-unsigned int fragProg;
-int COMBINE0,COMBINE1;
-int cA0,cB0,cC0,cD0,aA0,aB0,aC0,aD0;
-int cA1,cB1,cC1,cD1,aA1,aB1,aC1,aD1;
+extern unsigned int		Combine0, Combine1;
+extern int				cA[2], cB[2], cC[2], cD[2], aA[2], aB[2], aC[2], aD[2];
+
+extern unsigned int		FPCachePosition;
+
+extern bool				RDPOtherMode_CvgXAlpha;
+extern bool				RDPOtherMode_AlphaCvgSel;
 
 /* ZELDA ROM HANDLING VARIABLES */
 extern unsigned long	ROM_SceneTableOffset;
 extern unsigned int		ROM_SceneToLoad;
+extern unsigned int		ROM_MaxSceneCount;
+extern unsigned int		ROM_SceneEntryLength;
 
 extern unsigned long	ROM_ObjectTableOffset;
 extern unsigned long	ROM_ActorTableOffset;
@@ -330,12 +368,17 @@ extern int				ActorInfo_Selected;
 extern int				ScActorInfo_CurrentCount;
 extern int				ScActorInfo_Selected;
 
+extern int				DoorInfo_CurrentCount;
+extern int				DoorInfo_Selected;
+
 /* GENERAL RENDERER VARIABLES */
 extern GLuint			Renderer_GLDisplayList;
 extern GLuint			Renderer_GLDisplayList_Current;
 extern GLuint			Renderer_GLDisplayList_Total;
 
 extern GLuint			Renderer_GLTexture;
+extern int				CurrentTextureID;
+extern bool				IsMultiTexture;
 
 extern GLuint			TempGLTexture;
 
@@ -354,26 +397,34 @@ extern GLfloat			LightAmbient[];
 extern GLfloat			LightDiffuse[];
 extern GLfloat			LightPosition[];
 
-extern GLfloat			FogColor[];
-extern GLfloat			PrimColor[];
-extern GLfloat          EnvColor[];
+extern float			FogColor[];
+extern float			PrimColor[];
+extern float			EnvColor[];
 
-extern int				HACK_UseColorSource;
-extern int				HACK_UseAlphaSource;
+extern char				ShaderString[16384];
 
 extern bool				Renderer_EnableMapActors;
 extern bool				Renderer_EnableSceneActors;
+extern bool				Renderer_EnableDoors;
 
 extern bool				Renderer_EnableMap;
 extern bool				Renderer_EnableCollision;
 extern GLfloat			Renderer_CollisionAlpha;
+
+extern bool				Renderer_EnableWavefrontDump;
+
+extern bool				Renderer_EnableFog;
+
+extern bool				Renderer_EnableWireframe;
+
+extern bool				Renderer_EnableFragShader;
 
 /* OPENGL EXTENSION VARIABLES */
 extern char				* GLExtension_List;
 extern bool				GLExtension_MultiTexture;
 extern bool				GLExtension_TextureMirror;
 extern bool				GLExtension_AnisoFilter;
-extern bool				GLExtension_FragmentProgram;
+extern bool				GLExtension_VertFragProgram;
 extern char				GLExtensionsSupported[256];
 
 extern bool				GLExtensionsUnsupported;
@@ -391,58 +442,99 @@ extern unsigned long	Blender_Cycle2;
 
 /* ZELDA MAP HEADER STRUCTURE */
 struct MapHeader_Struct {
-	char EchoLevel;
-	char Skybox;
-	unsigned long MapTime;
-	unsigned char TimeFlow;
-	unsigned long MeshDataHeader;
-	unsigned char Group_Count;
-	unsigned long Group_DataOffset;
+	/* 01 */
 	unsigned char Actor_Count;
 	unsigned long Actor_DataOffset;
+	/* 0A */
+	unsigned long MeshDataHeader;
+	/* 0B */
+	unsigned char Group_Count;
+	unsigned long Group_DataOffset;
+	/* 10 */
+	unsigned long MapTime;
+	unsigned char TimeFlow;
+	/* 12 */
+	char Skybox;
+	/* 16 */
+	char EchoLevel;
 };
 extern struct MapHeader_Struct MapHeader[256][256];
 
 struct SceneHeader_Struct {
-	unsigned char Map_Count;
-	unsigned long Map_ListOffset;
-	unsigned long Unknown2;
-	unsigned char Col_DataSource;
-	unsigned long Col_DataOffset;
-	unsigned long Unknown4;
-	unsigned long Unknown5;
+	/* 00 */
 	unsigned char ScActor_Count;
 	unsigned long ScActor_DataOffset;
-	unsigned long Unknown7;
-	unsigned long Unknown8;
+	/* 03 */
+	unsigned char Col_DataSource;
+	unsigned long Col_DataOffset;
+	/* 04 */
+	unsigned char Map_Count;
+	unsigned long Map_ListOffset;
+	/* 0E */
+	unsigned char Door_Count;
+	unsigned long Door_DataOffset;
+	/* 0F */
+	unsigned char EnvSetting_Count;
+	unsigned long EnvSetting_DataOffset;
 };
 extern struct SceneHeader_Struct SceneHeader[256];
 
+typedef struct {
+	unsigned char R;
+	unsigned char G;
+	unsigned char B;
+} RGB;
+
+struct EnvSetting_Struct {
+	RGB Color1;
+	RGB Color2;
+	RGB Color3;
+	RGB Color4;
+	RGB Color5;
+	RGB FogColor;
+	unsigned short FogDistance;
+	unsigned short DrawDistance;
+};
+extern struct EnvSetting_Struct EnvSetting[256];
+
 /* ZELDA MAP ACTOR DATA STRUCTURE */
 struct Actors_Struct {
-	int Number;
+	unsigned short Number;
 	short X_Position;
 	short Y_Position;
 	short Z_Position;
 	short X_Rotation;
 	short Y_Rotation;
 	short Z_Rotation;
-	int Variable;
+	unsigned short Variable;
 };
 extern struct Actors_Struct Actors[256][1024];
 
 /* ZELDA SCENE ACTOR DATA STRUCTURE */
 struct ScActors_Struct {
-	int Number;
+	unsigned short Number;
 	short X_Position;
 	short Y_Position;
 	short Z_Position;
 	short X_Rotation;
 	short Y_Rotation;
 	short Z_Rotation;
-	int Variable;
+	unsigned short Variable;
 };
 extern struct ScActors_Struct ScActors[1024];
+
+/* ZELDA DOOR DATA STRUCTURE */
+struct Door_Struct {
+	unsigned short Unknown1;
+	unsigned short Unknown2;
+	unsigned short Number;
+	short X_Position;
+	short Y_Position;
+	short Z_Position;
+	short Y_Rotation;
+	unsigned short Variable;
+};
+extern struct Door_Struct Doors[1024];
 
 /* F3DEX2 VERTEX DATA STRUCTURE */
 struct Vertex_Struct {
@@ -473,12 +565,15 @@ struct Texture_Struct {
 	unsigned int Format_OGLPixel;
 	unsigned int Y_Parameter;
 	unsigned int X_Parameter;
-	signed short S_Scale;
-	signed short T_Scale;
+	float S_Scale;
+	float T_Scale;
 	unsigned int LineSize;
 	unsigned int Palette;
+	unsigned int AnimDXT;
+	float S_ShiftScale;
+	float T_ShiftScale;
 };
-extern struct Texture_Struct Texture[0];
+extern struct Texture_Struct Texture[2];
 
 /* CI TEXTURE PALETTE STRUCTURE */
 struct Palette_Struct {
@@ -506,3 +601,10 @@ extern struct ObjectActorTable_Struct ObjectTable[8192];
 extern struct ObjectActorTable_Struct ActorTable[8192];
 
 extern struct Vertex_Struct CollisionVertex[8192];
+
+struct FPCache_Struct {
+	unsigned long Combine0;
+	unsigned long Combine1;
+	unsigned int FragProg;
+};
+extern struct FPCache_Struct FPCache[256];

@@ -15,38 +15,38 @@ int F3DEX2_Cmd_TEXTURE()
 {
 	unsigned long W1 = (Readout_CurrentByte5 * 0x1000000) + (Readout_CurrentByte6 * 0x10000) + (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
 
-	Texture[0].S_Scale = (float) _FIXED2FLOAT(_SHIFTR(W1, 16, 16), 16);
-	Texture[0].T_Scale = (float) _FIXED2FLOAT(_SHIFTR(W1, 0, 16), 16);
+	Texture[CurrentTextureID].S_Scale = (float) _FIXED2FLOAT(_SHIFTR(W1, 16, 16), 16);
+	Texture[CurrentTextureID].T_Scale = (float) _FIXED2FLOAT(_SHIFTR(W1, 0, 16), 16);
 
-	if(Texture[0].S_Scale == 0.0f) Texture[0].S_Scale = 1.0f;
-	if(Texture[0].T_Scale == 0.0f) Texture[0].T_Scale = 1.0f;
+	if(Texture[CurrentTextureID].S_Scale == 0.0f) Texture[CurrentTextureID].S_Scale = 1.0f;
+	if(Texture[CurrentTextureID].T_Scale == 0.0f) Texture[CurrentTextureID].T_Scale = 1.0f;
 
 	return 0;
 }
 
 int F3DEX2_Cmd_SETTIMG()
 {
-	switch(Readout_NextGFXCommand1) {
-		case 0x000000E8:
-			Texture[0].PalDataSource = Readout_CurrentByte5;
+	CurrentTextureID = 0;
+	IsMultiTexture = false;
 
-			Texture[0].PalOffset = Readout_CurrentByte6 << 16;
-			Texture[0].PalOffset = Texture[0].PalOffset + (Readout_CurrentByte7 << 8);
-			Texture[0].PalOffset = Texture[0].PalOffset + Readout_CurrentByte8;
+	if(Readout_NextGFXCommand1 == G_RDPTILESYNC) {
+		Texture[0].PalDataSource = Readout_CurrentByte5;
+		Texture[0].PalOffset = (Readout_CurrentByte6 * 0x10000) + (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
 
-			break;
-		default:
-			Texture[0].DataSource = Readout_CurrentByte5;
-
-			Texture[0].Offset = Readout_CurrentByte6 << 16;
-			Texture[0].Offset = Texture[0].Offset + (Readout_CurrentByte7 << 8);
-			Texture[0].Offset = Texture[0].Offset + Readout_CurrentByte8;
-
-			Texture[0].Format_OGL = GL_RGBA;
-			Texture[0].Format_OGLPixel = GL_RGBA;
-
-			break;
+		return 0;
 	}
+
+	if(Readout_PrevGFXCommand1 == G_SETTILESIZE) {
+		/* multitexture */
+		CurrentTextureID = 1;
+		IsMultiTexture = true;
+	}
+
+	Texture[CurrentTextureID].DataSource = Readout_CurrentByte5;
+	Texture[CurrentTextureID].Offset = (Readout_CurrentByte6 * 0x10000) + (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
+
+	Texture[CurrentTextureID].Format_OGL = GL_RGBA;
+	Texture[CurrentTextureID].Format_OGLPixel = GL_RGBA;
 
 	return 0;
 }
@@ -59,46 +59,50 @@ int F3DEX2_Cmd_SETTILE()
 	/* FIX FOR CI TEXTURES - IF BYTES 5-8 ARE 07000000, LEAVE CURRENT PROPERTY SETTINGS ALONE */
 	if(W1 == 0x07000000) return 0;
 
-	unsigned char TempYParam = (Readout_CurrentByte6 << 4);
-	TempYParam >>= 4;
-	unsigned char TempXParam = (Readout_CurrentByte7 << 4);
-	TempXParam >>= 4;
+	Texture[CurrentTextureID].Format_N64 = Readout_CurrentByte2;
 
-	switch(TempYParam) {
-		case 0x01:
-			Texture[0].Y_Parameter = 1;
-			break;
-		case 0x09:
-			Texture[0].Y_Parameter = 2;
-			break;
-		case 0x05:
-			Texture[0].Y_Parameter = 3;
-			break;
-		default:
-			Texture[0].Y_Parameter = 1;
-			break;
+	Texture[CurrentTextureID].Y_Parameter = _SHIFTR( W1, 18, 2 );
+	Texture[CurrentTextureID].X_Parameter = _SHIFTR( W1, 8, 2 );
+
+	Texture[CurrentTextureID].Palette = _SHIFTR( W1, 20, 4 );
+	Texture[CurrentTextureID].LineSize = _SHIFTR( W0, 9, 9 );
+
+	/* shift handling from glN64 source code */
+	unsigned int TempSShift = _SHIFTR( W1,  0, 4 );
+	unsigned int TempTShift = _SHIFTR( W1, 10, 4 );
+	Texture[CurrentTextureID].S_ShiftScale = 1.0f;
+	Texture[CurrentTextureID].T_ShiftScale = 1.0f;
+
+	if(TempSShift > 10) {
+		Texture[CurrentTextureID].S_ShiftScale = (1 << (16 - TempSShift));
+	} else if(TempSShift > 0) {
+		Texture[CurrentTextureID].S_ShiftScale /= (1 << TempSShift);
 	}
 
-	switch(TempXParam) {
-		case 0x00:
-			Texture[0].X_Parameter = 1;
-			break;
-		case 0x02:
-			Texture[0].X_Parameter = 2;
-			break;
-		case 0x01:
-			Texture[0].X_Parameter = 3;
-			break;
-		default:
-			Texture[0].X_Parameter = 1;
-			break;
+	if(TempTShift > 10) {
+		Texture[CurrentTextureID].T_ShiftScale = (1 << (16 - TempTShift));
+	} else if(TempTShift > 0) {
+		Texture[CurrentTextureID].T_ShiftScale /= (1 << TempTShift);
 	}
 
-	Texture[0].Format_N64 = Readout_CurrentByte2;
+	if(GLExtension_VertFragProgram) {
+		glProgramLocalParameter4fARB(GL_VERTEX_PROGRAM_ARB, CurrentTextureID, Texture[CurrentTextureID].S_ShiftScale, Texture[CurrentTextureID].T_ShiftScale, 1.0f, 1.0f);
+	}
 
-	Texture[0].Palette = _SHIFTR( W1, 20, 4 );
-	Texture[0].LineSize = _SHIFTR( W0, 9, 9 );
-
+/*	fprintf(FileGFXLog, "   %x %x %x %x %x %x %x %x %x %x %x %x\n",
+				_SHIFTR( W0, 21, 3 ),	// fmt
+	            _SHIFTR( W0, 19, 2 ),	// siz
+	            _SHIFTR( W0,  9, 9 ),	// line
+				_SHIFTR( W0,  0, 9 ),	// tmem
+				_SHIFTR( W1, 24, 3 ),	// tile
+				_SHIFTR( W1, 20, 4 ),	// palette
+				_SHIFTR( W1, 18, 2 ),	// cmt
+				_SHIFTR( W1,  8, 2 ),	// cms
+				_SHIFTR( W1, 14, 4 ),	// maskt
+				_SHIFTR( W1,  4, 4 ),	// masks
+				_SHIFTR( W1, 10, 4 ),	// shiftt
+				_SHIFTR( W1,  0, 4 ) );	// shifts
+*/
 	return 0;
 }
 
@@ -120,19 +124,19 @@ int F3DEX2_Cmd_SETTILESIZE()
 
 int F3DEX2_ChangeTileSize(unsigned int Tile, unsigned int ULS, unsigned int ULT, unsigned int LRS, unsigned int LRT)
 {
-	Texture[0].Width  = ((_SHIFTR( LRS, 2, 10 ) - _SHIFTR( ULS, 2, 10 )) + 1);
-	Texture[0].Height = ((_SHIFTR( LRT, 2, 10 ) - _SHIFTR( ULT, 2, 10 )) + 1);
+	Texture[CurrentTextureID].Width  = ((_SHIFTR( LRS, 2, 10 ) - _SHIFTR( ULS, 2, 10 )) + 1);
+	Texture[CurrentTextureID].Height = ((_SHIFTR( LRT, 2, 10 ) - _SHIFTR( ULT, 2, 10 )) + 1);
 
-	if(Texture[0].Width > 256) {
-		Texture[0].WidthRender = Texture[0].Width - 64;
+	if(Texture[CurrentTextureID].Width > 256) {
+		Texture[CurrentTextureID].WidthRender = Texture[CurrentTextureID].Width - 64;
 	} else {
-		Texture[0].WidthRender = Texture[0].Width;
+		Texture[CurrentTextureID].WidthRender = Texture[CurrentTextureID].Width;
 	}
 
-	if(Texture[0].Height > 256) {
-		Texture[0].HeightRender = Texture[0].Height - 64;
+	if(Texture[CurrentTextureID].Height > 256) {
+		Texture[CurrentTextureID].HeightRender = Texture[CurrentTextureID].Height - 64;
 	} else {
-		Texture[0].HeightRender = Texture[0].Height;
+		Texture[CurrentTextureID].HeightRender = Texture[CurrentTextureID].Height;
 	}
 
 	return 0;
@@ -150,7 +154,7 @@ int F3DEX2_Cmd_LOADTLUT(unsigned int PaletteSrc, unsigned long PaletteOffset)
 	/* copy raw palette into buffer */
 	if(Zelda_MemCopy(PaletteSrc, PaletteOffset, PaletteData, PaletteSize * 2) == -1) {
 		sprintf(ErrorMsg, "Invalid palette data source 0x%02X!", PaletteSrc);
-		MessageBox(hwnd, ErrorMsg, "Error", MB_OK | MB_ICONERROR);
+//		MessageBox(hwnd, ErrorMsg, "Error", MB_OK | MB_ICONERROR);
 		return 0;
 	}
 
@@ -196,6 +200,24 @@ int F3DEX2_Cmd_LOADTLUT(unsigned int PaletteSrc, unsigned long PaletteOffset)
 	return 0;
 }
 
+int F3DEX2_Cmd_LOADBLOCK()
+{
+	unsigned long W0 = (Readout_CurrentByte1 * 0x1000000) + (Readout_CurrentByte2 * 0x10000) + (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
+	unsigned long W1 = (Readout_CurrentByte5 * 0x1000000) + (Readout_CurrentByte6 * 0x10000) + (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
+
+	Texture[CurrentTextureID].AnimDXT = _SHIFTR( W1, 0, 12 );
+
+	F3DEX2_ChangeTileSize(	_SHIFTR( W1, 24,  3 ),		// tile
+							_SHIFTR( W0, 12, 12 ),		// uls
+							_SHIFTR( W0,  0, 12 ),		// ult
+							_SHIFTR( W1, 12, 12 ),		// lrs
+							_SHIFTR( W1,  0, 12 ) );	// dxt
+
+	/* STILL don't know nearly enough about this to emulate it in any way */
+
+	return 0;
+}
+
 /*	------------------------------------------------------------ */
 
 GLuint F3DEX2_LoadTexture(int TextureID)
@@ -206,26 +228,44 @@ GLuint F3DEX2_LoadTexture(int TextureID)
 	if((Readout_NextGFXCommand1 == 0x00000003) || (Readout_NextGFXCommand1 == 0x000000E1)) return 0;
 
 	if(!(Texture[TextureID].Format_OGL == GL_RGBA)) return 0;
-
-/*	sprintf(ErrorMsg, "TEXTURE %d:\n \
+/*
+	sprintf(ErrorMsg, "TEXTURE %d:\n \
 	Height %d, HeightRender %d, Width %d, WidthRender %d\n \
 	DataSource %x, PalDataSource %x, Offset %x, PalOffset %x\n \
 	Format_N64 %x, Format_OGL %x, Format_OGLPixel %x\n \
 	Y_Parameter %d, X_Parameter %d, S_Scale %d, T_Scale %d\n \
-	LineSize %d, Palette %d",
+	LineSize %d, Palette %d, AnimDXT %d\n",
 						TextureID,
 						Texture[TextureID].Height, Texture[TextureID].HeightRender, Texture[TextureID].Width, Texture[TextureID].WidthRender,
 						Texture[TextureID].DataSource, Texture[TextureID].PalDataSource, (unsigned int)Texture[TextureID].Offset, (unsigned int)Texture[TextureID].PalOffset,
 						Texture[TextureID].Format_N64, Texture[TextureID].Format_OGL, Texture[TextureID].Format_OGLPixel,
 						Texture[TextureID].Y_Parameter, Texture[TextureID].X_Parameter, Texture[TextureID].S_Scale, Texture[TextureID].T_Scale,
-						Texture[TextureID].LineSize, Texture[TextureID].Palette);
+						Texture[TextureID].LineSize, Texture[TextureID].Palette, Texture[TextureID].AnimDXT);
 
-	MessageBox(hwnd, ErrorMsg, "Texture", MB_OK | MB_ICONINFORMATION);
+//	MessageBox(hwnd, ErrorMsg, "Texture", MB_OK | MB_ICONINFORMATION);
 	Helper_LogMessage(2, ErrorMsg);
 */
 	int i = 0, j = 0;
 
-	unsigned long TextureBufferSize = (Texture[TextureID].Height * Texture[TextureID].Width) * 0x08;
+	unsigned int BytesPerPixel = 0x08;
+	switch(Texture[TextureID].Format_N64) {
+		/* 4bit, 8bit */
+		case 0x00: case 0x40: case 0x60: case 0x80:
+		case 0x08: case 0x48: case 0x68: case 0x88:
+			BytesPerPixel = 0x04;
+			break;
+		/* 16bit */
+		case 0x10: case 0x50: case 0x70: case 0x90:
+			BytesPerPixel = 0x08;
+			break;
+		/* 32bit */
+		case 0x18:
+			BytesPerPixel = 0x10;
+			break;
+	}
+
+//	unsigned long TextureBufferSize = (Texture[TextureID].Height * Texture[TextureID].Width) * ((Texture[TextureID].Format_N64 == 0x18) ? 0x10 : 0x08);
+	unsigned long TextureBufferSize = (Texture[TextureID].Height * Texture[TextureID].Width) * BytesPerPixel;
 
 	bool UnhandledTextureSource = false;
 
@@ -239,34 +279,45 @@ GLuint F3DEX2_LoadTexture(int TextureID)
 	Debug_MallocOperations++;
 
 	/* create solid red texture for unsupported stuff, such as kakariko windows */
-	unsigned char * EmptyTexture_Red;
+	unsigned char * EmptyTexture;
 	unsigned char * EmptyTexture_Green;
 
-	EmptyTexture_Red = (unsigned char *) malloc (sizeof(char) * TextureBufferSize);
+	EmptyTexture = (unsigned char *) malloc (sizeof(char) * TextureBufferSize);
 	EmptyTexture_Green = (unsigned char *) malloc (sizeof(char) * TextureBufferSize);
 
 	Debug_MallocOperations++;
 	Debug_MallocOperations++;
 
 	for(i = 0; i < TextureBufferSize; i+=4) {
-		EmptyTexture_Red[i]			= 0xFF;
-		EmptyTexture_Red[i + 1]		= 0x00;
-		EmptyTexture_Red[i + 2]		= 0x00;
-		EmptyTexture_Red[i + 3]		= 0xFF;
+		EmptyTexture[i]			= 0xFF;
+		EmptyTexture[i + 1]		= 0x00;
+		EmptyTexture[i + 2]		= 0x00;
+		EmptyTexture[i + 3]		= 0xFF;
 
 		EmptyTexture_Green[i]		= 0x00;
 		EmptyTexture_Green[i + 1]	= 0xFF;
 		EmptyTexture_Green[i + 2]	= 0x00;
 		EmptyTexture_Green[i + 3]	= 0xFF;
 	}
-
+/*
+	if(Renderer_UsePlaceholderTexture) {
+		FILE * PlaceholderTexture;
+		char Temp[1024];
+		sprintf(Temp, "%s\\texture.raw", AppPath);
+		PlaceholderTexture = fopen(Temp, "rb");
+		fread(EmptyTexture, TextureBufferSize, 1, PlaceholderTexture);
+		fclose(PlaceholderTexture);
+	}
+*/
 	if(Zelda_MemCopy(Texture[TextureID].DataSource, Texture[TextureID].Offset, TextureData_N64, TextureBufferSize / 4) == -1) {
 		UnhandledTextureSource = true;
-//		sprintf(ErrorMsg, "Unhandled texture source 0x%02X|%06X!", Texture[TextureID].DataSource, Texture[TextureID].Offset);
-//		MessageBox(hwnd, ErrorMsg, "Error", MB_OK | MB_ICONERROR);
+		if(Texture[TextureID].DataSource <= 0x03) {
+			sprintf(ErrorMsg, "Unhandled texture source 0x%02X|%06X!\n(Format 0x%02X)", Texture[TextureID].DataSource, Texture[TextureID].Offset, Texture[TextureID].Format_N64);
+//			MessageBox(hwnd, ErrorMsg, "Error", MB_OK | MB_ICONERROR);
+		}
 		Texture[TextureID].Format_OGL = GL_RGBA;
 		Texture[TextureID].Format_OGLPixel = GL_RGBA;
-		memcpy(TextureData_OGL, EmptyTexture_Red, TextureBufferSize);
+		memcpy(TextureData_OGL, EmptyTexture, TextureBufferSize);
 	}
 
 	if(!UnhandledTextureSource) {
@@ -320,8 +371,9 @@ GLuint F3DEX2_LoadTexture(int TextureID)
 			}
 		case 0x18:
 			{
-			/* 32-bit RGBA - not used in levels */
-			unsigned int LoadRGBA_RGBA5551 = 0;
+			/* 32-bit RGBA */
+			memcpy(TextureData_OGL, TextureData_N64, (Texture[TextureID].Height * Texture[TextureID].Width * 4));
+/*			unsigned int LoadRGBA_RGBA5551 = 0;
 
 			unsigned int LoadRGBA_RExtract = 0;
 			unsigned int LoadRGBA_GExtract = 0;
@@ -356,6 +408,7 @@ GLuint F3DEX2_LoadTexture(int TextureID)
 					TextureData_OGL[LoadRGBA_InTexturePosition_OGL + 3] = LoadRGBA_AExtract;
 
 					LoadRGBA_InTexturePosition_N64 += 2;
+					LoadRGBA_InTexturePosition_OGL += 4;
 
 					LoadRGBA_RGBA5551 = (TextureData_N64[LoadRGBA_InTexturePosition_N64] * 0x100) + TextureData_N64[LoadRGBA_InTexturePosition_N64 + 1];
 
@@ -384,7 +437,7 @@ GLuint F3DEX2_LoadTexture(int TextureID)
 				}
 				LoadRGBA_InTexturePosition_N64 += Texture[TextureID].LineSize * 2 - (Texture[TextureID].Width / 2);
 			}
-
+*/
 			break;
 			}
 		/* CI FORMAT */
@@ -496,8 +549,9 @@ GLuint F3DEX2_LoadTexture(int TextureID)
 			for(j = 0; j < Texture[TextureID].Height; j++) {
 				for(i = 0; i < Texture[TextureID].Width; i++) {
 					LoadIA_IAData = TextureData_N64[LoadIA_InTexturePosition_N64];
-					LoadIA_IExtract = (LoadIA_IAData & 0xFE);
-					if((LoadIA_IAData & 0x01)) { LoadIA_AExtract = 0xFF; } else { LoadIA_AExtract = 0x00; }
+					/* okay-looking guesstimate */
+					LoadIA_IExtract = (LoadIA_IAData & 0xF0) + 0x0F;
+					LoadIA_AExtract = (LoadIA_IAData & 0x0F) << 4;
 
 					TextureData_OGL[LoadIA_InTexturePosition_OGL]     = LoadIA_IExtract;
 					TextureData_OGL[LoadIA_InTexturePosition_OGL + 1] = LoadIA_IExtract;
@@ -659,23 +713,39 @@ GLuint F3DEX2_LoadTexture(int TextureID)
 	glBindTexture(GL_TEXTURE_2D, TempGLTexture);
 
 	if(NewTexture) {
-		switch(Texture[TextureID].Y_Parameter) {
-			case 1:  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT); break;
-			case 2:  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); break;
-			case 3:  if(GLExtension_TextureMirror) glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT_ARB); break;
-			default: glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT); break;
-		}
+		if(Texture[TextureID].Y_Parameter & G_TX_CLAMP) { glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); }
+		if(Texture[TextureID].Y_Parameter & G_TX_MIRROR) { if(GLExtension_TextureMirror) glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT_ARB); }
+		if(Texture[TextureID].Y_Parameter & G_TX_WRAP) { glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT); }
 
-		switch(Texture[TextureID].X_Parameter) {
-			case 1:  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); break;
-			case 2:  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); break;
-			case 3:  if(GLExtension_TextureMirror) glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT_ARB); break;
-			default: glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); break;
-		}
+		if(Texture[TextureID].X_Parameter & G_TX_CLAMP) { glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); }
+		if(Texture[TextureID].X_Parameter & G_TX_MIRROR) { if(GLExtension_TextureMirror) glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT_ARB); }
+		if(Texture[TextureID].X_Parameter & G_TX_WRAP) { glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); }
 
 		gluBuild2DMipmaps(GL_TEXTURE_2D, Texture[TextureID].Format_OGL, Texture[TextureID].WidthRender, Texture[TextureID].HeightRender, Texture[TextureID].Format_OGLPixel, GL_UNSIGNED_BYTE, TextureData_OGL);
 	} else {
 		//
+	}
+
+	if(Renderer_EnableWavefrontDump) {
+		/* texture dumping */
+		static char TextureFilename[256] = "";
+		static char TextureFullPath[1024] = "";
+		sprintf(TextureFilename, "0x%02X_0x%02X_0x%02X%06X.bmp", (unsigned int)ROM_SceneToLoad, Texture[TextureID].Format_N64, Texture[TextureID].DataSource, (unsigned int)Texture[TextureID].Offset);
+		sprintf(TextureFullPath, "%s\\dump\\%s", AppPath, TextureFilename);
+		long BMPSize = 0;
+		unsigned char * BMPBuf = ConvertToBMP(TextureData_OGL, Texture[TextureID].WidthRender, Texture[TextureID].HeightRender, &BMPSize);
+		SaveBMP(BMPBuf, Texture[TextureID].WidthRender, Texture[TextureID].HeightRender, BMPSize, TextureFullPath);
+
+		sprintf(WavefrontMtlMsg, "newmtl material%d\n", WavefrontObjMaterialCnt);
+		fprintf(FileWavefrontMtl, WavefrontMtlMsg);
+		sprintf(WavefrontMtlMsg, "Kd 0.0000 0.0000 0.0000\n");			// diffuse color
+		fprintf(FileWavefrontMtl, WavefrontMtlMsg);
+		sprintf(WavefrontMtlMsg, "illum 1\n");
+		fprintf(FileWavefrontMtl, WavefrontMtlMsg);
+		sprintf(WavefrontMtlMsg, "map_Kd %s\n", TextureFilename);
+		fprintf(FileWavefrontMtl, WavefrontMtlMsg);
+
+		WavefrontObjMaterialCnt++;
 	}
 
 	if(GLExtension_AnisoFilter) {
@@ -695,7 +765,7 @@ GLuint F3DEX2_LoadTexture(int TextureID)
 	Debug_FreeOperations++;
 	Debug_FreeOperations++;
 
-	free(EmptyTexture_Red);
+	free(EmptyTexture);
 	free(EmptyTexture_Green);
 
 	Debug_FreeOperations++;

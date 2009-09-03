@@ -18,15 +18,38 @@ int F3DEX2_Cmd_VTX()
 	unsigned int TempVertListStartEntry = TempVertCount - ((VertList_Temp & 0xFFF000) >> 12);
 
 	unsigned int TempVertListBank = Readout_CurrentByte5;
-	unsigned long TempVertListOffset = Readout_CurrentByte6 << 16;
-	TempVertListOffset = TempVertListOffset + (Readout_CurrentByte7 << 8);
-	TempVertListOffset = TempVertListOffset + Readout_CurrentByte8;
+	unsigned long TempVertListOffset = (Readout_CurrentByte6 * 0x10000) + (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
 
+/*		memset(SystemLogMsg, 0x00, sizeof(SystemLogMsg));
+		sprintf(SystemLogMsg, "    offset %02X%06X, count %d (%s), entry %d\n",
+			TempVertListBank, TempVertListOffset,
+			TempVertCount, (TempVertCount > 32) ? "bounds!" : "okay",
+			TempVertListStartEntry);
+		Helper_LogMessage(1, SystemLogMsg);
+*/
 	F3DEX2_GetVertexList(TempVertListBank, TempVertListOffset, TempVertCount, TempVertListStartEntry);
 
-	glEnable(GL_TEXTURE_2D);
-	Renderer_GLTexture = F3DEX2_LoadTexture(0);
-	glBindTexture(GL_TEXTURE_2D, Renderer_GLTexture);
+	if((Renderer_EnableFragShader) && (GLExtension_MultiTexture)) {
+		glEnable(GL_TEXTURE_2D);
+		glActiveTextureARB(GL_TEXTURE0_ARB);
+		Renderer_GLTexture = F3DEX2_LoadTexture(0);
+		glBindTexture(GL_TEXTURE_2D, Renderer_GLTexture);
+
+		if(IsMultiTexture) {
+			glEnable(GL_TEXTURE_2D);
+			glActiveTextureARB(GL_TEXTURE1_ARB);
+			Renderer_GLTexture = F3DEX2_LoadTexture(1);
+			glBindTexture(GL_TEXTURE_2D, Renderer_GLTexture);
+		}
+
+		glActiveTextureARB(GL_TEXTURE1_ARB);
+		glDisable(GL_TEXTURE_2D);
+		glActiveTextureARB(GL_TEXTURE0_ARB);
+	} else {
+		glEnable(GL_TEXTURE_2D);
+		Renderer_GLTexture = F3DEX2_LoadTexture(0);
+		glBindTexture(GL_TEXTURE_2D, Renderer_GLTexture);
+	}
 
 	return 0;
 }
@@ -36,22 +59,29 @@ int F3DEX2_GetVertexList(unsigned int Bank, unsigned long Offset, unsigned int V
 	unsigned long CurrentVert = TempVertListStartEntry;
 	unsigned long VertListPosition = 0;
 
+	if(VertCount > 32) return -1;
+	if(CurrentVert > 32) return -1;
+
+	unsigned int VertBufferSize = (VertCount + 1) * 0x10;
+
 	unsigned char * VertListTempBuffer;
-	VertListTempBuffer = (unsigned char *) malloc ((VertCount + 1) * 0x10);
+	VertListTempBuffer = (unsigned char *) malloc (VertBufferSize);
 	memset(VertListTempBuffer, 0x00, sizeof(VertListTempBuffer));
 
 	Debug_MallocOperations++;
 
-	if(Zelda_MemCopy(Bank, Offset, VertListTempBuffer, ((VertCount + 1) * 0x10)) == -1) {
+	if(Zelda_MemCopy(Bank, Offset, VertListTempBuffer, VertBufferSize) == -1) {
 		sprintf(ErrorMsg, "Invalid Vertex data source 0x%02X!", Bank);
-//		MessageBox(hwnd, ErrorMsg, "Error", MB_OK | MB_ICONERROR);
+		MessageBox(hwnd, ErrorMsg, "Error", MB_OK | MB_ICONERROR);
 		return 0;
 	}
 
-	WavefrontObjVertCount_Previous = WavefrontObjVertCount;
+	if(Renderer_EnableWavefrontDump) {
+		WavefrontObjVertCount_Previous = WavefrontObjVertCount;
 
-	sprintf(WavefrontObjMsg, "usemtl material\n");
-	fprintf(FileWavefrontObj, WavefrontObjMsg);
+		sprintf(WavefrontObjMsg, "usemtl material%d\n", WavefrontObjMaterialCnt);
+		fprintf(FileWavefrontObj, WavefrontObjMsg);
+	}
 
 	while(CurrentVert < VertCount) {
 		// X
@@ -78,25 +108,23 @@ int F3DEX2_GetVertexList(unsigned int Bank, unsigned long Offset, unsigned int V
 		Vertex[CurrentVert].A = VertListTempBuffer[VertListPosition + 3];
 		VertListPosition+=4;
 
-		/* shitty obj extraction time! */
+		if(Renderer_EnableWavefrontDump) {
+			/* shitty obj extraction time! */
 
-		sprintf(WavefrontObjMsg, "v %4.2f %4.2f %4.2f\n", (float)Vertex[CurrentVert].X / 32, (float)Vertex[CurrentVert].Y / 32, (float)Vertex[CurrentVert].Z / 32);
-		fprintf(FileWavefrontObj, WavefrontObjMsg);
-		sprintf(WavefrontObjMsg, "vt %4.2f %4.2f\n", (float)Vertex[CurrentVert].H, (float)Vertex[CurrentVert].V);
-		fprintf(FileWavefrontObj, WavefrontObjMsg);
-		sprintf(WavefrontObjMsg, "vn %4.2f %4.2f %4.2f\n", (float)Vertex[CurrentVert].R, (float)Vertex[CurrentVert].G, (float)Vertex[CurrentVert].B);
-		fprintf(FileWavefrontObj, WavefrontObjMsg);
+			float TempH = (((float)Vertex[CurrentVert].H * (float)Texture[CurrentTextureID].S_Scale) / 32.0f);
+			if(TempH != 0.0f) TempH /= (float)Texture[CurrentTextureID].Width;
+			float TempV = (-((float)Vertex[CurrentVert].V * (float)Texture[CurrentTextureID].T_Scale) / 32.0f);
+			if(TempV != 0.0f) TempV /= (float)Texture[CurrentTextureID].Height;
 
-		sprintf(WavefrontMtlMsg, "newmtl material\n");
-		fprintf(FileWavefrontMtl, WavefrontMtlMsg);
-		sprintf(WavefrontMtlMsg, "Ka %4.2f %4.2f %4.2f\n", (float)Vertex[CurrentVert].R / 2, (float)Vertex[CurrentVert].G / 2, (float)Vertex[CurrentVert].B / 2);
-		fprintf(FileWavefrontMtl, WavefrontMtlMsg);
-		sprintf(WavefrontMtlMsg, "Ka %4.2f %4.2f %4.2f\n", (float)Vertex[CurrentVert].R, (float)Vertex[CurrentVert].G, (float)Vertex[CurrentVert].B);
-		fprintf(FileWavefrontMtl, WavefrontMtlMsg);
-		sprintf(WavefrontMtlMsg, "illum 1\n");
-		fprintf(FileWavefrontMtl, WavefrontMtlMsg);
+			sprintf(WavefrontObjMsg, "v %4.8f %4.8f %4.8f\n", (float)Vertex[CurrentVert].X / 32, (float)Vertex[CurrentVert].Y / 32, (float)Vertex[CurrentVert].Z / 32);
+			fprintf(FileWavefrontObj, WavefrontObjMsg);
+			sprintf(WavefrontObjMsg, "vt %4.8f %4.8f\n", TempH, TempV);
+			fprintf(FileWavefrontObj, WavefrontObjMsg);
+			sprintf(WavefrontObjMsg, "vn %4.8f %4.8f %4.8f\n", (float)Vertex[CurrentVert].R, (float)Vertex[CurrentVert].G, (float)Vertex[CurrentVert].B);
+			fprintf(FileWavefrontObj, WavefrontObjMsg);
 
-		WavefrontObjVertCount++;
+			WavefrontObjVertCount++;
+		}
 
 /*		sprintf(ErrorMsg, "Vertex: %x, %x, %x, %x, %x, %x, %x, %x, %x",
 			Vertex[CurrentVert].X, Vertex[CurrentVert].Y, Vertex[CurrentVert].Z,
@@ -123,10 +151,18 @@ int F3DEX2_Cmd_TRI1()
 		F3DEX2_DrawVertexPoint(Readout_CurrentByte4 / 2);
 	glEnd();
 
-	/* MORE shitty obj extraction time! */
+	if(Renderer_EnableWavefrontDump) {
+		/* MORE shitty obj extraction time! */
 
-	sprintf(WavefrontObjMsg, "f %d %d %d\n", (Readout_CurrentByte2 / 2) + 1 + WavefrontObjVertCount_Previous, (Readout_CurrentByte3 / 2) + 1 + WavefrontObjVertCount_Previous, (Readout_CurrentByte4 / 2) + 1 + WavefrontObjVertCount_Previous);
-	fprintf(FileWavefrontObj, WavefrontObjMsg);
+		unsigned int Vert1 = (Readout_CurrentByte2 / 2) + 1 + WavefrontObjVertCount_Previous;
+		unsigned int Vert2 = (Readout_CurrentByte3 / 2) + 1 + WavefrontObjVertCount_Previous;
+		unsigned int Vert3 = (Readout_CurrentByte4 / 2) + 1 + WavefrontObjVertCount_Previous;
+		sprintf(WavefrontObjMsg, "f %d/%d/%d %d/%d/%d %d/%d/%d\n",
+			Vert1, Vert1, Vert1,
+			Vert2, Vert2, Vert2,
+			Vert3, Vert3, Vert3);
+		fprintf(FileWavefrontObj, WavefrontObjMsg);
+	}
 
 	return 0;
 }
@@ -141,24 +177,43 @@ int F3DEX2_Cmd_TRI2()
 		F3DEX2_DrawVertexPoint(Readout_CurrentByte4 / 2);
 	glEnd();
 
+	F3DEX2_UpdateGeoMode();
+
 	glBegin(GL_TRIANGLES);
 		F3DEX2_DrawVertexPoint(Readout_CurrentByte6 / 2);
 		F3DEX2_DrawVertexPoint(Readout_CurrentByte7 / 2);
 		F3DEX2_DrawVertexPoint(Readout_CurrentByte8 / 2);
 	glEnd();
 
-	/* MORE AND MORE shitty obj extraction time!! */
+	if(Renderer_EnableWavefrontDump) {
+		/* MORE AND MORE shitty obj extraction time!! */
 
-	sprintf(WavefrontObjMsg, "f %d %d %d\n", (Readout_CurrentByte2 / 2) + 1 + WavefrontObjVertCount_Previous, (Readout_CurrentByte3 / 2) + 1 + WavefrontObjVertCount_Previous, (Readout_CurrentByte4 / 2) + 1 + WavefrontObjVertCount_Previous);
-	fprintf(FileWavefrontObj, WavefrontObjMsg);
-	sprintf(WavefrontObjMsg, "f %d %d %d\n", (Readout_CurrentByte6 / 2) + 1 + WavefrontObjVertCount_Previous, (Readout_CurrentByte7 / 2) + 1 + WavefrontObjVertCount_Previous, (Readout_CurrentByte8 / 2) + 1 + WavefrontObjVertCount_Previous);
-	fprintf(FileWavefrontObj, WavefrontObjMsg);
+		unsigned int Vert1 = (Readout_CurrentByte2 / 2) + 1 + WavefrontObjVertCount_Previous;
+		unsigned int Vert2 = (Readout_CurrentByte3 / 2) + 1 + WavefrontObjVertCount_Previous;
+		unsigned int Vert3 = (Readout_CurrentByte4 / 2) + 1 + WavefrontObjVertCount_Previous;
+		sprintf(WavefrontObjMsg, "f %d/%d/%d %d/%d/%d %d/%d/%d\n",
+			Vert1, Vert1, Vert1,
+			Vert2, Vert2, Vert2,
+			Vert3, Vert3, Vert3);
+		fprintf(FileWavefrontObj, WavefrontObjMsg);
+
+		unsigned int Vert4 = (Readout_CurrentByte6 / 2) + 1 + WavefrontObjVertCount_Previous;
+		unsigned int Vert5 = (Readout_CurrentByte7 / 2) + 1 + WavefrontObjVertCount_Previous;
+		unsigned int Vert6 = (Readout_CurrentByte8 / 2) + 1 + WavefrontObjVertCount_Previous;
+		sprintf(WavefrontObjMsg, "f %d/%d/%d %d/%d/%d %d/%d/%d\n",
+			Vert4, Vert4, Vert4,
+			Vert5, Vert5, Vert5,
+			Vert6, Vert6, Vert6);
+		fprintf(FileWavefrontObj, WavefrontObjMsg);
+	}
 
 	return 0;
 }
 
 int F3DEX2_Cmd_QUAD()
 {
+	/* is this correct? dunno, zelda doesn't use quads */
+
 	F3DEX2_UpdateGeoMode();
 
 	glBegin(GL_TRIANGLES);
@@ -167,33 +222,55 @@ int F3DEX2_Cmd_QUAD()
 		F3DEX2_DrawVertexPoint(Readout_CurrentByte4 / 2);
 	glEnd();
 
+	F3DEX2_UpdateGeoMode();
+
 	glBegin(GL_TRIANGLES);
 		F3DEX2_DrawVertexPoint(Readout_CurrentByte6 / 2);
 		F3DEX2_DrawVertexPoint(Readout_CurrentByte7 / 2);
 		F3DEX2_DrawVertexPoint(Readout_CurrentByte8 / 2);
 	glEnd();
 
-	sprintf(WavefrontObjMsg, "f %d %d %d\n", (Readout_CurrentByte2 / 2) + 1 + WavefrontObjVertCount_Previous, (Readout_CurrentByte3 / 2) + 1 + WavefrontObjVertCount_Previous, (Readout_CurrentByte4 / 2) + 1 + WavefrontObjVertCount_Previous);
-	fprintf(FileWavefrontObj, WavefrontObjMsg);
-	sprintf(WavefrontObjMsg, "f %d %d %d\n", (Readout_CurrentByte6 / 2) + 1 + WavefrontObjVertCount_Previous, (Readout_CurrentByte7 / 2) + 1 + WavefrontObjVertCount_Previous, (Readout_CurrentByte8 / 2) + 1 + WavefrontObjVertCount_Previous);
-	fprintf(FileWavefrontObj, WavefrontObjMsg);
+	if(Renderer_EnableWavefrontDump) {
+		unsigned int Vert1 = (Readout_CurrentByte2 / 2) + 1 + WavefrontObjVertCount_Previous;
+		unsigned int Vert2 = (Readout_CurrentByte3 / 2) + 1 + WavefrontObjVertCount_Previous;
+		unsigned int Vert3 = (Readout_CurrentByte4 / 2) + 1 + WavefrontObjVertCount_Previous;
+		sprintf(WavefrontObjMsg, "f %d/%d/%d %d/%d/%d %d/%d/%d\n",
+			Vert1, Vert1, Vert1,
+			Vert2, Vert2, Vert2,
+			Vert3, Vert3, Vert3);
+		fprintf(FileWavefrontObj, WavefrontObjMsg);
+
+		unsigned int Vert4 = (Readout_CurrentByte6 / 2) + 1 + WavefrontObjVertCount_Previous;
+		unsigned int Vert5 = (Readout_CurrentByte7 / 2) + 1 + WavefrontObjVertCount_Previous;
+		unsigned int Vert6 = (Readout_CurrentByte8 / 2) + 1 + WavefrontObjVertCount_Previous;
+		sprintf(WavefrontObjMsg, "f %d/%d/%d %d/%d/%d %d/%d/%d\n",
+			Vert4, Vert4, Vert4,
+			Vert5, Vert5, Vert5,
+			Vert6, Vert6, Vert6);
+		fprintf(FileWavefrontObj, WavefrontObjMsg);
+	}
 
 	return 0;
 }
 
 int F3DEX2_DrawVertexPoint(unsigned int VertexID)
 {
-	float TempH = (float)Vertex[VertexID].H * Texture[0].S_Scale / 32 / Texture[0].WidthRender;
-	float TempV = (float)Vertex[VertexID].V * Texture[0].T_Scale / 32 / Texture[0].HeightRender;
-	glTexCoord2f(TempH, TempV);
+	float TempH = (float)Vertex[VertexID].H * Texture[CurrentTextureID].S_Scale / 32 / Texture[CurrentTextureID].WidthRender;
+	float TempV = (float)Vertex[VertexID].V * Texture[CurrentTextureID].T_Scale / 32 / Texture[CurrentTextureID].HeightRender;
+	TempH *= Texture[CurrentTextureID].S_ShiftScale;
+	TempV *= Texture[CurrentTextureID].T_ShiftScale;
 
-	glNormal3b(Vertex[VertexID].R, Vertex[VertexID].G, Vertex[VertexID].B);
-
-	if(!(N64_GeometryMode & G_LIGHTING)) {
-		glColor4ub(Vertex[VertexID].R, Vertex[VertexID].G, Vertex[VertexID].B, Vertex[VertexID].A);
+/*	if((Renderer_EnableFragShader) && (GLExtension_MultiTexture)) {
+		if(CurrentTextureID == 0) {
+			glMultiTexCoord2fARB(GL_TEXTURE0_ARB, TempH, TempV);
+		} else {
+			glMultiTexCoord2fARB(GL_TEXTURE1_ARB, TempH, TempV);
+		}
 	} else {
-		F3DEX2_HACKSelectClrAlpSource();
-	}
+*/		glTexCoord2f(TempH, TempV);
+//	}
+	glNormal3b(Vertex[VertexID].R, Vertex[VertexID].G, Vertex[VertexID].B);
+	if(!(N64_GeometryMode & G_LIGHTING)) glColor4ub(Vertex[VertexID].R, Vertex[VertexID].G, Vertex[VertexID].B, Vertex[VertexID].A);
 
 	glVertex3d(Vertex[VertexID].X, Vertex[VertexID].Y, Vertex[VertexID].Z);
 
@@ -220,8 +297,8 @@ int F3DEX2_Cmd_MTX()
 	GLfloat Matrix[4][4];
 	float fRecip = 1.0f / 65536.0f;
 
-	/* no idea what segments 0x0C & 0x0D are, so let's just return when we get those */
-	if((MtxSegment == 0x0C) || (MtxSegment == 0x0D)) {
+	/* no idea what segments 0x01, 0x0C & 0x0D are, so let's just return when we get those */
+	if((MtxSegment == 0x01) ||(MtxSegment == 0x0C) || (MtxSegment == 0x0D)) {
 		//????
 		return 0;
 	}
@@ -264,6 +341,13 @@ int F3DEX2_Cmd_MTX()
 	/* now push the matrix, multiply the existing one with the one we just loaded */
 	glPushMatrix();
 	glMultMatrixf(*Matrix);
+
+	return 0;
+}
+
+int F3DEX2_Cmd_POPMTX()
+{
+	glPopMatrix(); /* ...i guess. works for majora 0x3b, etc */
 
 	return 0;
 }

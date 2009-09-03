@@ -88,6 +88,7 @@
 #define	F3DEX2_SPECIAL_2		0xD4
 #define	F3DEX2_SPECIAL_3		0xD3
 
+/* for SetGeometryMode */
 #define G_TEXTURE_ENABLE		0x00000000
 #define G_ZBUFFER				0x00000001
 #define G_SHADE					0x00000004
@@ -101,3 +102,71 @@
 #define G_LOD					0x00100000
 #define G_SHADING_SMOOTH		0x00200000
 #define G_CLIPPING				0x00800000
+
+/* for SetTile */
+#define	G_TX_WRAP				0x00
+#define	G_TX_MIRROR				0x01
+#define	G_TX_CLAMP				0x02
+
+/* for SetOtherMode_L */
+#define	G_MDSFT_ALPHACOMPARE	0
+#define	G_MDSFT_ZSRCSEL			2
+#define	G_MDSFT_RENDERMODE		3
+#define	G_MDSFT_BLENDER			16
+
+/* for SetCombine */
+/* -- color combiner -- */
+#define G_CCMUX_COMBINED		0
+#define G_CCMUX_TEXEL0			1
+#define G_CCMUX_TEXEL1			2
+#define G_CCMUX_PRIMITIVE		3
+#define G_CCMUX_SHADE			4
+#define G_CCMUX_ENVIRONMENT		5
+#define G_CCMUX_CENTER			6
+#define G_CCMUX_SCALE			6
+#define G_CCMUX_COMBINED_ALPHA	7
+#define G_CCMUX_TEXEL0_ALPHA	8
+#define G_CCMUX_TEXEL1_ALPHA	9
+#define G_CCMUX_PRIMITIVE_ALPHA	10
+#define G_CCMUX_SHADE_ALPHA		11
+#define G_CCMUX_ENV_ALPHA		12
+#define G_CCMUX_LOD_FRACTION	13
+#define G_CCMUX_PRIM_LOD_FRAC	14
+#define G_CCMUX_NOISE			7
+#define G_CCMUX_K4				7
+#define G_CCMUX_K5				15
+#define G_CCMUX_1				6
+#define G_CCMUX_0				31
+
+/* -- alpha combiner -- */
+#define G_ACMUX_COMBINED		0
+#define G_ACMUX_TEXEL0			1
+#define G_ACMUX_TEXEL1			2
+#define G_ACMUX_PRIMITIVE		3
+#define G_ACMUX_SHADE			4
+#define G_ACMUX_ENVIRONMENT		5
+#define G_ACMUX_LOD_FRACTION	0
+#define G_ACMUX_PRIM_LOD_FRAC	6
+#define G_ACMUX_1				6
+#define G_ACMUX_0				7
+
+/* for SetOtherMode_H */
+#define	G_MDSFT_BLENDMASK		0
+#define	G_MDSFT_ALPHADITHER		4
+#define	G_MDSFT_RGBDITHER		6
+
+#define	G_MDSFT_COMBKEY			8
+#define	G_MDSFT_TEXTCONV		9
+#define	G_MDSFT_TEXTFILT		12
+#define	G_MDSFT_TEXTLUT			14
+#define	G_MDSFT_TEXTLOD			16
+#define	G_MDSFT_TEXTDETAIL		17
+#define	G_MDSFT_TEXTPERSP		19
+#define	G_MDSFT_CYCLETYPE		20
+#define	G_MDSFT_COLORDITHER		22
+#define	G_MDSFT_PIPELINE		23
+
+#define	G_CYC_1CYCLE			0x00
+#define	G_CYC_2CYCLE			0x01
+#define	G_CYC_COPY				0x02
+#define	G_CYC_FILL				0x03

@@ -13,14 +13,23 @@
 
 int OGL_Init(void)
 {
+	OGL_InitExtensions();
+
+	OGL_ResetProperties();
+
+	return true;
+}
+
+int OGL_ResetProperties(void)
+{
 	glShadeModel(GL_SMOOTH);
 	glEnable(GL_POINT_SMOOTH);
 	glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
 
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-//	glClearColor(0.2f, 0.5f, 0.7f, 1.0f);
-	glClearColor(FogColor[0], FogColor[1], FogColor[2], FogColor[3]);
+	glClearColor(0.2f, 0.5f, 0.7f, 1.0f);
+//	glClearColor(FogColor[0], FogColor[1], FogColor[2], FogColor[3]);
 	glClearDepth(1.0f);
 
 	glEnable(GL_DEPTH_TEST);
@@ -44,15 +53,18 @@ int OGL_Init(void)
 	/* fake fog */
 	glFogi(GL_FOG_MODE, GL_LINEAR);
 	glHint(GL_FOG_HINT, GL_NICEST);
-	glFogf(GL_FOG_START, 1.0f);
+/*	glFogf(GL_FOG_START, 1.0f);
 	glFogf(GL_FOG_END, 75.0f);
 
 	glFogfv(GL_FOG_COLOR, FogColor);
+*/
+//	glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+//	glEnable(GL_COLOR_MATERIAL);
 
-	glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
-	glEnable(GL_COLOR_MATERIAL);
-
-	OGL_InitExtensions();
+	if(GLExtension_VertFragProgram) {
+		glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 0, EnvColor[0], EnvColor[1], EnvColor[2], EnvColor[3]);
+		glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 1, PrimColor[0], PrimColor[1], PrimColor[2], PrimColor[3]);
+	}
 
 	return true;
 }
@@ -93,16 +105,17 @@ int OGL_InitExtensions(void)
 		sprintf(GLExtensionsErrorMsg, "%sGL_EXT_texture_filter_anisotropic\n", GLExtensionsErrorMsg);
 	}
 
-	if(strstr(GLExtension_List, "GL_ARB_fragment_program")) {
-		GLExtension_FragmentProgram = true;
-		glGenProgramsARB			= (PFNGLGENPROGRAMSARBPROC) wglGetProcAddress("glGenProgramsARB");
-		glBindProgramARB			= (PFNGLBINDPROGRAMARBPROC) wglGetProcAddress("glBindProgramARB");
-		glDeleteProgramsARB			= (PFNGLDELETEPROGRAMSARBPROC) wglGetProcAddress("glDeleteProgramsARB");
-		glProgramStringARB			= (PFNGLPROGRAMSTRINGARBPROC) wglGetProcAddress("glProgramStringARB");
-		glProgramEnvParameter4fARB	= (PFNGLPROGRAMENVPARAMETER4FARBPROC) wglGetProcAddress("glProgramEnvParameter4fARB");
+	if(strstr(GLExtension_List, "GL_ARB_fragment_program") && (strstr(GLExtension_List, "GL_ARB_vertex_program"))) {
+		GLExtension_VertFragProgram = true;
+		glGenProgramsARB				= (PFNGLGENPROGRAMSARBPROC) wglGetProcAddress("glGenProgramsARB");
+		glBindProgramARB				= (PFNGLBINDPROGRAMARBPROC) wglGetProcAddress("glBindProgramARB");
+		glDeleteProgramsARB				= (PFNGLDELETEPROGRAMSARBPROC) wglGetProcAddress("glDeleteProgramsARB");
+		glProgramStringARB				= (PFNGLPROGRAMSTRINGARBPROC) wglGetProcAddress("glProgramStringARB");
+		glProgramEnvParameter4fARB		= (PFNGLPROGRAMENVPARAMETER4FARBPROC) wglGetProcAddress("glProgramEnvParameter4fARB");
+		glProgramLocalParameter4fARB	= (PFNGLPROGRAMLOCALPARAMETER4FARBPROC) wglGetProcAddress("glProgramLocalParameter4fARB");
 	} else {
 		GLExtensionsUnsupported = true;
-		sprintf(GLExtensionsErrorMsg, "%sGL_ARB_fragment_program\n", GLExtensionsErrorMsg);
+		sprintf(GLExtensionsErrorMsg, "%sGL_ARB_fragment_program\nGL_ARB_vertex_program\n", GLExtensionsErrorMsg);
 	}
 
 	if(GLExtensionsUnsupported) {
@@ -144,15 +157,21 @@ int OGL_DrawScene(void)
 		}
 
 		/* #1 - RENDER ACTORS, PASS 1 */
+		if((GLExtension_VertFragProgram) && (Renderer_EnableFragShader)) {
+			glDisable(GL_FRAGMENT_PROGRAM_ARB);
+		}
 		glDisable(GL_BLEND);
 		for(i = 0; i < SceneHeader[SceneHeader_Current].Map_Count; i++) {
 			ActorInfo_CurrentCount[i] = 0;
 		}
 		ScActorInfo_CurrentCount = 0;
+		DoorInfo_CurrentCount = 0;
 		Viewer_RenderAllActors();
 
 		/* #2 - RENDER MAP */
 		Renderer_GLDisplayList_Current = Renderer_GLDisplayList;
+
+		glPolygonMode(GL_FRONT_AND_BACK, (Renderer_EnableWireframe ? GL_LINE : GL_FILL));
 
 		int StartMap = 0, EndMap = 0, SkipDLs = 0;
 		if(ROM_CurrentMap == -1) {
@@ -170,6 +189,7 @@ int OGL_DrawScene(void)
 		for(i = StartMap; i < EndMap; i++) {
 			int j = 0;
 			for(j = 0; j < DListInfo_CurrentCount[i]; j++) {
+				if(Renderer_EnableFog) { glEnable(GL_FOG); } else { glDisable(GL_FOG); }
 				if(Renderer_EnableMap) glCallList(Renderer_GLDisplayList_Current + SkipDLs + j);
 			}
 			Renderer_GLDisplayList_Current += SkipDLs + j;
@@ -177,6 +197,10 @@ int OGL_DrawScene(void)
 
 		/* #3 - RENDER COLLISION */
 		if(Renderer_EnableCollision) {
+			if((GLExtension_VertFragProgram) && (Renderer_EnableFragShader)) {
+				glDisable(GL_FRAGMENT_PROGRAM_ARB);
+			}
+
 			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 			glAlphaFunc(GL_GREATER, 0.0f);
 
@@ -194,11 +218,15 @@ int OGL_DrawScene(void)
 		}
 
 		/* #4 - RENDER ACTORS, PASS 2 */
+		if((GLExtension_VertFragProgram) && (Renderer_EnableFragShader)) {
+			glDisable(GL_FRAGMENT_PROGRAM_ARB);
+		}
 		glDisable(GL_BLEND);
 		for(i = 0; i < SceneHeader[SceneHeader_Current].Map_Count; i++) {
 			ActorInfo_CurrentCount[i] = 0;
 		}
 		ScActorInfo_CurrentCount = 0;
+		DoorInfo_CurrentCount = 0;
 		Viewer_RenderAllActors();
 	}
 
@@ -214,7 +242,7 @@ void OGL_ResizeScene(GLsizei width, GLsizei height)
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 
-	gluPerspective(45.0f, (GLfloat)width / (GLfloat)height, 0.1f, 100.0f);
+	gluPerspective(60.0f, (GLfloat)width / (GLfloat)height, 0.1f, 100.0f);
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();

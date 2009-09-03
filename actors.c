@@ -13,7 +13,7 @@
 
 int Viewer_RenderAllActors()
 {
-	if(GLExtension_FragmentProgram) glDisable(GL_FRAGMENT_PROGRAM_ARB);
+	if(GLExtension_VertFragProgram) glDisable(GL_FRAGMENT_PROGRAM_ARB);
 
 	glEnable(GL_DEPTH_TEST);
 	glDepthMask(GL_TRUE);
@@ -30,34 +30,61 @@ int Viewer_RenderAllActors()
 		EndMap = ROM_CurrentMap + 1;
 	}
 
+	float ColorR = 0.0f; float ColorG = 0.0f; float ColorB = 0.0f;
+
 	int i;
 	for(i = StartMap; i < EndMap; i++) {
 		if(Renderer_EnableMapActors) {
-			if (MapHeader[i][MapHeader_Current].Actor_Count > 0) {
-				while (!(ActorInfo_CurrentCount[i] == MapHeader[i][MapHeader_Current].Actor_Count)) {
+			if(MapHeader[i][MapHeader_Current].Actor_Count > 0) {
+				while(!(ActorInfo_CurrentCount[i] == MapHeader[i][MapHeader_Current].Actor_Count)) {
+					ColorR = 0.0f; ColorG = 1.0f; ColorB = 0.0f;
+
+//					if(ActorInfo_CurrentCount[i] == 0) { ColorR = 1.0f; ColorG = 1.0f; ColorB = 1.0f; }
+
 					Viewer_RenderActor(Actors[i][ActorInfo_CurrentCount[i]].Number,
 						Actors[i][ActorInfo_CurrentCount[i]].X_Position, Actors[i][ActorInfo_CurrentCount[i]].Y_Position, Actors[i][ActorInfo_CurrentCount[i]].Z_Position,
 						Actors[i][ActorInfo_CurrentCount[i]].X_Rotation, Actors[i][ActorInfo_CurrentCount[i]].Y_Rotation, Actors[i][ActorInfo_CurrentCount[i]].Z_Rotation,
-						true);
+						ColorR, ColorG, ColorB);
 					ActorInfo_CurrentCount[i]++;
 				}
 			}
 		}
 
 		if(Renderer_EnableSceneActors) {
-			if (SceneHeader[SceneHeader_Current].ScActor_Count > 0) {
-				while (!(ScActorInfo_CurrentCount == SceneHeader[SceneHeader_Current].ScActor_Count)) {
-					Viewer_RenderActor(ScActors[ScActorInfo_CurrentCount].Number, ScActors[ScActorInfo_CurrentCount].X_Position, ScActors[ScActorInfo_CurrentCount].Y_Position, ScActors[ScActorInfo_CurrentCount].Z_Position, ScActors[ScActorInfo_CurrentCount].X_Rotation, ScActors[ScActorInfo_CurrentCount].Y_Rotation, ScActors[ScActorInfo_CurrentCount].Z_Rotation, false);
+			if(SceneHeader[SceneHeader_Current].ScActor_Count > 0) {
+				while(!(ScActorInfo_CurrentCount == SceneHeader[SceneHeader_Current].ScActor_Count)) {
+					ColorR = 0.0f; ColorG = 0.0f; ColorB = 1.0f;
+
+					Viewer_RenderActor(ScActors[ScActorInfo_CurrentCount].Number,
+						ScActors[ScActorInfo_CurrentCount].X_Position, ScActors[ScActorInfo_CurrentCount].Y_Position, ScActors[ScActorInfo_CurrentCount].Z_Position,
+						ScActors[ScActorInfo_CurrentCount].X_Rotation, ScActors[ScActorInfo_CurrentCount].Y_Rotation, ScActors[ScActorInfo_CurrentCount].Z_Rotation,
+						ColorR, ColorG, ColorB);
 					ScActorInfo_CurrentCount++;
+				}
+			}
+		}
+
+		if(Renderer_EnableDoors) {
+			if(SceneHeader[SceneHeader_Current].Door_Count > 0) {
+				while(!(DoorInfo_CurrentCount == SceneHeader[SceneHeader_Current].Door_Count)) {
+					ColorR = 1.0f; ColorG = 0.0f; ColorB = 0.0f;
+
+					Viewer_RenderActor(Doors[DoorInfo_CurrentCount].Number,
+						Doors[DoorInfo_CurrentCount].X_Position, Doors[DoorInfo_CurrentCount].Y_Position, Doors[DoorInfo_CurrentCount].Z_Position,
+						0, Doors[DoorInfo_CurrentCount].Y_Rotation, 0,
+						ColorR, ColorG, ColorB);
+					DoorInfo_CurrentCount++;
 				}
 			}
 		}
 	}
 
+//	if(GLExtension_VertFragProgram) glEnable(GL_FRAGMENT_PROGRAM_ARB);
+
 	return 0;
 }
 
-int Viewer_RenderActor(int ID, GLshort X, GLshort Y, GLshort Z, signed int X_Rot, signed int Y_Rot, signed int Z_Rot, bool IsMapActor)
+int Viewer_RenderActor(int ID, GLshort X, GLshort Y, GLshort Z, signed int X_Rot, signed int Y_Rot, signed int Z_Rot, float Color_Red, float Color_Green, float Color_Blue)
 {
 	glPushMatrix();
 
@@ -77,59 +104,82 @@ int Viewer_RenderActor(int ID, GLshort X, GLshort Y, GLshort Z, signed int X_Rot
 		}
 */
 		default: {
-			glEnable(GL_FOG);
+			if(Renderer_EnableFog) { glEnable(GL_FOG); } else { glDisable(GL_FOG); }
 
 			glDisable(GL_LIGHTING);
 			glDisable(GL_TEXTURE_2D);
 
-			glLineWidth(1.5f);
+			glLineWidth(2.5f);
 
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 			glBegin(GL_QUADS);
-				if(IsMapActor) {
-					glColor3f(0.0f, 1.0f, 0.0f);
-				} else {
-					glColor3f(0.0f, 0.0f, 1.0f);
-				}
+				glColor3f(1.0f, 1.0f, 1.0f);
 
-				glVertex3s( 15, 15, 15);   //V2
-				glVertex3s( 15,-15, 15);   //V1
-				glVertex3s( 15,-15,-15);   //V3
-				glVertex3s( 15, 15,-15);   //V4
+				glVertex3f( 15.0f, 15.0f, 15.0f);   //V2
+				glVertex3f( 15.0f,-15.0f, 15.0f);   //V1
+				glVertex3f( 15.0f,-15.0f,-15.0f);   //V3
+				glVertex3f( 15.0f, 15.0f,-15.0f);   //V4
 
-				glVertex3s( 15, 15,-15);   //V4
-				glVertex3s( 15,-15,-15);   //V3
-				glVertex3s(-15,-15,-15);   //V5
-				glVertex3s(-15, 15,-15);   //V6
+				glVertex3f( 15.0f, 15.0f,-15.0f);   //V4
+				glVertex3f( 15.0f,-15.0f,-15.0f);   //V3
+				glVertex3f(-15.0f,-15.0f,-15.0f);   //V5
+				glVertex3f(-15.0f, 15.0f,-15.0f);   //V6
 
-				glVertex3s(-15, 15,-15);   //V6
-				glVertex3s(-15,-15,-15);   //V5
-				glVertex3s(-15,-15, 15);   //V7
-				glVertex3s(-15, 15, 15);   //V8
+				glVertex3f(-15.0f, 15.0f,-15.0f);   //V6
+				glVertex3f(-15.0f,-15.0f,-15.0f);   //V5
+				glVertex3f(-15.0f,-15.0f, 15.0f);   //V7
+				glVertex3f(-15.0f, 15.0f, 15.0f);   //V8
 
-				glVertex3s(-15, 15,-15);   //V6
-				glVertex3s(-15, 15, 15);   //V8
-				glVertex3s( 15, 15, 15);   //V2
-				glVertex3s( 15, 15,-15);   //V4
+				glVertex3f(-15.0f, 15.0f,-15.0f);   //V6
+				glVertex3f(-15.0f, 15.0f, 15.0f);   //V8
+				glVertex3f( 15.0f, 15.0f, 15.0f);   //V2
+				glVertex3f( 15.0f, 15.0f,-15.0f);   //V4
 
-				glVertex3s(-15,-15, 15);   //V7
-				glVertex3s(-15,-15,-15);   //V5
-				glVertex3s( 15,-15,-15);   //V3
-				glVertex3s( 15,-15, 15);   //V1
+				glVertex3f(-15.0f,-15.0f, 15.0f);   //V7
+				glVertex3f(-15.0f,-15.0f,-15.0f);   //V5
+				glVertex3f( 15.0f,-15.0f,-15.0f);   //V3
+				glVertex3f( 15.0f,-15.0f, 15.0f);   //V1
 			glEnd();
 
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 			glDisable(GL_CULL_FACE);
 
 			glBegin(GL_QUADS);
+				glColor3f(Color_Red, Color_Green, Color_Blue);
+
+				glVertex3f( 15.0f, 15.0f, 15.0f);   //V2
+				glVertex3f( 15.0f,-15.0f, 15.0f);   //V1
+				glVertex3f( 15.0f,-15.0f,-15.0f);   //V3
+				glVertex3f( 15.0f, 15.0f,-15.0f);   //V4
+
+				glVertex3f( 15.0f, 15.0f,-15.0f);   //V4
+				glVertex3f( 15.0f,-15.0f,-15.0f);   //V3
+				glVertex3f(-15.0f,-15.0f,-15.0f);   //V5
+				glVertex3f(-15.0f, 15.0f,-15.0f);   //V6
+
+				glVertex3f(-15.0f, 15.0f,-15.0f);   //V6
+				glVertex3f(-15.0f,-15.0f,-15.0f);   //V5
+				glVertex3f(-15.0f,-15.0f, 15.0f);   //V7
+				glVertex3f(-15.0f, 15.0f, 15.0f);   //V8
+
+				glVertex3f(-15.0f, 15.0f,-15.0f);   //V6
+				glVertex3f(-15.0f, 15.0f, 15.0f);   //V8
+				glVertex3f( 15.0f, 15.0f, 15.0f);   //V2
+				glVertex3f( 15.0f, 15.0f,-15.0f);   //V4
+
+				glVertex3f(-15.0f,-15.0f, 15.0f);   //V7
+				glVertex3f(-15.0f,-15.0f,-15.0f);   //V5
+				glVertex3f( 15.0f,-15.0f,-15.0f);   //V3
+				glVertex3f( 15.0f,-15.0f, 15.0f);   //V1
+
 				//front
 				glColor3f(1.0f, 1.0f, 1.0f);
 
-				glVertex3s(-15, 15, 15);   //V8
-				glVertex3s(-15,-15, 15);   //V7
-				glVertex3s( 15,-15, 15);   //V1
-				glVertex3s( 15, 15, 15);   //V2
+				glVertex3f(-15.0f, 15.0f, 15.0f);   //V8
+				glVertex3f(-15.0f,-15.0f, 15.0f);   //V7
+				glVertex3f( 15.0f,-15.0f, 15.0f);   //V1
+				glVertex3f( 15.0f, 15.0f, 15.0f);   //V2
 			glEnd();
 
 			glEnable(GL_CULL_FACE);

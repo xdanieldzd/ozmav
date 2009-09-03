@@ -13,18 +13,19 @@
 	SYSTEM FUNCTIONS - OPENGL & WINDOWS
 	------------------------------------------------------------ */
 
-PFNGLMULTITEXCOORD1FARBPROC			glMultiTexCoord1fARB		= NULL;
-PFNGLMULTITEXCOORD2FARBPROC			glMultiTexCoord2fARB		= NULL;
-PFNGLMULTITEXCOORD3FARBPROC			glMultiTexCoord3fARB		= NULL;
-PFNGLMULTITEXCOORD4FARBPROC			glMultiTexCoord4fARB		= NULL;
-PFNGLACTIVETEXTUREARBPROC			glActiveTextureARB			= NULL;
-PFNGLCLIENTACTIVETEXTUREARBPROC		glClientActiveTextureARB	= NULL;
+PFNGLMULTITEXCOORD1FARBPROC			glMultiTexCoord1fARB			= NULL;
+PFNGLMULTITEXCOORD2FARBPROC			glMultiTexCoord2fARB			= NULL;
+PFNGLMULTITEXCOORD3FARBPROC			glMultiTexCoord3fARB			= NULL;
+PFNGLMULTITEXCOORD4FARBPROC			glMultiTexCoord4fARB			= NULL;
+PFNGLACTIVETEXTUREARBPROC			glActiveTextureARB				= NULL;
+PFNGLCLIENTACTIVETEXTUREARBPROC		glClientActiveTextureARB		= NULL;
 
-PFNGLGENPROGRAMSARBPROC				glGenProgramsARB			= NULL;
-PFNGLBINDPROGRAMARBPROC				glBindProgramARB			= NULL;
-PFNGLDELETEPROGRAMSARBPROC			glDeleteProgramsARB			= NULL;
-PFNGLPROGRAMSTRINGARBPROC			glProgramStringARB			= NULL;
-PFNGLPROGRAMENVPARAMETER4FARBPROC	glProgramEnvParameter4fARB	= NULL;
+PFNGLGENPROGRAMSARBPROC				glGenProgramsARB				= NULL;
+PFNGLBINDPROGRAMARBPROC				glBindProgramARB				= NULL;
+PFNGLDELETEPROGRAMSARBPROC			glDeleteProgramsARB				= NULL;
+PFNGLPROGRAMSTRINGARBPROC			glProgramStringARB				= NULL;
+PFNGLPROGRAMENVPARAMETER4FARBPROC	glProgramEnvParameter4fARB		= NULL;
+PFNGLPROGRAMLOCALPARAMETER4FARBPROC	glProgramLocalParameter4fARB	= NULL;;
 
 /*	------------------------------------------------------------
 	VARIABLES
@@ -35,6 +36,7 @@ HWND			hwnd = NULL;
 HMENU			hmenu = NULL;
 HWND			hogl = NULL;
 HWND			hstatus = NULL;
+HWND			hlvlcombo = NULL;
 
 HDC				hDC_ogl = NULL;
 HGLRC			hRC = NULL;
@@ -45,14 +47,14 @@ char			szClassName[] = "OZMAVClass";
 /* GENERAL GLOBAL PROGRAM VARIABLES */
 bool			System_KbdKeys[256];
 
-char			AppTitle[256] = "OZMAV";
-char			AppVersion[256] = "V0.7";
-char			AppBuildName[256] = "indifferent instability";
+char			AppTitle[32] = "OZMAV";
+char			AppVersion[32] = "V0.75";
+char			AppBuildName[64] = "azu-nyan ftw";
 char			AppPath[512] = "";
 char			INIPath[512] = "";
 char			WindowTitle[256] = "";
 char			StatusMsg[256] = "";
-char			ErrorMsg[2048] = "";
+char			ErrorMsg[8192] = "";
 
 char			MapActorMsg[256] = "";
 char			SceneActorMsg[256] = "";
@@ -67,14 +69,21 @@ char			GFXLogMsg[1024] = "";
 char			SystemLogMsg[1024] = "";
 char			WavefrontObjMsg[1024] = "";
 char			WavefrontMtlMsg[1024] = "";
+char			WavefrontObjColMsg[1024] = "";
 
 bool			GFXLogOpened = false;
 
 bool			WavefrontObjOpened = false;
 bool			WavefrontMtlOpened = false;
+bool			WavefrontObjColOpened = false;
 
 unsigned int	WavefrontObjVertCount = 0;
 unsigned int	WavefrontObjVertCount_Previous = 0;
+
+unsigned int	WavefrontObjMaterialCnt = 0;
+
+unsigned int	WavefrontObjColVertCount = 0;
+unsigned int	WavefrontObjColVertCount_Previous = 0;
 
 /* CAMERA / VIEWPOINT VARIABLES */
 float			CamAngleX = 0, CamAngleY = 0;
@@ -105,6 +114,11 @@ unsigned int	Debug_FreeOperations;
 
 bool			GetDLFromZMapScene = true;
 
+unsigned int	Scene_Start = 0x00;
+char			Scene_Name[256];
+
+unsigned int	Map_Start[256];
+
 unsigned long	ROMFilesize = 0;
 unsigned long	ZMapFilesize[256];
 unsigned long	ZSceneFilesize = 0;
@@ -120,8 +134,12 @@ bool			ROMExists = false;
 
 FILE			* FileGFXLog = NULL;
 FILE			* FileSystemLog = NULL;
+FILE			* FileCombinerLog = NULL;
 FILE			* FileWavefrontObj = NULL;
 FILE			* FileWavefrontMtl = NULL;
+FILE			* FileWavefrontObjCol = NULL;
+
+int				GameMode = 0;				/* 0 = OoT, 1 = MM */
 
 /* DATA READOUT VARIABLES */
 unsigned long	Readout_Current1 = 0;
@@ -136,6 +154,7 @@ unsigned int	Readout_CurrentByte7 = 0;
 unsigned int	Readout_CurrentByte8 = 0;
 
 unsigned long	Readout_NextGFXCommand1 = 0;
+unsigned long	Readout_PrevGFXCommand1 = 0;
 
 /* F3DEX2 DISPLAY LIST HANDLING VARIABLES */
 unsigned long	DLists[256][2048];
@@ -167,19 +186,24 @@ unsigned long	TexCachePosition = 0;
 unsigned long	TotalTexCount = 0;
 
 /* Combiner variables */
-unsigned int fragProg = 0;
-int COMBINE0 = 0,COMBINE1 = 0;
-int cA0 = 0,cB0 = 0,cC0 = 0,cD0 = 0,aA0 = 0,aB0 = 0,aC0 = 0,aD0 = 0;
-int cA1 = 0,cB1 = 0,cC1 = 0,cD1 = 0,aA1 = 0,aB1 = 0,aC1 = 0,aD1 = 0;
+unsigned int	Combine0 = 0, Combine1 = 0;
+int				cA[2], cB[2], cC[2], cD[2], aA[2], aB[2], aC[2], aD[2];
+
+unsigned int	FPCachePosition = 0;
+
+bool			RDPOtherMode_CvgXAlpha = 0;
+bool			RDPOtherMode_AlphaCvgSel = 0;
 
 /* ZELDA ROM HANDLING VARIABLES */
 unsigned long	ROM_SceneTableOffset = 0x00;
 unsigned int	ROM_SceneToLoad = 0x00;
+unsigned int	ROM_MaxSceneCount = 0x00;
+unsigned int	ROM_SceneEntryLength = 0x00;
 
 unsigned long	ROM_ObjectTableOffset = 0x00;
 unsigned long	ROM_ActorTableOffset = 0x00;
 
-int				ROM_CurrentMap = -1;
+int				ROM_CurrentMap = 0;
 int				ROM_CurrentMap_Temp = 0;
 
 int				DListParser_CurrentMap = 0;
@@ -204,12 +228,17 @@ int				ActorInfo_Selected = 0;
 int				ScActorInfo_CurrentCount = 0;
 int				ScActorInfo_Selected = 0;
 
+int				DoorInfo_CurrentCount = 0;
+int				DoorInfo_Selected = 0;
+
 /* GENERAL RENDERER VARIABLES */
 GLuint			Renderer_GLDisplayList = 0;
 GLuint			Renderer_GLDisplayList_Current = 0;
 GLuint			Renderer_GLDisplayList_Total = 0;
 
-GLuint			Renderer_GLTexture = 0;
+GLuint			Renderer_GLTexture;
+int				CurrentTextureID = 0;
+bool			IsMultiTexture = false;
 
 GLuint			TempGLTexture = 0;
 
@@ -226,26 +255,34 @@ GLfloat			LightAmbient[]=  {0.0f, 0.0f, 0.0f, 1.0f};
 GLfloat			LightDiffuse[]=  {1.0f, 1.0f, 1.0f, 1.0f};
 GLfloat			LightPosition[]= {1.0f, 1.0f, 1.0f, 1.0f};
 
-GLfloat			FogColor[]=  {0.75f, 0.75f, 0.75f, 1.0f};
-GLfloat			PrimColor[]= {0.0f, 0.0f, 0.0f, 1.0f};
-GLfloat         EnvColor[]=  {0.0f, 0.0f, 0.0f, 1.0f};
+float			FogColor[]=  {0.75f, 0.75f, 0.75f, 1.0f};
+float			PrimColor[]= {1.0f, 1.0f, 1.0f, 1.0f};
+float			EnvColor[]=  {1.0f, 1.0f, 1.0f, 1.0f};
 
-int				HACK_UseColorSource = 0;	/* 0 = primcolor, 1 = envcolor, 2 = 1.0 */
-int				HACK_UseAlphaSource = 0;	/* 0 = primcolor, 1 = evncolor, 2 = 1.0 */
+char			ShaderString[16384] = "";
 
 bool			Renderer_EnableMapActors = true;
 bool			Renderer_EnableSceneActors = true;
+bool			Renderer_EnableDoors = true;
 
 bool			Renderer_EnableMap = true;
 bool			Renderer_EnableCollision = true;
 GLfloat			Renderer_CollisionAlpha = 0.3f;
+
+bool			Renderer_EnableWavefrontDump = false;
+
+bool			Renderer_EnableFog = true;
+
+bool			Renderer_EnableWireframe = false;
+
+bool			Renderer_EnableFragShader = true;
 
 /* OPENGL EXTENSION VARIABLES */
 char			* GLExtension_List;
 bool			GLExtension_MultiTexture = false;
 bool			GLExtension_TextureMirror = false;
 bool			GLExtension_AnisoFilter = false;
-bool			GLExtension_FragmentProgram = false;
+bool			GLExtension_VertFragProgram = false;
 char			GLExtensionsSupported[256] = "";
 
 bool			GLExtensionsUnsupported = false;
@@ -265,14 +302,17 @@ unsigned long	Blender_Cycle2 = 0x00;
 struct MapHeader_Struct MapHeader[256][256];
 struct SceneHeader_Struct SceneHeader[256];
 
+struct EnvSetting_Struct EnvSetting[256];
+
 /* ZELDA MAP & SCENE ACTOR DATA STRUCTURES */
 struct Actors_Struct Actors[256][1024];
 struct ScActors_Struct ScActors[1024];
+struct Door_Struct Doors[1024];
 
 /* F3DEX2 VERTEX DATA STRUCTURE */
 struct Vertex_Struct Vertex[4096];
 /* F3DEX2 TEXTURE DATA STRUCTURE */
-struct Texture_Struct Texture[0];
+struct Texture_Struct Texture[2];
 /* CI TEXTURE PALETTE STRUCTURE */
 struct Palette_Struct Palette[512];
 /* PSEUDO TEXTURE CACHE STRUCTURE */
@@ -283,37 +323,60 @@ struct ObjectActorTable_Struct ActorTable[8192];
 
 struct Vertex_Struct CollisionVertex[8192];
 
+struct FPCache_Struct FPCache[256];
+
 /*	------------------------------------------------------------ */
 
 int Viewer_Initialize()
 {
 	Viewer_ResetVariables();
-	Viewer_LoadAreaData();
-	Viewer_RenderMapRefresh();
 
-	EnableMenuItem(hmenu, IDM_LEVEL_PREVLEVEL, MF_BYCOMMAND | MF_ENABLED);
-	EnableMenuItem(hmenu, IDM_LEVEL_NEXTLEVEL, MF_BYCOMMAND | MF_ENABLED);
-	EnableMenuItem(hmenu, IDM_MAP_PREVHEADER, MF_BYCOMMAND | MF_ENABLED);
-	EnableMenuItem(hmenu, IDM_MAP_NEXTHEADER, MF_BYCOMMAND | MF_ENABLED);
-	EnableMenuItem(hmenu, IDM_SCENE_PREVHEADER, MF_BYCOMMAND | MF_ENABLED);
-	EnableMenuItem(hmenu, IDM_SCENE_NEXTHEADER, MF_BYCOMMAND | MF_ENABLED);
-	EnableMenuItem(hmenu, IDM_ACTORS_MAPRENDER, MF_BYCOMMAND | MF_ENABLED);
-//	EnableMenuItem(hmenu, IDM_ACTORS_SELECTPREV, MF_BYCOMMAND | MF_ENABLED);
-//	EnableMenuItem(hmenu, IDM_ACTORS_SELECTNEXT, MF_BYCOMMAND | MF_ENABLED);
-//	EnableMenuItem(hmenu, IDM_ACTORS_JUMPFIRST, MF_BYCOMMAND | MF_ENABLED);
-//	EnableMenuItem(hmenu, IDM_ACTORS_JUMPLAST, MF_BYCOMMAND | MF_ENABLED);
-	EnableMenuItem(hmenu, IDM_ACTORS_SCENERENDER, MF_BYCOMMAND | MF_ENABLED);
-//	EnableMenuItem(hmenu, IDM_ACTORS_SCENEPREV, MF_BYCOMMAND | MF_ENABLED);
-//	EnableMenuItem(hmenu, IDM_ACTORS_SCENENEXT, MF_BYCOMMAND | MF_ENABLED);
-	EnableMenuItem(hmenu, IDM_OPTIONS_RESETCAMCOORDS, MF_BYCOMMAND | MF_ENABLED);
-	EnableMenuItem(hmenu, IDM_OPTIONS_FILTERNEAREST, MF_BYCOMMAND | MF_ENABLED);
-	EnableMenuItem(hmenu, IDM_OPTIONS_FILTERLINEAR, MF_BYCOMMAND | MF_ENABLED);
-	EnableMenuItem(hmenu, IDM_OPTIONS_FILTERMIPMAP, MF_BYCOMMAND | MF_ENABLED);
-	EnableMenuItem(hmenu, IDM_OPTIONS_RENDERMAPS, MF_BYCOMMAND | MF_ENABLED);
-	EnableMenuItem(hmenu, IDM_OPTIONS_RENDERCOLLISION, MF_BYCOMMAND | MF_ENABLED);
+	/* OPEN FILE */
+	FileROM = fopen(Filename_ROM, "r+b");
+	/* GET FILESIZE */
+	size_t Result;
+	fseek(FileROM, 0, SEEK_END);
+	ROMFilesize = ftell(FileROM);
+	rewind(FileROM);
+	/* LOAD FILE INTO BUFFER */
+	ROMBuffer = (unsigned int*) malloc (sizeof(int) * ROMFilesize);
+	Result = fread(ROMBuffer, 1, ROMFilesize, FileROM);
+	/* CLOSE FILE */
+	fclose(FileROM);
 
-//	sprintf(WindowTitle, "%s %s - %s", AppTitle, AppVersion, Filename_ROM);
-//	SetWindowText(hwnd, WindowTitle);
+	if(Viewer_LoadAreaData() == -1) {
+		MessageBox(hwnd, "Error while loading level!", "Error", MB_OK | MB_ICONEXCLAMATION);
+		AreaLoaded = true;
+		sprintf(StatusMsg, "Level: 0x%02X", ROM_SceneToLoad);
+	} else {
+		Viewer_RenderMapRefresh();
+
+		EnableMenuItem(hmenu, IDM_LEVEL_PREVLEVEL, MF_BYCOMMAND | MF_ENABLED);
+		EnableMenuItem(hmenu, IDM_LEVEL_NEXTLEVEL, MF_BYCOMMAND | MF_ENABLED);
+		EnableMenuItem(hmenu, IDM_MAP_PREVHEADER, MF_BYCOMMAND | MF_ENABLED);
+		EnableMenuItem(hmenu, IDM_MAP_NEXTHEADER, MF_BYCOMMAND | MF_ENABLED);
+	//	EnableMenuItem(hmenu, IDM_SCENE_PREVHEADER, MF_BYCOMMAND | MF_ENABLED);
+	//	EnableMenuItem(hmenu, IDM_SCENE_NEXTHEADER, MF_BYCOMMAND | MF_ENABLED);
+		EnableMenuItem(hmenu, IDM_ACTORS_MAPRENDER, MF_BYCOMMAND | MF_ENABLED);
+	//	EnableMenuItem(hmenu, IDM_ACTORS_SELECTPREV, MF_BYCOMMAND | MF_ENABLED);
+	//	EnableMenuItem(hmenu, IDM_ACTORS_SELECTNEXT, MF_BYCOMMAND | MF_ENABLED);
+	//	EnableMenuItem(hmenu, IDM_ACTORS_JUMPFIRST, MF_BYCOMMAND | MF_ENABLED);
+	//	EnableMenuItem(hmenu, IDM_ACTORS_JUMPLAST, MF_BYCOMMAND | MF_ENABLED);
+		EnableMenuItem(hmenu, IDM_ACTORS_SCENERENDER, MF_BYCOMMAND | MF_ENABLED);
+	//	EnableMenuItem(hmenu, IDM_ACTORS_SCENEPREV, MF_BYCOMMAND | MF_ENABLED);
+	//	EnableMenuItem(hmenu, IDM_ACTORS_SCENENEXT, MF_BYCOMMAND | MF_ENABLED);
+		EnableMenuItem(hmenu, IDM_ACTORS_DOORRENDER, MF_BYCOMMAND | MF_ENABLED);
+		EnableMenuItem(hmenu, IDM_OPTIONS_RESETCAMCOORDS, MF_BYCOMMAND | MF_ENABLED);
+		EnableMenuItem(hmenu, IDM_OPTIONS_FILTERNEAREST, MF_BYCOMMAND | MF_ENABLED);
+		EnableMenuItem(hmenu, IDM_OPTIONS_FILTERLINEAR, MF_BYCOMMAND | MF_ENABLED);
+		EnableMenuItem(hmenu, IDM_OPTIONS_FILTERMIPMAP, MF_BYCOMMAND | MF_ENABLED);
+		EnableMenuItem(hmenu, IDM_OPTIONS_RENDERMAPS, MF_BYCOMMAND | MF_ENABLED);
+		EnableMenuItem(hmenu, IDM_OPTIONS_RENDERCOLLISION, MF_BYCOMMAND | MF_ENABLED);
+		EnableMenuItem(hmenu, IDM_OPTIONS_WAVEFRONT, MF_BYCOMMAND | MF_ENABLED);
+		EnableMenuItem(hmenu, IDM_OPTIONS_FRAGSHADER, MF_BYCOMMAND | MF_ENABLED);
+		EnableMenuItem(hmenu, IDM_OPTIONS_RENDERFOG, MF_BYCOMMAND | MF_ENABLED);
+		EnableMenuItem(hmenu, IDM_OPTIONS_WIREFRAME, MF_BYCOMMAND | MF_ENABLED);
+	}
 
 	return 0;
 }
@@ -334,30 +397,153 @@ int Viewer_ResetVariables()
 	memset(SceneHeader_List, 0x00, sizeof(SceneHeader_List));
 	SceneHeader_CurrentPosInList = 0;
 
+//	OGL_ResetProperties();
+
+	return 0;
+}
+
+int Viewer_GetGameVersion()
+{
+	/* ---- GET GAME VERSION ---- */
+
+	unsigned long VersionCheck = ROMBuffer[4];
+	char Temp[1024];
+
+	bool CheckOkay = true;
+
+	if(ROMFilesize < 0x04000000) CheckOkay = false;
+
+	switch(VersionCheck) {
+		/* OCARINA OF TIME VERSIONS */
+		case 0x7B2E5293:
+			/* oot us/jpn 1.0 !decompressed! */
+			ROM_SceneTableOffset = 0xB71440;
+			ROM_MaxSceneCount = 0x64;
+			ROM_SceneEntryLength = 0x14;
+			GameMode = 0;
+			break;
+		case 0x93C34093:
+			/* oot us/jpn 1.1 !decompressed! */
+			ROM_SceneTableOffset = 0xB71600;
+			ROM_MaxSceneCount = 0x64;
+			ROM_SceneEntryLength = 0x14;
+			GameMode = 0;
+			break;
+		case 0x2AF1902D:
+			/* oot us/jpn 1.2 !decompressed! */
+			ROM_SceneTableOffset = 0xB71450;
+			ROM_MaxSceneCount = 0x64;
+			ROM_SceneEntryLength = 0x14;
+			GameMode = 0;
+			break;
+
+		case 0xB5539DEE:
+			/* oot pal 1.0 !decompressed! */
+			ROM_SceneTableOffset = 0xB70D60;
+			ROM_MaxSceneCount = 0x64;
+			ROM_SceneEntryLength = 0x14;
+			GameMode = 0;
+			break;
+		case 0x61D055DC:
+			/* oot pal 1.1 !decompressed! */
+			ROM_SceneTableOffset = 0xB70DA0;
+			ROM_MaxSceneCount = 0x64;
+			ROM_SceneEntryLength = 0x14;
+			GameMode = 0;
+			break;
+
+		case 0xF6187D91:
+			/* mq debug rom */
+			ROM_SceneTableOffset = 0xBA0BB0;
+			ROM_MaxSceneCount = 0x6D;
+			ROM_SceneEntryLength = 0x14;
+			GameMode = 0;
+			break;
+
+		/* MAJORA'S MASK VERSIONS */
+		case 0x0D52D049:
+			/* mm jpn 1.0 !decompressed! */
+			ROM_SceneTableOffset = 0xC76510;
+			ROM_MaxSceneCount = 0x70;
+			ROM_SceneEntryLength = 0x10;
+			GameMode = 1;
+			break;
+		case 0x2719B294:
+			/* mm jpn 1.1 !decompressed! */
+			ROM_SceneTableOffset = 0xC767E0;
+			ROM_MaxSceneCount = 0x70;
+			ROM_SceneEntryLength = 0x10;
+			GameMode = 1;
+			break;
+
+		case 0x88989821:
+			/* mm us 1.0 !decompressed! */
+			ROM_SceneTableOffset = 0xC5A1E0;
+			ROM_MaxSceneCount = 0x70;
+			ROM_SceneEntryLength = 0x10;
+			GameMode = 1;
+			break;
+
+		case 0x695908CB:
+			/* mm pal 1.0 !decompressed! */
+			ROM_SceneTableOffset = 0xDA8860;
+			ROM_MaxSceneCount = 0x70;
+			ROM_SceneEntryLength = 0x10;
+			GameMode = 1;
+			break;
+
+		case 0xE897A94F:
+			/* mm us demo !decompressed! */
+			ROM_SceneTableOffset = 0xC5A3E0;
+			ROM_MaxSceneCount = 0x70;
+			ROM_SceneEntryLength = 0x10;
+			GameMode = 1;
+			break;
+
+		default: {
+			/* unknown rom */
+			CheckOkay = false;
+			GameMode = 0;
+			break; }
+	}
+
+	if(CheckOkay == false) {
+		sprintf(Temp, "ROM couldn't be recognized!\n\n(Unknown: %08X)", VersionCheck);
+		MessageBox(hwnd, Temp, "Error", MB_OK | MB_ICONEXCLAMATION);
+		GameMode = 0;
+		return -1;
+	}
+
+	return 0;
+}
+
+int Viewer_InitLevelSelector()
+{
+	int i = 0; char Temp[256];
+	/* del list */
+	for(i = 0; i < ROM_MaxSceneCount + 1; i++) {
+		SendMessage(GetDlgItem(hwnd, IDC_MAIN_LEVELCOMBO), CB_DELETESTRING, (WPARAM)NULL, (LPARAM)NULL);
+	}
+	/* make list + select current */
+	for(i = 0; i < ROM_MaxSceneCount + 1; i++) {
+		sprintf(Temp, "0x%02X", i);
+		SendMessage(GetDlgItem(hwnd, IDC_MAIN_LEVELCOMBO), CB_ADDSTRING, (WPARAM)NULL, (LPARAM)Temp);
+		if(ROM_SceneToLoad == i) SendMessage(GetDlgItem(hwnd, IDC_MAIN_LEVELCOMBO), CB_SETCURSEL, (WPARAM)i, (LPARAM)NULL);
+	}
+
 	return 0;
 }
 
 int Viewer_LoadAreaData()
 {
-	FileSystemLog = fopen("log.txt", "w");
+	char Temp[1024];
+	sprintf(Temp, "%s\\log.txt", AppPath);
+	FileSystemLog = fopen(Temp, "w");
 
 	AreaLoaded = false;
 
 	sprintf(StatusMsg, "Loading level...");
 	SendMessage(hstatus, SB_SETTEXT, 2, (LPARAM)StatusMsg);
-
-	/* OPEN FILE */
-	FileROM = fopen(Filename_ROM, "r+b");
-	/* GET FILESIZE */
-	size_t Result;
-	fseek(FileROM, 0, SEEK_END);
-	ROMFilesize = ftell(FileROM);
-	rewind(FileROM);
-	/* LOAD FILE INTO BUFFER */
-	ROMBuffer = (unsigned int*) malloc (sizeof(int) * ROMFilesize);
-	Result = fread(ROMBuffer, 1, ROMFilesize, FileROM);
-	/* CLOSE FILE */
-	fclose(FileROM);
 
 //	if(GameplayKeepBuffer != NULL) free(GameplayKeepBuffer);
 //	if(GameplayFDKeepBuffer != NULL) free(GameplayFDKeepBuffer);
@@ -399,9 +585,33 @@ int Viewer_LoadAreaData()
 	Texture[0].DataSource = 0x00, Texture[0].PalDataSource = 0x00, Texture[0].Offset = 0x00, Texture[0].PalOffset = 0x00;
 	Texture[0].Format_N64 = 0x00, Texture[0].Format_OGL = 0x00, Texture[0].Format_OGLPixel = 0x00;
 	Texture[0].Y_Parameter = 0x00, Texture[0].X_Parameter = 0x00, Texture[0].S_Scale = 0x00, Texture[0].T_Scale = 0x00;
-	Texture[0].LineSize = 0x00, Texture[0].Palette = 0x00;
+	Texture[0].LineSize = 0x00, Texture[0].Palette = 0x00, Texture[0].AnimDXT = 0x00;
+	Texture[0].S_ShiftScale = 0x00; Texture[0].T_ShiftScale = 0x00;
+
+	Texture[1].Height = 0x00, Texture[1].HeightRender = 0x00, Texture[1].Width = 0x00, Texture[1].WidthRender = 0x00;
+	Texture[1].DataSource = 0x00, Texture[1].PalDataSource = 0x00, Texture[1].Offset = 0x00, Texture[1].PalOffset = 0x00;
+	Texture[1].Format_N64 = 0x00, Texture[1].Format_OGL = 0x00, Texture[1].Format_OGLPixel = 0x00;
+	Texture[1].Y_Parameter = 0x00, Texture[1].X_Parameter = 0x00, Texture[1].S_Scale = 0x00, Texture[1].T_Scale = 0x00;
+	Texture[1].LineSize = 0x00, Texture[1].Palette = 0x00, Texture[1].AnimDXT = 0x00;
+	Texture[1].S_ShiftScale = 0x00; Texture[1].T_ShiftScale = 0x00;
+
+	EnvColor[0] = 0.5f; EnvColor[1] = 0.5f; EnvColor[2] = 0.5f; EnvColor[3] = 0.5f;
+	PrimColor[0] = 0.5f; PrimColor[1] = 0.5f; PrimColor[2] = 0.5f; PrimColor[3] = 0.5f;
+
+	if(GLExtension_VertFragProgram) {
+		glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 0, EnvColor[0], EnvColor[1], EnvColor[2], EnvColor[3]);
+		glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 1, PrimColor[0], PrimColor[1], PrimColor[2], PrimColor[3]);
+	}
+
+	CurrentTextureID = 0;
 
 	TexCachePosition = 0;
+
+	if(Viewer_GetGameVersion() == -1) return -1;
+
+	if(ROM_SceneToLoad > ROM_MaxSceneCount) ROM_SceneToLoad = ROM_MaxSceneCount;
+
+	Viewer_InitLevelSelector();
 
 	/* ---- LOAD GAMEPLAY DATA FILES ---- */
 
@@ -419,16 +629,25 @@ int Viewer_LoadAreaData()
 	/* ---- LOAD SCENE DATA ---- */
 
 	/* get current scene's offset */
-	TempOffset = (ROM_SceneTableOffset / 4) + (ROM_SceneToLoad * 0x14) / 4;
+
+	TempOffset = (ROM_SceneTableOffset / 4) + (ROM_SceneToLoad * ROM_SceneEntryLength) / 4;
+
 	memcpy(&Readout_Current1, &ROMBuffer[TempOffset], 4);
 	memcpy(&Readout_Current2, &ROMBuffer[TempOffset + 1], 4);
 	Helper_SplitCurrentVals(true);
 
-	unsigned long Scene_Start = (Readout_CurrentByte1 * 0x1000000) + (Readout_CurrentByte2 * 0x10000) + (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
+	// MM: if list entry is empty, return - used for non-jpn games, jpn default to testmap instead of 0
+	if((Readout_Current1 == 0x00) || (Readout_Current2 == 0x00)) {
+		return -1;
+	}
+
+	Scene_Start = (Readout_CurrentByte1 * 0x1000000) + (Readout_CurrentByte2 * 0x10000) + (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
 	unsigned long Scene_End = (Readout_CurrentByte5 * 0x1000000) + (Readout_CurrentByte6 * 0x10000) + (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
 	unsigned long Scene_Length = Scene_End - Scene_Start;
 
 	ZSceneFilesize = Scene_Length;
+
+	Zelda_GetSceneName();
 
 	/* copy current scene into buffer */
 	ZSceneBuffer = (unsigned int*) malloc (sizeof(int) * Scene_Length);
@@ -450,6 +669,8 @@ int Viewer_LoadAreaData()
 	Zelda_GetSceneHeader(SceneHeader_Current);
 	Zelda_GetSceneActors(SceneHeader_Current);
 //	Zelda_GetMapCollision(SceneHeader_Current);			/* do when rendering map */
+	Zelda_GetDoorData(SceneHeader_Current);
+	Zelda_GetEnvironmentSettings(SceneHeader_Current);
 
 	/* ---- LOAD MAP DATA ---- */
 
@@ -458,14 +679,14 @@ int Viewer_LoadAreaData()
 		memcpy(&Readout_Current2, &ZSceneBuffer[((SceneHeader[SceneHeader_Current].Map_ListOffset + (i * 0x08)) / 4) + 1], 4);
 		Helper_SplitCurrentVals(true);
 
-		unsigned long Map_Start = (Readout_CurrentByte1 * 0x1000000) + (Readout_CurrentByte2 * 0x10000) + (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
+		Map_Start[i] = (Readout_CurrentByte1 * 0x1000000) + (Readout_CurrentByte2 * 0x10000) + (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
 		unsigned long Map_End = (Readout_CurrentByte5 * 0x1000000) + (Readout_CurrentByte6 * 0x10000) + (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
-		unsigned long Map_Length = Map_End - Map_Start;
+		unsigned long Map_Length = Map_End - Map_Start[i];
 
 		ZMapFilesize[i] = Map_Length;
 
 		ZMapBuffer[i] = (unsigned int*) malloc (sizeof(int) * Map_Length);
-		memcpy(ZMapBuffer[i], &ROMBuffer[Map_Start / 4], Map_Length);
+		memcpy(ZMapBuffer[i], &ROMBuffer[Map_Start[i] / 4], Map_Length);
 
 		memcpy(&Readout_Current1, &ZMapBuffer[i][0], 4);
 		memcpy(&Readout_Current2, &ZMapBuffer[i][1], 4);
@@ -488,10 +709,22 @@ int Viewer_LoadAreaData()
 
 		Zelda_GetMapDisplayLists(ZMapFilesize[i], i);
 	}
+/*
+	sprintf(Temp, "%s\\temp.zmap", AppPath);
+	FILE * TempFile = fopen(Temp, "w");
+	fwrite(ZMapBuffer[0], ZMapFilesize[0], 1, TempFile);
+	fclose(TempFile);
+	sprintf(Temp, "%s\\temp.zscene", AppPath);
+	TempFile = fopen(Temp, "w");
+	fwrite(ZSceneBuffer, ZSceneFilesize, 1, TempFile);
+	fclose(TempFile);
 
+	sprintf(Temp, "Scene start: %08X, Map 0 start: %08X", Scene_Start, Map_Start[0]);
+	MessageBox(hwnd, Temp, "", 0);
+*/
 	/* ---- LOAD OBJECT DATA ---- */
 
-	ROM_ObjectTableOffset = 0xB9E6C8;
+/*	ROM_ObjectTableOffset = 0xB9E6C8;
 
 	for(i = 0; i < (0x192 * 2); i+=2) {
 		memcpy(&Readout_Current1, &ROMBuffer[(ROM_ObjectTableOffset / 4) + i], 4);
@@ -510,9 +743,9 @@ int Viewer_LoadAreaData()
 //		sprintf(ErrorMsg, "%04X: %08X -> %08X", i / 2, ObjectTable[i / 2].StartOffset, ObjectTable[i / 2].EndOffset);
 //		MessageBox(hwnd, ErrorMsg, "", 0);
 	}
-
+*/
 	/* ---- LOAD ACTOR DATA ---- */
-
+/*
 	ROM_ActorTableOffset = 0xB8D440;
 
 	for(i = 0; i < (0x1D7 * 8); i+=8) {
@@ -532,10 +765,10 @@ int Viewer_LoadAreaData()
 //		sprintf(ErrorMsg, "%04X: %08X -> %08X (valid: %d)", i / 8, ActorTable[i / 8].StartOffset, ActorTable[i / 8].EndOffset, ActorTable[i / 8].Valid);
 //		MessageBox(hwnd, ErrorMsg, "", 0);
 	}
-
-	CamAngleX = 0.0f, CamAngleY = 0.0f;
-	CamX = 0.0f, CamY = 0.0f, CamZ = 5.0f;
-	//CamX = 0.0f, CamY = 1.0f, CamZ = 15.0f;
+*/
+	CamAngleX = 0.0f, CamAngleY = -0.5f;
+	CamX = 0.0f, CamY = 2.5f, CamZ = 12.0f;
+//	CamX = 0.0f, CamY = 0.0f, CamZ = 5.0f;
 	CamLX = 0.0f, CamLY = 0.0f, CamLZ = -1.0f;
 
 	memset(CurrentGFXCmd, 0x00, sizeof(CurrentGFXCmd));
@@ -545,6 +778,9 @@ int Viewer_LoadAreaData()
 
 //	sprintf(StatusMsg, "Level loaded successfully!");
 	sprintf(StatusMsg, "Level: 0x%02X", ROM_SceneToLoad);
+
+	sprintf(WindowTitle, "%s %s - %s", AppTitle, AppVersion, Scene_Name);
+	SetWindowText(hwnd, WindowTitle);
 
 	return 0;
 }
@@ -565,7 +801,7 @@ int Viewer_RenderMapRefresh()
 	OGL_DrawScene();
 	Viewer_RenderMap();
 
-	if(ROMBuffer != NULL) free(ROMBuffer);
+//	if(ROMBuffer != NULL) free(ROMBuffer);
 
 	return 0;
 }
@@ -579,11 +815,15 @@ void GLUTCamera_Orientation(float ang, float ang2)
 	CamLZ = -cos(ang);
 }
 
-void GLUTCamera_Movement(int direction)
+void GLUTCamera_Movement(int direction, bool strafe)
 {
-	CamX = CamX + direction * (CamLX) * 0.025f;
-	CamY = CamY + direction * (CamLY) * 0.025f;
-	CamZ = CamZ + direction * (CamLZ) * 0.025f;
+	if(!strafe) {
+		CamX = CamX + direction * (CamLX) * 0.025f;
+		CamY = CamY + direction * (CamLY) * 0.025f;
+		CamZ = CamZ + direction * (CamLZ) * 0.025f;
+	} else {
+		/* insert code for strafing here */
+	}
 }
 
 void Camera_MouseMove(int x, int y)
@@ -596,6 +836,183 @@ void Camera_MouseMove(int x, int y)
 
 	MouseCenterX = x;
 	MouseCenterY = y;
+}
+
+/*	------------------------------------------------------------ */
+
+int Viewer_SelectActor(int MouseX, int MouseY)
+{
+	/* not working very well at all... doesn't even pick up actor cubes correctly, no way i can get this to select vertices */
+
+	/* translate mouse click pos into 3d pos in ogl space */
+	int Viewport[4];
+	double MvMatrix[16];
+	double ProjMatrix[16];
+	double PosX, PosY, PosZ;
+	float InWindowX, InWindowY, InWindowZ;
+
+	glGetIntegerv(GL_VIEWPORT, Viewport);
+
+	InWindowX = MouseX;
+	InWindowY = (Viewport[3] - MouseY);
+	glReadPixels(MouseX, (int)InWindowY, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &InWindowZ);
+
+	glGetDoublev(GL_MODELVIEW_MATRIX, MvMatrix);
+	glGetDoublev(GL_PROJECTION_MATRIX, ProjMatrix);
+	gluUnProject(InWindowX, InWindowY, InWindowZ, MvMatrix, ProjMatrix, Viewport, &PosX, &PosY, &PosZ);
+
+	/* prepare variables */
+	int i = 0, j = 0;
+	int Type = 0;		/* 0 = map, 1 = scene, 2 = door/rc */
+	int MapNo = 0; int SelActorNo = -1;
+	int MapFrom = 0; int MapTo = 0;
+
+	/* pickup hits +/- actor center position, otherwise detection is even worse than it is.
+	   - value too small, and you need to position the cam really close to the actor
+	   - value too high, and adjacent actors can't be separated properly */
+	float HitRadiusX = 30.0f;	/* 2x actual size of actor cubes */
+	float HitRadiusY = 30.0f;
+	float HitRadiusZ = 30.0f;
+
+	if(ROM_CurrentMap == -1) {
+		/* when all maps are rendered, check actors of each one */
+		MapFrom = 0;
+		MapTo = SceneHeader[SceneHeader_Current].Map_Count;
+	} else {
+		/* else only check actors of selected one */
+		MapFrom = ROM_CurrentMap;
+		MapTo = MapFrom + 1;
+	}
+
+	/* scan loop: compare 3d pos of all map actors with 3d pos of last right-click */
+	for(j = MapFrom; j < MapTo; j++) {
+		MapNo = j;
+		for(i = 0; i < MapHeader[MapNo][MapHeader_Current].Actor_Count; i++) {
+			float AX = (float)Actors[MapNo][i].X_Position;
+			float AY = (float)Actors[MapNo][i].Y_Position;
+			float AZ = (float)Actors[MapNo][i].Z_Position;
+			if((AX < (PosX + HitRadiusX)) && (AX > (PosX - HitRadiusX)) &&
+				(AY < (PosY + HitRadiusY)) && (AY > (PosY - HitRadiusY)) &&
+				(AZ < (PosZ + HitRadiusZ)) && (AZ > (PosZ - HitRadiusZ))) {
+				if(Renderer_EnableMapActors) SelActorNo = i;
+			}
+			/* if hit found, breakout */
+			if(SelActorNo != -1) break;
+		}
+		/* if hit found, breakout */
+		if(SelActorNo != -1) break;
+	}
+
+	if(SelActorNo == -1) {
+		/* next scan loop - scene actors */
+		Type = 1;
+		for(i = 0; i < SceneHeader[SceneHeader_Current].ScActor_Count; i++) {
+			float AX = (float)ScActors[i].X_Position;
+			float AY = (float)ScActors[i].Y_Position;
+			float AZ = (float)ScActors[i].Z_Position;
+			if((AX < (PosX + HitRadiusX)) && (AX > (PosX - HitRadiusX)) &&
+				(AY < (PosY + HitRadiusY)) && (AY > (PosY - HitRadiusY)) &&
+				(AZ < (PosZ + HitRadiusZ)) && (AZ > (PosZ - HitRadiusZ))) {
+				if(Renderer_EnableSceneActors) SelActorNo = i;
+			}
+			/* if hit found, breakout */
+			if(SelActorNo != -1) break;
+		}
+	}
+
+	if(SelActorNo == -1) {
+		/* next scan loop - doors/room-changers */
+		Type = 2;
+		for(i = 0; i < SceneHeader[SceneHeader_Current].Door_Count; i++) {
+			float AX = (float)Doors[i].X_Position;
+			float AY = (float)Doors[i].Y_Position;
+			float AZ = (float)Doors[i].Z_Position;
+			if((AX < (PosX + HitRadiusX)) && (AX > (PosX - HitRadiusX)) &&
+				(AY < (PosY + HitRadiusY)) && (AY > (PosY - HitRadiusY)) &&
+				(AZ < (PosZ + HitRadiusZ)) && (AZ > (PosZ - HitRadiusZ))) {
+				if(Renderer_EnableDoors) SelActorNo = i;
+			}
+			/* if hit found, breakout */
+			if(SelActorNo != -1) break;
+		}
+	}
+
+	/* if still no hit found, return */
+	if(SelActorNo == -1) return 0;
+
+	/* otherwise, show actor data message */
+	char Title[256]; char Message[256];
+	if(Type == 0) {
+		/* map */
+		sprintf(Title, "Map #%d, Actor #%d\n", MapNo, SelActorNo);
+		sprintf(Message, "Number: 0x%04X, Variable: 0x%04X\n"
+			"X Position: %4.2f, Y Position: %4.2f, Z Position: %4.2f\n"
+			"X Rotation: %4.2f, Y Rotation: %4.2f, Z Rotation: %4.2f\n"
+			/*"(Click Pos: %4.2f, %4.2f, %4.2f)"*/,
+			Actors[MapNo][SelActorNo].Number, Actors[MapNo][SelActorNo].Variable,
+			(float)Actors[MapNo][SelActorNo].X_Position, (float)Actors[MapNo][SelActorNo].Y_Position, (float)Actors[MapNo][SelActorNo].Z_Position,
+			(float)Actors[MapNo][SelActorNo].X_Rotation, (float)Actors[MapNo][SelActorNo].Y_Rotation, (float)Actors[MapNo][SelActorNo].Z_Rotation
+			/*, PosX, PosY, PosZ*/);
+	} else if(Type == 1) {
+		/* scene */
+		sprintf(Title, "Scene Actor #%d\n", SelActorNo);
+		sprintf(Message, "Number: 0x%04X, Variable: 0x%04X\n"
+			"X Position: %4.2f, Y Position: %4.2f, Z Position: %4.2f\n"
+			"X Rotation: %4.2f, Y Rotation: %4.2f, Z Rotation: %4.2f\n"
+			/*"(Click Pos: %4.2f, %4.2f, %4.2f)"*/,
+			ScActors[SelActorNo].Number, ScActors[SelActorNo].Variable,
+			(float)ScActors[SelActorNo].X_Position, (float)ScActors[SelActorNo].Y_Position, (float)ScActors[SelActorNo].Z_Position,
+			(float)ScActors[SelActorNo].X_Rotation, (float)ScActors[SelActorNo].Y_Rotation, (float)ScActors[SelActorNo].Z_Rotation
+			/*, PosX, PosY, PosZ*/);
+	} else if(Type == 2) {
+		/* door/rc */
+		sprintf(Title, "Room-changer #%d\n", SelActorNo);
+		sprintf(Message, "Number: 0x%04X, Variable: 0x%04X\n"
+			"X Position: %4.2f, Y Position: %4.2f, Z Position: %4.2f\n"
+			"Y Rotation: %4.2f\n"
+			"Unknown1: 0x%04X, Unknown2: 0x%04X\n"
+			/*"(Click Pos: %4.2f, %4.2f, %4.2f)"*/,
+			Doors[SelActorNo].Number, Doors[SelActorNo].Variable,
+			(float)Doors[SelActorNo].X_Position, (float)Doors[SelActorNo].Y_Position, (float)Doors[SelActorNo].Z_Position,
+			(float)Doors[SelActorNo].Y_Rotation,
+			Doors[SelActorNo].Unknown1, Doors[SelActorNo].Unknown2
+			/*, PosX, PosY, PosZ*/);
+	}
+	MessageBox(hwnd, Message, Title, MB_OK | MB_ICONINFORMATION);
+
+	return 0;
+}
+
+/*	------------------------------------------------------------ */
+
+int CheckUncheckMenu(unsigned int MenuItem, int Checked)
+{
+	CheckMenuItem(hmenu, MenuItem, MF_BYCOMMAND | (Checked ? MF_CHECKED : MF_UNCHECKED));
+
+	return 0;
+}
+
+int CheckUncheckMenu_Filters()
+{
+	switch(Renderer_FilteringMode_Min) {
+		case GL_NEAREST: {
+			CheckUncheckMenu(IDM_OPTIONS_FILTERNEAREST, 1);
+			CheckUncheckMenu(IDM_OPTIONS_FILTERLINEAR, 0);
+			CheckUncheckMenu(IDM_OPTIONS_FILTERMIPMAP, 0);
+			break; }
+		case GL_LINEAR: {
+			CheckUncheckMenu(IDM_OPTIONS_FILTERNEAREST, 0);
+			CheckUncheckMenu(IDM_OPTIONS_FILTERLINEAR, 1);
+			CheckUncheckMenu(IDM_OPTIONS_FILTERMIPMAP, 0);
+			break; }
+		case GL_LINEAR_MIPMAP_LINEAR: {
+			CheckUncheckMenu(IDM_OPTIONS_FILTERNEAREST, 0);
+			CheckUncheckMenu(IDM_OPTIONS_FILTERLINEAR, 0);
+			CheckUncheckMenu(IDM_OPTIONS_FILTERMIPMAP, 1);
+			break; }
+	}
+
+	return 0;
 }
 
 /*	------------------------------------------------------------ */
@@ -694,9 +1111,24 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 			(HMENU)IDC_MAIN_STATUSBAR,
 			hThisInstance,
 			NULL);
-
 	SendMessage(hstatus, SB_SETPARTS, sizeof(hstatuswidths)/sizeof(int), (LPARAM)hstatuswidths);
-
+/*
+	hlvlcombo = CreateWindowEx(
+			0,
+			"COMBOBOX",
+			"",
+			CBS_DROPDOWNLIST | WS_CHILD | WS_VISIBLE | WS_VSCROLL,
+			0,
+			0,
+			180,
+			200,
+			hwnd,
+			(HMENU)IDC_MAIN_LEVELCOMBO,
+			hThisInstance,
+			NULL);
+	HFONT ComboFont = CreateFont(8, 0, 0, 0, FW_NORMAL, 0, 0, 0, DEFAULT_CHARSET, OUT_CHARACTER_PRECIS, CLIP_CHARACTER_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, "MS Sans Serif");
+	SendMessage(hlvlcombo, WM_SETFONT, (WPARAM)ComboFont, (LPARAM)NULL);
+*/
 	sprintf(WindowTitle, "%s %s", AppTitle, AppVersion);
 	SetWindowText(hwnd, WindowTitle);
 
@@ -707,14 +1139,38 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 	sprintf(INIPath, "%s\\ozmav.ini", AppPath);
 
 	GetPrivateProfileString("Viewer", "LastROM", "", Filename_ROM, sizeof(Filename_ROM), INIPath);
-	ROM_SceneTableOffset = GetPrivateProfileInt("Viewer", "SceneTable", 0xBA0BB0, INIPath);
 	ROM_SceneToLoad = GetPrivateProfileInt("Viewer", "LastScene", 0x00, INIPath);
+
+	Renderer_EnableMap = GetPrivateProfileInt("Viewer", "RenderMaps", true, INIPath);
+	Renderer_EnableCollision = GetPrivateProfileInt("Viewer", "RenderCollision", false, INIPath);
+	Renderer_EnableMapActors = GetPrivateProfileInt("Viewer", "RenderMapActors", true, INIPath);
+	Renderer_EnableSceneActors = GetPrivateProfileInt("Viewer", "RenderSceneActors", true, INIPath);
+	Renderer_EnableDoors = GetPrivateProfileInt("Viewer", "RenderDoors", true, INIPath);
+	Renderer_EnableFog = GetPrivateProfileInt("Viewer", "RenderFog", true, INIPath);
+	Renderer_EnableWireframe = GetPrivateProfileInt("Viewer", "RenderWireframe", false, INIPath);
+
 	Renderer_FilteringMode_Min = GetPrivateProfileInt("Viewer", "TexFilterMin", GL_LINEAR_MIPMAP_LINEAR, INIPath);
 	Renderer_FilteringMode_Mag = GetPrivateProfileInt("Viewer", "TexFilterMag", GL_LINEAR, INIPath);
-	Renderer_EnableMapActors = GetPrivateProfileInt("Viewer", "RenderMapActors", true, INIPath);
-	Renderer_EnableSceneActors = GetPrivateProfileInt("Viewer", "RenderSceneActors", false, INIPath);
-	Renderer_EnableMap = GetPrivateProfileInt("Viewer", "RenderMaps", true, INIPath);
-	Renderer_EnableCollision = GetPrivateProfileInt("Viewer", "RenderCollision", true, INIPath);
+
+	Renderer_EnableWavefrontDump = GetPrivateProfileInt("Viewer", "DumpToWavefrontModel", false, INIPath);
+
+	Renderer_EnableFragShader = GetPrivateProfileInt("Viewer", "UseFragShader", true, INIPath);
+
+	CheckUncheckMenu(IDM_ACTORS_MAPRENDER, Renderer_EnableMapActors);
+	CheckUncheckMenu(IDM_ACTORS_SCENERENDER, Renderer_EnableSceneActors);
+	CheckUncheckMenu(IDM_ACTORS_DOORRENDER, Renderer_EnableDoors);
+	CheckUncheckMenu(IDM_OPTIONS_RENDERMAPS, Renderer_EnableMap);
+	CheckUncheckMenu(IDM_OPTIONS_RENDERCOLLISION, Renderer_EnableCollision);
+	CheckUncheckMenu(IDM_OPTIONS_WAVEFRONT, Renderer_EnableWavefrontDump);
+	CheckUncheckMenu(IDM_OPTIONS_FRAGSHADER, Renderer_EnableFragShader);
+	CheckUncheckMenu(IDM_OPTIONS_RENDERFOG, Renderer_EnableFog);
+	CheckUncheckMenu(IDM_OPTIONS_WIREFRAME, Renderer_EnableWireframe);
+
+	CheckUncheckMenu_Filters();
+
+	char Temp[1024];
+	sprintf(Temp, "%s\\dump", AppPath);
+	CreateDirectory(Temp, NULL);
 
 	if (!OGL_CreateTarget(640,480,16)) return 0;
 
@@ -744,18 +1200,26 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 						if(!(ROM_SceneToLoad == 0)) {
 							ROM_SceneToLoad--;
 							Viewer_ResetVariables();
-							Viewer_LoadAreaData();
-							Viewer_RenderMapRefresh();
+							if(Viewer_LoadAreaData() == -1) {
+								MessageBox(hwnd, "Error while loading level!", "Error", MB_OK | MB_ICONEXCLAMATION);
+								AreaLoaded = true;
+							} else {
+								Viewer_RenderMapRefresh();
+							}
 						}
 						sprintf(StatusMsg, "Level: 0x%02X", ROM_SceneToLoad);
 					}
 					if (System_KbdKeys[VK_F2]) {
 						System_KbdKeys[VK_F2] = false;
-						if(!(ROM_SceneToLoad == 0x6D)) {
+						if(!(ROM_SceneToLoad == ROM_MaxSceneCount)) {
 							ROM_SceneToLoad++;
 							Viewer_ResetVariables();
-							Viewer_LoadAreaData();
-							Viewer_RenderMapRefresh();
+							if(Viewer_LoadAreaData() == -1) {
+								MessageBox(hwnd, "Error while loading level!", "Error", MB_OK | MB_ICONEXCLAMATION);
+								AreaLoaded = true;
+							} else {
+								Viewer_RenderMapRefresh();
+							}
 						}
 						sprintf(StatusMsg, "Level: 0x%02X", ROM_SceneToLoad);
 					}
@@ -795,14 +1259,18 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 						ActorInfo_Selected = MapHeader[ROM_CurrentMap][MapHeader_Current].Actor_Count - 1;
 					}
 */
-					if (System_KbdKeys[VK_DIVIDE]) {
+/*					if (System_KbdKeys[VK_DIVIDE]) {
 						System_KbdKeys[VK_DIVIDE] = false;
 						if(!(SceneHeader_TotalCount == 0)) {
 							if(!(SceneHeader_Current == 0)) {
 								SceneHeader_Current--;
-								FileSystemLog = fopen("log.txt", "w");
+								char Temp[1024];
+								sprintf(Temp, "%s\\log.txt", AppPath);
+								FileSystemLog = fopen(Temp, "w");
 								Zelda_GetSceneHeader(SceneHeader_Current);
 								Zelda_GetSceneActors(SceneHeader_Current);
+								Zelda_GetDoorData(SceneHeader_Current);
+								Zelda_GetEnvironmentSettings(SceneHeader_Current);
 								fclose(FileSystemLog);
 							}
 							sprintf(StatusMsg, "Scene Header: #%d", SceneHeader_Current);
@@ -813,15 +1281,19 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 						if(!(SceneHeader_TotalCount == 0)) {
 							if(!(SceneHeader_Current == SceneHeader_TotalCount - 1)) {
 								SceneHeader_Current++;
-								FileSystemLog = fopen("log.txt", "w");
+								char Temp[1024];
+								sprintf(Temp, "%s\\log.txt", AppPath);
+								FileSystemLog = fopen(Temp, "w");
 								Zelda_GetSceneHeader(SceneHeader_Current);
 								Zelda_GetSceneActors(SceneHeader_Current);
+								Zelda_GetDoorData(SceneHeader_Current);
+								Zelda_GetEnvironmentSettings(SceneHeader_Current);
 								fclose(FileSystemLog);
 							}
 							sprintf(StatusMsg, "Scene Header: #%d", SceneHeader_Current);
 						}
 					}
-
+*/
 /*					if (System_KbdKeys[VK_SUBTRACT]) {
 						System_KbdKeys[VK_SUBTRACT] = false;
 						if(!(ScActorInfo_Selected == 0)) {
@@ -837,20 +1309,30 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 */
 					if (System_KbdKeys['W']) {
 						if(System_KbdKeys[VK_SHIFT]) {
-							GLUTCamera_Movement(6);
+							GLUTCamera_Movement(6, false);
 						} else if(System_KbdKeys[VK_CONTROL]) {
-							GLUTCamera_Movement(2);
+							GLUTCamera_Movement(2, false);
 						} else {
-							GLUTCamera_Movement(4);
+							GLUTCamera_Movement(4, false);
 						}
 					}
 					if (System_KbdKeys['S']) {
 						if(System_KbdKeys[VK_SHIFT]) {
-							GLUTCamera_Movement(-6);
+							GLUTCamera_Movement(-6, false);
 						} else if(System_KbdKeys[VK_CONTROL]) {
-							GLUTCamera_Movement(-2);
+							GLUTCamera_Movement(-2, false);
 						} else {
-							GLUTCamera_Movement(-4);
+							GLUTCamera_Movement(-4, false);
+						}
+					}
+
+					if (System_KbdKeys['A']) {
+						if(System_KbdKeys[VK_SHIFT]) {
+							GLUTCamera_Movement(-6, true);
+						} else if(System_KbdKeys[VK_CONTROL]) {
+							GLUTCamera_Movement(-2, true);
+						} else {
+							GLUTCamera_Movement(-4, true);
 						}
 					}
 
@@ -913,23 +1395,34 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 
 	WritePrivateProfileString("Viewer", "LastROM", Filename_ROM, INIPath);
 	char TempStr[256];
-
-	sprintf(TempStr, "%d", (unsigned int)ROM_SceneTableOffset);
-	WritePrivateProfileString("Viewer", "SceneTable", TempStr, INIPath);
 	sprintf(TempStr, "%d", ROM_SceneToLoad);
 	WritePrivateProfileString("Viewer", "LastScene", TempStr, INIPath);
-	sprintf(TempStr, "%d", Renderer_FilteringMode_Min);
-	WritePrivateProfileString("Viewer", "TexFilterMin", TempStr, INIPath);
-	sprintf(TempStr, "%d", Renderer_FilteringMode_Mag);
-	WritePrivateProfileString("Viewer", "TexFilterMag", TempStr, INIPath);
-	sprintf(TempStr, "%d", Renderer_EnableMapActors);
-	WritePrivateProfileString("Viewer", "RenderMapActors", TempStr, INIPath);
-	sprintf(TempStr, "%d", Renderer_EnableSceneActors);
-	WritePrivateProfileString("Viewer", "RenderSceneActors", TempStr, INIPath);
+
 	sprintf(TempStr, "%d", Renderer_EnableMap);
 	WritePrivateProfileString("Viewer", "RenderMaps", TempStr, INIPath);
 	sprintf(TempStr, "%d", Renderer_EnableCollision);
 	WritePrivateProfileString("Viewer", "RenderCollision", TempStr, INIPath);
+	sprintf(TempStr, "%d", Renderer_EnableMapActors);
+	WritePrivateProfileString("Viewer", "RenderMapActors", TempStr, INIPath);
+	sprintf(TempStr, "%d", Renderer_EnableSceneActors);
+	WritePrivateProfileString("Viewer", "RenderSceneActors", TempStr, INIPath);
+	sprintf(TempStr, "%d", Renderer_EnableDoors);
+	WritePrivateProfileString("Viewer", "RenderDoors", TempStr, INIPath);
+	sprintf(TempStr, "%d", Renderer_EnableFog);
+	WritePrivateProfileString("Viewer", "RenderFog", TempStr, INIPath);
+	sprintf(TempStr, "%d", Renderer_EnableWireframe);
+	WritePrivateProfileString("Viewer", "RenderWireframe", TempStr, INIPath);
+
+	sprintf(TempStr, "%d", Renderer_FilteringMode_Min);
+	WritePrivateProfileString("Viewer", "TexFilterMin", TempStr, INIPath);
+	sprintf(TempStr, "%d", Renderer_FilteringMode_Mag);
+	WritePrivateProfileString("Viewer", "TexFilterMag", TempStr, INIPath);
+
+	sprintf(TempStr, "%d", Renderer_EnableWavefrontDump);
+	WritePrivateProfileString("Viewer", "DumpToWavefrontModel", TempStr, INIPath);
+
+	sprintf(TempStr, "%d", Renderer_EnableFragShader);
+	WritePrivateProfileString("Viewer", "UseFragShader", TempStr, INIPath);
 
 	OGL_KillTarget();
 	DestroyWindow(hwnd);
@@ -942,7 +1435,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 	switch(message)
 	{
 		case WM_ACTIVATE: {
-			if (!HIWORD(wParam)) {
+			if(!HIWORD(wParam)) {
 				WndActive = true;
 			} else {
 				WndActive = false;
@@ -954,6 +1447,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			RECT rcClient;
 			GetClientRect(hwnd, &rcClient);
 			hogl = GetDlgItem(hwnd, IDC_MAIN_OPENGL);
+			//SetWindowPos(hogl, NULL, 0, 20, rcClient.right, rcClient.bottom - 40, SWP_NOZORDER);
 			SetWindowPos(hogl, NULL, 0, 0, rcClient.right, rcClient.bottom - 20, SWP_NOZORDER);
 
 			RECT rcStatus;
@@ -994,19 +1488,16 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 					System_KbdKeys[VK_F4] = true;
 					break;
 				case IDM_SCENE_PREVHEADER:
-					System_KbdKeys[VK_DIVIDE] = true;
+//					System_KbdKeys[VK_DIVIDE] = true;
 					break;
 				case IDM_SCENE_NEXTHEADER:
-					System_KbdKeys[VK_MULTIPLY] = true;
+//					System_KbdKeys[VK_MULTIPLY] = true;
 					break;
 				case IDM_ACTORS_MAPRENDER:
-					if(!Renderer_EnableMapActors) {
-						Renderer_EnableMapActors = true;
-					} else {
-						Renderer_EnableMapActors = false;
-					}
+					Renderer_EnableMapActors = !Renderer_EnableMapActors;
+					CheckUncheckMenu(IDM_ACTORS_MAPRENDER, Renderer_EnableMapActors);
 					break;
-				case IDM_ACTORS_SELECTPREV:
+/*				case IDM_ACTORS_SELECTPREV:
 					System_KbdKeys[VK_F5] = true;
 					break;
 				case IDM_ACTORS_SELECTNEXT:
@@ -1018,62 +1509,110 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 				case IDM_ACTORS_JUMPLAST:
 					System_KbdKeys[VK_F8] = true;
 					break;
-				case IDM_ACTORS_SCENERENDER:
-					if(!Renderer_EnableSceneActors) {
-						Renderer_EnableSceneActors = true;
-					} else {
-						Renderer_EnableSceneActors = false;
-					}
+*/				case IDM_ACTORS_SCENERENDER:
+					Renderer_EnableSceneActors = !Renderer_EnableSceneActors;
+					CheckUncheckMenu(IDM_ACTORS_SCENERENDER, Renderer_EnableSceneActors);
 					break;
-				case IDM_ACTORS_SCENEPREV:
+/*				case IDM_ACTORS_SCENEPREV:
 					System_KbdKeys[VK_SUBTRACT] = true;
 					break;
 				case IDM_ACTORS_SCENENEXT:
 					System_KbdKeys[VK_ADD] = true;
 					break;
+*/				case IDM_ACTORS_DOORRENDER:
+					Renderer_EnableDoors = !Renderer_EnableDoors;
+					CheckUncheckMenu(IDM_ACTORS_DOORRENDER, Renderer_EnableDoors);
+					break;
+				case IDM_OPTIONS_RENDERFOG:
+					Renderer_EnableFog = !Renderer_EnableFog;
+					CheckUncheckMenu(IDM_OPTIONS_RENDERFOG, Renderer_EnableFog);
+					Viewer_RenderMap();
+					break;
 				case IDM_OPTIONS_RESETCAMCOORDS:
 					System_KbdKeys[VK_TAB] = true;
 					break;
 				case IDM_OPTIONS_FILTERNEAREST:
-					Renderer_FilteringMode_Min = GL_NEAREST;
-					Renderer_FilteringMode_Mag = GL_NEAREST;
-					Viewer_RenderMap();
-					break;
 				case IDM_OPTIONS_FILTERLINEAR:
-					Renderer_FilteringMode_Min = GL_LINEAR;
-					Renderer_FilteringMode_Mag = GL_LINEAR;
-					Viewer_RenderMap();
-					break;
 				case IDM_OPTIONS_FILTERMIPMAP:
-					Renderer_FilteringMode_Min = GL_LINEAR_MIPMAP_LINEAR;
-					Renderer_FilteringMode_Mag = GL_LINEAR;
+					/* shit */
+					switch(LOWORD(wParam)) {
+						case IDM_OPTIONS_FILTERNEAREST: {
+							/* nearest */
+							Renderer_FilteringMode_Min = GL_NEAREST;
+							Renderer_FilteringMode_Mag = GL_NEAREST;
+							break; }
+						case IDM_OPTIONS_FILTERLINEAR: {
+							/* linear */
+							Renderer_FilteringMode_Min = GL_LINEAR;
+							Renderer_FilteringMode_Mag = GL_LINEAR;
+							break; }
+						case IDM_OPTIONS_FILTERMIPMAP: {
+							/* mipmap */
+							Renderer_FilteringMode_Min = GL_LINEAR_MIPMAP_LINEAR;
+							Renderer_FilteringMode_Mag = GL_LINEAR;
+							break; }
+					}
+					CheckUncheckMenu_Filters();
 					Viewer_RenderMap();
 					break;
 				case IDM_OPTIONS_RENDERMAPS:
-					if(!Renderer_EnableMap) {
-						Renderer_EnableMap = true;
-					} else {
-						Renderer_EnableMap = false;
-					}
+					Renderer_EnableMap = !Renderer_EnableMap;
+					CheckUncheckMenu(IDM_OPTIONS_RENDERMAPS, Renderer_EnableMap);
 					break;
 				case IDM_OPTIONS_RENDERCOLLISION:
-					if(!Renderer_EnableCollision) {
-						Renderer_EnableCollision = true;
-					} else {
-						Renderer_EnableCollision = false;
-					}
+					Renderer_EnableCollision = !Renderer_EnableCollision;
+					CheckUncheckMenu(IDM_OPTIONS_RENDERCOLLISION, Renderer_EnableCollision);
 					break;
-				case IDM_HELP_ABOUT: ;
+				case IDM_OPTIONS_WAVEFRONT:
+					Renderer_EnableWavefrontDump = !Renderer_EnableWavefrontDump;
+					CheckUncheckMenu(IDM_OPTIONS_WAVEFRONT, Renderer_EnableWavefrontDump);
+					if(Renderer_EnableWavefrontDump) Viewer_RenderMap();
+					break;
+				case IDM_OPTIONS_FRAGSHADER:
+					Renderer_EnableFragShader = !Renderer_EnableFragShader;
+					CheckUncheckMenu(IDM_OPTIONS_FRAGSHADER, Renderer_EnableFragShader);
+					Viewer_RenderMap();
+					break;
+				case IDM_OPTIONS_WIREFRAME:
+					Renderer_EnableWireframe = !Renderer_EnableWireframe;
+					CheckUncheckMenu(IDM_OPTIONS_WIREFRAME, Renderer_EnableWireframe);
+					Viewer_RenderMap();
+					break;
+				case IDM_HELP_CONTROLS: {
+					char CtrlMsg[1024] = "";
+					sprintf(CtrlMsg,
+						"Controls:\n"
+						"\n"
+						"Left mouse click + movement: Rotate camera\n"
+						"Right mouse click on actor: show actor properties\n"
+						"W/S: move camera forward/backward\n"
+						"Cursor keys: rotate camera\n"
+						"F1/F2: load previous/next scene from ROM\n"
+						"F3/F4: if scene has multiple maps, select which map to render\n"
+//						"Numpad / and *: select scene header to use (unstable!)\n"
+						);
+					MessageBox(hwnd, CtrlMsg, "Controls", MB_OK | MB_ICONINFORMATION);
+					break; }
+				case IDM_HELP_ABOUT: {
 					sprintf(GLExtensionsSupported, "OpenGL extensions supported and used:\n");
 					if(GLExtension_MultiTexture) sprintf(GLExtensionsSupported, "%sGL_ARB_multitexture\n", GLExtensionsSupported);
 					if(GLExtension_TextureMirror) sprintf(GLExtensionsSupported, "%sGL_ARB_texture_mirrored_repeat\n", GLExtensionsSupported);
 					if(GLExtension_AnisoFilter) sprintf(GLExtensionsSupported, "%sGL_EXT_texture_filter_anisotropic\n", GLExtensionsSupported);
-					if(GLExtension_FragmentProgram) sprintf(GLExtensionsSupported, "%sGL_ARB_fragment_program\n", GLExtensionsSupported);
+					if(GLExtension_VertFragProgram) sprintf(GLExtensionsSupported, "%sGL_ARB_fragment_program\nGL_ARB_vertex_program\n", GLExtensionsSupported);
 
 					char AboutMsg[256] = "";
-					sprintf(AboutMsg, "%s %s (Build '%s') - OpenGL Zelda Map Viewer\n\nWritten 2008/2009 by xdaniel & contributors\nhttp://ozmav.googlecode.com/\n\n%s", AppTitle, AppVersion, AppBuildName, GLExtensionsSupported);
+					sprintf(AboutMsg, "%s %s (Build '%s') - OpenGL Zelda Map Viewer\n\n"
+						"Written 2008/2009 by xdaniel & contributors\n"
+						"http://ozmav.googlecode.com/\n\n"
+						"%s", AppTitle, AppVersion, AppBuildName, GLExtensionsSupported);
 					MessageBox(hwnd, AboutMsg, "About", MB_OK | MB_ICONINFORMATION);
-					break;
+					break; }
+
+//				case IDC_MAIN_LEVELCOMBO: {
+//					ROM_SceneToLoad = SendMessage(GetDlgItem(hwnd, IDC_MAIN_LEVELCOMBO), CB_GETCURSEL, (WPARAM)NULL, (LPARAM)NULL);
+//					SendMessage(hwnd, WM_SETFOCUS, (WPARAM)GetDlgItem(hwnd, IDC_MAIN_OPENGL), (LPARAM)NULL);
+//					Viewer_LoadAreaData();
+//					break; }
 			}
 			break;
 		}
@@ -1099,6 +1638,10 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			MouseCenterY = (signed int)HIWORD(lParam);
 			break;
 		}
+		case WM_RBUTTONDOWN: {
+			Viewer_SelectActor((signed int)LOWORD(lParam), (signed int)HIWORD(lParam));
+			break;}
+
 		case WM_LBUTTONUP: {
 			MouseButtonDown = false;
 			break;
@@ -1110,6 +1653,12 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 				Camera_MouseMove(MousePosX, MousePosY);
 				GLUTCamera_Orientation(CamAngleX, CamAngleY);
 			}
+			break;
+		}
+		case WM_KILLFOCUS: {
+			/* fix for ghost keypresses when leaving window */
+			MouseButtonDown = false;
+			memset(System_KbdKeys, false, sizeof(System_KbdKeys));
 			break;
 		}
 		default: return DefWindowProc(hwnd, message, wParam, lParam);
