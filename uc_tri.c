@@ -255,8 +255,8 @@ int F3DEX2_Cmd_QUAD()
 
 int F3DEX2_DrawVertexPoint(unsigned int VertexID)
 {
-	float TempH = (float)Vertex[VertexID].H * Texture[CurrentTextureID].S_Scale / 32 / Texture[CurrentTextureID].WidthRender;
-	float TempV = (float)Vertex[VertexID].V * Texture[CurrentTextureID].T_Scale / 32 / Texture[CurrentTextureID].HeightRender;
+	float TempH = (float)Vertex[VertexID].H * Texture[CurrentTextureID].S_Scale / 32 / Texture[CurrentTextureID].Width;
+	float TempV = (float)Vertex[VertexID].V * Texture[CurrentTextureID].T_Scale / 32 / Texture[CurrentTextureID].Height;
 	TempH *= Texture[CurrentTextureID].S_ShiftScale;
 	TempV *= Texture[CurrentTextureID].T_ShiftScale;
 

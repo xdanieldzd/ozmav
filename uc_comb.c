@@ -25,7 +25,7 @@ const char * CombinerTypes32[] = {
 	"<unknown>       ", "<unknown>       ",
 	"<unknown>       ", "<unknown>       ",
 	"<unknown>       ", "<unknown>       ",
-	"<unknown>       ", "0               ",
+	"<unknown>       ", "0               "
 };
 
 const char * CombinerTypes16[] = {
@@ -43,7 +43,7 @@ const char * CombinerTypes8[] = {
 	"COMBINED        ", "TEXEL0          ",
 	"TEXEL1          ", "PRIMITIVE       ",
 	"SHADE           ", "ENVIRONMENT     ",
-	"1               ", "0               ",
+	"1               ", "0               "
 };
 
 /*	------------------------------------------------------------ */

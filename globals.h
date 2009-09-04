@@ -553,9 +553,7 @@ extern struct Vertex_Struct Vertex[4096];
 /* F3DEX2 TEXTURE DATA STRUCTURE */
 struct Texture_Struct {
 	unsigned int Height;
-	unsigned int HeightRender;
 	unsigned int Width;
-	unsigned int WidthRender;
 	unsigned int DataSource;
 	unsigned int PalDataSource;
 	unsigned long Offset;
@@ -567,11 +565,14 @@ struct Texture_Struct {
 	unsigned int X_Parameter;
 	float S_Scale;
 	float T_Scale;
+	float S_ShiftScale;
+	float T_ShiftScale;
+	unsigned int S_Mask;
+	unsigned int T_Mask;
 	unsigned int LineSize;
 	unsigned int Palette;
 	unsigned int AnimDXT;
-	float S_ShiftScale;
-	float T_ShiftScale;
+	unsigned short Checksum;
 };
 extern struct Texture_Struct Texture[2];
 
@@ -589,6 +590,7 @@ struct CurrentTextures_Struct {
 	unsigned int DataSource;
 	unsigned long Offset;
 	unsigned int OtherCriteria;
+	unsigned short Checksum;
 };
 extern struct CurrentTextures_Struct CurrentTextures[1024];
 

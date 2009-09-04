@@ -581,19 +581,14 @@ int Viewer_LoadAreaData()
 	memset(PaletteData, 0x00, sizeof(PaletteData));
 
 	/* reset texture struct to prevent texture loader from going out of whack when there aren't any on a map (ex. sasatest) */
-	Texture[0].Height = 0x00, Texture[0].HeightRender = 0x00, Texture[0].Width = 0x00, Texture[0].WidthRender = 0x00;
-	Texture[0].DataSource = 0x00, Texture[0].PalDataSource = 0x00, Texture[0].Offset = 0x00, Texture[0].PalOffset = 0x00;
-	Texture[0].Format_N64 = 0x00, Texture[0].Format_OGL = 0x00, Texture[0].Format_OGLPixel = 0x00;
-	Texture[0].Y_Parameter = 0x00, Texture[0].X_Parameter = 0x00, Texture[0].S_Scale = 0x00, Texture[0].T_Scale = 0x00;
-	Texture[0].LineSize = 0x00, Texture[0].Palette = 0x00, Texture[0].AnimDXT = 0x00;
-	Texture[0].S_ShiftScale = 0x00; Texture[0].T_ShiftScale = 0x00;
-
-	Texture[1].Height = 0x00, Texture[1].HeightRender = 0x00, Texture[1].Width = 0x00, Texture[1].WidthRender = 0x00;
-	Texture[1].DataSource = 0x00, Texture[1].PalDataSource = 0x00, Texture[1].Offset = 0x00, Texture[1].PalOffset = 0x00;
-	Texture[1].Format_N64 = 0x00, Texture[1].Format_OGL = 0x00, Texture[1].Format_OGLPixel = 0x00;
-	Texture[1].Y_Parameter = 0x00, Texture[1].X_Parameter = 0x00, Texture[1].S_Scale = 0x00, Texture[1].T_Scale = 0x00;
-	Texture[1].LineSize = 0x00, Texture[1].Palette = 0x00, Texture[1].AnimDXT = 0x00;
-	Texture[1].S_ShiftScale = 0x00; Texture[1].T_ShiftScale = 0x00;
+	for(i = 0; i < 2; i++) {
+		Texture[i].Height = 0x00, Texture[i].Width = 0x00;
+		Texture[i].DataSource = 0x00, Texture[i].PalDataSource = 0x00, Texture[i].Offset = 0x00, Texture[i].PalOffset = 0x00;
+		Texture[i].Format_N64 = 0x00, Texture[i].Format_OGL = 0x00, Texture[i].Format_OGLPixel = 0x00;
+		Texture[i].Y_Parameter = 0x00, Texture[i].X_Parameter = 0x00, Texture[i].S_Scale = 0x00, Texture[i].T_Scale = 0x00;
+		Texture[i].LineSize = 0x00, Texture[i].Palette = 0x00, Texture[i].AnimDXT = 0x00;
+		Texture[i].S_ShiftScale = 0x00; Texture[i].T_ShiftScale = 0x00;
+	}
 
 	EnvColor[0] = 0.5f; EnvColor[1] = 0.5f; EnvColor[2] = 0.5f; EnvColor[3] = 0.5f;
 	PrimColor[0] = 0.5f; PrimColor[1] = 0.5f; PrimColor[2] = 0.5f; PrimColor[3] = 0.5f;
