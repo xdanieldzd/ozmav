@@ -8,50 +8,12 @@
 	------------------------------------------------------------ */
 
 #include "globals.h"
-
-const char * CombinerTypes32[] = {
-	"COMBINED        ", "TEXEL0          ",
-	"TEXEL1          ", "PRIMITIVE       ",
-	"SHADE           ", "ENVIRONMENT     ",
-	"1               ", "COMBINED_ALPHA  ",
-	"TEXEL0_ALPHA    ", "TEXEL1_ALPHA    ",
-	"PRIMITIVE_ALPHA ", "SHADE_ALPHA     ",
-	"ENV_ALPHA       ", "LOCFRAC         ",
-	"PRIMLOCFRAC     ", "K5              ",
-	"<unknown>       ", "<unknown>       ",
-	"<unknown>       ", "<unknown>       ",
-	"<unknown>       ", "<unknown>       ",
-	"<unknown>       ", "<unknown>       ",
-	"<unknown>       ", "<unknown>       ",
-	"<unknown>       ", "<unknown>       ",
-	"<unknown>       ", "<unknown>       ",
-	"<unknown>       ", "0               "
-};
-
-const char * CombinerTypes16[] = {
-	"COMBINED        ", "TEXEL0          ",
-	"TEXEL1          ", "PRIMITIVE       ",
-	"SHADE           ", "ENVIRONMENT     ",
-	"1               ", "COMBINED_ALPHA  ",
-	"TEXEL0_ALPHA    ", "TEXEL1_ALPHA    ",
-	"PRIMITIVE_ALPHA ", "SHADE_ALPHA     ",
-	"ENV_ALPHA       ", "LOCFRAC         ",
-	"PRIMLOCFRAC     ", "0               "
-};
-
-const char * CombinerTypes8[] = {
-	"COMBINED        ", "TEXEL0          ",
-	"TEXEL1          ", "PRIMITIVE       ",
-	"SHADE           ", "ENVIRONMENT     ",
-	"1               ", "0               "
-};
+#include "debug.h"
 
 /*	------------------------------------------------------------ */
 
 int F3DEX2_Cmd_SETCOMBINE()
 {
-	CurrentTextureID = 0;
-
 	Combine0 =	(Readout_CurrentByte2 * 0x10000) +
 				(Readout_CurrentByte3 * 0x100) +
 				(Readout_CurrentByte4);
@@ -68,8 +30,8 @@ int F3DEX2_Cmd_SETCOMBINE()
 
 int F3DEX2_BuildFragmentShader()
 {
-	if((GLExtension_VertFragProgram) && (Renderer_EnableFragShader)) {
-		glDisable(GL_FRAGMENT_PROGRAM_ARB);
+	if(!(GLExtension_VertFragProgram) && !(Renderer_EnableFragShader)) {
+		return 0;
 	}
 
 	/* fragment program cache management */
@@ -100,66 +62,26 @@ int F3DEX2_BuildFragmentShader()
 	}
 
 	if(NewProg) {
-		/* VERTEX PROGRAM TEST */
-/*		char * VertProgString =
-			"!!ARBvp1.0\n"
-			"\n"
-			"PARAM ModelViewProj[4] = { state.matrix.mvp };\n"
-			"PARAM ShiftScaleT0 = program.local[0];\n"
-			"PARAM ShiftScaleT1 = program.local[1];\n"
-			"TEMP Pos;\n"
-			"\n"
-			"DP4 Pos.x, ModelViewProj[0], vertex.position;\n"
-			"DP4 Pos.y, ModelViewProj[1], vertex.position;\n"
-			"DP4 Pos.z, ModelViewProj[2], vertex.position;\n"
-			"DP4 Pos.w, ModelViewProj[3], vertex.position;\n"
-			"\n"
-			"MOV result.position, Pos;\n"
-			"MOV result.color, vertex.color;\n"
-			"MUL result.texcoord[0], ShiftScaleT0, vertex.texcoord[0];\n"
-			"MUL result.texcoord[1], ShiftScaleT1, vertex.texcoord[0];\n"
-			"\n"
-//			"TEMP norm;\n"
-//			"PARAM mvinv[4] = { state.matrix.modelview.invtrans };\n"
-//			"DP3 norm.x, mvinv[0], vertex.normal;\n"
-//			"DP3 norm.y, mvinv[1], vertex.normal;\n"
-//			"DP3 norm.z, mvinv[2], vertex.normal;\n"
-//			"DP3 norm.w, norm, norm;\n"
-//			"RSQ norm.w, norm.w;\n"
-//			"MUL norm.xyz, norm.w, norm;\n"
-//			"MOV norm, vertex.normal;\n"
-//			"MOV result.texcoord[2], norm;\n"
-			"END\n";
-
-		if((GLExtension_VertFragProgram) && (Renderer_EnableFragShader)) {
-			int VertProg = 0;
-			glEnable(GL_VERTEX_PROGRAM_ARB);
-			glGenProgramsARB(1, &VertProg);
-			glBindProgramARB(GL_VERTEX_PROGRAM_ARB, VertProg);
-			glProgramStringARB(GL_VERTEX_PROGRAM_ARB, GL_PROGRAM_FORMAT_ASCII_ARB, strlen(VertProgString), VertProgString);
-			glBindProgramARB(GL_VERTEX_PROGRAM_ARB, VertProg);
-		}
-*/
 		/* gen new prog */
-		cA[0] = (Combine0 >> 20) & 0x0F;
-		cB[0] = (Combine1 >> 28) & 0x0F;
-		cC[0] = (Combine0 >> 15) & 0x1F;
-		cD[0] = (Combine1 >> 15) & 0x07;
+		cA[0] = ((Combine0 >> 20) & 0x0F);
+		cB[0] = ((Combine1 >> 28) & 0x0F);
+		cC[0] = ((Combine0 >> 15) & 0x1F);
+		cD[0] = ((Combine1 >> 15) & 0x07);
 
-		aA[0] = (Combine0 >> 12) & 0x07;
-		aB[0] = (Combine1 >> 12) & 0x07;
-		aC[0] = (Combine0 >>  9) & 0x07;
-		aD[0] = (Combine1 >>  9) & 0x07;
+		aA[0] = ((Combine0 >> 12) & 0x07);
+		aB[0] = ((Combine1 >> 12) & 0x07);
+		aC[0] = ((Combine0 >>  9) & 0x07);
+		aD[0] = ((Combine1 >>  9) & 0x07);
 
-		cA[1] = (Combine0 >>  5) & 0x0F;
-		cB[1] = (Combine1 >> 24) & 0x0F;
-		cC[1] = (Combine0      ) & 0x1F;
-		cD[1] = (Combine1 >>  6) & 0x07;
+		cA[1] = ((Combine0 >>  5) & 0x0F);
+		cB[1] = ((Combine1 >> 24) & 0x0F);
+		cC[1] = ((Combine0 >>  0) & 0x1F);
+		cD[1] = ((Combine1 >>  6) & 0x07);
 
-		aA[1] = (Combine1 >> 21) & 0x07;
-		aB[1] = (Combine1 >>  3) & 0x07;
-		aC[1] = (Combine1 >> 18) & 0x07;
-		aD[1] = (Combine1      ) & 0x07;
+		aA[1] = ((Combine1 >> 21) & 0x07);
+		aB[1] = ((Combine1 >>  3) & 0x07);
+		aC[1] = ((Combine1 >> 18) & 0x07);
+		aD[1] = ((Combine1 >>  0) & 0x07);
 
 		char CombMsg[1024];
 		sprintf(CombMsg, "----------------------------------------------------------------------------------------\n"
@@ -185,13 +107,13 @@ int F3DEX2_BuildFragmentShader()
 			"\n"
 			"PARAM EnvColor = program.env[0];\n"
 			"PARAM PrimColor = program.env[1];\n"
-			"ATTRIB Shade = fragment.color;\n"
+			"PARAM BlendColor = program.env[2];\n"
+			"ATTRIB Shade = fragment.color.primary;\n"
 			"\n"
 			"OUTPUT Out = result.color;\n"
 			"\n"
 			"TEX Tex0, fragment.texcoord[0], texture[0], 2D;\n"
-//			"TEX Tex1, fragment.texcoord[1], texture[1], 2D;\n"
-			"TEX Tex1, fragment.texcoord[0], texture[1], 2D;\n"
+			"TEX Tex1, fragment.texcoord[1], texture[1], 2D;\n"
 			"\n";
 
 		memset(ShaderString, 0x00, sizeof(ShaderString));
@@ -417,6 +339,7 @@ int F3DEX2_BuildFragmentShader()
 					break;
 				case G_ACMUX_TEXEL1:
 					strcat(ShaderString, "MOV aR0.a, Tex1;\n");
+					if((Combine0 == 0x00121603) && (Combine1 == 0xFF5BFFF8)) strcat(ShaderString, "MOV aR0.a, {0.0, 0.0, 0.0, 0.0}; # pathway hack (T1->0)\n");
 					break;
 				case G_ACMUX_PRIMITIVE:
 					strcat(ShaderString, "MOV aR0.a, PrimColor;\n");
@@ -539,12 +462,9 @@ int F3DEX2_BuildFragmentShader()
 			strcat(ShaderString, "MOV aComb.a, aR0.a;\n\n");
 		}
 
+		strcat(ShaderString, "# Finish\n");
 		strcat(ShaderString,
-/*				"TEMP Norm;\n"
-				"ADD Norm, fragment.texcoord[2].x, fragment.texcoord[2].y;\n"
-				"MUL Norm, Norm, fragment.texcoord[2].z;\n"
-				"MUL Comb, Comb, Norm;\n"
-*/				"MOV Comb.a, aComb.a;\n"
+				"MOV Comb.a, aComb.a;\n"
 				"MOV Out, Comb;\n"
 				"END\n");
 
@@ -561,6 +481,8 @@ int F3DEX2_BuildFragmentShader()
 		if((Combine0 == 0x00121603) && (Combine1 == 0xFF5BFFF8)) {
 			//sprintf(ShaderString, "");
 		}
+
+		F3DEX2_ForceBlender();
 
 		if((GLExtension_VertFragProgram) && (Renderer_EnableFragShader)) {
 			glEnable(GL_FRAGMENT_PROGRAM_ARB);
@@ -610,6 +532,20 @@ int F3DEX2_Cmd_SETFOGCOLOR()
 	return 0;
 }
 
+int F3DEX2_Cmd_SETBLENDCOLOR()
+{
+	BlendColor[0] = (Readout_CurrentByte5 / 255.0f);
+	BlendColor[1] = (Readout_CurrentByte6 / 255.0f);
+	BlendColor[2] = (Readout_CurrentByte7 / 255.0f);
+	BlendColor[3] = (Readout_CurrentByte8 / 255.0f);
+
+	if(GLExtension_VertFragProgram) {
+		glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 2, BlendColor[0], BlendColor[1], BlendColor[2], BlendColor[3]);
+	}
+
+	return 0;
+}
+
 int F3DEX2_Cmd_SETPRIMCOLOR()
 {
 	PrimColor[0] = (Readout_CurrentByte5 / 255.0f);
@@ -633,6 +569,100 @@ int F3DEX2_Cmd_SETENVCOLOR()
 
 	if(GLExtension_VertFragProgram) {
 		glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 0, EnvColor[0], EnvColor[1], EnvColor[2], EnvColor[3]);
+	}
+
+	return 0;
+}
+
+int F3DEX2_BuildVertexShader()
+{
+	/* VERTEX PROGRAM TEST */
+	char * VertProgString =
+		"!!ARBvp1.0\n"
+		"\n"
+		"# global\n"
+		"OUTPUT OutColor = result.color;\n"
+		"TEMP Pos;\n"
+		"\n"
+		"# position\n"
+		"PARAM ModelViewProj[4] = { state.matrix.mvp };\n"
+		"DP4 Pos.x, ModelViewProj[0], vertex.position;\n"
+		"DP4 Pos.y, ModelViewProj[1], vertex.position;\n"
+		"DP4 Pos.z, ModelViewProj[2], vertex.position;\n"
+		"DP4 Pos.w, ModelViewProj[3], vertex.position;\n"
+		"MOV result.position, Pos;\n"
+		"\n"
+		"# texture shift/scale\n"
+		"MUL result.texcoord[0], program.local[0], vertex.texcoord[0];\n"
+		"MUL result.texcoord[1], program.local[1], vertex.texcoord[1];\n"
+//		"MOV result.texcoord[0], vertex.texcoord[0];\n"
+//		"MOV result.texcoord[1], vertex.texcoord[1];\n"
+		"\n"
+		"# fog\n"
+		"TEMP Fog;\n"
+		"MOV Fog, Pos.zzzw;\n"
+		"RCP Fog.w, Fog.w;\n"
+		"MUL Fog, Fog, Fog.w;\n"
+		"MUL Fog, Fog, { -1, -1, -1, -1 };\n"
+		"ADD Fog, Fog, { 1, 1, 1, 1 };\n"
+		"MUL Fog, Fog, { 0.5, 0.5, 0.5, 0.5 };\n"
+		"MUL Fog, Fog, 0.5;\n"
+		"MAX Fog.x, Fog.x, Pos.z;\n"
+		"MOV result.fogcoord, Fog;\n"
+		"\n"
+		"# normals\n"
+		"PARAM ColorAmbient = program.env[0];\n"
+		"PARAM ColorDiffuse = program.env[1];\n"
+		"PARAM ColorSpecular = program.env[3];\n"
+		"PARAM LightDirection = state.light[0].position;\n"
+		"PARAM HalfDirection = state.light[0].half;\n"
+		"PARAM SpecExp = state.material.shininess;\n"
+		"TEMP TempCalc, Normal, Dots, LightCoefs;\n"
+		"MOV Normal.x, vertex.normal;\n"
+		"MOV Normal.y, vertex.normal;\n"
+		"MOV Normal.z, vertex.normal;\n"
+		"DP3 Dots.x, Normal, LightDirection;\n"
+		"DP3 Dots.y, Normal, HalfDirection;\n"
+		"MOV Dots.w, SpecExp.x;\n"
+		"LIT LightCoefs, Dots;\n"
+		"MAD TempCalc, LightCoefs.y, ColorDiffuse, ColorAmbient;\n"
+		"MAD OutColor.xyz, LightCoefs.z, ColorSpecular, TempCalc;\n"
+		"MOV OutColor.w, ColorDiffuse.w;\n"
+		"MUL OutColor.xyz, vertex.color, TempCalc;\n"
+//		"MOV OutColor, vertex.color;\n"
+		"\n"
+		"END\n";
+
+	if(GLExtension_VertFragProgram) {
+		glGenProgramsARB(1, &VertProg);
+		glBindProgramARB(GL_VERTEX_PROGRAM_ARB, VertProg);
+		glProgramStringARB(GL_VERTEX_PROGRAM_ARB, GL_PROGRAM_FORMAT_ASCII_ARB, strlen(VertProgString), VertProgString);
+		glBindProgramARB(GL_VERTEX_PROGRAM_ARB, VertProg);
+
+		if(glGetError() != 0) {
+			int Pos = 0;
+			char *String = (char *)glGetString(GL_PROGRAM_ERROR_STRING_ARB);
+			glGetIntegerv(GL_PROGRAM_ERROR_POSITION_ARB, &Pos);
+			if(Pos >= 0) {
+				sprintf(ErrorMsg, "%s\n%s\n", String, VertProgString + Pos);
+				MessageBox(hwnd, ErrorMsg, "Vertex Program Error", MB_OK | MB_ICONEXCLAMATION);
+				return -1;
+			}
+		}
+	}
+
+	return 0;
+}
+
+int F3DEX2_BindVertexShader()
+{
+	if((GLExtension_VertFragProgram) && (Renderer_EnableFragShader)) {
+		glEnable(GL_VERTEX_PROGRAM_ARB);
+		glBindProgramARB(GL_VERTEX_PROGRAM_ARB, VertProg);
+		if(glGetError() != 0) {
+			char *String = (char *)glGetString(GL_PROGRAM_ERROR_STRING_ARB);
+			fprintf(FileSystemLog, "%s\n", String);
+		}
 	}
 
 	return 0;

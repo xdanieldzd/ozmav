@@ -33,7 +33,7 @@ int Zelda_GetMapHeaderList(int HeaderListPos, int CurrentMap)
 		Helper_SplitCurrentVals(false);
 
 		if ((Readout_CurrentByte1 == 0x03)) {
-			MapHeader_List[MapHeader_TotalCount] = (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
+			MapHeader_List[MapHeader_TotalCount] = (Readout_CurrentByte2 * 0x10000) + (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
 			MapHeader_TotalCount++;
 		} else if ((Readout_Current1 == 0x00000000)) {
 			//ignore
@@ -157,7 +157,7 @@ int Zelda_GetSceneHeaderList(int HeaderListPos)
 		Helper_SplitCurrentVals(false);
 
 		if ((Readout_CurrentByte1 == 0x02)) {
-			SceneHeader_List[SceneHeader_TotalCount] = (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
+			SceneHeader_List[SceneHeader_TotalCount] = (Readout_CurrentByte2 * 0x10000) + (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
 			SceneHeader_TotalCount++;
 		} else if ((Readout_Current1 == 0x00000000)) {
 			//ignore
@@ -788,7 +788,10 @@ int Zelda_GetEnvironmentSettings(int CurrentHeader)
 */
 	int InEnvDataPos = SceneHeader[CurrentHeader].EnvSetting_DataOffset / 4;
 
+	CurrentEnvSetting = 0;
 	int EnvSetting_CurrentCount = 0;
+
+	if(SceneHeader[CurrentHeader].EnvSetting_Count > 1) CurrentEnvSetting = 1;		/* set to daylight env (outside, dunno inside) */
 
 	if(!(SceneHeader[CurrentHeader].EnvSetting_Count) == 0) {
 		while (EnvSetting_CurrentCount <= SceneHeader[CurrentHeader].EnvSetting_Count) {
@@ -870,15 +873,7 @@ int Zelda_GetEnvironmentSettings(int CurrentHeader)
 			EnvSetting_CurrentCount++;
 		}
 
-		FogColor[0] = (EnvSetting[0].FogColor.R / 255.0f);
-		FogColor[1] = (EnvSetting[0].FogColor.G / 255.0f);
-		FogColor[2] = (EnvSetting[0].FogColor.B / 255.0f);
-
-		float FogDistance = ((EnvSetting[0].FogDistance & 0x00FF) / 6.0f);	//utterly wrong, but looks okay
-		glFogf(GL_FOG_END, FogDistance);
-
-		glFogfv(GL_FOG_COLOR, FogColor);
-		glClearColor(FogColor[0], FogColor[1], FogColor[2], FogColor[3]);
+		Zelda_SelectEnvSettings();
 /*
 		char temp[256];
 //		sprintf(temp, "offset %08x, len %02x\n\ncolor1 %02x %02x %02x\ncolor2 %02x %02x %02x\n\nfogdist (raw) %04x\nfogdist (conv) %f",
@@ -895,11 +890,49 @@ int Zelda_GetEnvironmentSettings(int CurrentHeader)
 	return 0;
 }
 
+int Zelda_SelectEnvSettings()
+{
+	FogColor[0] = (EnvSetting[CurrentEnvSetting].FogColor.R / 255.0f);
+	FogColor[1] = (EnvSetting[CurrentEnvSetting].FogColor.G / 255.0f);
+	FogColor[2] = (EnvSetting[CurrentEnvSetting].FogColor.B / 255.0f);
+
+	float FogDistance = ((EnvSetting[CurrentEnvSetting].FogDistance & 0x00FF) / 6.0f);	//utterly wrong, but looks okay
+	glFogf(GL_FOG_END, FogDistance);
+
+	glFogfv(GL_FOG_COLOR, FogColor);
+	glClearColor(FogColor[0], FogColor[1], FogColor[2], FogColor[3]);
+
+	if(GLExtension_VertFragProgram) {
+		LightAmbient[0] = (EnvSetting[CurrentEnvSetting].Color1.R / 255.0f);
+		LightAmbient[1] = (EnvSetting[CurrentEnvSetting].Color1.G / 255.0f);
+		LightAmbient[2] = (EnvSetting[CurrentEnvSetting].Color1.B / 255.0f);
+
+		LightDiffuse[0] = (EnvSetting[CurrentEnvSetting].Color2.R / 255.0f);
+		LightDiffuse[1] = (EnvSetting[CurrentEnvSetting].Color2.G / 255.0f);
+		LightDiffuse[2] = (EnvSetting[CurrentEnvSetting].Color2.B / 255.0f);
+
+		LightSpecular[0] = (EnvSetting[CurrentEnvSetting].Color3.R / 255.0f);
+		LightSpecular[1] = (EnvSetting[CurrentEnvSetting].Color3.G / 255.0f);
+		LightSpecular[2] = (EnvSetting[CurrentEnvSetting].Color3.B / 255.0f);
+
+		LightPosition[0] = (EnvSetting[CurrentEnvSetting].Color4.R / 255.0f);
+		LightPosition[1] = (EnvSetting[CurrentEnvSetting].Color4.G / 255.0f);
+		LightPosition[2] = (EnvSetting[CurrentEnvSetting].Color4.B / 255.0f);
+
+		glProgramEnvParameter4fARB(GL_VERTEX_PROGRAM_ARB, 0, LightAmbient[0], LightAmbient[1], LightAmbient[2], LightAmbient[3]);
+		glProgramEnvParameter4fARB(GL_VERTEX_PROGRAM_ARB, 1, LightDiffuse[0], LightDiffuse[1], LightDiffuse[2], LightDiffuse[3]);
+		glProgramEnvParameter4fARB(GL_VERTEX_PROGRAM_ARB, 1, LightSpecular[0], LightSpecular[1], LightSpecular[2], LightSpecular[3]);
+		glProgramEnvParameter4fARB(GL_VERTEX_PROGRAM_ARB, 3, LightPosition[0], LightPosition[1], LightPosition[2], LightPosition[3]);
+	}
+
+	return 0;
+}
+
 int Zelda_GetSceneName()
 {
 	memset(Scene_Name, 0x00, sizeof(Scene_Name));
 
-	unsigned long Offset = 0; char Name[256];
+	unsigned int Offset = 0; char Name[256];
 
 	FILE * SceneNames;
 	char Temp[256]; int NameCount = 0;

@@ -22,6 +22,9 @@
 				<Option object_output=".objs-dbg" />
 				<Option type="0" />
 				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-Wall" />
+				</Compiler>
 			</Target>
 		</Build>
 		<Linker>
@@ -45,6 +48,7 @@
 		<Unit filename="..\actors.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="..\debug.h" />
 		<Unit filename="..\gfx_emul.c">
 			<Option compilerVar="CC" />
 		</Unit>

@@ -257,6 +257,7 @@ int Viewer_RenderMap_DListParser(bool CalledViaCmd, unsigned long Position)
 	} else {
 		sprintf(GFXLogMsg, "Display List #%d (0x%08X):\n", DLToRender, (unsigned int)Position * 4);
 		Helper_LogMessage(1, GFXLogMsg);
+//		Helper_LogMessage(2, GFXLogMsg);
 	}
 
 	while (!DListHasEnded) {
@@ -397,7 +398,7 @@ int Viewer_RenderMap_DListParser(bool CalledViaCmd, unsigned long Position)
 		/* 0xD9 */
 		case F3DEX2_GEOMETRYMODE:
 			sprintf(CurrentGFXCmd, "F3DEX2_GEOMETRYMODE  ");
-			sprintf(CurrentGFXCmdNote, "<partially handled>");
+			sprintf(CurrentGFXCmdNote, "-");
 			Helper_GFXLogCommand(Position);
 
 			F3DEX2_Cmd_GEOMETRYMODE();
@@ -599,7 +600,7 @@ int Viewer_RenderMap_DListParser(bool CalledViaCmd, unsigned long Position)
 		/* 0xF3 */
 		case G_LOADBLOCK:
 			sprintf(CurrentGFXCmd, "G_LOADBLOCK          ");
-			sprintf(CurrentGFXCmdNote, "<unemulated>");
+			sprintf(CurrentGFXCmdNote, "<partially handled>");
 			Helper_GFXLogCommand(Position);
 
 			F3DEX2_Cmd_LOADBLOCK();
@@ -647,8 +648,10 @@ int Viewer_RenderMap_DListParser(bool CalledViaCmd, unsigned long Position)
 		/* 0xF9 */
 		case G_SETBLENDCOLOR:
 			sprintf(CurrentGFXCmd, "G_SETBLENDCOLOR      ");
-			sprintf(CurrentGFXCmdNote, "<unemulated>");
+			sprintf(CurrentGFXCmdNote, "-");
 			Helper_GFXLogCommand(Position);
+
+			F3DEX2_Cmd_SETBLENDCOLOR();
 			break;
 
 		/* 0xFA */

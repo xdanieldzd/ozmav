@@ -37,13 +37,21 @@ int OGL_ResetProperties(void)
 
 	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 
-	glLightfv(GL_LIGHT1, GL_AMBIENT, LightAmbient);
-	glLightfv(GL_LIGHT1, GL_DIFFUSE, LightDiffuse);
-	glLightfv(GL_LIGHT1, GL_POSITION,LightPosition);
-	glEnable(GL_LIGHT1);
+	glLightfv(GL_LIGHT0, GL_AMBIENT, LightAmbient);
+	glLightfv(GL_LIGHT0, GL_DIFFUSE, LightDiffuse);
+	glLightfv(GL_LIGHT0, GL_SPECULAR, LightSpecular);
+	glLightfv(GL_LIGHT0, GL_POSITION, LightPosition);
+	glEnable(GL_LIGHT0);
 
 	glEnable(GL_LIGHTING);
 	glEnable(GL_NORMALIZE);
+
+	if(GLExtension_VertFragProgram) {
+		glProgramEnvParameter4fARB(GL_VERTEX_PROGRAM_ARB, 0, LightAmbient[0], LightAmbient[1], LightAmbient[2], LightAmbient[3]);
+		glProgramEnvParameter4fARB(GL_VERTEX_PROGRAM_ARB, 1, LightDiffuse[0], LightDiffuse[1], LightDiffuse[2], LightDiffuse[3]);
+		glProgramEnvParameter4fARB(GL_VERTEX_PROGRAM_ARB, 1, LightSpecular[0], LightSpecular[1], LightSpecular[2], LightSpecular[3]);
+		glProgramEnvParameter4fARB(GL_VERTEX_PROGRAM_ARB, 3, LightPosition[0], LightPosition[1], LightPosition[2], LightPosition[3]);
+	}
 
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
@@ -64,6 +72,8 @@ int OGL_ResetProperties(void)
 	if(GLExtension_VertFragProgram) {
 		glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 0, EnvColor[0], EnvColor[1], EnvColor[2], EnvColor[3]);
 		glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 1, PrimColor[0], PrimColor[1], PrimColor[2], PrimColor[3]);
+
+		F3DEX2_BuildVertexShader();
 	}
 
 	return true;
@@ -157,9 +167,8 @@ int OGL_DrawScene(void)
 		}
 
 		/* #1 - RENDER ACTORS, PASS 1 */
-		if((GLExtension_VertFragProgram) && (Renderer_EnableFragShader)) {
-			glDisable(GL_FRAGMENT_PROGRAM_ARB);
-		}
+		if(GLExtension_VertFragProgram) { glDisable(GL_FRAGMENT_PROGRAM_ARB); glDisable(GL_VERTEX_PROGRAM_ARB); }
+
 		glDisable(GL_BLEND);
 		for(i = 0; i < SceneHeader[SceneHeader_Current].Map_Count; i++) {
 			ActorInfo_CurrentCount[i] = 0;
@@ -197,9 +206,7 @@ int OGL_DrawScene(void)
 
 		/* #3 - RENDER COLLISION */
 		if(Renderer_EnableCollision) {
-			if((GLExtension_VertFragProgram) && (Renderer_EnableFragShader)) {
-				glDisable(GL_FRAGMENT_PROGRAM_ARB);
-			}
+			if(GLExtension_VertFragProgram) { glDisable(GL_FRAGMENT_PROGRAM_ARB); glDisable(GL_VERTEX_PROGRAM_ARB); }
 
 			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 			glAlphaFunc(GL_GREATER, 0.0f);
@@ -218,9 +225,8 @@ int OGL_DrawScene(void)
 		}
 
 		/* #4 - RENDER ACTORS, PASS 2 */
-		if((GLExtension_VertFragProgram) && (Renderer_EnableFragShader)) {
-			glDisable(GL_FRAGMENT_PROGRAM_ARB);
-		}
+		if(GLExtension_VertFragProgram) { glDisable(GL_FRAGMENT_PROGRAM_ARB); glDisable(GL_VERTEX_PROGRAM_ARB); }
+
 		glDisable(GL_BLEND);
 		for(i = 0; i < SceneHeader[SceneHeader_Current].Map_Count; i++) {
 			ActorInfo_CurrentCount[i] = 0;

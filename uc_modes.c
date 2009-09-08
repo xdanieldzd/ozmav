@@ -20,7 +20,7 @@ int F3DEX2_Cmd_GEOMETRYMODE()
 	N64_GeometryMode |= Mode_Set;
 
 	memset(ErrorMsg, 0x00, sizeof(ErrorMsg));
-	sprintf(ErrorMsg, "GEOMETRYMODE | CLEAR: %s%s%s%s%s%s%s%s%s%s\nGEOMETRYMODE | SET:   %s%s%s%s%s%s%s%s%s%s\n",
+	sprintf(ErrorMsg, "GEOMETRYMODE | CLEAR: %s%s%s%s%s%s%s%s%s%s\nGEOMETRYMODE | SET:   %s%s%s%s%s%s%s%s%s%s\n\n",
 		Mode_Clear & G_SHADE ? "G_SHADE | " : "",
 		Mode_Clear & G_LIGHTING ? "G_LIGHTING | " : "",
 		Mode_Clear & G_SHADING_SMOOTH ? "G_SHADING_SMOOTH | " : "",
@@ -111,10 +111,12 @@ int F3DEX2_Cmd_SETOTHERMODE_H()
 		case G_MDSFT_CYCLETYPE:
 			RDPCycleMode = (W1 >> G_MDSFT_CYCLETYPE);
 			break;
+		case G_MDSFT_TEXTLUT:
+			//fprintf(FileSystemLog, "SETOTHERMODE_H: Mode G_MDSFT_TEXTLUT, Val 0x%02X\n\n", (unsigned int)(W1 >> Mode));
+			break;
 		default:
 			//unknown mode
-//			sprintf(ErrorMsg, "mode: %d, val: %d", Mode, (W1 >> Mode));
-//			MessageBox(hwnd, ErrorMsg, "" ,0);
+			//fprintf(FileSystemLog, "SETOTHERMODE_H: Mode 0x%02X, Val 0x%02X\n\n", Mode, (unsigned int)(W1 >> Mode));
 			break;
 	}
 
@@ -132,10 +134,22 @@ int F3DEX2_Cmd_SETOTHERMODE_L()
 									(Readout_CurrentByte7 * 0x100) +
 									 Readout_CurrentByte8;
 
-	byte MDSFT = (32 - _SHIFTR( LowBits, 8, 8 ) - (_SHIFTR( LowBits, 0, 8 ) + 1));
+	unsigned char MDSFT = (32 - _SHIFTR( LowBits, 8, 8 ) - (_SHIFTR( LowBits, 0, 8 ) + 1));
 
-	GLenum BlendSrcFactor = GL_ZERO;
-	GLenum BlendDstFactor = GL_ZERO;
+	bool AA_EN			= (HighBits & 0x00000008) != 0;		/* anti-aliasing */
+	bool Z_CMP			= (HighBits & 0x00000010) != 0;		/* zbuffer compare */
+	bool Z_UPD			= (HighBits & 0x00000020) != 0;		/* zbuffer update */
+	bool IM_RD			= (HighBits & 0x00000040) != 0;
+	bool CLR_ON_CVG		= (HighBits & 0x00000080) != 0;
+	bool CVG_DST_WRAP	= (HighBits & 0x00000100) != 0;
+	bool CVG_DST_FULL	= (HighBits & 0x00000200) != 0;
+	bool CVG_DST_SAVE	= (HighBits & 0x00000300) != 0;
+	bool ZMODE_INTER	= (HighBits & 0x00000400) != 0;
+	bool ZMODE_XLU		= (HighBits & 0x00000800) != 0;
+	bool ZMODE_DEC		= (HighBits & 0x00000C00) != 0;		/* decal */
+	bool CVG_X_ALPHA	= (HighBits & 0x00001000) != 0;
+	bool ALPHA_CVG_SEL	= (HighBits & 0x00002000) != 0;
+	bool FORCE_BL		= (HighBits & 0x00004000) != 0;		/* force blending */
 
 	switch(MDSFT) {
 		case G_MDSFT_ALPHACOMPARE:
@@ -145,40 +159,23 @@ int F3DEX2_Cmd_SETOTHERMODE_L()
 			MessageBox(hwnd, "zsrcsel", "", 0);
 			break;
 		case G_MDSFT_RENDERMODE: {
-			bool AA_EN			= (HighBits & 0x00000008) != 0;		/* anti-aliasing */
-			bool Z_CMP			= (HighBits & 0x00000010) != 0;		/* zbuffer compare */
-			bool Z_UPD			= (HighBits & 0x00000020) != 0;		/* zbuffer update */
-			bool IM_RD			= (HighBits & 0x00000040) != 0;
-			bool CLR_ON_CVG		= (HighBits & 0x00000080) != 0;
-			bool CVG_DST_WRAP	= (HighBits & 0x00000100) != 0;
-			bool CVG_DST_FULL	= (HighBits & 0x00000200) != 0;
-			bool CVG_DST_SAVE	= (HighBits & 0x00000300) != 0;
-			bool ZMODE_INTER	= (HighBits & 0x00000400) != 0;
-			bool ZMODE_XLU		= (HighBits & 0x00000800) != 0;
-			bool ZMODE_DEC		= (HighBits & 0x00000C00) != 0;		/* decal */
-			bool CVG_X_ALPHA	= (HighBits & 0x00001000) != 0;
-			bool ALPHA_CVG_SEL	= (HighBits & 0x00002000) != 0;
-			bool FORCE_BL		= (HighBits & 0x00004000) != 0;		/* force blending */
-
-		/*	sprintf(ErrorMsg, \
-				"\nSETOTHERMODE_L - RENDERMODE:\n" \
-				" - Display List #%d\n" \
+			sprintf(ErrorMsg, \
+				"SETOTHERMODE_L - RENDERMODE:\n" \
 				" ------------------\n" \
 				" - AA_EN %d\n" \
 				" - Z_CMP %d, Z_UPD %d, IM_RD %d, CLR_ON_CVG %d\n" \
 				" - CVG_DST_WRAP %d, CVG_DST_FULL %d, CVG_DST_SAVE %d, ZMODE_INTER %d\n" \
 				" - ZMODE_XLU %d, ZMODE_DEC %d\n" \
 				" - CVG_X_ALPHA %d, ALPHA_CVG_SEL %d, FORCE_BL %d\n\n",
-					DLToRender,
 					AA_EN,
 					Z_CMP, Z_UPD, IM_RD, CLR_ON_CVG,
 					CVG_DST_WRAP, CVG_DST_FULL, CVG_DST_SAVE, ZMODE_INTER,
 					ZMODE_XLU, ZMODE_DEC,
 					CVG_X_ALPHA, ALPHA_CVG_SEL, FORCE_BL);
 			Helper_LogMessage(2, ErrorMsg);
-		*/
+
 			if(Z_CMP)
-				{ glDepthFunc(GL_LEQUAL); } else { glDepthFunc(GL_ALWAYS); }
+				{ glEnable(GL_DEPTH_BUFFER); } else { glDisable(GL_DEPTH_BUFFER); }
 
 			if((Z_UPD) && !(ZMODE_INTER && ZMODE_XLU))
 				{ glDepthMask(GL_TRUE); } else { glDepthMask(GL_FALSE); }
@@ -189,147 +186,50 @@ int F3DEX2_Cmd_SETOTHERMODE_L()
 /* ??? */	if(ZMODE_XLU)
 				{ glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); glAlphaFunc(GL_GREATER, 0.0f); } else { /*glBlendFunc(GL_ONE, GL_ZERO);*/ glAlphaFunc(GL_GEQUAL, 0.5f); }
 
-			if(CVG_X_ALPHA && (ALPHA_CVG_SEL || AA_EN))
-				{ glEnable(GL_ALPHA_TEST); glAlphaFunc(GL_GEQUAL, 0.5f); } else { glDisable(GL_ALPHA_TEST); }
-
-			if((FORCE_BL) && (RDPCycleMode != G_CYC_COPY) && (RDPCycleMode != G_CYC_FILL) && !(ALPHA_CVG_SEL)) {
-				glEnable(GL_BLEND);
-
-				switch(HighBits >> 16)
-				{
-					case 0x0448:
-					case 0x055A:
-						BlendSrcFactor = GL_ONE;
-						BlendDstFactor = GL_ONE;
-						break;
-					case 0x0C08:
-					case 0x0F0A:
-						BlendSrcFactor = GL_ONE;
-						BlendDstFactor = GL_ZERO;
-						break;
-					case 0xC810:
-					case 0xC811:
-					case 0x0C18:
-					case 0x0C19:
-					case 0x0050:
-					case 0x0055:
-						BlendSrcFactor = GL_SRC_ALPHA;
-						BlendDstFactor = GL_ONE_MINUS_SRC_ALPHA;
-						break;
-					case 0x0FA5:
-					case 0x5055:
-						BlendSrcFactor = GL_ZERO;
-						BlendDstFactor = GL_ONE;
-						break;
-					default:
-						sprintf(SystemLogMsg, "blender dbg test - %04x\n", HighBits >> 16);
-						Helper_LogMessage(2, SystemLogMsg);
-
-						BlendSrcFactor = GL_SRC_ALPHA;
-						BlendDstFactor = GL_ONE_MINUS_SRC_ALPHA;
-				}
-
-				glBlendFunc(BlendSrcFactor, BlendDstFactor);
+			if(!(ALPHA_CVG_SEL)) {
+				glEnable(GL_ALPHA_TEST);
+				glAlphaFunc((BlendColor[3] > 0.0f) ? GL_GEQUAL : GL_GREATER, BlendColor[3]);
+			} else if(CVG_X_ALPHA) {
+				glEnable(GL_ALPHA_TEST);
+				glAlphaFunc(GL_GEQUAL, 0.5f);
 			} else {
-				glDisable(GL_BLEND);
+				glDisable(GL_ALPHA_TEST);
 			}
 
-			if(RDPCycleMode == G_CYC_FILL) {
-				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-				glEnable(GL_BLEND);
-			}
+			RDPOtherMode_ForceBlender = FORCE_BL;
+			RDPOtherMode_BlendMode = (HighBits >> 16);
 
-			RDPOtherMode_CvgXAlpha = CVG_X_ALPHA;
-			RDPOtherMode_AlphaCvgSel = ALPHA_CVG_SEL;
+			F3DEX2_ForceBlender();
 
 			break; }
 	}
 
-	//FOR CORRECTNESS WE WILL NEED TO EVENTUALLY MIGRATE ALL BELOW FUNCTIONS TO THE ABOVE SWITCH BLOCK!!!
+	return 0;
+}
 
-/*	Blender_Cycle1 = 0;
-	Blender_Cycle2 = (HighBits << 16) >> 16;
+int F3DEX2_ForceBlender()
+{
+	if((RDPOtherMode_ForceBlender) && (RDPCycleMode < 2)) {
+		glEnable(GL_BLEND);
 
-	GLenum Blender_SrcFactor =		GL_SRC_ALPHA;
-	GLenum Blender_DstFactor =		GL_ONE_MINUS_SRC_ALPHA;
-	GLenum Blender_AlphaFunc =		GL_GEQUAL;
-	GLclampf Blender_AlphaRef =		0.5f;
-
-	switch (Blender_Cycle1 + Blender_Cycle2) {
-		case 0x0055 + 0x2048:
-		case 0xC811 + 0x2078:								//no blending
-		case 0xC811 + 0x3078:
-		case 0x0C19 + 0x2078:
-		case 0x0C19 + 0x3078:
-			Blender_SrcFactor = GL_ONE;
-			Blender_DstFactor = GL_ZERO;
-			Blender_AlphaFunc = GL_GEQUAL;
-			Blender_AlphaRef = 0.5f;
-			break;
-
-		case 0xC810 + 0x3478:								//syotes2 - everything
-			Blender_SrcFactor = GL_ONE;
-			Blender_DstFactor = GL_ZERO;
-			Blender_AlphaFunc = GL_GEQUAL;
-			Blender_AlphaRef = 0.5f;
-			break;
-		case 0xC810 + 0x49D8:								//spot00 + most other maps - water (does not always work)
-			Blender_SrcFactor = GL_SRC_ALPHA;
-			Blender_DstFactor = GL_ONE_MINUS_SRC_ALPHA;
-			Blender_AlphaFunc = GL_GREATER;
-			Blender_AlphaRef = 0.0f;
-			break;
-		case 0x0C18 + 0x49D8:								//spot03 - water at waterfall
-			Blender_SrcFactor = GL_SRC_ALPHA;
-			Blender_DstFactor = GL_DST_COLOR;
-			Blender_AlphaFunc = GL_GEQUAL;
-			Blender_AlphaRef = 0.5f;
-			break;
-		case 0xC810 + 0x4A50:								//MAJORA north clocktown etc - misc things (nct: greenery on walls)
-			Blender_SrcFactor = GL_SRC_ALPHA;
-			Blender_DstFactor = GL_ONE_MINUS_SRC_ALPHA;
-			Blender_AlphaFunc = GL_GREATER;
-			Blender_AlphaRef = 0.0f;
-			break;
-		case 0x0050 + 0x4B50:
-		case 0x0C18 + 0x4B50:								//
-		case 0xC810 + 0x4B50:								//spot00 - death mountain plane, spot04 - drawing at link's house
-			Blender_SrcFactor = GL_SRC_ALPHA;
-			Blender_DstFactor = GL_ONE_MINUS_SRC_ALPHA;
-			Blender_AlphaFunc = GL_GEQUAL;
-			Blender_AlphaRef = 0.4f;
-			break;
-		case 0xC810 + 0x4DD8:								//spot00 - (used near path to gerudo valley?)
-			Blender_SrcFactor = GL_SRC_ALPHA;
-			Blender_DstFactor = GL_ONE_MINUS_SRC_ALPHA;
-			Blender_AlphaFunc = GL_GREATER;
-			Blender_AlphaRef = 0.0f;
-			break;
-		case 0x0C18 + 0x4DD8:								//spot11 - around oasis
-			Blender_SrcFactor = GL_ONE;
-			Blender_DstFactor = GL_ZERO;
-			Blender_AlphaFunc = GL_GEQUAL;
-			Blender_AlphaRef = 0.5f;
-			break;*/
-/*		case 0x0C18 + 0x4F50:								//
-		case 0xC810 + 0x4F50:								//spot00, spot02, spot04 - pathways
-		case 0xC818 + 0x4F50:								//
-			Blender_SrcFactor = GL_SRC_ALPHA;
-			Blender_DstFactor = GL_ONE_MINUS_SRC_ALPHA;
-			Blender_AlphaFunc = GL_NOTEQUAL;
-			Blender_AlphaRef = 0.0f;
-			break;
-		case 0xC811 + 0x2D58:								//spot01 - doorways
-			Blender_SrcFactor = GL_SRC_ALPHA;
-			Blender_DstFactor = GL_ONE_MINUS_SRC_ALPHA;
-			Blender_AlphaFunc = GL_GREATER;
-			Blender_AlphaRef = 0.0f;
-			break;
-		default:
-			break;
+		switch(RDPOtherMode_BlendMode) {
+			case 0xC810:
+			case 0xC811:
+			case 0x0C18:
+				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+				break;
+			case 0xAF50:
+				glBlendFunc(GL_ZERO, GL_ONE);
+				break;
+			default:
+				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+				sprintf(SystemLogMsg, "blender dbg test - %04x\n", RDPOtherMode_BlendMode);
+				Helper_LogMessage(2, SystemLogMsg);
+				break;
+		}
+	} else {
+		glBlendFunc(GL_ONE, GL_ZERO);
 	}
 
-//	glAlphaFunc(Blender_AlphaFunc, Blender_AlphaRef);
-*/
 	return 0;
 }

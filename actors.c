@@ -13,8 +13,6 @@
 
 int Viewer_RenderAllActors()
 {
-	if(GLExtension_VertFragProgram) glDisable(GL_FRAGMENT_PROGRAM_ARB);
-
 	glEnable(GL_DEPTH_TEST);
 	glDepthMask(GL_TRUE);
 

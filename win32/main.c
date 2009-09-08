@@ -188,11 +188,12 @@ unsigned long	TotalTexCount = 0;
 /* Combiner variables */
 unsigned int	Combine0 = 0, Combine1 = 0;
 int				cA[2], cB[2], cC[2], cD[2], aA[2], aB[2], aC[2], aD[2];
+int				VertProg = 0;
 
 unsigned int	FPCachePosition = 0;
 
-bool			RDPOtherMode_CvgXAlpha = 0;
-bool			RDPOtherMode_AlphaCvgSel = 0;
+bool			RDPOtherMode_ForceBlender = false;
+unsigned short	RDPOtherMode_BlendMode = 0x00;
 
 /* ZELDA ROM HANDLING VARIABLES */
 unsigned long	ROM_SceneTableOffset = 0x00;
@@ -251,13 +252,15 @@ char			Renderer_FPSMessage[32] = "";
 
 char			Renderer_CoordDisp[256] = "";
 
-GLfloat			LightAmbient[]=  {0.0f, 0.0f, 0.0f, 1.0f};
+GLfloat			LightAmbient[]=  {1.0f, 1.0f, 1.0f, 1.0f};
 GLfloat			LightDiffuse[]=  {1.0f, 1.0f, 1.0f, 1.0f};
+GLfloat			LightSpecular[]=  {1.0f, 1.0f, 1.0f, 1.0f};
 GLfloat			LightPosition[]= {1.0f, 1.0f, 1.0f, 1.0f};
 
-float			FogColor[]=  {0.75f, 0.75f, 0.75f, 1.0f};
-float			PrimColor[]= {1.0f, 1.0f, 1.0f, 1.0f};
-float			EnvColor[]=  {1.0f, 1.0f, 1.0f, 1.0f};
+float			FogColor[]=   {0.75f, 0.75f, 0.75f, 1.0f};
+float			BlendColor[]= {0.0f, 0.0f, 0.0f, 0.3f};
+float			PrimColor[]=  {0.0f, 0.0f, 0.0f, 0.0f};
+float			EnvColor[]=   {0.0f, 0.0f, 0.0f, 0.0f};
 
 char			ShaderString[16384] = "";
 
@@ -276,6 +279,8 @@ bool			Renderer_EnableFog = true;
 bool			Renderer_EnableWireframe = false;
 
 bool			Renderer_EnableFragShader = true;
+
+int				CurrentEnvSetting = 0;
 
 /* OPENGL EXTENSION VARIABLES */
 char			* GLExtension_List;
@@ -508,7 +513,7 @@ int Viewer_GetGameVersion()
 	}
 
 	if(CheckOkay == false) {
-		sprintf(Temp, "ROM couldn't be recognized!\n\n(Unknown: %08X)", VersionCheck);
+		sprintf(Temp, "ROM couldn't be recognized!\n\n(Unknown: %08X)", (unsigned int)VersionCheck);
 		MessageBox(hwnd, Temp, "Error", MB_OK | MB_ICONEXCLAMATION);
 		GameMode = 0;
 		return -1;
@@ -568,6 +573,8 @@ int Viewer_LoadAreaData()
 	DListInfo_DListToRender = -1;
 	ActorInfo_Selected = 0;
 
+	CurrentEnvSetting = 0;
+
 	ROM_CurrentMap = -1;
 	ROM_CurrentMap_Temp = 0;
 
@@ -579,16 +586,6 @@ int Viewer_LoadAreaData()
 
 	PaletteData = (unsigned char *) malloc (1024);
 	memset(PaletteData, 0x00, sizeof(PaletteData));
-
-	/* reset texture struct to prevent texture loader from going out of whack when there aren't any on a map (ex. sasatest) */
-	for(i = 0; i < 2; i++) {
-		Texture[i].Height = 0x00, Texture[i].Width = 0x00;
-		Texture[i].DataSource = 0x00, Texture[i].PalDataSource = 0x00, Texture[i].Offset = 0x00, Texture[i].PalOffset = 0x00;
-		Texture[i].Format_N64 = 0x00, Texture[i].Format_OGL = 0x00, Texture[i].Format_OGLPixel = 0x00;
-		Texture[i].Y_Parameter = 0x00, Texture[i].X_Parameter = 0x00, Texture[i].S_Scale = 0x00, Texture[i].T_Scale = 0x00;
-		Texture[i].LineSize = 0x00, Texture[i].Palette = 0x00, Texture[i].AnimDXT = 0x00;
-		Texture[i].S_ShiftScale = 0x00; Texture[i].T_ShiftScale = 0x00;
-	}
 
 	EnvColor[0] = 0.5f; EnvColor[1] = 0.5f; EnvColor[2] = 0.5f; EnvColor[3] = 0.5f;
 	PrimColor[0] = 0.5f; PrimColor[1] = 0.5f; PrimColor[2] = 0.5f; PrimColor[3] = 0.5f;
@@ -663,7 +660,6 @@ int Viewer_LoadAreaData()
 
 	Zelda_GetSceneHeader(SceneHeader_Current);
 	Zelda_GetSceneActors(SceneHeader_Current);
-//	Zelda_GetMapCollision(SceneHeader_Current);			/* do when rendering map */
 	Zelda_GetDoorData(SceneHeader_Current);
 	Zelda_GetEnvironmentSettings(SceneHeader_Current);
 
@@ -761,9 +757,12 @@ int Viewer_LoadAreaData()
 //		MessageBox(hwnd, ErrorMsg, "", 0);
 	}
 */
+/*	CamAngleX = 0.0f, CamAngleY = 0.0f;
+	CamX = 0.0f, CamY = 0.0f, CamZ = 5.0f;
+	CamLX = 0.0f, CamLY = 0.0f, CamLZ = -1.0f;
+*/
 	CamAngleX = 0.0f, CamAngleY = -0.5f;
-	CamX = 0.0f, CamY = 2.5f, CamZ = 12.0f;
-//	CamX = 0.0f, CamY = 0.0f, CamZ = 5.0f;
+	CamX = 0.0f, CamY = 2.0f, CamZ = 12.5f;
 	CamLX = 0.0f, CamLY = 0.0f, CamLZ = -1.0f;
 
 	memset(CurrentGFXCmd, 0x00, sizeof(CurrentGFXCmd));
@@ -1233,6 +1232,24 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 						}
 						sprintf(StatusMsg, "Map: 0x%02X", ROM_CurrentMap);
 					}
+
+					if (System_KbdKeys[VK_F5]) {
+						System_KbdKeys[VK_F5] = false;
+						if(!(CurrentEnvSetting == 0)) {
+							CurrentEnvSetting--;
+							Zelda_SelectEnvSettings();
+						}
+						sprintf(StatusMsg, "Environment: 0x%02X", CurrentEnvSetting);
+					}
+					if (System_KbdKeys[VK_F6]) {
+						System_KbdKeys[VK_F6] = false;
+						if(!(CurrentEnvSetting == SceneHeader[SceneHeader_Current].EnvSetting_Count - 1)) {
+							CurrentEnvSetting++;
+							Zelda_SelectEnvSettings();
+						}
+						sprintf(StatusMsg, "Environment: 0x%02X", CurrentEnvSetting);
+					}
+
 /*					if (System_KbdKeys[VK_F5]) {
 						System_KbdKeys[VK_F5] = false;
 						if(!(ActorInfo_Selected == 0)) {
@@ -1254,7 +1271,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 						ActorInfo_Selected = MapHeader[ROM_CurrentMap][MapHeader_Current].Actor_Count - 1;
 					}
 */
-/*					if (System_KbdKeys[VK_DIVIDE]) {
+					if (System_KbdKeys[VK_DIVIDE]) {
 						System_KbdKeys[VK_DIVIDE] = false;
 						if(!(SceneHeader_TotalCount == 0)) {
 							if(!(SceneHeader_Current == 0)) {
@@ -1288,7 +1305,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 							sprintf(StatusMsg, "Scene Header: #%d", SceneHeader_Current);
 						}
 					}
-*/
+
 /*					if (System_KbdKeys[VK_SUBTRACT]) {
 						System_KbdKeys[VK_SUBTRACT] = false;
 						if(!(ScActorInfo_Selected == 0)) {
@@ -1584,7 +1601,8 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 						"Cursor keys: rotate camera\n"
 						"F1/F2: load previous/next scene from ROM\n"
 						"F3/F4: if scene has multiple maps, select which map to render\n"
-//						"Numpad / and *: select scene header to use (unstable!)\n"
+						"F5/F6: select which environment setting to use (defaults to 0x01, generally daytime)\n"
+						"Numpad / and *: select scene header to use\n"
 						);
 					MessageBox(hwnd, CtrlMsg, "Controls", MB_OK | MB_ICONINFORMATION);
 					break; }

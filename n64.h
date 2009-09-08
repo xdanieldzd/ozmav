@@ -112,7 +112,6 @@
 #define	G_MDSFT_ALPHACOMPARE	0
 #define	G_MDSFT_ZSRCSEL			2
 #define	G_MDSFT_RENDERMODE		3
-#define	G_MDSFT_BLENDER			16
 
 /* for SetCombine */
 /* -- color combiner -- */
@@ -170,3 +169,7 @@
 #define	G_CYC_2CYCLE			0x01
 #define	G_CYC_COPY				0x02
 #define	G_CYC_FILL				0x03
+
+#define G_TT_NONE				0
+#define G_TT_RGBA16				2
+#define G_TT_IA16				3

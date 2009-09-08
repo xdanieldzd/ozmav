@@ -89,6 +89,7 @@ extern void Helper_SplitCurrentVals(bool);
 extern int Helper_LogMessage(int, char[]);
 extern int Helper_GFXLogCommand(unsigned int);
 extern int Helper_CalculateFPS();
+extern int Helper_FileReadLine();
 
 /* map_init.c */
 extern int Zelda_GetMapHeaderList(int, int);
@@ -101,6 +102,7 @@ extern int Zelda_GetDoorData(int);
 extern int Zelda_GetMapDisplayLists(unsigned long, int);
 extern int Zelda_GetMapCollision(int);
 extern int Zelda_GetEnvironmentSettings(int);
+extern int Zelda_SelectEnvSettings();
 extern int Zelda_GetSceneName();
 
 /* ogl_mngr.c */
@@ -116,8 +118,11 @@ extern bool OGL_CreateTarget(int, int, int);
 extern int F3DEX2_Cmd_SETCOMBINE();
 extern int F3DEX2_BuildFragmentShader();
 extern int F3DEX2_Cmd_SETFOGCOLOR();
+extern int F3DEX2_Cmd_SETBLENDCOLOR();
 extern int F3DEX2_Cmd_SETPRIMCOLOR();
 extern int F3DEX2_Cmd_SETENVCOLOR();
+extern int F3DEX2_BuildVertexShader();
+extern int F3DEX2_BindVertexShader();
 
 /* uc_misc.c */
 extern int F3DEX2_Cmd_RDPHALF_1();
@@ -130,6 +135,7 @@ extern int F3DEX2_Cmd_GEOMETRYMODE();
 extern int F3DEX2_UpdateGeoMode();
 extern int F3DEX2_Cmd_SETOTHERMODE_H();
 extern int F3DEX2_Cmd_SETOTHERMODE_L();
+extern int F3DEX2_ForceBlender();
 
 /* uc_tex.c */
 extern int F3DEX2_Cmd_TEXTURE();
@@ -140,6 +146,7 @@ extern int F3DEX2_ChangeTileSize(unsigned int, unsigned int, unsigned int, unsig
 extern int F3DEX2_Cmd_LOADTLUT(unsigned int, unsigned long);
 extern int F3DEX2_Cmd_LOADBLOCK();
 extern GLuint F3DEX2_LoadTexture(int);
+extern int F3DEX2_ResetTextureStruct();
 
 /* uc_tri.c */
 extern int F3DEX2_Cmd_VTX();
@@ -328,11 +335,12 @@ extern unsigned long	TotalTexCount;
 /* Combiner variables */
 extern unsigned int		Combine0, Combine1;
 extern int				cA[2], cB[2], cC[2], cD[2], aA[2], aB[2], aC[2], aD[2];
+extern int				VertProg;
 
 extern unsigned int		FPCachePosition;
 
-extern bool				RDPOtherMode_CvgXAlpha;
-extern bool				RDPOtherMode_AlphaCvgSel;
+extern bool				RDPOtherMode_ForceBlender;
+extern unsigned short	RDPOtherMode_BlendMode;
 
 /* ZELDA ROM HANDLING VARIABLES */
 extern unsigned long	ROM_SceneTableOffset;
@@ -395,9 +403,11 @@ extern bool				Renderer_IsRGBANormals;
 
 extern GLfloat			LightAmbient[];
 extern GLfloat			LightDiffuse[];
+extern GLfloat			LightSpecular[];
 extern GLfloat			LightPosition[];
 
 extern float			FogColor[];
+extern float			BlendColor[];
 extern float			PrimColor[];
 extern float			EnvColor[];
 
@@ -418,6 +428,8 @@ extern bool				Renderer_EnableFog;
 extern bool				Renderer_EnableWireframe;
 
 extern bool				Renderer_EnableFragShader;
+
+extern int				CurrentEnvSetting;
 
 /* OPENGL EXTENSION VARIABLES */
 extern char				* GLExtension_List;
