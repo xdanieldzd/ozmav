@@ -48,6 +48,9 @@
 		<Unit filename="..\actors.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="..\debug.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="..\debug.h" />
 		<Unit filename="..\gfx_emul.c">
 			<Option compilerVar="CC" />
