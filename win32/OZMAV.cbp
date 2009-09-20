@@ -48,6 +48,7 @@
 		<Unit filename="..\actors.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="..\bugs.txt" />
 		<Unit filename="..\debug.c">
 			<Option compilerVar="CC" />
 		</Unit>

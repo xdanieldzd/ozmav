@@ -49,7 +49,7 @@ bool			System_KbdKeys[256];
 
 char			AppTitle[32] = "OZMAV";
 char			AppVersion[32] = "V0.75";
-char			AppBuildName[64] = "azu-nyan ftw";
+char			AppBuildName[64] = "~type KUMI~";
 char			AppPath[512] = "";
 char			INIPath[512] = "";
 char			WindowTitle[256] = "";
@@ -378,7 +378,7 @@ int Viewer_Initialize()
 		EnableMenuItem(hmenu, IDM_OPTIONS_RENDERMAPS, MF_BYCOMMAND | MF_ENABLED);
 		EnableMenuItem(hmenu, IDM_OPTIONS_RENDERCOLLISION, MF_BYCOMMAND | MF_ENABLED);
 		EnableMenuItem(hmenu, IDM_OPTIONS_WAVEFRONT, MF_BYCOMMAND | MF_ENABLED);
-		EnableMenuItem(hmenu, IDM_OPTIONS_FRAGSHADER, MF_BYCOMMAND | MF_ENABLED);
+	//	EnableMenuItem(hmenu, IDM_OPTIONS_FRAGSHADER, MF_BYCOMMAND | MF_ENABLED);
 		EnableMenuItem(hmenu, IDM_OPTIONS_RENDERFOG, MF_BYCOMMAND | MF_ENABLED);
 		EnableMenuItem(hmenu, IDM_OPTIONS_WIREFRAME, MF_BYCOMMAND | MF_ENABLED);
 	}
@@ -401,8 +401,6 @@ int Viewer_ResetVariables()
 	SceneHeader_TotalCount = 0;
 	memset(SceneHeader_List, 0x00, sizeof(SceneHeader_List));
 	SceneHeader_CurrentPosInList = 0;
-
-//	OGL_ResetProperties();
 
 	return 0;
 }
@@ -593,6 +591,8 @@ int Viewer_LoadAreaData()
 	if(GLExtension_VertFragProgram) {
 		glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 0, EnvColor[0], EnvColor[1], EnvColor[2], EnvColor[3]);
 		glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 1, PrimColor[0], PrimColor[1], PrimColor[2], PrimColor[3]);
+
+		glDisable(GL_FRAGMENT_PROGRAM_ARB); glDisable(GL_VERTEX_PROGRAM_ARB);
 	}
 
 	CurrentTextureID = 0;
@@ -757,20 +757,19 @@ int Viewer_LoadAreaData()
 //		MessageBox(hwnd, ErrorMsg, "", 0);
 	}
 */
-/*	CamAngleX = 0.0f, CamAngleY = 0.0f;
+	CamAngleX = 0.0f, CamAngleY = 0.0f;
 	CamX = 0.0f, CamY = 0.0f, CamZ = 5.0f;
 	CamLX = 0.0f, CamLY = 0.0f, CamLZ = -1.0f;
-*/
+/*
 	CamAngleX = 0.0f, CamAngleY = -0.5f;
 	CamX = 0.0f, CamY = 2.0f, CamZ = 12.5f;
 	CamLX = 0.0f, CamLY = 0.0f, CamLZ = -1.0f;
-
+*/
 	memset(CurrentGFXCmd, 0x00, sizeof(CurrentGFXCmd));
 	memset(CurrentGFXCmdNote, 0x00, sizeof(CurrentGFXCmdNote));
 	memset(GFXLogMsg, 0x00, sizeof(GFXLogMsg));
 	memset(SystemLogMsg, 0x00, sizeof(SystemLogMsg));
 
-//	sprintf(StatusMsg, "Level loaded successfully!");
 	sprintf(StatusMsg, "Level: 0x%02X", ROM_SceneToLoad);
 
 	sprintf(WindowTitle, "%s %s - %s", AppTitle, AppVersion, Scene_Name);
@@ -1156,7 +1155,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 	CheckUncheckMenu(IDM_OPTIONS_RENDERMAPS, Renderer_EnableMap);
 	CheckUncheckMenu(IDM_OPTIONS_RENDERCOLLISION, Renderer_EnableCollision);
 	CheckUncheckMenu(IDM_OPTIONS_WAVEFRONT, Renderer_EnableWavefrontDump);
-	CheckUncheckMenu(IDM_OPTIONS_FRAGSHADER, Renderer_EnableFragShader);
+	//CheckUncheckMenu(IDM_OPTIONS_FRAGSHADER, Renderer_EnableFragShader);
 	CheckUncheckMenu(IDM_OPTIONS_RENDERFOG, Renderer_EnableFog);
 	CheckUncheckMenu(IDM_OPTIONS_WIREFRAME, Renderer_EnableWireframe);
 
@@ -1580,11 +1579,11 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 					CheckUncheckMenu(IDM_OPTIONS_WAVEFRONT, Renderer_EnableWavefrontDump);
 					if(Renderer_EnableWavefrontDump) Viewer_RenderMap();
 					break;
-				case IDM_OPTIONS_FRAGSHADER:
+/*				case IDM_OPTIONS_FRAGSHADER:
 					Renderer_EnableFragShader = !Renderer_EnableFragShader;
 					CheckUncheckMenu(IDM_OPTIONS_FRAGSHADER, Renderer_EnableFragShader);
 					Viewer_RenderMap();
-					break;
+					break;*/
 				case IDM_OPTIONS_WIREFRAME:
 					Renderer_EnableWireframe = !Renderer_EnableWireframe;
 					CheckUncheckMenu(IDM_OPTIONS_WIREFRAME, Renderer_EnableWireframe);

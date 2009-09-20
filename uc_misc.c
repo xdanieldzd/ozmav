@@ -47,6 +47,8 @@ int F3DEX2_Cmd_DL(bool GetDLFromZMapScene)
 		TempOffset = TempOffset + Readout_CurrentByte8;
 
 		Viewer_RenderMap_DListParser(true, TempOffset / 4);
+	} else {
+		fprintf(FileSystemLog, "- Cannot execute Display List in RAM segment 0x%02X!\n", Readout_CurrentByte5);
 	}
 
 	return 0;

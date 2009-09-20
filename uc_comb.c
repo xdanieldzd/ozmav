@@ -576,7 +576,6 @@ int F3DEX2_Cmd_SETENVCOLOR()
 
 int F3DEX2_BuildVertexShader()
 {
-	/* VERTEX PROGRAM TEST */
 	char * VertProgString =
 		"!!ARBvp1.0\n"
 		"\n"
@@ -595,8 +594,6 @@ int F3DEX2_BuildVertexShader()
 		"# texture shift/scale\n"
 		"MUL result.texcoord[0], program.local[0], vertex.texcoord[0];\n"
 		"MUL result.texcoord[1], program.local[1], vertex.texcoord[1];\n"
-//		"MOV result.texcoord[0], vertex.texcoord[0];\n"
-//		"MOV result.texcoord[1], vertex.texcoord[1];\n"
 		"\n"
 		"# fog\n"
 		"TEMP Fog;\n"
@@ -629,7 +626,6 @@ int F3DEX2_BuildVertexShader()
 		"MAD OutColor.xyz, LightCoefs.z, ColorSpecular, TempCalc;\n"
 		"MOV OutColor.w, ColorDiffuse.w;\n"
 		"MUL OutColor.xyz, vertex.color, TempCalc;\n"
-//		"MOV OutColor, vertex.color;\n"
 		"\n"
 		"END\n";
 
@@ -657,11 +653,15 @@ int F3DEX2_BuildVertexShader()
 int F3DEX2_BindVertexShader()
 {
 	if((GLExtension_VertFragProgram) && (Renderer_EnableFragShader)) {
-		glEnable(GL_VERTEX_PROGRAM_ARB);
-		glBindProgramARB(GL_VERTEX_PROGRAM_ARB, VertProg);
-		if(glGetError() != 0) {
-			char *String = (char *)glGetString(GL_PROGRAM_ERROR_STRING_ARB);
-			fprintf(FileSystemLog, "%s\n", String);
+		if(IsMultiTexture) {
+			glEnable(GL_VERTEX_PROGRAM_ARB);
+			glBindProgramARB(GL_VERTEX_PROGRAM_ARB, VertProg);
+			if(glGetError() != 0) {
+				char *String = (char *)glGetString(GL_PROGRAM_ERROR_STRING_ARB);
+				fprintf(FileSystemLog, "%s\n", String);
+			}
+		} else {
+			glDisable(GL_VERTEX_PROGRAM_ARB);
 		}
 	}
 

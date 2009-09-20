@@ -172,7 +172,7 @@ int F3DEX2_Cmd_SETOTHERMODE_L()
 					CVG_DST_WRAP, CVG_DST_FULL, CVG_DST_SAVE, ZMODE_INTER,
 					ZMODE_XLU, ZMODE_DEC,
 					CVG_X_ALPHA, ALPHA_CVG_SEL, FORCE_BL);
-			Helper_LogMessage(2, ErrorMsg);
+//			Helper_LogMessage(2, ErrorMsg);
 
 			if(Z_CMP)
 				{ glEnable(GL_DEPTH_BUFFER); } else { glDisable(GL_DEPTH_BUFFER); }

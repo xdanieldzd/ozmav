@@ -74,33 +74,11 @@ int F3DEX2_Cmd_SETTILE()
 	Texture[CurrentTextureID].Palette = _SHIFTR( W1, 20, 4 );
 	Texture[CurrentTextureID].LineSize = _SHIFTR( W0, 9, 9 );
 
-	/* shift handling from glN64 source code */
-	unsigned int TempSShift = _SHIFTR( W1,  0, 4 );
-	unsigned int TempTShift = _SHIFTR( W1, 10, 4 );
-	Texture[CurrentTextureID].S_ShiftScale = 1.0f;
-	Texture[CurrentTextureID].T_ShiftScale = 1.0f;
-
-	if(TempSShift > 10) {
-		Texture[CurrentTextureID].S_ShiftScale = (float)(1 << (16 - TempSShift));
-	} else if(TempSShift > 0) {
-		Texture[CurrentTextureID].S_ShiftScale /= (float)(1 << TempSShift);
-	}
-
-	if(TempTShift > 10) {
-		Texture[CurrentTextureID].T_ShiftScale = (float)(1 << (16 - TempTShift));
-	} else if(TempTShift > 0) {
-		Texture[CurrentTextureID].T_ShiftScale /= (float)(1 << TempTShift);
-	}
+	Texture[CurrentTextureID].TempSShift = _SHIFTR( W1,  0, 4 );
+	Texture[CurrentTextureID].TempTShift = _SHIFTR( W1, 10, 4 );
 
 	Texture[CurrentTextureID].S_Mask = _SHIFTR( W1,  4, 4 );
 	Texture[CurrentTextureID].T_Mask = _SHIFTR( W1, 14, 4 );
-
-	if(!Texture[CurrentTextureID].S_Mask) Texture[CurrentTextureID].X_Parameter &= G_TX_CLAMP;
-	if(!Texture[CurrentTextureID].T_Mask) Texture[CurrentTextureID].Y_Parameter &= G_TX_CLAMP;
-
-	if(GLExtension_VertFragProgram) {
-		glProgramLocalParameter4fARB(GL_VERTEX_PROGRAM_ARB, CurrentTextureID, Texture[CurrentTextureID].S_ShiftScale, Texture[CurrentTextureID].T_ShiftScale, 1.0f, 1.0f);
-	}
 /*
 	fprintf(FileSystemLog, "SETTILE %08X %08X: shifts = 0x%02X -> %4.2f, shiftt = 0x%02X -> %4.2f\n",
 		W0, W1,
@@ -126,8 +104,6 @@ int F3DEX2_Cmd_SETTILE()
 
 int F3DEX2_Cmd_SETTILESIZE()
 {
-	if(!(Readout_Current1 == 0x000000F2)) return 0;
-
 	unsigned long W0 = (Readout_CurrentByte1 * 0x1000000) + (Readout_CurrentByte2 * 0x10000) + (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
 	unsigned long W1 = (Readout_CurrentByte5 * 0x1000000) + (Readout_CurrentByte6 * 0x10000) + (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
 
@@ -142,6 +118,10 @@ int F3DEX2_Cmd_SETTILESIZE()
 
 int F3DEX2_ChangeTileSize(unsigned int Tile, unsigned int ULS, unsigned int ULT, unsigned int LRS, unsigned int LRT)
 {
+	fprintf(FileGFXLog, "Tile:%d, ULS:%d, ULT:%d, LRS:%d, LRT:%d\n", Tile, ULS, ULT, LRS, LRT);
+
+/*	if((ULS != 0) || (ULT != 0)) return 0;
+
 	Texture[CurrentTextureID].Width  = ((_SHIFTR( LRS, 2, 10 ) - _SHIFTR( ULS, 2, 10 )) + 1);
 	Texture[CurrentTextureID].Height = ((_SHIFTR( LRT, 2, 10 ) - _SHIFTR( ULT, 2, 10 )) + 1);
 
@@ -149,6 +129,12 @@ int F3DEX2_ChangeTileSize(unsigned int Tile, unsigned int ULS, unsigned int ULT,
 	Texture[CurrentTextureID].Width <<= Texture[CurrentTextureID].S_Mask;
 	Texture[CurrentTextureID].Height >>= Texture[CurrentTextureID].T_Mask;
 	Texture[CurrentTextureID].Height <<= Texture[CurrentTextureID].T_Mask;
+*/
+	Texture[CurrentTextureID].Tile = Tile;
+	Texture[CurrentTextureID].ULS = ULS;
+	Texture[CurrentTextureID].ULT = ULT;
+	Texture[CurrentTextureID].LRS = LRS;
+	Texture[CurrentTextureID].LRT = LRT;
 
 	return 0;
 }
@@ -231,6 +217,142 @@ int F3DEX2_Cmd_LOADBLOCK()
 
 /*	------------------------------------------------------------ */
 
+inline unsigned long Pow2(unsigned long dim) {
+	unsigned long i = 1;
+
+	while (i < dim) i <<= 1;
+
+	return i;
+}
+
+inline unsigned long PowOf(unsigned long dim) {
+	unsigned long num = 1;
+	unsigned long i = 0;
+
+	while (num < dim) {
+		num <<= 1;
+		i++;
+	}
+
+	return i;
+}
+
+int F3DEX2_CalcFinalTextureSize(int TextureID)
+{
+	/* TO BE DEBUGGED!! */
+
+	unsigned int MaxTexel = 0;
+	unsigned int Line_Shift = 0;
+
+	switch(Texture[TextureID].Format_N64) {
+		/* 4-bit */
+		case 0x00: { MaxTexel = 4096; Line_Shift = 4; break; }	// RGBA
+		case 0x40: { MaxTexel = 4096; Line_Shift = 4; break; }	// CI
+		case 0x60: { MaxTexel = 8192; Line_Shift = 4; break; }	// IA
+		case 0x80: { MaxTexel = 8192; Line_Shift = 4; break; }	// I
+
+		/* 8-bit */
+		case 0x08: { MaxTexel = 2048; Line_Shift = 3; break; }	// RGBA
+		case 0x48: { MaxTexel = 2048; Line_Shift = 3; break; }	// CI
+		case 0x68: { MaxTexel = 4096; Line_Shift = 3; break; }	// IA
+		case 0x88: { MaxTexel = 4096; Line_Shift = 3; break; }	// I
+
+		/* 16-bit */
+		case 0x10: { MaxTexel = 2048; Line_Shift = 2; break; }	// RGBA
+		case 0x50: { MaxTexel = 2048; Line_Shift = 0; break; }	// CI
+		case 0x70: { MaxTexel = 2048; Line_Shift = 2; break; }	// IA
+		case 0x90: { MaxTexel = 2048; Line_Shift = 0; break; }	// I
+
+		/* 32-bit */
+		case 0x18: { MaxTexel = 1024; Line_Shift = 2; break; }	// RGBA
+	}
+
+	unsigned int Line_Width = Texture[TextureID].LineSize << Line_Shift;
+
+	unsigned int Tile_Width = Texture[TextureID].LRS - Texture[TextureID].ULS + 1;
+	unsigned int Tile_Height = Texture[TextureID].LRT - Texture[TextureID].ULT + 1;
+
+	unsigned int Mask_Width = 1 << Texture[TextureID].S_Mask;
+	unsigned int Mask_Height = 1 << Texture[TextureID].T_Mask;
+
+	unsigned int Line_Height = 0;
+	if(Line_Width) Line_Height = min(MaxTexel / Line_Width, Tile_Height);
+
+	if(Texture[TextureID].S_Mask && ((Mask_Width * Mask_Height) <= MaxTexel)) {
+		Texture[TextureID].Width = Mask_Width;
+	} else if((Tile_Width * Tile_Height) <= MaxTexel) {
+		Texture[TextureID].Width = Tile_Width;
+	} else {
+		Texture[TextureID].Width = Line_Width;
+	}
+
+	if(Texture[TextureID].T_Mask && ((Mask_Width * Mask_Height) <= MaxTexel)) {
+		Texture[TextureID].Height = Mask_Height;
+	} else if((Tile_Width * Tile_Height) <= MaxTexel) {
+		Texture[TextureID].Height = Tile_Height;
+	} else {
+		Texture[TextureID].Height = Line_Height;
+	}
+
+	unsigned int Clamp_Width = (Texture[TextureID].X_Parameter & G_TX_CLAMP) ? Tile_Width : Texture[TextureID].Width;
+	unsigned int Clamp_Height = (Texture[TextureID].Y_Parameter & G_TX_CLAMP) ? Tile_Height : Texture[TextureID].Height;
+
+	if(Clamp_Width > 256) Texture[TextureID].X_Parameter &= G_TX_CLAMP;
+	if(Clamp_Height > 256) Texture[TextureID].Y_Parameter &= G_TX_CLAMP;
+
+	if(Mask_Width > Texture[TextureID].Width) {
+		Texture[TextureID].S_Mask = PowOf(Texture[TextureID].Width);
+		Mask_Width = 1 << Texture[TextureID].S_Mask;
+	}
+	if(Mask_Height > Texture[TextureID].Height) {
+		Texture[TextureID].T_Mask = PowOf(Texture[TextureID].Height);
+		Mask_Height = 1 << Texture[TextureID].T_Mask;
+	}
+
+	if(Texture[TextureID].X_Parameter & G_TX_CLAMP) {
+		Texture[TextureID].RealWidth = Pow2(Clamp_Width);
+	} else if(Texture[TextureID].X_Parameter & G_TX_MIRROR) {
+		Texture[TextureID].RealWidth = Mask_Width << 1;
+	} else {
+		Texture[TextureID].RealWidth = Pow2(Texture[TextureID].Width);
+	}
+
+	if(Texture[TextureID].Y_Parameter & G_TX_CLAMP) {
+		Texture[TextureID].RealHeight = Pow2(Clamp_Height);
+	} else if(Texture[TextureID].Y_Parameter & G_TX_MIRROR) {
+		Texture[TextureID].RealHeight = Mask_Height << 1;
+	} else {
+		Texture[TextureID].RealHeight = Pow2(Texture[TextureID].Height);
+	}
+
+	Texture[TextureID].S_ShiftScale = 1.0f;
+	Texture[TextureID].T_ShiftScale = 1.0f;
+
+	if(Texture[TextureID].TempSShift > 10) {
+		Texture[TextureID].S_ShiftScale = (float)(1 << (16 - Texture[TextureID].TempSShift));
+	} else if(Texture[TextureID].TempSShift > 0) {
+		Texture[TextureID].S_ShiftScale /= (float)(1 << Texture[TextureID].TempSShift);
+	}
+
+	if(Texture[TextureID].TempTShift > 10) {
+		Texture[TextureID].T_ShiftScale = (float)(1 << (16 - Texture[TextureID].TempTShift));
+	} else if(Texture[TextureID].TempTShift > 0) {
+		Texture[TextureID].T_ShiftScale /= (float)(1 << Texture[TextureID].TempTShift);
+	}
+
+	if(GLExtension_VertFragProgram) {
+		glProgramLocalParameter4fARB(GL_VERTEX_PROGRAM_ARB, TextureID, Texture[TextureID].S_ShiftScale, Texture[TextureID].T_ShiftScale, 1.0f, 1.0f);
+	}
+
+	/* NULLIFYING SOME STUFF ABOVE SINCE IT'S STILL BROKEN */
+	/* --------------------------------------------------- */
+	Texture[TextureID].RealWidth = Pow2(Texture[TextureID].Width);
+	Texture[TextureID].RealHeight = Pow2(Texture[TextureID].Height);
+	/* --------------------------------------------------- */
+
+	return 0;
+}
+
 GLuint F3DEX2_LoadTexture(int TextureID)
 {
 	/* for now, don't do any texturing for objects - REALLY crashy-crashy atm */
@@ -241,6 +363,8 @@ GLuint F3DEX2_LoadTexture(int TextureID)
 	if(!(Texture[TextureID].Format_OGL == GL_RGBA)) return 0;
 
 	int i = 0, j = 0;
+
+	F3DEX2_CalcFinalTextureSize(TextureID);
 
 	unsigned int BytesPerPixel = 0x08;
 	switch(Texture[TextureID].Format_N64) {
@@ -259,7 +383,7 @@ GLuint F3DEX2_LoadTexture(int TextureID)
 			break;
 	}
 
-	unsigned long TextureBufferSize = (Texture[TextureID].Height * Texture[TextureID].Width) * BytesPerPixel;
+	unsigned long TextureBufferSize = (Texture[TextureID].RealHeight * Texture[TextureID].RealWidth) * BytesPerPixel;
 
 	bool UnhandledTextureSource = false;
 
@@ -713,7 +837,7 @@ GLuint F3DEX2_LoadTexture(int TextureID)
 		if(Texture[TextureID].X_Parameter & G_TX_MIRROR) { if(GLExtension_TextureMirror) glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT_ARB); }
 		if(Texture[TextureID].X_Parameter & G_TX_WRAP) { glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); }
 
-		gluBuild2DMipmaps(GL_TEXTURE_2D, Texture[TextureID].Format_OGL, Texture[TextureID].Width, Texture[TextureID].Height, Texture[TextureID].Format_OGLPixel, GL_UNSIGNED_BYTE, TextureData_OGL);
+		gluBuild2DMipmaps(GL_TEXTURE_2D, Texture[TextureID].Format_OGL, Texture[TextureID].RealWidth, Texture[TextureID].RealHeight, Texture[TextureID].Format_OGLPixel, GL_UNSIGNED_BYTE, TextureData_OGL);
 	} else {
 		//
 	}
@@ -725,8 +849,8 @@ GLuint F3DEX2_LoadTexture(int TextureID)
 		sprintf(TextureFilename, "0x%02X_0x%02X_0x%02X%06X.bmp", (unsigned int)ROM_SceneToLoad, Texture[TextureID].Format_N64, Texture[TextureID].DataSource, (unsigned int)Texture[TextureID].Offset);
 		sprintf(TextureFullPath, "%s\\dump\\%s", AppPath, TextureFilename);
 		long BMPSize = 0;
-		unsigned char * BMPBuf = ConvertToBMP(TextureData_OGL, Texture[TextureID].Width, Texture[TextureID].Height, &BMPSize);
-		SaveBMP(BMPBuf, Texture[TextureID].Width, Texture[TextureID].Height, BMPSize, TextureFullPath);
+		unsigned char * BMPBuf = ConvertToBMP(TextureData_OGL, Texture[TextureID].RealWidth, Texture[TextureID].RealHeight, &BMPSize);
+		SaveBMP(BMPBuf, Texture[TextureID].RealWidth, Texture[TextureID].RealHeight, BMPSize, TextureFullPath);
 
 		sprintf(WavefrontMtlMsg, "newmtl material%d\n", WavefrontObjMaterialCnt);
 		fprintf(FileWavefrontMtl, WavefrontMtlMsg);

@@ -145,6 +145,9 @@ extern int F3DEX2_Cmd_SETTILESIZE();
 extern int F3DEX2_ChangeTileSize(unsigned int, unsigned int, unsigned int, unsigned int, unsigned int);
 extern int F3DEX2_Cmd_LOADTLUT(unsigned int, unsigned long);
 extern int F3DEX2_Cmd_LOADBLOCK();
+extern inline unsigned long Pow2(unsigned long);
+extern inline unsigned long PowOf(unsigned long);
+extern int F3DEX2_CalcFinalTextureSize(int);
 extern GLuint F3DEX2_LoadTexture(int);
 extern int F3DEX2_ResetTextureStruct();
 
@@ -565,7 +568,9 @@ extern struct Vertex_Struct Vertex[4096];
 /* F3DEX2 TEXTURE DATA STRUCTURE */
 struct Texture_Struct {
 	unsigned int Height;
+	unsigned int RealHeight;
 	unsigned int Width;
+	unsigned int RealWidth;
 	unsigned int DataSource;
 	unsigned int PalDataSource;
 	unsigned long Offset;
@@ -577,6 +582,8 @@ struct Texture_Struct {
 	unsigned int X_Parameter;
 	float S_Scale;
 	float T_Scale;
+	unsigned int TempSShift;
+	unsigned int TempTShift;
 	float S_ShiftScale;
 	float T_ShiftScale;
 	unsigned int S_Mask;
@@ -585,6 +592,11 @@ struct Texture_Struct {
 	unsigned int Palette;
 	unsigned int AnimDXT;
 	unsigned short Checksum;
+	unsigned int Tile;
+	unsigned int ULS;
+	unsigned int ULT;
+	unsigned int LRS;
+	unsigned int LRT;
 };
 extern struct Texture_Struct Texture[2];
 
