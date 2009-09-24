@@ -297,8 +297,8 @@ int F3DEX2_CalcFinalTextureSize(int TextureID)
 	unsigned int Clamp_Width = (Texture[TextureID].X_Parameter & G_TX_CLAMP) ? Tile_Width : Texture[TextureID].Width;
 	unsigned int Clamp_Height = (Texture[TextureID].Y_Parameter & G_TX_CLAMP) ? Tile_Height : Texture[TextureID].Height;
 
-	if(Clamp_Width > 256) Texture[TextureID].X_Parameter &= G_TX_CLAMP;
-	if(Clamp_Height > 256) Texture[TextureID].Y_Parameter &= G_TX_CLAMP;
+	if(Clamp_Width > 128) Texture[TextureID].X_Parameter &= G_TX_WRAP;
+	if(Clamp_Height > 128) Texture[TextureID].Y_Parameter &= G_TX_WRAP;
 
 	if(Mask_Width > Texture[TextureID].Width) {
 		Texture[TextureID].S_Mask = PowOf(Texture[TextureID].Width);
