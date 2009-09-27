@@ -89,6 +89,7 @@ unsigned int	WavefrontObjColVertCount_Previous = 0;
 float			CamAngleX = 0, CamAngleY = 0;
 float			CamX = 0, CamY = 0, CamZ = 0;
 float			CamLX = 0, CamLY = 0, CamLZ = 0;
+float			CamSpeed = 4.0f;
 
 int				MousePosX = 0, MousePosY = 0;
 int				MouseCenterX = 0, MouseCenterY = 0;
@@ -801,21 +802,22 @@ int Viewer_RenderMapRefresh()
 
 /*	------------------------------------------------------------ */
 
-void GLUTCamera_Orientation(float ang, float ang2)
+void GLUTCamera_Orientation(float Ang, float Ang2)
 {
-	CamLX = sin(ang);
-	CamLY = ang2;
-	CamLZ = -cos(ang);
+	CamLX = sin(Ang);
+	CamLY = Ang2;
+	CamLZ = -cos(Ang);
 }
 
-void GLUTCamera_Movement(int direction, bool strafe)
+void GLUTCamera_Movement(bool Strafe)
 {
-	if(!strafe) {
-		CamX = CamX + direction * (CamLX) * 0.025f;
-		CamY = CamY + direction * (CamLY) * 0.025f;
-		CamZ = CamZ + direction * (CamLZ) * 0.025f;
+	if(!Strafe) {
+		CamX += CamLX * CamSpeed * 0.025f;
+		CamY += CamLY * CamSpeed * 0.025f;
+		CamZ += CamLZ * CamSpeed * 0.025f;
 	} else {
-		/* insert code for strafing here */
+		CamX += cos(CamAngleX) * (CamSpeed * 0.025f);
+		CamZ += sin(CamAngleX) * (CamSpeed * 0.025f);
 	}
 }
 
@@ -1090,7 +1092,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 			NULL
 			);
 
-	int hstatuswidths[] = {50, 220, -1};
+	int hstatuswidths[] = {50, 235, -1};
 	hstatus = CreateWindowEx(
 			0,
 			STATUSCLASSNAME,
@@ -1320,30 +1322,52 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 */
 					if (System_KbdKeys['W']) {
 						if(System_KbdKeys[VK_SHIFT]) {
-							GLUTCamera_Movement(6, false);
+							CamSpeed = 6.0f;
+							GLUTCamera_Movement(false);
 						} else if(System_KbdKeys[VK_CONTROL]) {
-							GLUTCamera_Movement(2, false);
+							CamSpeed = 2.0f;
+							GLUTCamera_Movement(false);
 						} else {
-							GLUTCamera_Movement(4, false);
+							CamSpeed = 4.0f;
+							GLUTCamera_Movement(false);
 						}
 					}
 					if (System_KbdKeys['S']) {
 						if(System_KbdKeys[VK_SHIFT]) {
-							GLUTCamera_Movement(-6, false);
+							CamSpeed = -6.0f;
+							GLUTCamera_Movement(false);
 						} else if(System_KbdKeys[VK_CONTROL]) {
-							GLUTCamera_Movement(-2, false);
+							CamSpeed = -2.0f;
+							GLUTCamera_Movement(false);
 						} else {
-							GLUTCamera_Movement(-4, false);
+							CamSpeed = -4.0f;
+							GLUTCamera_Movement(false);
 						}
 					}
 
 					if (System_KbdKeys['A']) {
 						if(System_KbdKeys[VK_SHIFT]) {
-							GLUTCamera_Movement(-6, true);
+							CamSpeed = -6.0f;
+							GLUTCamera_Movement(true);
 						} else if(System_KbdKeys[VK_CONTROL]) {
-							GLUTCamera_Movement(-2, true);
+							CamSpeed = -2.0f;
+							GLUTCamera_Movement(true);
 						} else {
-							GLUTCamera_Movement(-4, true);
+							CamSpeed = -4.0f;
+							GLUTCamera_Movement(true);
+						}
+					}
+
+					if (System_KbdKeys['D']) {
+						if(System_KbdKeys[VK_SHIFT]) {
+							CamSpeed = 6.0f;
+							GLUTCamera_Movement(true);
+						} else if(System_KbdKeys[VK_CONTROL]) {
+							CamSpeed = 2.0f;
+							GLUTCamera_Movement(true);
+						} else {
+							CamSpeed = 4.0f;
+							GLUTCamera_Movement(true);
 						}
 					}
 

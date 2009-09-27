@@ -140,7 +140,7 @@ int OGL_DrawScene(void)
 	if(AreaLoaded) {
 		Helper_CalculateFPS();
 
-		sprintf(Renderer_CoordDisp, "Cam X: %4.2f, Y: %4.2f, Z: %4.2f", CamX, CamY, CamZ);
+		sprintf(Renderer_CoordDisp, "Cam X: %4.2f, Y: %4.2f, Z: %4.2f (%.0f)", CamX, CamY, CamZ, (CamSpeed > 0 ? (CamSpeed / 2) : -(CamSpeed / 2)));
 
 		glLoadIdentity();
 

@@ -66,7 +66,7 @@ extern int Viewer_GetGameVersion();
 extern int Viewer_InitLevelSelector();
 extern int Viewer_RenderMapRefresh();
 extern void GLUTCamera_Orientation(float, float);
-extern void GLUTCamera_Movement(int, bool);
+extern void GLUTCamera_Movement(bool);
 extern void Camera_MouseMove(int, int);
 extern int Viewer_SelectActor(int, int);
 extern int CheckUncheckMenu(unsigned int, int);
@@ -239,6 +239,7 @@ extern unsigned int		WavefrontObjColVertCount_Previous;
 extern float			CamAngleX, CamAngleY;
 extern float			CamX, CamY, CamZ;
 extern float			CamLX, CamLY, CamLZ;
+extern float			CamSpeed;
 
 extern int				MousePosX, MousePosY;
 extern int				MouseCenterX, MouseCenterY;
