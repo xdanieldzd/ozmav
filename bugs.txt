@@ -1,4 +1,3 @@
-- Texture size calculation is inexact, which causes texture scaling problems in MM, ex. walls and ground in Clock Town, as well as "malformed" textures (ex. MM 0x30)
+- Texture size calculation is inexact, which causes ex. "malformed" textures (ex. MM 0x30)
   - Started implementing proper calculation via glN64 source (uc_tex.c -> F3DEX2_CalcFinalTextureSize), it's not working correctly yet tho
-- SHADE color source in combiner emulation is not working correctly, which is responsible for the blackness around OoT's castle, graveyard, etc.
 - OoT's field, Kokiri and others try to execute Display Lists in external RAM segments - those can't be emulated by OZMAV without at least partial emulation of the console itself

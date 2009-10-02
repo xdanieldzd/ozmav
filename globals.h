@@ -121,8 +121,6 @@ extern int F3DEX2_Cmd_SETFOGCOLOR();
 extern int F3DEX2_Cmd_SETBLENDCOLOR();
 extern int F3DEX2_Cmd_SETPRIMCOLOR();
 extern int F3DEX2_Cmd_SETENVCOLOR();
-extern int F3DEX2_BuildVertexShader();
-extern int F3DEX2_BindVertexShader();
 
 /* uc_misc.c */
 extern int F3DEX2_Cmd_RDPHALF_1();
@@ -136,6 +134,7 @@ extern int F3DEX2_UpdateGeoMode();
 extern int F3DEX2_Cmd_SETOTHERMODE_H();
 extern int F3DEX2_Cmd_SETOTHERMODE_L();
 extern int F3DEX2_ForceBlender();
+extern int F3DEX2_SetAlphaCompare(bool, bool, unsigned int);
 
 /* uc_tex.c */
 extern int F3DEX2_Cmd_TEXTURE();
@@ -440,7 +439,7 @@ extern char				* GLExtension_List;
 extern bool				GLExtension_MultiTexture;
 extern bool				GLExtension_TextureMirror;
 extern bool				GLExtension_AnisoFilter;
-extern bool				GLExtension_VertFragProgram;
+extern bool				GLExtension_FragProgram;
 extern char				GLExtensionsSupported[256];
 
 extern bool				GLExtensionsUnsupported;
@@ -635,3 +634,11 @@ struct FPCache_Struct {
 	unsigned int FragProg;
 };
 extern struct FPCache_Struct FPCache[256];
+
+struct CollisionType_Struct {
+	unsigned short Unk1;
+	unsigned short Unk2;
+	unsigned short Unk3;
+	unsigned short Unk4;
+};
+extern struct CollisionType_Struct CollisionType[512];

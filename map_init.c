@@ -574,6 +574,9 @@ int Zelda_GetMapCollision(int CurrentHeader)
 {
 	unsigned int TotalColPoly = 0;
 	unsigned int TotalColVert = 0;
+	unsigned int TotalColType = 0;
+
+	/* collision vertices */
 
 	unsigned long TempOffset = (SceneHeader[CurrentHeader].Col_DataOffset / 4) + 3;
 	memcpy(&Readout_Current1, &ZSceneBuffer[TempOffset], 4);
@@ -672,6 +675,55 @@ int Zelda_GetMapCollision(int CurrentHeader)
 		Helper_LogMessage(2, SystemLogMsg);
 	}
 */
+	/* collision types */
+
+	TempOffset = (SceneHeader[CurrentHeader].Col_DataOffset / 4) + 7;
+	memcpy(&Readout_Current1, &ZSceneBuffer[TempOffset], 4);
+	Helper_SplitCurrentVals(false);
+
+	if((Readout_CurrentByte1 == 0x02)) {
+		TempOffset = Readout_CurrentByte2 << 16;
+		TempOffset = TempOffset + (Readout_CurrentByte3 << 8);
+		TempOffset = TempOffset + Readout_CurrentByte4;
+
+		unsigned long ColTypeScanPosition = TempOffset / 4;
+
+		memcpy(&Readout_Current1, &ZSceneBuffer[(SceneHeader[CurrentHeader].Col_DataOffset / 4) + 6], 4);
+		Helper_SplitCurrentVals(false);
+		unsigned long ColTypeAmount = (((Readout_CurrentByte2 * 0x10000) + (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4) - TempOffset) / 8;
+
+		while(TotalColType < ColTypeAmount) {
+			memcpy(&Readout_Current1, &ZSceneBuffer[ColTypeScanPosition], 4);
+			memcpy(&Readout_Current2, &ZSceneBuffer[ColTypeScanPosition + 1], 4);
+			Helper_SplitCurrentVals(true);
+
+			// unk1: xxxx - shadow
+			//   xxxx: 0000 = drop shadow, 4000 = no shadow, 8000 = drop shadow, ????
+
+			// unk2: xxyy - exit, cam
+			//   xx: 00 = no exit, 01+ = exit
+			//   yy: 02 = camera closer + slightly overhead, 03 = camera closer
+
+			// unk3: ???? - ????
+
+			// unk4: ???x - ?, ?, ?, terrain
+			//   x: ????
+
+			CollisionType[TotalColType].Unk1 = (Readout_CurrentByte1 * 0x100) + Readout_CurrentByte2;
+			CollisionType[TotalColType].Unk2 = (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
+			CollisionType[TotalColType].Unk3 = (Readout_CurrentByte5 * 0x100) + Readout_CurrentByte6;
+			CollisionType[TotalColType].Unk4 = (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
+
+			fprintf(FileSystemLog, "Type 0x%02X: 0x%04X 0x%04X 0x%04X 0x%04X\n", TotalColType, CollisionType[TotalColType].Unk1, CollisionType[TotalColType].Unk2, CollisionType[TotalColType].Unk3, CollisionType[TotalColType].Unk4);
+
+			ColTypeScanPosition += 2;
+
+			TotalColType++;
+		}
+	}
+
+	/* collision polygons */
+
 	TempOffset = (SceneHeader[CurrentHeader].Col_DataOffset / 4) + 5;
 	memcpy(&Readout_Current1, &ZSceneBuffer[TempOffset], 4);
 	Helper_SplitCurrentVals(false);
@@ -720,7 +772,9 @@ int Zelda_GetMapCollision(int CurrentHeader)
 						sprintf(SystemLogMsg, " - WARNING! Requested vertex (%d, %d, %d) > vertex count %d!\n\n", ColVertex1, ColVertex2, ColVertex3, TotalColVert);
 						Helper_LogMessage(2, SystemLogMsg);
 					} else {
-						switch(ColType) {
+//						glColor4f((ColType == 1) ? 1.0f : 0.0f, 0.0f, 0.0f, Renderer_CollisionAlpha);
+						int TerrainType = (CollisionType[ColType].Unk4 & 0x000F);
+						switch(TerrainType) {
 							case 0: glColor4f(0.0f, 1.0f, 0.0f, Renderer_CollisionAlpha); break;
 							case 1: glColor4f(1.0f, 0.0f, 0.0f, Renderer_CollisionAlpha); break;
 							case 2: glColor4f(0.0f, 0.0f, 1.0f, Renderer_CollisionAlpha); break;
@@ -728,7 +782,19 @@ int Zelda_GetMapCollision(int CurrentHeader)
 							case 4: glColor4f(0.0f, 1.0f, 1.0f, Renderer_CollisionAlpha); break;
 							case 5: glColor4f(1.0f, 0.0f, 1.0f, Renderer_CollisionAlpha); break;
 							case 6: glColor4f(1.0f, 1.0f, 1.0f, Renderer_CollisionAlpha); break;
-							default: glColor4f(0.0f, 1.0f, 0.0f, Renderer_CollisionAlpha); break;
+
+							case 7: glColor4f(0.5f, 1.0f, 0.5f, Renderer_CollisionAlpha); break;
+							case 8: glColor4f(1.0f, 0.5f, 0.5f, Renderer_CollisionAlpha); break;
+							case 9: glColor4f(0.5f, 0.5f, 1.0f, Renderer_CollisionAlpha); break;
+							case 10: glColor4f(1.0f, 1.0f, 0.5f, Renderer_CollisionAlpha); break;
+							case 11: glColor4f(0.5f, 1.0f, 1.0f, Renderer_CollisionAlpha); break;
+							case 12: glColor4f(1.0f, 0.5f, 1.0f, Renderer_CollisionAlpha); break;
+							case 13: glColor4f(0.0f, 0.0f, 0.0f, Renderer_CollisionAlpha); break;
+
+							case 14: glColor4f(0.0f, 0.5f, 0.0f, Renderer_CollisionAlpha); break;
+							case 15: glColor4f(0.5f, 0.0f, 0.0f, Renderer_CollisionAlpha); break;
+
+							default: glColor4f(0.0f, 0.0f, 0.0f, Renderer_CollisionAlpha); break;
 						}
 
 						glBegin(GL_TRIANGLES);
@@ -902,7 +968,7 @@ int Zelda_SelectEnvSettings()
 	glFogfv(GL_FOG_COLOR, FogColor);
 	glClearColor(FogColor[0], FogColor[1], FogColor[2], FogColor[3]);
 
-	if(GLExtension_VertFragProgram) {
+	if(GLExtension_FragProgram) {
 		LightAmbient[0] = (EnvSetting[CurrentEnvSetting].Color1.R / 255.0f);
 		LightAmbient[1] = (EnvSetting[CurrentEnvSetting].Color1.G / 255.0f);
 		LightAmbient[2] = (EnvSetting[CurrentEnvSetting].Color1.B / 255.0f);
@@ -918,11 +984,6 @@ int Zelda_SelectEnvSettings()
 		LightPosition[0] = (EnvSetting[CurrentEnvSetting].Color4.R / 255.0f);
 		LightPosition[1] = (EnvSetting[CurrentEnvSetting].Color4.G / 255.0f);
 		LightPosition[2] = (EnvSetting[CurrentEnvSetting].Color4.B / 255.0f);
-
-		glProgramEnvParameter4fARB(GL_VERTEX_PROGRAM_ARB, 0, LightAmbient[0], LightAmbient[1], LightAmbient[2], LightAmbient[3]);
-		glProgramEnvParameter4fARB(GL_VERTEX_PROGRAM_ARB, 1, LightDiffuse[0], LightDiffuse[1], LightDiffuse[2], LightDiffuse[3]);
-		glProgramEnvParameter4fARB(GL_VERTEX_PROGRAM_ARB, 1, LightSpecular[0], LightSpecular[1], LightSpecular[2], LightSpecular[3]);
-		glProgramEnvParameter4fARB(GL_VERTEX_PROGRAM_ARB, 3, LightPosition[0], LightPosition[1], LightPosition[2], LightPosition[3]);
 	}
 
 	return 0;

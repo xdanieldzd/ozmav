@@ -144,7 +144,6 @@ int F3DEX2_GetVertexList(unsigned int Bank, unsigned long Offset, unsigned int V
 int F3DEX2_Cmd_TRI1()
 {
 	F3DEX2_UpdateGeoMode();
-	F3DEX2_BindVertexShader();
 
 	glBegin(GL_TRIANGLES);
 		F3DEX2_DrawVertexPoint(Readout_CurrentByte2 / 2);
@@ -171,7 +170,6 @@ int F3DEX2_Cmd_TRI1()
 int F3DEX2_Cmd_TRI2()
 {
 	F3DEX2_UpdateGeoMode();
-	F3DEX2_BindVertexShader();
 
 	glBegin(GL_TRIANGLES);
 		F3DEX2_DrawVertexPoint(Readout_CurrentByte2 / 2);
@@ -180,7 +178,6 @@ int F3DEX2_Cmd_TRI2()
 	glEnd();
 
 	F3DEX2_UpdateGeoMode();
-	F3DEX2_BindVertexShader();
 
 	glBegin(GL_TRIANGLES);
 		F3DEX2_DrawVertexPoint(Readout_CurrentByte6 / 2);
@@ -218,7 +215,6 @@ int F3DEX2_Cmd_QUAD()
 	/* is this correct? dunno, zelda doesn't use quads */
 
 	F3DEX2_UpdateGeoMode();
-	F3DEX2_BindVertexShader();
 
 	glBegin(GL_TRIANGLES);
 		F3DEX2_DrawVertexPoint(Readout_CurrentByte2 / 2);
@@ -227,7 +223,6 @@ int F3DEX2_Cmd_QUAD()
 	glEnd();
 
 	F3DEX2_UpdateGeoMode();
-	F3DEX2_BindVertexShader();
 
 	glBegin(GL_TRIANGLES);
 		F3DEX2_DrawVertexPoint(Readout_CurrentByte6 / 2);
@@ -260,14 +255,16 @@ int F3DEX2_Cmd_QUAD()
 
 int F3DEX2_DrawVertexPoint(unsigned int VertexID)
 {
-	float TempH = (float)Vertex[VertexID].H * Texture[CurrentTextureID].S_Scale / 32 / Texture[CurrentTextureID].Width;
-	float TempV = (float)Vertex[VertexID].V * Texture[CurrentTextureID].T_Scale / 32 / Texture[CurrentTextureID].Height;
+	float TempH0 = (float)Vertex[VertexID].H * (Texture[0].S_Scale * Texture[0].S_ShiftScale) / 32 / Texture[0].Width;
+	float TempV0 = (float)Vertex[VertexID].V * (Texture[0].T_Scale * Texture[0].T_ShiftScale) / 32 / Texture[0].Height;
+	float TempH1 = (float)Vertex[VertexID].H * (Texture[1].S_Scale * Texture[1].S_ShiftScale) / 32 / Texture[1].Width;
+	float TempV1 = (float)Vertex[VertexID].V * (Texture[1].T_Scale * Texture[1].T_ShiftScale) / 32 / Texture[1].Height;
 
 	if((Renderer_EnableFragShader) && (GLExtension_MultiTexture)) {
-		glMultiTexCoord2fARB(GL_TEXTURE0_ARB, TempH, TempV);
-		glMultiTexCoord2fARB(GL_TEXTURE1_ARB, TempH, TempV);
+		glMultiTexCoord2fARB(GL_TEXTURE0_ARB, TempH0, TempV0);
+		glMultiTexCoord2fARB(GL_TEXTURE1_ARB, TempH1, TempV1);
 	} else {
-		glTexCoord2f(TempH, TempV);
+		glTexCoord2f(TempH0, TempV0);
 	}
 	glNormal3b(Vertex[VertexID].R, Vertex[VertexID].G, Vertex[VertexID].B);
 	if(!(N64_GeometryMode & G_LIGHTING)) glColor4ub(Vertex[VertexID].R, Vertex[VertexID].G, Vertex[VertexID].B, Vertex[VertexID].A);

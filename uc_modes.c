@@ -153,7 +153,7 @@ int F3DEX2_Cmd_SETOTHERMODE_L()
 
 	switch(MDSFT) {
 		case G_MDSFT_ALPHACOMPARE:
-			MessageBox(hwnd, "alphacompare", "", 0);
+			F3DEX2_SetAlphaCompare(ALPHA_CVG_SEL, CVG_X_ALPHA, (BlendColor[3] * 0xFF));
 			break;
 		case G_MDSFT_ZSRCSEL:
 			MessageBox(hwnd, "zsrcsel", "", 0);
@@ -183,18 +183,9 @@ int F3DEX2_Cmd_SETOTHERMODE_L()
 			if(ZMODE_DEC)
 				{ glEnable(GL_POLYGON_OFFSET_FILL); glPolygonOffset(-1.0f, -1.0f); } else { glDisable(GL_POLYGON_OFFSET_FILL); }
 
-/* ??? */	if(ZMODE_XLU)
+			/* need to check this */
+			if(ZMODE_XLU)
 				{ glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); glAlphaFunc(GL_GREATER, 0.0f); } else { /*glBlendFunc(GL_ONE, GL_ZERO);*/ glAlphaFunc(GL_GEQUAL, 0.5f); }
-
-			if(!(ALPHA_CVG_SEL)) {
-				glEnable(GL_ALPHA_TEST);
-				glAlphaFunc((BlendColor[3] > 0.0f) ? GL_GEQUAL : GL_GREATER, BlendColor[3]);
-			} else if(CVG_X_ALPHA) {
-				glEnable(GL_ALPHA_TEST);
-				glAlphaFunc(GL_GEQUAL, 0.5f);
-			} else {
-				glDisable(GL_ALPHA_TEST);
-			}
 
 			RDPOtherMode_ForceBlender = FORCE_BL;
 			RDPOtherMode_BlendMode = (HighBits >> 16);
@@ -202,6 +193,11 @@ int F3DEX2_Cmd_SETOTHERMODE_L()
 			F3DEX2_ForceBlender();
 
 			break; }
+	}
+
+	/* pathways (ex. spot00 dlist #33) */
+	if((Combine0 == 0x00121603) && (Combine1 == 0xFF5BFFF8)) {
+		F3DEX2_SetAlphaCompare(false, false, 0x08);
 	}
 
 	return 0;
@@ -229,6 +225,21 @@ int F3DEX2_ForceBlender()
 		}
 	} else {
 		glBlendFunc(GL_ONE, GL_ZERO);
+	}
+
+	return 0;
+}
+
+int F3DEX2_SetAlphaCompare(bool ALPHA_CVG_SEL, bool CVG_X_ALPHA, unsigned int BlendAlpha)
+{
+	if(!(ALPHA_CVG_SEL)) {
+		glEnable(GL_ALPHA_TEST);
+		glAlphaFunc(GL_GEQUAL, (BlendAlpha == 0x00) ? (0x01 / 255.0f) : (BlendAlpha / 255.0f));
+	} else if(CVG_X_ALPHA) {
+		glEnable(GL_ALPHA_TEST);
+		glAlphaFunc(GL_GEQUAL, 0.5f);
+	} else {
+		glDisable(GL_ALPHA_TEST);
 	}
 
 	return 0;

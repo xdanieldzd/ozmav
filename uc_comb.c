@@ -30,7 +30,7 @@ int F3DEX2_Cmd_SETCOMBINE()
 
 int F3DEX2_BuildFragmentShader()
 {
-	if(!(GLExtension_VertFragProgram) && !(Renderer_EnableFragShader)) {
+	if(!(GLExtension_FragProgram) && !(Renderer_EnableFragShader)) {
 		return 0;
 	}
 
@@ -484,7 +484,7 @@ int F3DEX2_BuildFragmentShader()
 
 		F3DEX2_ForceBlender();
 
-		if((GLExtension_VertFragProgram) && (Renderer_EnableFragShader)) {
+		if((GLExtension_FragProgram) && (Renderer_EnableFragShader)) {
 			glEnable(GL_FRAGMENT_PROGRAM_ARB);
 			glGenProgramsARB(1, &FPCache[FPCachePosition].FragProg);
 			glBindProgramARB(GL_FRAGMENT_PROGRAM_ARB, FPCache[FPCachePosition].FragProg);
@@ -510,7 +510,7 @@ int F3DEX2_BuildFragmentShader()
 		}
 	} else {
 		/* get existing prog */
-		if((GLExtension_VertFragProgram) && (Renderer_EnableFragShader)) {
+		if((GLExtension_FragProgram) && (Renderer_EnableFragShader)) {
 			glEnable(GL_FRAGMENT_PROGRAM_ARB);
 			glBindProgramARB(GL_FRAGMENT_PROGRAM_ARB, FPCache[CacheCheck].FragProg);
 		}
@@ -539,7 +539,7 @@ int F3DEX2_Cmd_SETBLENDCOLOR()
 	BlendColor[2] = (Readout_CurrentByte7 / 255.0f);
 	BlendColor[3] = (Readout_CurrentByte8 / 255.0f);
 
-	if(GLExtension_VertFragProgram) {
+	if(GLExtension_FragProgram) {
 		glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 2, BlendColor[0], BlendColor[1], BlendColor[2], BlendColor[3]);
 	}
 
@@ -553,7 +553,7 @@ int F3DEX2_Cmd_SETPRIMCOLOR()
 	PrimColor[2] = (Readout_CurrentByte7 / 255.0f);
 	PrimColor[3] = (Readout_CurrentByte8 / 255.0f);
 
-	if(GLExtension_VertFragProgram) {
+	if(GLExtension_FragProgram) {
 		glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 1, PrimColor[0], PrimColor[1], PrimColor[2], PrimColor[3]);
 	}
 
@@ -567,102 +567,8 @@ int F3DEX2_Cmd_SETENVCOLOR()
 	EnvColor[2] = (Readout_CurrentByte7 / 255.0f);
 	EnvColor[3] = (Readout_CurrentByte8 / 255.0f);
 
-	if(GLExtension_VertFragProgram) {
+	if(GLExtension_FragProgram) {
 		glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 0, EnvColor[0], EnvColor[1], EnvColor[2], EnvColor[3]);
-	}
-
-	return 0;
-}
-
-int F3DEX2_BuildVertexShader()
-{
-	char * VertProgString =
-		"!!ARBvp1.0\n"
-		"\n"
-		"# global\n"
-		"OUTPUT OutColor = result.color;\n"
-		"TEMP Pos;\n"
-		"\n"
-		"# position\n"
-		"PARAM ModelViewProj[4] = { state.matrix.mvp };\n"
-		"DP4 Pos.x, ModelViewProj[0], vertex.position;\n"
-		"DP4 Pos.y, ModelViewProj[1], vertex.position;\n"
-		"DP4 Pos.z, ModelViewProj[2], vertex.position;\n"
-		"DP4 Pos.w, ModelViewProj[3], vertex.position;\n"
-		"MOV result.position, Pos;\n"
-		"\n"
-		"# texture shift/scale\n"
-		"MUL result.texcoord[0], program.local[0], vertex.texcoord[0];\n"
-		"MUL result.texcoord[1], program.local[1], vertex.texcoord[1];\n"
-		"\n"
-		"# fog\n"
-		"TEMP Fog;\n"
-		"MOV Fog, Pos.zzzw;\n"
-		"RCP Fog.w, Fog.w;\n"
-		"MUL Fog, Fog, Fog.w;\n"
-		"MUL Fog, Fog, { -1, -1, -1, -1 };\n"
-		"ADD Fog, Fog, { 1, 1, 1, 1 };\n"
-		"MUL Fog, Fog, { 0.5, 0.5, 0.5, 0.5 };\n"
-		"MUL Fog, Fog, 0.5;\n"
-		"MAX Fog.x, Fog.x, Pos.z;\n"
-		"MOV result.fogcoord, Fog;\n"
-		"\n"
-		"# normals\n"
-		"PARAM ColorAmbient = program.env[0];\n"
-		"PARAM ColorDiffuse = program.env[1];\n"
-		"PARAM ColorSpecular = program.env[3];\n"
-		"PARAM LightDirection = state.light[0].position;\n"
-		"PARAM HalfDirection = state.light[0].half;\n"
-		"PARAM SpecExp = state.material.shininess;\n"
-		"TEMP TempCalc, Normal, Dots, LightCoefs;\n"
-		"MOV Normal.x, vertex.normal;\n"
-		"MOV Normal.y, vertex.normal;\n"
-		"MOV Normal.z, vertex.normal;\n"
-		"DP3 Dots.x, Normal, LightDirection;\n"
-		"DP3 Dots.y, Normal, HalfDirection;\n"
-		"MOV Dots.w, SpecExp.x;\n"
-		"LIT LightCoefs, Dots;\n"
-		"MAD TempCalc, LightCoefs.y, ColorDiffuse, ColorAmbient;\n"
-		"MAD OutColor.xyz, LightCoefs.z, ColorSpecular, TempCalc;\n"
-		"MOV OutColor.w, ColorDiffuse.w;\n"
-		"MUL OutColor.xyz, vertex.color, TempCalc;\n"
-		"\n"
-		"END\n";
-
-	if(GLExtension_VertFragProgram) {
-		glGenProgramsARB(1, &VertProg);
-		glBindProgramARB(GL_VERTEX_PROGRAM_ARB, VertProg);
-		glProgramStringARB(GL_VERTEX_PROGRAM_ARB, GL_PROGRAM_FORMAT_ASCII_ARB, strlen(VertProgString), VertProgString);
-		glBindProgramARB(GL_VERTEX_PROGRAM_ARB, VertProg);
-
-		if(glGetError() != 0) {
-			int Pos = 0;
-			char *String = (char *)glGetString(GL_PROGRAM_ERROR_STRING_ARB);
-			glGetIntegerv(GL_PROGRAM_ERROR_POSITION_ARB, &Pos);
-			if(Pos >= 0) {
-				sprintf(ErrorMsg, "%s\n%s\n", String, VertProgString + Pos);
-				MessageBox(hwnd, ErrorMsg, "Vertex Program Error", MB_OK | MB_ICONEXCLAMATION);
-				return -1;
-			}
-		}
-	}
-
-	return 0;
-}
-
-int F3DEX2_BindVertexShader()
-{
-	if((GLExtension_VertFragProgram) && (Renderer_EnableFragShader)) {
-		if(IsMultiTexture) {
-			glEnable(GL_VERTEX_PROGRAM_ARB);
-			glBindProgramARB(GL_VERTEX_PROGRAM_ARB, VertProg);
-			if(glGetError() != 0) {
-				char *String = (char *)glGetString(GL_PROGRAM_ERROR_STRING_ARB);
-				fprintf(FileSystemLog, "%s\n", String);
-			}
-		} else {
-			glDisable(GL_VERTEX_PROGRAM_ARB);
-		}
 	}
 
 	return 0;

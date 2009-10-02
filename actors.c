@@ -77,7 +77,7 @@ int Viewer_RenderAllActors()
 		}
 	}
 
-//	if(GLExtension_VertFragProgram) glEnable(GL_FRAGMENT_PROGRAM_ARB);
+//	if(GLExtension_FragProgram) glEnable(GL_FRAGMENT_PROGRAM_ARB);
 
 	return 0;
 }

@@ -118,7 +118,7 @@ int F3DEX2_Cmd_SETTILESIZE()
 
 int F3DEX2_ChangeTileSize(unsigned int Tile, unsigned int ULS, unsigned int ULT, unsigned int LRS, unsigned int LRT)
 {
-	fprintf(FileGFXLog, "Tile:%d, ULS:%d, ULT:%d, LRS:%d, LRT:%d\n", Tile, ULS, ULT, LRS, LRT);
+//	fprintf(FileGFXLog, "Tile:%d, ULS:%d, ULT:%d, LRS:%d, LRT:%d\n", Tile, ULS, ULT, LRS, LRT);
 
 /*	if((ULS != 0) || (ULT != 0)) return 0;
 
@@ -338,10 +338,6 @@ int F3DEX2_CalcFinalTextureSize(int TextureID)
 		Texture[TextureID].T_ShiftScale = (float)(1 << (16 - Texture[TextureID].TempTShift));
 	} else if(Texture[TextureID].TempTShift > 0) {
 		Texture[TextureID].T_ShiftScale /= (float)(1 << Texture[TextureID].TempTShift);
-	}
-
-	if(GLExtension_VertFragProgram) {
-		glProgramLocalParameter4fARB(GL_VERTEX_PROGRAM_ARB, TextureID, Texture[TextureID].S_ShiftScale, Texture[TextureID].T_ShiftScale, 1.0f, 1.0f);
 	}
 
 	/* NULLIFYING SOME STUFF ABOVE SINCE IT'S STILL BROKEN */

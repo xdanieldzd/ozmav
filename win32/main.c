@@ -288,7 +288,7 @@ char			* GLExtension_List;
 bool			GLExtension_MultiTexture = false;
 bool			GLExtension_TextureMirror = false;
 bool			GLExtension_AnisoFilter = false;
-bool			GLExtension_VertFragProgram = false;
+bool			GLExtension_FragProgram = false;
 char			GLExtensionsSupported[256] = "";
 
 bool			GLExtensionsUnsupported = false;
@@ -330,6 +330,8 @@ struct ObjectActorTable_Struct ActorTable[8192];
 struct Vertex_Struct CollisionVertex[8192];
 
 struct FPCache_Struct FPCache[256];
+
+struct CollisionType_Struct CollisionType[512];
 
 /*	------------------------------------------------------------ */
 
@@ -589,11 +591,11 @@ int Viewer_LoadAreaData()
 	EnvColor[0] = 0.5f; EnvColor[1] = 0.5f; EnvColor[2] = 0.5f; EnvColor[3] = 0.5f;
 	PrimColor[0] = 0.5f; PrimColor[1] = 0.5f; PrimColor[2] = 0.5f; PrimColor[3] = 0.5f;
 
-	if(GLExtension_VertFragProgram) {
+	if(GLExtension_FragProgram) {
 		glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 0, EnvColor[0], EnvColor[1], EnvColor[2], EnvColor[3]);
 		glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 1, PrimColor[0], PrimColor[1], PrimColor[2], PrimColor[3]);
 
-		glDisable(GL_FRAGMENT_PROGRAM_ARB); glDisable(GL_VERTEX_PROGRAM_ARB);
+		glDisable(GL_FRAGMENT_PROGRAM_ARB);
 	}
 
 	CurrentTextureID = 0;
@@ -1634,7 +1636,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 					if(GLExtension_MultiTexture) sprintf(GLExtensionsSupported, "%sGL_ARB_multitexture\n", GLExtensionsSupported);
 					if(GLExtension_TextureMirror) sprintf(GLExtensionsSupported, "%sGL_ARB_texture_mirrored_repeat\n", GLExtensionsSupported);
 					if(GLExtension_AnisoFilter) sprintf(GLExtensionsSupported, "%sGL_EXT_texture_filter_anisotropic\n", GLExtensionsSupported);
-					if(GLExtension_VertFragProgram) sprintf(GLExtensionsSupported, "%sGL_ARB_fragment_program\nGL_ARB_vertex_program\n", GLExtensionsSupported);
+					if(GLExtension_FragProgram) sprintf(GLExtensionsSupported, "%sGL_ARB_fragment_program\n", GLExtensionsSupported);
 
 					char AboutMsg[256] = "";
 					sprintf(AboutMsg, "%s %s (Build '%s') - OpenGL Zelda Map Viewer\n\n"
