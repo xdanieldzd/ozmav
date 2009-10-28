@@ -64,7 +64,6 @@ extern int Viewer_ResetVariables();
 extern int Viewer_LoadAreaData();
 extern int Viewer_GetGameVersion();
 extern int Viewer_InitLevelSelector();
-extern int Viewer_RenderMapRefresh();
 extern void GLUTCamera_Orientation(float, float);
 extern void GLUTCamera_Movement(bool);
 extern void Camera_MouseMove(int, int);
@@ -133,7 +132,7 @@ extern int F3DEX2_Cmd_GEOMETRYMODE();
 extern int F3DEX2_UpdateGeoMode();
 extern int F3DEX2_Cmd_SETOTHERMODE_H();
 extern int F3DEX2_Cmd_SETOTHERMODE_L();
-extern int F3DEX2_ForceBlender();
+extern int F3DEX2_ForceBlender(bool, bool);
 extern int F3DEX2_SetAlphaCompare(bool, bool, unsigned int);
 
 /* uc_tex.c */
@@ -342,9 +341,6 @@ extern int				VertProg;
 
 extern unsigned int		FPCachePosition;
 
-extern bool				RDPOtherMode_ForceBlender;
-extern unsigned short	RDPOtherMode_BlendMode;
-
 /* ZELDA ROM HANDLING VARIABLES */
 extern unsigned long	ROM_SceneTableOffset;
 extern unsigned int		ROM_SceneToLoad;
@@ -411,7 +407,6 @@ extern GLfloat			LightPosition[];
 
 extern float			FogColor[];
 extern float			BlendColor[];
-extern float			PrimColor[];
 extern float			EnvColor[];
 
 extern char				ShaderString[16384];
@@ -576,8 +571,6 @@ struct Texture_Struct {
 	unsigned long Offset;
 	unsigned long PalOffset;
 	unsigned int Format_N64;
-	GLuint Format_OGL;
-	unsigned int Format_OGLPixel;
 	unsigned int Y_Parameter;
 	unsigned int X_Parameter;
 	float S_Scale;
@@ -642,3 +635,13 @@ struct CollisionType_Struct {
 	unsigned short Unk4;
 };
 extern struct CollisionType_Struct CollisionType[512];
+
+struct PrimColor_Struct {
+	float R;
+	float G;
+	float B;
+	float A;
+	float M;
+	float L;
+};
+extern struct PrimColor_Struct PrimColor;

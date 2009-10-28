@@ -193,9 +193,6 @@ int				VertProg = 0;
 
 unsigned int	FPCachePosition = 0;
 
-bool			RDPOtherMode_ForceBlender = false;
-unsigned short	RDPOtherMode_BlendMode = 0x00;
-
 /* ZELDA ROM HANDLING VARIABLES */
 unsigned long	ROM_SceneTableOffset = 0x00;
 unsigned int	ROM_SceneToLoad = 0x00;
@@ -260,7 +257,6 @@ GLfloat			LightPosition[]= {1.0f, 1.0f, 1.0f, 1.0f};
 
 float			FogColor[]=   {0.75f, 0.75f, 0.75f, 1.0f};
 float			BlendColor[]= {0.0f, 0.0f, 0.0f, 0.3f};
-float			PrimColor[]=  {0.0f, 0.0f, 0.0f, 0.0f};
 float			EnvColor[]=   {0.0f, 0.0f, 0.0f, 0.0f};
 
 char			ShaderString[16384] = "";
@@ -333,6 +329,8 @@ struct FPCache_Struct FPCache[256];
 
 struct CollisionType_Struct CollisionType[512];
 
+struct PrimColor_Struct PrimColor;
+
 /*	------------------------------------------------------------ */
 
 int Viewer_Initialize()
@@ -357,7 +355,7 @@ int Viewer_Initialize()
 		AreaLoaded = true;
 		sprintf(StatusMsg, "Level: 0x%02X", ROM_SceneToLoad);
 	} else {
-		Viewer_RenderMapRefresh();
+		Viewer_RenderMap();
 
 		EnableMenuItem(hmenu, IDM_LEVEL_PREVLEVEL, MF_BYCOMMAND | MF_ENABLED);
 		EnableMenuItem(hmenu, IDM_LEVEL_NEXTLEVEL, MF_BYCOMMAND | MF_ENABLED);
@@ -589,11 +587,10 @@ int Viewer_LoadAreaData()
 	memset(PaletteData, 0x00, sizeof(PaletteData));
 
 	EnvColor[0] = 0.5f; EnvColor[1] = 0.5f; EnvColor[2] = 0.5f; EnvColor[3] = 0.5f;
-	PrimColor[0] = 0.5f; PrimColor[1] = 0.5f; PrimColor[2] = 0.5f; PrimColor[3] = 0.5f;
 
 	if(GLExtension_FragProgram) {
 		glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 0, EnvColor[0], EnvColor[1], EnvColor[2], EnvColor[3]);
-		glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 1, PrimColor[0], PrimColor[1], PrimColor[2], PrimColor[3]);
+		glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 1, PrimColor.R, PrimColor.G, PrimColor.B, PrimColor.A);
 
 		glDisable(GL_FRAGMENT_PROGRAM_ARB);
 	}
@@ -765,7 +762,7 @@ int Viewer_LoadAreaData()
 	CamLX = 0.0f, CamLY = 0.0f, CamLZ = -1.0f;
 /*
 	CamAngleX = 0.0f, CamAngleY = -0.5f;
-	CamX = 0.0f, CamY = 2.0f, CamZ = 12.5f;
+	CamX = -2.0f, CamY = 2.0f, CamZ = -13.4f;
 	CamLX = 0.0f, CamLY = 0.0f, CamLZ = -1.0f;
 */
 	memset(CurrentGFXCmd, 0x00, sizeof(CurrentGFXCmd));
@@ -777,27 +774,6 @@ int Viewer_LoadAreaData()
 
 	sprintf(WindowTitle, "%s %s - %s", AppTitle, AppVersion, Scene_Name);
 	SetWindowText(hwnd, WindowTitle);
-
-	return 0;
-}
-
-int Viewer_RenderMapRefresh()
-{
-	/* rendering speed workaround: i don't know why it works (related to texture
-	   handling most likely), only that it does!
-
-	   basically, we create the whole ogl dlist stuff once (rendermap), then
-	   draw the whole thing once (drawglscene) and then recreate the ogl dlists
-	   again - instant speedup! the level loading process now takes roughly
-	   double the time, but with the spirit temple rendering at ~65 fps instead
-	   of a mere 28 or so (depending where the camera's at), i guess that
-	   tradeoff isn't too bad :) */
-
-	Viewer_RenderMap();
-	OGL_DrawScene();
-	Viewer_RenderMap();
-
-//	if(ROMBuffer != NULL) free(ROMBuffer);
 
 	return 0;
 }
@@ -1129,6 +1105,8 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 	sprintf(WindowTitle, "%s %s", AppTitle, AppVersion);
 	SetWindowText(hwnd, WindowTitle);
 
+	DragAcceptFiles(hwnd, true);
+
 	GetModuleFileName(NULL, AppPath, sizeof(AppPath) - 1);
 
 	char *AppPathTemp = strrchr(AppPath, '\\');
@@ -1201,7 +1179,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 								MessageBox(hwnd, "Error while loading level!", "Error", MB_OK | MB_ICONEXCLAMATION);
 								AreaLoaded = true;
 							} else {
-								Viewer_RenderMapRefresh();
+								Viewer_RenderMap();
 							}
 						}
 						sprintf(StatusMsg, "Level: 0x%02X", ROM_SceneToLoad);
@@ -1215,7 +1193,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 								MessageBox(hwnd, "Error while loading level!", "Error", MB_OK | MB_ICONEXCLAMATION);
 								AreaLoaded = true;
 							} else {
-								Viewer_RenderMapRefresh();
+								Viewer_RenderMap();
 							}
 						}
 						sprintf(StatusMsg, "Level: 0x%02X", ROM_SceneToLoad);
@@ -1471,6 +1449,14 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 {
 	switch(message)
 	{
+        case WM_DROPFILES: {
+			HDROP fDrop = (HDROP)wParam;
+			DragQueryFile(fDrop, 0, (TCHAR*)Filename_ROM, 5000);
+			DragFinish(fDrop);
+			ROMExists = true;
+			Viewer_Initialize();
+			break;
+		}
 		case WM_ACTIVATE: {
 			if(!HIWORD(wParam)) {
 				WndActive = true;

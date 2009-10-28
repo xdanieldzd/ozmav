@@ -36,24 +36,21 @@ int F3DEX2_Cmd_SETTIMG()
 	CurrentTextureID = 0;
 	IsMultiTexture = false;
 
-	if(Readout_NextGFXCommand1 == G_RDPTILESYNC) {
-		Texture[0].PalDataSource = Readout_CurrentByte5;
-		Texture[0].PalOffset = (Readout_CurrentByte6 * 0x10000) + (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
-
-		return 0;
-	}
-
 	if(Readout_PrevGFXCommand1 == G_SETTILESIZE) {
 		/* multitexture */
 		CurrentTextureID = 1;
 		IsMultiTexture = true;
 	}
 
+	if(Readout_NextGFXCommand1 == G_RDPTILESYNC) {
+		Texture[CurrentTextureID].PalDataSource = Readout_CurrentByte5;
+		Texture[CurrentTextureID].PalOffset = (Readout_CurrentByte6 * 0x10000) + (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
+
+		return 0;
+	}
+
 	Texture[CurrentTextureID].DataSource = Readout_CurrentByte5;
 	Texture[CurrentTextureID].Offset = (Readout_CurrentByte6 * 0x10000) + (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
-
-	Texture[CurrentTextureID].Format_OGL = GL_RGBA;
-	Texture[CurrentTextureID].Format_OGLPixel = GL_RGBA;
 
 	return 0;
 }
@@ -297,8 +294,8 @@ int F3DEX2_CalcFinalTextureSize(int TextureID)
 	unsigned int Clamp_Width = (Texture[TextureID].X_Parameter & G_TX_CLAMP) ? Tile_Width : Texture[TextureID].Width;
 	unsigned int Clamp_Height = (Texture[TextureID].Y_Parameter & G_TX_CLAMP) ? Tile_Height : Texture[TextureID].Height;
 
-	if(Clamp_Width > 128) Texture[TextureID].X_Parameter &= G_TX_WRAP;
-	if(Clamp_Height > 128) Texture[TextureID].Y_Parameter &= G_TX_WRAP;
+	if(Clamp_Width > 128) Texture[TextureID].X_Parameter &= G_TX_MIRROR;
+	if(Clamp_Height > 128) Texture[TextureID].Y_Parameter &= G_TX_MIRROR;
 
 	if(Mask_Width > Texture[TextureID].Width) {
 		Texture[TextureID].S_Mask = PowOf(Texture[TextureID].Width);
@@ -354,9 +351,7 @@ GLuint F3DEX2_LoadTexture(int TextureID)
 	/* for now, don't do any texturing for objects - REALLY crashy-crashy atm */
 //	if(!GetDLFromZMapScene) return 0;
 
-	if((Readout_NextGFXCommand1 == 0x00000003) || (Readout_NextGFXCommand1 == 0x000000E1)) return 0;
-
-	if(!(Texture[TextureID].Format_OGL == GL_RGBA)) return 0;
+//	if((Readout_NextGFXCommand1 == 0x00000003) || (Readout_NextGFXCommand1 == 0x000000E1)) return 0;
 
 	int i = 0, j = 0;
 
@@ -429,8 +424,6 @@ GLuint F3DEX2_LoadTexture(int TextureID)
 			sprintf(ErrorMsg, "Unhandled texture source 0x%02X|%06X!\n(Format 0x%02X)", Texture[TextureID].DataSource, (unsigned int)Texture[TextureID].Offset, Texture[TextureID].Format_N64);
 //			MessageBox(hwnd, ErrorMsg, "Error", MB_OK | MB_ICONERROR);
 		}
-		Texture[TextureID].Format_OGL = GL_RGBA;
-		Texture[TextureID].Format_OGLPixel = GL_RGBA;
 		memcpy(TextureData_OGL, EmptyTexture, TextureBufferSize);
 	}
 
@@ -488,7 +481,7 @@ GLuint F3DEX2_LoadTexture(int TextureID)
 /*		char Log_PalOffset[256];
 		sprintf(Log_PalOffset, "- CI palette offset: 0x%02X%06X\n", Texture[TextureID].PalDataSource, (unsigned int)Texture[TextureID].PalOffset);
 		char Log_PalNo[256];
-		sprintf(Log_PalNo, "- Palette #%d\n", Texture[0].Palette);
+		sprintf(Log_PalNo, "- Palette #%d\n", Texture[TextureID].Palette);
 		char Log_YParam[256];
 		sprintf(Log_YParam, "- Y parameters: %s%s%s\n",
 			((Texture[TextureID].Y_Parameter & G_TX_WRAP) ? "G_TX_WRAP | " : ""),
@@ -814,8 +807,6 @@ GLuint F3DEX2_LoadTexture(int TextureID)
 			{
 			sprintf(ErrorMsg, "Unhandled Texture Type 0x%02X!", Texture[TextureID].Format_N64);
 			MessageBox(hwnd, ErrorMsg, "Error", MB_OK | MB_ICONERROR);
-			Texture[TextureID].Format_OGL = GL_RGBA;
-			Texture[TextureID].Format_OGLPixel = GL_RGBA;
 			memcpy(TextureData_OGL, EmptyTexture_Green, TextureBufferSize);
 			break;
 			}
@@ -833,31 +824,31 @@ GLuint F3DEX2_LoadTexture(int TextureID)
 		if(Texture[TextureID].X_Parameter & G_TX_MIRROR) { if(GLExtension_TextureMirror) glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT_ARB); }
 		if(Texture[TextureID].X_Parameter & G_TX_WRAP) { glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); }
 
-		gluBuild2DMipmaps(GL_TEXTURE_2D, Texture[TextureID].Format_OGL, Texture[TextureID].RealWidth, Texture[TextureID].RealHeight, Texture[TextureID].Format_OGLPixel, GL_UNSIGNED_BYTE, TextureData_OGL);
+		gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGBA, Texture[TextureID].RealWidth, Texture[TextureID].RealHeight, GL_RGBA, GL_UNSIGNED_BYTE, TextureData_OGL);
+
+		if(Renderer_EnableWavefrontDump) {
+			/* texture dumping */
+			static char TextureFilename[256] = "";
+			static char TextureFullPath[1024] = "";
+			sprintf(TextureFilename, "0x%02X_0x%02X_0x%02X%06X.bmp", (unsigned int)ROM_SceneToLoad, Texture[TextureID].Format_N64, Texture[TextureID].DataSource, (unsigned int)Texture[TextureID].Offset);
+			sprintf(TextureFullPath, "%s\\dump\\%s", AppPath, TextureFilename);
+			long BMPSize = 0;
+			unsigned char * BMPBuf = ConvertToBMP(TextureData_OGL, Texture[TextureID].RealWidth, Texture[TextureID].RealHeight, &BMPSize);
+			SaveBMP(BMPBuf, Texture[TextureID].RealWidth, Texture[TextureID].RealHeight, BMPSize, TextureFullPath);
+
+			sprintf(WavefrontMtlMsg, "newmtl material%d\n", WavefrontObjMaterialCnt);
+			fprintf(FileWavefrontMtl, WavefrontMtlMsg);
+			sprintf(WavefrontMtlMsg, "Kd 0.0000 0.0000 0.0000\n");			// diffuse color
+			fprintf(FileWavefrontMtl, WavefrontMtlMsg);
+			sprintf(WavefrontMtlMsg, "illum 1\n");
+			fprintf(FileWavefrontMtl, WavefrontMtlMsg);
+			sprintf(WavefrontMtlMsg, "map_Kd %s\n", TextureFilename);
+			fprintf(FileWavefrontMtl, WavefrontMtlMsg);
+
+			WavefrontObjMaterialCnt++;
+		}
 	} else {
 		//
-	}
-
-	if(Renderer_EnableWavefrontDump) {
-		/* texture dumping */
-		static char TextureFilename[256] = "";
-		static char TextureFullPath[1024] = "";
-		sprintf(TextureFilename, "0x%02X_0x%02X_0x%02X%06X.bmp", (unsigned int)ROM_SceneToLoad, Texture[TextureID].Format_N64, Texture[TextureID].DataSource, (unsigned int)Texture[TextureID].Offset);
-		sprintf(TextureFullPath, "%s\\dump\\%s", AppPath, TextureFilename);
-		long BMPSize = 0;
-		unsigned char * BMPBuf = ConvertToBMP(TextureData_OGL, Texture[TextureID].RealWidth, Texture[TextureID].RealHeight, &BMPSize);
-		SaveBMP(BMPBuf, Texture[TextureID].RealWidth, Texture[TextureID].RealHeight, BMPSize, TextureFullPath);
-
-		sprintf(WavefrontMtlMsg, "newmtl material%d\n", WavefrontObjMaterialCnt);
-		fprintf(FileWavefrontMtl, WavefrontMtlMsg);
-		sprintf(WavefrontMtlMsg, "Kd 0.0000 0.0000 0.0000\n");			// diffuse color
-		fprintf(FileWavefrontMtl, WavefrontMtlMsg);
-		sprintf(WavefrontMtlMsg, "illum 1\n");
-		fprintf(FileWavefrontMtl, WavefrontMtlMsg);
-		sprintf(WavefrontMtlMsg, "map_Kd %s\n", TextureFilename);
-		fprintf(FileWavefrontMtl, WavefrontMtlMsg);
-
-		WavefrontObjMaterialCnt++;
 	}
 
 	if(GLExtension_AnisoFilter) {
@@ -889,16 +880,6 @@ GLuint F3DEX2_LoadTexture(int TextureID)
 int F3DEX2_ResetTextureStruct()
 {
 	/* reset texture struct to prevent texture loader from going out of whack when there aren't any on a map (ex. sasatest) */
-/*	int i = 0;
-	for(i = 0; i < 2; i++) {
-		Texture[i].Height = 0x00, Texture[i].Width = 0x00;
-		Texture[i].DataSource = 0x00, Texture[i].PalDataSource = 0x00, Texture[i].Offset = 0x00, Texture[i].PalOffset = 0x00;
-		Texture[i].Format_N64 = 0x00, Texture[i].Format_OGL = 0x00, Texture[i].Format_OGLPixel = 0x00;
-		Texture[i].Y_Parameter = 0x00, Texture[i].X_Parameter = 0x00, Texture[i].S_Scale = 0x00, Texture[i].T_Scale = 0x00;
-		Texture[i].LineSize = 0x00, Texture[i].Palette = 0x00, Texture[i].AnimDXT = 0x00;
-		Texture[i].S_ShiftScale = 0x00; Texture[i].T_ShiftScale = 0x00;
-	}
-*/
 	memset(Texture, 0x00, sizeof(Texture));
 
 	return 0;

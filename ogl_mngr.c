@@ -49,7 +49,8 @@ int OGL_ResetProperties(void)
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
 
-	glEnable(GL_ALPHA_TEST);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	/* fake fog */
 	glFogi(GL_FOG_MODE, GL_LINEAR);
@@ -61,7 +62,7 @@ int OGL_ResetProperties(void)
 */
 	if(GLExtension_FragProgram) {
 		glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 0, EnvColor[0], EnvColor[1], EnvColor[2], EnvColor[3]);
-		glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 1, PrimColor[0], PrimColor[1], PrimColor[2], PrimColor[3]);
+		glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 1, PrimColor.R, PrimColor.G, PrimColor.B, PrimColor.A);
 	}
 
 	return true;
@@ -168,6 +169,7 @@ int OGL_DrawScene(void)
 		/* #2 - RENDER MAP */
 		Renderer_GLDisplayList_Current = Renderer_GLDisplayList;
 
+		glEnable(GL_BLEND);
 		glPolygonMode(GL_FRONT_AND_BACK, (Renderer_EnableWireframe ? GL_LINE : GL_FILL));
 
 		int StartMap = 0, EndMap = 0, SkipDLs = 0;

@@ -714,7 +714,7 @@ int Zelda_GetMapCollision(int CurrentHeader)
 			CollisionType[TotalColType].Unk3 = (Readout_CurrentByte5 * 0x100) + Readout_CurrentByte6;
 			CollisionType[TotalColType].Unk4 = (Readout_CurrentByte7 * 0x100) + Readout_CurrentByte8;
 
-			fprintf(FileSystemLog, "Type 0x%02X: 0x%04X 0x%04X 0x%04X 0x%04X\n", TotalColType, CollisionType[TotalColType].Unk1, CollisionType[TotalColType].Unk2, CollisionType[TotalColType].Unk3, CollisionType[TotalColType].Unk4);
+//			fprintf(FileSystemLog, "Type 0x%02X: 0x%04X 0x%04X 0x%04X 0x%04X\n", TotalColType, CollisionType[TotalColType].Unk1, CollisionType[TotalColType].Unk2, CollisionType[TotalColType].Unk3, CollisionType[TotalColType].Unk4);
 
 			ColTypeScanPosition += 2;
 

@@ -111,16 +111,21 @@ int F3DEX2_GetVertexList(unsigned int Bank, unsigned long Offset, unsigned int V
 		if(Renderer_EnableWavefrontDump) {
 			/* shitty obj extraction time! */
 
-			float TempH = (((float)Vertex[CurrentVert].H * (float)Texture[CurrentTextureID].S_Scale) / 32.0f);
+/*			float TempH = (((float)Vertex[CurrentVert].H * Texture[CurrentTextureID].S_Scale) / 32.0f);
 			if(TempH != 0.0f) TempH /= (float)Texture[CurrentTextureID].Width;
-			float TempV = (-((float)Vertex[CurrentVert].V * (float)Texture[CurrentTextureID].T_Scale) / 32.0f);
+			float TempV = (-((float)Vertex[CurrentVert].V * Texture[CurrentTextureID].T_Scale) / 32.0f);
 			if(TempV != 0.0f) TempV /= (float)Texture[CurrentTextureID].Height;
+*/
+			float TempH = _FIXED2FLOAT(Vertex[CurrentVert].H, 16) * (Texture[CurrentTextureID].S_Scale * Texture[CurrentTextureID].S_ShiftScale) / 32.0f / _FIXED2FLOAT(Texture[CurrentTextureID].Width, 16);
+			float TempV = -_FIXED2FLOAT(Vertex[CurrentVert].V, 16) * (Texture[CurrentTextureID].T_Scale * Texture[CurrentTextureID].T_ShiftScale) / 32.0f / _FIXED2FLOAT(Texture[CurrentTextureID].Height, 16);
 
 			sprintf(WavefrontObjMsg, "v %4.8f %4.8f %4.8f\n", (float)Vertex[CurrentVert].X / 32, (float)Vertex[CurrentVert].Y / 32, (float)Vertex[CurrentVert].Z / 32);
 			fprintf(FileWavefrontObj, WavefrontObjMsg);
-			sprintf(WavefrontObjMsg, "vt %4.8f %4.8f\n", TempH, TempV);
+			sprintf(WavefrontObjMsg, "vt %4.8f %4.8f\n", TempH, -TempV);
 			fprintf(FileWavefrontObj, WavefrontObjMsg);
 			sprintf(WavefrontObjMsg, "vn %4.8f %4.8f %4.8f\n", (float)Vertex[CurrentVert].R, (float)Vertex[CurrentVert].G, (float)Vertex[CurrentVert].B);
+			fprintf(FileWavefrontObj, WavefrontObjMsg);
+			sprintf(WavefrontObjMsg, "vc %1.0f %1.0f %1.0f\n", (float)Vertex[CurrentVert].R, (float)Vertex[CurrentVert].G, (float)Vertex[CurrentVert].B);
 			fprintf(FileWavefrontObj, WavefrontObjMsg);
 
 			WavefrontObjVertCount++;
@@ -266,6 +271,7 @@ int F3DEX2_DrawVertexPoint(unsigned int VertexID)
 	} else {
 		glTexCoord2f(TempH0, TempV0);
 	}
+
 	glNormal3b(Vertex[VertexID].R, Vertex[VertexID].G, Vertex[VertexID].B);
 	if(!(N64_GeometryMode & G_LIGHTING)) glColor4ub(Vertex[VertexID].R, Vertex[VertexID].G, Vertex[VertexID].B, Vertex[VertexID].A);
 
@@ -332,7 +338,7 @@ int F3DEX2_Cmd_MTX()
 		sprintf(ErrorMsg, "%s\n", ErrorMsg);
 	}
 
-	Helper_LogMessage(2, ErrorMsg);
+//	Helper_LogMessage(2, ErrorMsg);
 	memset(ErrorMsg, 0x00, sizeof(ErrorMsg));
 
 	/* now push the matrix, multiply the existing one with the one we just loaded */

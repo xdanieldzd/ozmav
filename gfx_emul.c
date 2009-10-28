@@ -67,14 +67,10 @@ int Viewer_RenderMap()
 	for(i = 0; i < SceneHeader[SceneHeader_Current].Map_Count; i++) {
 		ROM_CurrentMap_Temp = i;
 
-//		static unsigned char Msg[8192];
-//		memset(Msg, 0x00, sizeof(Msg));
-
 		int j = 0;
 		for(j = 0; j < DListInfo_CurrentCount[i]; j++) {
-		//for(j = 6; j < 7; j++) {
 			if(Renderer_GLDisplayList_Current != 0) {
-				glNewList(Renderer_GLDisplayList_Current + j, GL_COMPILE);
+				glNewList(Renderer_GLDisplayList_Current + j, GL_COMPILE_AND_EXECUTE);
 					DLTempPosition = DLists[i][j] / 4;
 
 					GetDLFromZMapScene = true;
@@ -86,12 +82,8 @@ int Viewer_RenderMap()
 				glEndList();
 
 				Renderer_GLDisplayList_Total++;
-
-//				sprintf(Msg, "%s- DLists[%d][%d] = 0x%08X\n", Msg, i, j, DLists[i][j]);
 			}
 		}
-//		sprintf(Msg, "%s\n- Filesize 0x%08X\n", Msg, ZMapFilesize[i]);
-//		MessageBox(hwnd, Msg, "", 0);
 
 		Renderer_GLDisplayList_Current += j;
 	}
@@ -576,7 +568,7 @@ int Viewer_RenderMap_DListParser(bool CalledViaCmd, unsigned long Position)
 			sprintf(CurrentGFXCmdNote, "-");
 			Helper_GFXLogCommand(Position);
 
-			F3DEX2_Cmd_LOADTLUT(Texture[0].PalDataSource, Texture[0].PalOffset);
+			F3DEX2_Cmd_LOADTLUT(Texture[CurrentTextureID].PalDataSource, Texture[CurrentTextureID].PalOffset);
 			break;
 
 		/* 0xF1 */

@@ -85,10 +85,10 @@ int F3DEX2_BuildFragmentShader()
 
 		char CombMsg[1024];
 		sprintf(CombMsg, "----------------------------------------------------------------------------------------\n"
-			"Color0: [(%s - %s) * %s] + %s\n"
-			"Alpha0: [(%s - %s) * %s] + %s\n"
-			"Color1: [(%s - %s) * %s] + %s\n"
-			"Alpha1: [(%s - %s) * %s] + %s\n"
+			"Color 0 = [(%s - %s) * %s] + %s\n"
+			"Alpha 0 = [(%s - %s) * %s] + %s\n"
+			"Color 1 = [(%s - %s) * %s] + %s\n"
+			"Alpha 1 = [(%s - %s) * %s] + %s\n"
 			"----------------------------------------------------------------------------------------\n",
 			CombinerTypes16[cA[0]], CombinerTypes16[cB[0]], CombinerTypes32[cC[0]], CombinerTypes8[cD[0]],
 			CombinerTypes8[aA[0]], CombinerTypes8[aB[0]], CombinerTypes8[aC[0]], CombinerTypes8[aD[0]],
@@ -108,6 +108,7 @@ int F3DEX2_BuildFragmentShader()
 			"PARAM EnvColor = program.env[0];\n"
 			"PARAM PrimColor = program.env[1];\n"
 			"PARAM BlendColor = program.env[2];\n"
+			"PARAM PrimColorLOD = program.env[3];\n"
 			"ATTRIB Shade = fragment.color.primary;\n"
 			"\n"
 			"OUTPUT Out = result.color;\n"
@@ -125,7 +126,7 @@ int F3DEX2_BuildFragmentShader()
 		NumCycles = 2;		/* never set to G_CYC_2CYCLE by map dlists, so force manually because many combiner modes require 2 cycles! */
 
 		for(Cycle = 0; Cycle < NumCycles; Cycle++) {
-			sprintf(ShaderString, "%s# Color%d\n", ShaderString, Cycle);
+			sprintf(ShaderString, "%s# Color %d\n", ShaderString, Cycle);
 			switch(cA[Cycle]) {
 				case G_CCMUX_COMBINED:
 					strcat(ShaderString, "MOV R0.rgb, Comb;\n");
@@ -170,7 +171,7 @@ int F3DEX2_BuildFragmentShader()
 					strcat(ShaderString, "MOV R0.rgb, {0.0, 0.0, 0.0, 0.0};\n");	// unemulated
 					break;
 				case G_CCMUX_PRIM_LOD_FRAC:
-					strcat(ShaderString, "MOV R0.rgb, {0.0, 0.0, 0.0, 0.0};\n");	// unemulated
+					strcat(ShaderString, "MOV R0.rgb, PrimColorLOD;\n");
 					break;
 				case 15:	// 0
 					strcat(ShaderString, "MOV R0.rgb, {0.0, 0.0, 0.0, 0.0};\n");
@@ -225,7 +226,7 @@ int F3DEX2_BuildFragmentShader()
 					strcat(ShaderString, "MOV R1.rgb, {0.0, 0.0, 0.0, 0.0};\n");	// unemulated
 					break;
 				case G_CCMUX_PRIM_LOD_FRAC:
-					strcat(ShaderString, "MOV R1.rgb, {0.0, 0.0, 0.0, 0.0};\n");	// unemulated
+					strcat(ShaderString, "MOV R1.rgb, PrimColorLOD;\n");
 					break;
 				case 15:	// 0
 					strcat(ShaderString, "MOV R1.rgb, {0.0, 0.0, 0.0, 0.0};\n");
@@ -281,7 +282,7 @@ int F3DEX2_BuildFragmentShader()
 					strcat(ShaderString, "MOV R1.rgb, {0.0, 0.0, 0.0, 0.0};\n");	// unemulated
 					break;
 				case G_CCMUX_PRIM_LOD_FRAC:
-					strcat(ShaderString, "MOV R1.rgb, {0.0, 0.0, 0.0, 0.0};\n");	// unemulated
+					strcat(ShaderString, "MOV R1.rgb, PrimColorLOD;\n");
 					break;
 				case G_CCMUX_K5:
 					strcat(ShaderString, "MOV R1.rgb, {1.0, 1.0, 1.0, 1.0};\n");	// unemulated
@@ -291,7 +292,7 @@ int F3DEX2_BuildFragmentShader()
 					break;
 				default:
 					strcat(ShaderString, "MOV R1.rgb, {0.0, 0.0, 0.0, 0.0};\n");
-					sprintf(ShaderString, "%s- #%d\n", ShaderString, cC[Cycle]);
+					sprintf(ShaderString, "%s# -%d\n", ShaderString, cC[Cycle]);
 					break;
 			}
 			strcat(ShaderString, "MUL R0, R0, R1;\n\n");
@@ -328,7 +329,7 @@ int F3DEX2_BuildFragmentShader()
 			}
 			strcat(ShaderString, "ADD R0, R0, R1;\n\n");
 
-			sprintf(ShaderString, "%s# Alpha%d\n", ShaderString, Cycle);
+			sprintf(ShaderString, "%s# Alpha %d\n", ShaderString, Cycle);
 
 			switch(aA[Cycle]) {
 				case G_ACMUX_COMBINED:
@@ -482,7 +483,11 @@ int F3DEX2_BuildFragmentShader()
 			//sprintf(ShaderString, "");
 		}
 
-		F3DEX2_ForceBlender();
+		/* mm termina, transition snow->grass ??? */
+		if((Combine0 == 0x00272C04) && (Combine1 == 0x1F1093FF)) {
+			//sprintf(ShaderString, "");
+		}
+
 
 		if((GLExtension_FragProgram) && (Renderer_EnableFragShader)) {
 			glEnable(GL_FRAGMENT_PROGRAM_ARB);
@@ -548,14 +553,20 @@ int F3DEX2_Cmd_SETBLENDCOLOR()
 
 int F3DEX2_Cmd_SETPRIMCOLOR()
 {
-	PrimColor[0] = (Readout_CurrentByte5 / 255.0f);
-	PrimColor[1] = (Readout_CurrentByte6 / 255.0f);
-	PrimColor[2] = (Readout_CurrentByte7 / 255.0f);
-	PrimColor[3] = (Readout_CurrentByte8 / 255.0f);
+	PrimColor.R = (Readout_CurrentByte5 / 255.0f);
+	PrimColor.G = (Readout_CurrentByte6 / 255.0f);
+	PrimColor.B = (Readout_CurrentByte7 / 255.0f);
+	PrimColor.A = (Readout_CurrentByte8 / 255.0f);
+
+	PrimColor.M = (Readout_CurrentByte3 / 255.0f);
+	PrimColor.L = (Readout_CurrentByte4 / 255.0f);
 
 	if(GLExtension_FragProgram) {
-		glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 1, PrimColor[0], PrimColor[1], PrimColor[2], PrimColor[3]);
+		glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 1, PrimColor.R, PrimColor.G, PrimColor.B, PrimColor.A);
+		glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 3, PrimColor.L, PrimColor.L, PrimColor.L, PrimColor.L);
 	}
+
+	//fprintf(FileSystemLog, "%d: prim M:%f, L:%f\n", DLToRender, PrimColor.M, PrimColor.L);
 
 	return 0;
 }
