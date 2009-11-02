@@ -1583,6 +1583,15 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 				case IDM_OPTIONS_RENDERFOG:
 					Renderer_EnableFog = !Renderer_EnableFog;
 					CheckUncheckMenu(IDM_OPTIONS_RENDERFOG, Renderer_EnableFog);
+					int i = 0;
+					for(i = 0; i < 257; i++) {
+						glDeleteProgramsARB(1, &FPCache[i].FragProg);
+						FPCache[i].Combine0 = 0;
+						FPCache[i].Combine1 = 0;
+						FPCache[i].FragProg = 0;
+					}
+					FPCachePosition = 0;
+					F3DEX2_PreCompileShaders();
 					Viewer_RenderMap();
 					break;
 				case IDM_OPTIONS_RESETCAMCOORDS:
