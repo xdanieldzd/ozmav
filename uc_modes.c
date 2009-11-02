@@ -69,11 +69,11 @@ int F3DEX2_UpdateGeoMode()
 
 	/* zbuffer */
 	if(N64_GeometryMode & G_ZBUFFER) {
-		glDepthMask(GL_TRUE);
 		glEnable(GL_DEPTH_TEST);
-	} else {
 		glDepthMask(GL_TRUE);
+	} else {
 //		glDisable(GL_DEPTH_TEST);
+//		glDepthMask(GL_FALSE);
 	}
 
 	/* shading */
@@ -236,7 +236,7 @@ int F3DEX2_ForceBlender(bool FORCE_BL, bool ALPHA_CVG_SEL)
 			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 			glAlphaFunc(GL_GEQUAL, 0.5f);
 
-			fprintf(FileSystemLog, "%04X %04X\n", Blender_Cycle1, Blender_Cycle2);
+			fprintf(FileSystemLog, "%04X %04X\n", (unsigned int)Blender_Cycle1, (unsigned int)Blender_Cycle2);
 		}
 
 		glEnable(GL_BLEND);

@@ -115,7 +115,9 @@ extern bool OGL_CreateTarget(int, int, int);
 
 /* uc_comb.c */
 extern int F3DEX2_Cmd_SETCOMBINE();
-extern int F3DEX2_BuildFragmentShader();
+extern int F3DEX2_AddShaderToCache(unsigned int, unsigned int);
+extern int F3DEX2_PreCompileShaders();
+extern int F3DEX2_CheckFragmentCache();
 extern int F3DEX2_Cmd_SETFOGCOLOR();
 extern int F3DEX2_Cmd_SETBLENDCOLOR();
 extern int F3DEX2_Cmd_SETPRIMCOLOR();

@@ -410,109 +410,120 @@ int Viewer_GetGameVersion()
 {
 	/* ---- GET GAME VERSION ---- */
 
-	unsigned long VersionCheck = ROMBuffer[4];
 	char Temp[1024];
 
+	char Title[21]; memset(Title, 0x00, sizeof(Title));
+	char GameID[9];
+	int Version;
+
 	bool CheckOkay = true;
+	GameMode = 0;
 
 	if(ROMFilesize < 0x04000000) CheckOkay = false;
 
-	switch(VersionCheck) {
-		/* OCARINA OF TIME VERSIONS */
-		case 0x7B2E5293:
-			/* oot us/jpn 1.0 !decompressed! */
-			ROM_SceneTableOffset = 0xB71440;
-			ROM_MaxSceneCount = 0x64;
-			ROM_SceneEntryLength = 0x14;
-			GameMode = 0;
-			break;
-		case 0x93C34093:
-			/* oot us/jpn 1.1 !decompressed! */
-			ROM_SceneTableOffset = 0xB71600;
-			ROM_MaxSceneCount = 0x64;
-			ROM_SceneEntryLength = 0x14;
-			GameMode = 0;
-			break;
-		case 0x2AF1902D:
-			/* oot us/jpn 1.2 !decompressed! */
-			ROM_SceneTableOffset = 0xB71450;
-			ROM_MaxSceneCount = 0x64;
-			ROM_SceneEntryLength = 0x14;
-			GameMode = 0;
-			break;
+	memcpy(Title, ROMBuffer + 8, 20);
+	memcpy(GameID, ROMBuffer + 14, 8);
+	Version = GameID[7];
+	GameID[0] = GameID[3]; GameID[1] = GameID[4]; GameID[2] = GameID[5]; GameID[3] = GameID[6];
+	GameID[4] = 0x00; GameID[5] = 0x00; GameID[6] = 0x00; GameID[7] = 0x00;
 
-		case 0xB5539DEE:
-			/* oot pal 1.0 !decompressed! */
-			ROM_SceneTableOffset = 0xB70D60;
-			ROM_MaxSceneCount = 0x64;
-			ROM_SceneEntryLength = 0x14;
-			GameMode = 0;
-			break;
-		case 0x61D055DC:
-			/* oot pal 1.1 !decompressed! */
-			ROM_SceneTableOffset = 0xB70DA0;
-			ROM_MaxSceneCount = 0x64;
-			ROM_SceneEntryLength = 0x14;
-			GameMode = 0;
-			break;
+	if		(((strcmp(Title, "THE LEGEND OF ZELDA ") == 0) && strcmp(GameID, "CZLE") == 0) && Version == 0) {
+		/* oot us/jpn 1.0 !decompressed! */
+		ROM_SceneTableOffset = 0xB71440;
+		ROM_MaxSceneCount = 0x64;
+		ROM_SceneEntryLength = 0x14;
+		GameMode = 0;
+	}
 
-		case 0xF6187D91:
-			/* mq debug rom */
-			ROM_SceneTableOffset = 0xBA0BB0;
-			ROM_MaxSceneCount = 0x6D;
-			ROM_SceneEntryLength = 0x14;
-			GameMode = 0;
-			break;
+	else if	(((strcmp(Title, "THE LEGEND OF ZELDA ") == 0) && strcmp(GameID, "CZLE") == 0) && Version == 1) {
+		/* oot us/jpn 1.1 !decompressed! */
+		ROM_SceneTableOffset = 0xB71600;
+		ROM_MaxSceneCount = 0x64;
+		ROM_SceneEntryLength = 0x14;
+		GameMode = 0;
+	}
 
-		/* MAJORA'S MASK VERSIONS */
-		case 0x0D52D049:
-			/* mm jpn 1.0 !decompressed! */
-			ROM_SceneTableOffset = 0xC76510;
-			ROM_MaxSceneCount = 0x70;
-			ROM_SceneEntryLength = 0x10;
-			GameMode = 1;
-			break;
-		case 0x2719B294:
-			/* mm jpn 1.1 !decompressed! */
-			ROM_SceneTableOffset = 0xC767E0;
-			ROM_MaxSceneCount = 0x70;
-			ROM_SceneEntryLength = 0x10;
-			GameMode = 1;
-			break;
+	else if	(((strcmp(Title, "THE LEGEND OF ZELDA ") == 0) && strcmp(GameID, "CZLE") == 0) && Version == 2) {
+		/* oot us/jpn 1.2 !decompressed! */
+		ROM_SceneTableOffset = 0xB71450;
+		ROM_MaxSceneCount = 0x64;
+		ROM_SceneEntryLength = 0x14;
+		GameMode = 0;
+	}
 
-		case 0x88989821:
-			/* mm us 1.0 !decompressed! */
-			ROM_SceneTableOffset = 0xC5A1E0;
-			ROM_MaxSceneCount = 0x70;
-			ROM_SceneEntryLength = 0x10;
-			GameMode = 1;
-			break;
+	else if	(((strcmp(Title, "THE LEGEND OF ZELDA ") == 0) && strcmp(GameID, "NZLP") == 0) && Version == 0) {
+		/* oot pal 1.0 !decompressed! */
+		ROM_SceneTableOffset = 0xB70D60;
+		ROM_MaxSceneCount = 0x64;
+		ROM_SceneEntryLength = 0x14;
+		GameMode = 0;
+	}
 
-		case 0x695908CB:
-			/* mm pal 1.0 !decompressed! */
-			ROM_SceneTableOffset = 0xDA8860;
-			ROM_MaxSceneCount = 0x70;
-			ROM_SceneEntryLength = 0x10;
-			GameMode = 1;
-			break;
+	else if	(((strcmp(Title, "THE LEGEND OF ZELDA ") == 0) && strcmp(GameID, "NZLP") == 0) && Version == 1) {
+		/* oot pal 1.1 !decompressed! */
+		ROM_SceneTableOffset = 0xB70DA0;
+		ROM_MaxSceneCount = 0x64;
+		ROM_SceneEntryLength = 0x14;
+		GameMode = 0;
+	}
 
-		case 0xE897A94F:
-			/* mm us demo !decompressed! */
-			ROM_SceneTableOffset = 0xC5A3E0;
-			ROM_MaxSceneCount = 0x70;
-			ROM_SceneEntryLength = 0x10;
-			GameMode = 1;
-			break;
+	else if((((strcmp(Title, "THE LEGEND OF ZELDA ") == 0) && strcmp(GameID, "NZLE") == 0) && Version == 15) ||
+			(((strcmp(Title, "THE LEGEND OF DEBUG ") == 0) && strcmp(GameID, "CZLE") == 0) && Version == 15) ||
+			(((strcmp(Title, "ZELDA OOT NIGHTMARE ") == 0) && strcmp(GameID, "NZLE") == 0) && Version == 15)) {
+		/* mq debug rom */
+		ROM_SceneTableOffset = 0xBA0BB0;
+		ROM_MaxSceneCount = 0x6D;
+		ROM_SceneEntryLength = 0x14;
+		GameMode = 0;
+	}
 
-		default: {
-			/* unknown rom */
-			CheckOkay = false;
-			GameMode = 0;
-			break; }
+	else if	(((strcmp(Title, "THE MASK OF MUJURA  ") == 0) && strcmp(GameID, "NZSJ") == 0) && Version == 0) {
+		/* mm jpn 1.0 !decompressed! */
+		ROM_SceneTableOffset = 0xC76510;
+		ROM_MaxSceneCount = 0x70;
+		ROM_SceneEntryLength = 0x10;
+		GameMode = 1;
+	}
+
+	else if	(((strcmp(Title, "THE MASK OF MUJURA  ") == 0) && strcmp(GameID, "NZSJ") == 0) && Version == 1) {
+		/* mm jpn 1.1 !decompressed! */
+		ROM_SceneTableOffset = 0xC767E0;
+		ROM_MaxSceneCount = 0x70;
+		ROM_SceneEntryLength = 0x10;
+		GameMode = 1;
+	}
+
+	else if	(((strcmp(Title, "ZELDA MAJORA'S MASK ") == 0) && strcmp(GameID, "NZSE") == 0) && Version == 0) {
+		/* mm us 1.0 !decompressed! */
+		ROM_SceneTableOffset = 0xC5A1E0;
+		ROM_MaxSceneCount = 0x70;
+		ROM_SceneEntryLength = 0x10;
+		GameMode = 1;
+	}
+
+	else if	(((strcmp(Title, "ZELDA MAJORA'S MASK ") == 0) && strcmp(GameID, "NZSP") == 0) && Version == 0) {
+		/* mm pal 1.0 !decompressed! */
+		ROM_SceneTableOffset = 0xDA8860;
+		ROM_MaxSceneCount = 0x70;
+		ROM_SceneEntryLength = 0x10;
+		GameMode = 1;
+	}
+
+	else if	(((strcmp(Title, "MAJORA'S MASK       ") == 0) && strcmp(GameID, "NDLE") == 0) && Version == 0) {
+		/* mm us demo !decompressed! */
+		ROM_SceneTableOffset = 0xC5A3E0;
+		ROM_MaxSceneCount = 0x70;
+		ROM_SceneEntryLength = 0x10;
+		GameMode = 1;
+	}
+
+	else {
+		CheckOkay = false;
 	}
 
 	if(CheckOkay == false) {
-		sprintf(Temp, "ROM couldn't be recognized!\n\n(Unknown: %08X)", (unsigned int)VersionCheck);
+		sprintf(Temp, "ROM couldn't be recognized!\n\nTitle: '%s', Game ID: '%s', Version: %d",
+			Title, GameID, Version);
 		MessageBox(hwnd, Temp, "Error", MB_OK | MB_ICONEXCLAMATION);
 		GameMode = 0;
 		return -1;
@@ -543,6 +554,9 @@ int Viewer_LoadAreaData()
 	char Temp[1024];
 	sprintf(Temp, "%s\\log.txt", AppPath);
 	FileSystemLog = fopen(Temp, "w");
+
+	sprintf(Temp, "%s\\comb.txt", AppPath);
+	FileCombinerLog = fopen(Temp, "w");
 
 	AreaLoaded = false;
 
@@ -593,6 +607,10 @@ int Viewer_LoadAreaData()
 		glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 1, PrimColor.R, PrimColor.G, PrimColor.B, PrimColor.A);
 
 		glDisable(GL_FRAGMENT_PROGRAM_ARB);
+
+		FPCachePosition = 0;
+
+		F3DEX2_PreCompileShaders();
 	}
 
 	CurrentTextureID = 0;
@@ -1264,6 +1282,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 								Zelda_GetSceneActors(SceneHeader_Current);
 								Zelda_GetDoorData(SceneHeader_Current);
 								Zelda_GetEnvironmentSettings(SceneHeader_Current);
+								fclose(FileCombinerLog);
 								fclose(FileSystemLog);
 							}
 							sprintf(StatusMsg, "Scene Header: #%d", SceneHeader_Current);
@@ -1281,6 +1300,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 								Zelda_GetSceneActors(SceneHeader_Current);
 								Zelda_GetDoorData(SceneHeader_Current);
 								Zelda_GetEnvironmentSettings(SceneHeader_Current);
+								fclose(FileCombinerLog);
 								fclose(FileSystemLog);
 							}
 							sprintf(StatusMsg, "Scene Header: #%d", SceneHeader_Current);
@@ -1394,6 +1414,20 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 						CamAngleX = 0.0f, CamAngleY = 0.0f;
 						CamX = 0.0f, CamY = 0.0f, CamZ = 5.0f;
 						CamLX = 0.0f, CamLY = 0.0f, CamLZ = -1.0f;
+					}
+
+					if(System_KbdKeys['X']) {
+						sprintf(Temp, "%s\\%08X.zscene", AppPath, Scene_Start);
+						FILE * TempFile = fopen(Temp, "wb");
+						fwrite(ZSceneBuffer, 1, ZSceneFilesize, TempFile);
+						fclose(TempFile);
+						int i = 0;
+						for(i = 0; i < SceneHeader[SceneHeader_Current].Map_Count; i++) {
+							sprintf(Temp, "%s\\%08X_%d.zmap", AppPath, Map_Start[i], i);
+							TempFile = fopen(Temp, "wb");
+							fwrite(ZMapBuffer[0], 1, ZMapFilesize[i], TempFile);
+							fclose(TempFile);
+						}
 					}
 
 					SendMessage(hstatus, SB_SETTEXT, 1, (LPARAM)Renderer_CoordDisp);

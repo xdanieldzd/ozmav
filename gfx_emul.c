@@ -21,19 +21,6 @@ int Viewer_RenderMap()
 	sprintf(Temp, "%s\\gfxlog.txt", AppPath);
 	if(!GFXLogOpened) FileGFXLog = fopen(Temp, "w"); GFXLogOpened = true;
 
-	/* OPEN COMBINER LOG */
-	sprintf(Temp, "%s\\comb.txt", AppPath);
-	FileCombinerLog = fopen(Temp, "w");
-
-	int i = 0;
-	for(i = 0; i < 257; i++) {
-		glDeleteProgramsARB(1, &FPCache[i].FragProg);
-		FPCache[i].Combine0 = 0;
-		FPCache[i].Combine1 = 0;
-		FPCache[i].FragProg = 0;
-	}
-	FPCachePosition = 0;
-
 	if(Renderer_EnableWavefrontDump) {
 		static char WavefrontFilename[] = "";
 		sprintf(WavefrontFilename, "%s\\dump\\0x%02X.obj", AppPath, (unsigned int)ROM_SceneToLoad);
@@ -64,6 +51,7 @@ int Viewer_RenderMap()
 
 	MVMatrixCount = 0;
 
+	int i = 0;
 	for(i = 0; i < SceneHeader[SceneHeader_Current].Map_Count; i++) {
 		ROM_CurrentMap_Temp = i;
 
@@ -219,7 +207,6 @@ int Viewer_RenderMap()
 */
 	AreaLoaded = true;
 
-	fclose(FileCombinerLog);
 	fclose(FileGFXLog); GFXLogOpened = false;
 
 	if(Renderer_EnableWavefrontDump) {

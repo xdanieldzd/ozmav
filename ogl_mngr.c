@@ -30,10 +30,11 @@ int OGL_ResetProperties(void)
 
 	glClearColor(0.2f, 0.5f, 0.7f, 1.0f);
 //	glClearColor(FogColor[0], FogColor[1], FogColor[2], FogColor[3]);
-	glClearDepth(1.0f);
+	glClearDepth(5.0f);
 
-	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LEQUAL);
+	glEnable(GL_DEPTH_TEST);
+	glDepthMask(GL_TRUE);
 
 	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 
