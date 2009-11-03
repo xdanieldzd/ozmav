@@ -186,13 +186,19 @@ extern HWND				hwnd;
 extern HMENU			hmenu;
 extern HWND				hogl;
 extern HWND				hstatus;
-extern HWND				hlvlcombo;
+extern HWND				hlvltree;
 
 extern HDC				hDC_ogl;
 extern HGLRC			hRC;
 extern HINSTANCE		hInstance;
 
 extern char				szClassName[];
+
+extern TV_INSERTSTRUCT	tvinsert;
+extern HTREEITEM		Parent;
+extern HTREEITEM		Before;
+extern HTREEITEM		Root;
+extern HTREEITEM		Selected;
 
 /* GENERAL GLOBAL PROGRAM VARIABLES */
 extern bool				System_KbdKeys[256];
@@ -247,6 +253,8 @@ extern int				MouseCenterX, MouseCenterY;
 extern bool				MouseButtonDown;
 
 /* FILE HANDLING VARIABLES */
+extern char				GameTitle[512];
+
 extern FILE				* FileROM;
 
 extern unsigned int		* ROMBuffer;

@@ -36,11 +36,18 @@ HWND			hwnd = NULL;
 HMENU			hmenu = NULL;
 HWND			hogl = NULL;
 HWND			hstatus = NULL;
-HWND			hlvlcombo = NULL;
+HWND			hlvltree = NULL;
 
 HDC				hDC_ogl = NULL;
 HGLRC			hRC = NULL;
 HINSTANCE		hInstance;
+
+TV_ITEM			tvi;
+TV_INSERTSTRUCT	tvinsert;
+HTREEITEM		Parent = NULL;
+HTREEITEM		Before = NULL;
+HTREEITEM		Root = NULL;
+HTREEITEM		Selected = NULL;
 
 char			szClassName[] = "OZMAVClass";
 
@@ -48,8 +55,8 @@ char			szClassName[] = "OZMAVClass";
 bool			System_KbdKeys[256];
 
 char			AppTitle[32] = "OZMAV";
-char			AppVersion[32] = "V0.75";
-char			AppBuildName[64] = "~type KUMI~";
+char			AppVersion[32] = "V0.8";
+char			AppBuildName[64] = "stapling dlists";
 char			AppPath[512] = "";
 char			INIPath[512] = "";
 char			WindowTitle[256] = "";
@@ -97,6 +104,8 @@ int				MouseCenterX = 0, MouseCenterY = 0;
 bool			MouseButtonDown = false;
 
 /* FILE HANDLING VARIABLES */
+char			GameTitle[512] = "";
+
 FILE			* FileROM = NULL;
 
 unsigned int	* ROMBuffer;
@@ -333,6 +342,11 @@ struct PrimColor_Struct PrimColor;
 
 /*	------------------------------------------------------------ */
 
+LRESULT CALLBACK OGLWndProc(HWND, UINT, WPARAM, LPARAM);
+WNDPROC oldWndProc;
+
+/*	------------------------------------------------------------ */
+
 int Viewer_Initialize()
 {
 	Viewer_ResetVariables();
@@ -361,8 +375,8 @@ int Viewer_Initialize()
 		EnableMenuItem(hmenu, IDM_LEVEL_NEXTLEVEL, MF_BYCOMMAND | MF_ENABLED);
 		EnableMenuItem(hmenu, IDM_MAP_PREVHEADER, MF_BYCOMMAND | MF_ENABLED);
 		EnableMenuItem(hmenu, IDM_MAP_NEXTHEADER, MF_BYCOMMAND | MF_ENABLED);
-	//	EnableMenuItem(hmenu, IDM_SCENE_PREVHEADER, MF_BYCOMMAND | MF_ENABLED);
-	//	EnableMenuItem(hmenu, IDM_SCENE_NEXTHEADER, MF_BYCOMMAND | MF_ENABLED);
+		EnableMenuItem(hmenu, IDM_SCENE_PREVHEADER, MF_BYCOMMAND | MF_ENABLED);
+		EnableMenuItem(hmenu, IDM_SCENE_NEXTHEADER, MF_BYCOMMAND | MF_ENABLED);
 		EnableMenuItem(hmenu, IDM_ACTORS_MAPRENDER, MF_BYCOMMAND | MF_ENABLED);
 	//	EnableMenuItem(hmenu, IDM_ACTORS_SELECTPREV, MF_BYCOMMAND | MF_ENABLED);
 	//	EnableMenuItem(hmenu, IDM_ACTORS_SELECTNEXT, MF_BYCOMMAND | MF_ENABLED);
@@ -383,6 +397,8 @@ int Viewer_Initialize()
 		EnableMenuItem(hmenu, IDM_OPTIONS_RENDERFOG, MF_BYCOMMAND | MF_ENABLED);
 		EnableMenuItem(hmenu, IDM_OPTIONS_WIREFRAME, MF_BYCOMMAND | MF_ENABLED);
 	}
+
+	Viewer_InitLevelSelector();
 
 	return 0;
 }
@@ -433,6 +449,7 @@ int Viewer_GetGameVersion()
 		ROM_MaxSceneCount = 0x64;
 		ROM_SceneEntryLength = 0x14;
 		GameMode = 0;
+		strcpy(GameTitle, "Ocarina of Time (JU) [v1.0]");
 	}
 
 	else if	(((strcmp(Title, "THE LEGEND OF ZELDA ") == 0) && strcmp(GameID, "CZLE") == 0) && Version == 1) {
@@ -441,6 +458,7 @@ int Viewer_GetGameVersion()
 		ROM_MaxSceneCount = 0x64;
 		ROM_SceneEntryLength = 0x14;
 		GameMode = 0;
+		strcpy(GameTitle, "Ocarina of Time (JU) [v1.1]");
 	}
 
 	else if	(((strcmp(Title, "THE LEGEND OF ZELDA ") == 0) && strcmp(GameID, "CZLE") == 0) && Version == 2) {
@@ -449,6 +467,7 @@ int Viewer_GetGameVersion()
 		ROM_MaxSceneCount = 0x64;
 		ROM_SceneEntryLength = 0x14;
 		GameMode = 0;
+		strcpy(GameTitle, "Ocarina of Time (JU) [v1.2]");
 	}
 
 	else if	(((strcmp(Title, "THE LEGEND OF ZELDA ") == 0) && strcmp(GameID, "NZLP") == 0) && Version == 0) {
@@ -457,6 +476,7 @@ int Viewer_GetGameVersion()
 		ROM_MaxSceneCount = 0x64;
 		ROM_SceneEntryLength = 0x14;
 		GameMode = 0;
+		strcpy(GameTitle, "Ocarina of Time (E) [v1.0]");
 	}
 
 	else if	(((strcmp(Title, "THE LEGEND OF ZELDA ") == 0) && strcmp(GameID, "NZLP") == 0) && Version == 1) {
@@ -465,6 +485,7 @@ int Viewer_GetGameVersion()
 		ROM_MaxSceneCount = 0x64;
 		ROM_SceneEntryLength = 0x14;
 		GameMode = 0;
+		strcpy(GameTitle, "Ocarina of Time (E) [v1.1]");
 	}
 
 	else if((((strcmp(Title, "THE LEGEND OF ZELDA ") == 0) && strcmp(GameID, "NZLE") == 0) && Version == 15) ||
@@ -475,6 +496,7 @@ int Viewer_GetGameVersion()
 		ROM_MaxSceneCount = 0x6D;
 		ROM_SceneEntryLength = 0x14;
 		GameMode = 0;
+		strcpy(GameTitle, "OoT Master Quest [Debug]");
 	}
 
 	else if	(((strcmp(Title, "THE MASK OF MUJURA  ") == 0) && strcmp(GameID, "NZSJ") == 0) && Version == 0) {
@@ -483,6 +505,7 @@ int Viewer_GetGameVersion()
 		ROM_MaxSceneCount = 0x70;
 		ROM_SceneEntryLength = 0x10;
 		GameMode = 1;
+		strcpy(GameTitle, "Majora's Mask (J) [v1.0]");
 	}
 
 	else if	(((strcmp(Title, "THE MASK OF MUJURA  ") == 0) && strcmp(GameID, "NZSJ") == 0) && Version == 1) {
@@ -491,6 +514,7 @@ int Viewer_GetGameVersion()
 		ROM_MaxSceneCount = 0x70;
 		ROM_SceneEntryLength = 0x10;
 		GameMode = 1;
+		strcpy(GameTitle, "Majora's Mask (J) [v1.1]");
 	}
 
 	else if	(((strcmp(Title, "ZELDA MAJORA'S MASK ") == 0) && strcmp(GameID, "NZSE") == 0) && Version == 0) {
@@ -499,6 +523,7 @@ int Viewer_GetGameVersion()
 		ROM_MaxSceneCount = 0x70;
 		ROM_SceneEntryLength = 0x10;
 		GameMode = 1;
+		strcpy(GameTitle, "Majora's Mask (U) [v1.0]");
 	}
 
 	else if	(((strcmp(Title, "ZELDA MAJORA'S MASK ") == 0) && strcmp(GameID, "NZSP") == 0) && Version == 0) {
@@ -507,6 +532,7 @@ int Viewer_GetGameVersion()
 		ROM_MaxSceneCount = 0x70;
 		ROM_SceneEntryLength = 0x10;
 		GameMode = 1;
+		strcpy(GameTitle, "Majora's Mask (E) [v1.0]");
 	}
 
 	else if	(((strcmp(Title, "MAJORA'S MASK       ") == 0) && strcmp(GameID, "NDLE") == 0) && Version == 0) {
@@ -515,6 +541,7 @@ int Viewer_GetGameVersion()
 		ROM_MaxSceneCount = 0x70;
 		ROM_SceneEntryLength = 0x10;
 		GameMode = 1;
+		strcpy(GameTitle, "Majora's Mask (U) [Demo]");
 	}
 
 	else {
@@ -535,15 +562,26 @@ int Viewer_GetGameVersion()
 int Viewer_InitLevelSelector()
 {
 	int i = 0; char Temp[256];
-	/* del list */
-	for(i = 0; i < ROM_MaxSceneCount + 1; i++) {
-		SendMessage(GetDlgItem(hwnd, IDC_MAIN_LEVELCOMBO), CB_DELETESTRING, (WPARAM)NULL, (LPARAM)NULL);
-	}
-	/* make list + select current */
+
+	/* delete root */
+	SendDlgItemMessage(hwnd, IDC_MAIN_LEVELTREE, TVM_DELETEITEM, 0, 0);
+
+	/* create root */
+	tvinsert.hParent = NULL;
+	tvinsert.hInsertAfter = TVI_ROOT;
+	tvinsert.item.mask = TVIF_TEXT;
+	tvinsert.item.pszText = GameTitle;
+	Parent = (HTREEITEM)SendDlgItemMessage(hwnd, IDC_MAIN_LEVELTREE, TVM_INSERTITEM, 0, (LPARAM)&tvinsert);
+
+	/* create scene nodes */
 	for(i = 0; i < ROM_MaxSceneCount + 1; i++) {
 		sprintf(Temp, "0x%02X", i);
-		SendMessage(GetDlgItem(hwnd, IDC_MAIN_LEVELCOMBO), CB_ADDSTRING, (WPARAM)NULL, (LPARAM)Temp);
-		if(ROM_SceneToLoad == i) SendMessage(GetDlgItem(hwnd, IDC_MAIN_LEVELCOMBO), CB_SETCURSEL, (WPARAM)i, (LPARAM)NULL);
+		Root = Parent;
+		Before = Parent;
+		tvinsert.hParent = Parent;
+		tvinsert.hInsertAfter = TVI_LAST;
+		tvinsert.item.pszText = Temp;
+		SendDlgItemMessage(hwnd, IDC_MAIN_LEVELTREE, TVM_INSERTITEM, 0, (LPARAM)&tvinsert);
 	}
 
 	return 0;
@@ -620,8 +658,6 @@ int Viewer_LoadAreaData()
 	if(Viewer_GetGameVersion() == -1) return -1;
 
 	if(ROM_SceneToLoad > ROM_MaxSceneCount) ROM_SceneToLoad = ROM_MaxSceneCount;
-
-	Viewer_InitLevelSelector();
 
 	/* ---- LOAD GAMEPLAY DATA FILES ---- */
 
@@ -1063,7 +1099,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 			WS_OVERLAPPEDWINDOW,
 			CW_USEDEFAULT,
 			CW_USEDEFAULT,
-			648,
+			798,
 			551,
 			HWND_DESKTOP,
 			NULL,
@@ -1087,6 +1123,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 			GetModuleHandle(NULL),
 			NULL
 			);
+	oldWndProc = (WNDPROC)SetWindowLongPtr(hogl, GWLP_WNDPROC, (LONG_PTR)OGLWndProc);
 
 	int hstatuswidths[] = {50, 235, -1};
 	hstatus = CreateWindowEx(
@@ -1103,23 +1140,23 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 			hThisInstance,
 			NULL);
 	SendMessage(hstatus, SB_SETPARTS, sizeof(hstatuswidths)/sizeof(int), (LPARAM)hstatuswidths);
-/*
-	hlvlcombo = CreateWindowEx(
-			0,
-			"COMBOBOX",
+
+	hlvltree = CreateWindowEx(
+			WS_EX_CLIENTEDGE,
+			"SysTreeView32",
 			"",
-			CBS_DROPDOWNLIST | WS_CHILD | WS_VISIBLE | WS_VSCROLL,
+			TVS_HASBUTTONS | TVS_DISABLEDRAGDROP | TVS_LINESATROOT | WS_CHILD | WS_VISIBLE,
 			0,
 			0,
-			180,
-			200,
+			128,
+			128,
 			hwnd,
-			(HMENU)IDC_MAIN_LEVELCOMBO,
+			(HMENU)IDC_MAIN_LEVELTREE,
 			hThisInstance,
 			NULL);
 	HFONT ComboFont = CreateFont(8, 0, 0, 0, FW_NORMAL, 0, 0, 0, DEFAULT_CHARSET, OUT_CHARACTER_PRECIS, CLIP_CHARACTER_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, "MS Sans Serif");
-	SendMessage(hlvlcombo, WM_SETFONT, (WPARAM)ComboFont, (LPARAM)NULL);
-*/
+	SendMessage(hlvltree, WM_SETFONT, (WPARAM)ComboFont, (LPARAM)NULL);
+
 	sprintf(WindowTitle, "%s %s", AppTitle, AppVersion);
 	SetWindowText(hwnd, WindowTitle);
 
@@ -1179,10 +1216,6 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 			}
 		} else {
 			if (WndActive) {
-				if (System_KbdKeys[VK_ESCAPE]) {
-					ExitProgram = true;
-				}
-
 				if (System_KbdKeys[VK_F11]) {
 					System_KbdKeys[VK_F11] = false;
 				}
@@ -1479,7 +1512,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 	return (messages.wParam);
 }
 
-LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	switch(message)
 	{
@@ -1500,19 +1533,16 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			break;
 		}
 		case WM_SIZE: {
-			HWND hogl;
 			RECT rcClient;
 			GetClientRect(hwnd, &rcClient);
-			hogl = GetDlgItem(hwnd, IDC_MAIN_OPENGL);
-			//SetWindowPos(hogl, NULL, 0, 20, rcClient.right, rcClient.bottom - 40, SWP_NOZORDER);
-			SetWindowPos(hogl, NULL, 0, 0, rcClient.right, rcClient.bottom - 20, SWP_NOZORDER);
+			//SetWindowPos(hogl, NULL, 0, 0, rcClient.right, rcClient.bottom - 20, SWP_NOZORDER);
 
-			RECT rcStatus;
-			GetDlgItem(hwnd, IDC_MAIN_STATUSBAR);
+			SetWindowPos(hogl, NULL, 0, 0, rcClient.right - 180, rcClient.bottom - 20, SWP_NOZORDER);
+			SetWindowPos(hlvltree, NULL, rcClient.right - 176, rcClient.top, 176, rcClient.bottom - 20, SWP_NOZORDER);
+
 			SendMessage(hstatus, WM_SIZE, 0, 0);
-			GetWindowRect(hstatus, &rcStatus);
 
-			OGL_ResizeScene(rcClient.right, rcClient.bottom);
+			OGL_ResizeScene(rcClient.right - 180, rcClient.bottom - 20);
 			OGL_DrawScene();
 			SwapBuffers(hDC_ogl);
 			break;
@@ -1545,10 +1575,10 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 					System_KbdKeys[VK_F4] = true;
 					break;
 				case IDM_SCENE_PREVHEADER:
-//					System_KbdKeys[VK_DIVIDE] = true;
+					System_KbdKeys[VK_DIVIDE] = true;
 					break;
 				case IDM_SCENE_NEXTHEADER:
-//					System_KbdKeys[VK_MULTIPLY] = true;
+					System_KbdKeys[VK_MULTIPLY] = true;
 					break;
 				case IDM_ACTORS_MAPRENDER:
 					Renderer_EnableMapActors = !Renderer_EnableMapActors;
@@ -1644,7 +1674,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 					CheckUncheckMenu(IDM_OPTIONS_WIREFRAME, Renderer_EnableWireframe);
 					Viewer_RenderMap();
 					break;
-				case IDM_HELP_CONTROLS: {
+/*				case IDM_HELP_CONTROLS: {
 					char CtrlMsg[1024] = "";
 					sprintf(CtrlMsg,
 						"Controls:\n"
@@ -1659,7 +1689,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 						"Numpad / and *: select scene header to use\n"
 						);
 					MessageBox(hwnd, CtrlMsg, "Controls", MB_OK | MB_ICONINFORMATION);
-					break; }
+					break; }*/
 				case IDM_HELP_ABOUT: {
 					sprintf(GLExtensionsSupported, "OpenGL extensions supported and used:\n");
 					if(GLExtension_MultiTexture) sprintf(GLExtensionsSupported, "%sGL_ARB_multitexture\n", GLExtensionsSupported);
@@ -1674,15 +1704,43 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 						"%s", AppTitle, AppVersion, AppBuildName, GLExtensionsSupported);
 					MessageBox(hwnd, AboutMsg, "About", MB_OK | MB_ICONINFORMATION);
 					break; }
-
-//				case IDC_MAIN_LEVELCOMBO: {
-//					ROM_SceneToLoad = SendMessage(GetDlgItem(hwnd, IDC_MAIN_LEVELCOMBO), CB_GETCURSEL, (WPARAM)NULL, (LPARAM)NULL);
-//					SendMessage(hwnd, WM_SETFOCUS, (WPARAM)GetDlgItem(hwnd, IDC_MAIN_OPENGL), (LPARAM)NULL);
-//					Viewer_LoadAreaData();
-//					break; }
 			}
 			break;
 		}
+		case WM_NOTIFY: {
+			switch(LOWORD(wParam)) {
+				case IDC_MAIN_LEVELTREE: {
+					if(((LPNMHDR)lParam)->code == NM_DBLCLK) {
+						char Text[256] = "";
+						memset(&tvi, 0, sizeof(tvi));
+						Selected = (HTREEITEM)SendDlgItemMessage(hwnd, IDC_MAIN_LEVELTREE, TVM_GETNEXTITEM, TVGN_CARET, (LPARAM)Selected);
+
+						TreeView_EnsureVisible(hwnd, Selected);
+						SendDlgItemMessage(hwnd, IDC_MAIN_LEVELTREE, TVM_SELECTITEM, TVGN_CARET, (LPARAM)Selected);
+						tvi.mask = TVIF_TEXT;
+						tvi.pszText = Text;
+						tvi.cchTextMax = 256;
+						tvi.hItem = Selected;
+						if(SendDlgItemMessage(hwnd, IDC_MAIN_LEVELTREE, TVM_GETITEM, TVGN_CARET, (LPARAM)&tvi)) sscanf(tvi.pszText, "%x", &ROM_SceneToLoad);
+
+						SendMessage(hwnd, WM_SETFOCUS, (WPARAM)GetDlgItem(hwnd, IDC_MAIN_OPENGL), (LPARAM)NULL);
+						Viewer_ResetVariables();
+						if(Viewer_LoadAreaData() == -1) {
+							MessageBox(hwnd, "Error while loading level!", "Error", MB_OK | MB_ICONEXCLAMATION);
+							AreaLoaded = true;
+						} else {
+							Viewer_RenderMap();
+						}
+						sprintf(StatusMsg, "Level: 0x%02X", ROM_SceneToLoad);
+
+						/* windows api = overly complicated at times */
+						break; }
+				}
+				break;
+			}
+			break;
+		}
+
 		case WM_CLOSE: {
 			ExitProgram = true;
 			break;
@@ -1699,7 +1757,25 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			System_KbdKeys[wParam] = false;
 			break;
 		}
+		case WM_KILLFOCUS: {
+			/* fix for ghost keypresses when leaving window */
+			MouseButtonDown = false;
+			memset(System_KbdKeys, false, sizeof(System_KbdKeys));
+			break;
+		}
+		default: {
+			return DefWindowProc(hwnd, message, wParam, lParam);
+		}
+	}
+
+	return 0;
+}
+
+LRESULT CALLBACK OGLWndProc(HWND hwnd_ogl, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+	switch(msg) {
 		case WM_LBUTTONDOWN: {
+			SetFocus(hwnd);
 			MouseButtonDown = true;
 			MouseCenterX = (signed int)LOWORD(lParam);
 			MouseCenterY = (signed int)HIWORD(lParam);
@@ -1722,16 +1798,10 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 			}
 			break;
 		}
-		case WM_KILLFOCUS: {
-			/* fix for ghost keypresses when leaving window */
-			MouseButtonDown = false;
-			memset(System_KbdKeys, false, sizeof(System_KbdKeys));
-			break;
-		}
-		default: return DefWindowProc(hwnd, message, wParam, lParam);
+		break;
 	}
 
-	return 0;
+	return DefWindowProc(hwnd_ogl, msg, wParam, lParam);
 }
 
 /*	------------------------------------------------------------ */

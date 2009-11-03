@@ -1,7 +1,7 @@
 #define IDC_MAIN_OPENGL				101
 #define IDC_MAIN_STATUSBAR			102
 
-#define IDC_MAIN_LEVELCOMBO			110
+#define IDC_MAIN_LEVELTREE			110
 
 #define IDM_MAINMENU				200
 
