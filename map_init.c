@@ -9,13 +9,6 @@
 
 #include "globals.h"
 
-typedef struct _SceneNameDataStruct {
-	unsigned long Offset;
-	char *Name;
-} SceneNameDataStruct;
-
-SceneNameDataStruct SceneNameData[256];
-
 /*	------------------------------------------------------------ */
 
 int Zelda_GetMapHeaderList(int HeaderListPos, int CurrentMap)

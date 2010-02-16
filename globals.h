@@ -7,6 +7,7 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include <GL/glext.h>
+#include <GL/wglext.h>
 
 #include <math.h>
 #include <stdio.h>
@@ -177,6 +178,9 @@ extern PFNGLPROGRAMSTRINGARBPROC			glProgramStringARB;
 extern PFNGLPROGRAMENVPARAMETER4FARBPROC	glProgramEnvParameter4fARB;
 extern PFNGLPROGRAMLOCALPARAMETER4FARBPROC	glProgramLocalParameter4fARB;
 
+extern PFNWGLSWAPINTERVALEXTPROC			wglSwapIntervalEXT;
+extern PFNWGLGETSWAPINTERVALEXTPROC			wglGetSwapIntervalEXT;
+
 /*	------------------------------------------------------------
 	VARIABLES
 	------------------------------------------------------------ */
@@ -253,6 +257,9 @@ extern int				MouseCenterX, MouseCenterY;
 extern bool				MouseButtonDown;
 
 /* FILE HANDLING VARIABLES */
+extern char				GameID[9];
+extern int				VersionNo;
+
 extern char				GameTitle[512];
 
 extern FILE				* FileROM;
@@ -437,6 +444,8 @@ extern bool				Renderer_EnableWireframe;
 
 extern bool				Renderer_EnableFragShader;
 
+extern bool				Renderer_EnableVSync;
+
 extern int				CurrentEnvSetting;
 
 /* OPENGL EXTENSION VARIABLES */
@@ -445,6 +454,7 @@ extern bool				GLExtension_MultiTexture;
 extern bool				GLExtension_TextureMirror;
 extern bool				GLExtension_AnisoFilter;
 extern bool				GLExtension_FragProgram;
+extern bool				GLExtension_SwapControl;
 extern char				GLExtensionsSupported[256];
 
 extern bool				GLExtensionsUnsupported;
@@ -655,3 +665,9 @@ struct PrimColor_Struct {
 	float L;
 };
 extern struct PrimColor_Struct PrimColor;
+
+struct SceneNameData_Struct {
+	unsigned long Offset;
+	char Name[256];
+};
+extern struct SceneNameData_Struct SceneNameData[256];

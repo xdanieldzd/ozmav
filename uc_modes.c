@@ -178,7 +178,7 @@ int F3DEX2_Cmd_SETOTHERMODE_L()
 
 			Blender_Cycle1 = (W1 >> 16);
 			Blender_Cycle2 = ((W1 << 16) >> 16);
-			F3DEX2_ForceBlender(FORCE_BL, ALPHA_CVG_SEL);
+			//F3DEX2_ForceBlender(FORCE_BL, ALPHA_CVG_SEL);
 
 			if(F3DEX2_SetAlphaCompare(ALPHA_CVG_SEL, CVG_X_ALPHA, (BlendColor[3] * 0xFF)))
 				{ break; }
@@ -202,33 +202,51 @@ int F3DEX2_ForceBlender(bool FORCE_BL, bool ALPHA_CVG_SEL)
 	/* ... ... ... bleh */
 
 	if(FORCE_BL && (RDPCycleMode < 2) && !(ALPHA_CVG_SEL)) {
+		//0C184DD8: Mem*0 + Fog*1 | In*AFog + Mem*1-A
 		if((Blender_Cycle1 == 0x0C18) && (Blender_Cycle2 == 0x4DD8)) {
-			glBlendFunc(GL_SRC_ALPHA, GL_DST_COLOR);
+			//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			//glAlphaFunc(GL_GREATER, 0.5f);
+			glBlendFunc(GL_ONE, GL_ZERO);
 			glAlphaFunc(GL_GREATER, 0.3f);
 		} else
 
-		if((Blender_Cycle1 == 0x0C18) && (Blender_Cycle2 == 0x49D8)) {
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		if((Blender_Cycle1 == 0xC810) && (Blender_Cycle2 == 0x4A50)) {
+			glBlendFunc(GL_SRC_COLOR, GL_ONE_MINUS_SRC_COLOR);
+			glAlphaFunc(GL_GEQUAL, 0.5f);
+		} else
+
+		if((Blender_Cycle1 == 0x0C18) && (Blender_Cycle2 == 0x4A50)) {
+			glBlendFunc(GL_SRC_COLOR, GL_ONE_MINUS_SRC_COLOR);
 			glAlphaFunc(GL_GEQUAL, 0.5f);
 		} else
 
 		if((Blender_Cycle1 == 0xC810) && (Blender_Cycle2 == 0x4DD8)) {
+			glBlendFunc(GL_SRC_COLOR, GL_ONE_MINUS_SRC_COLOR);
+			glAlphaFunc(GL_GEQUAL, 0.5f);
+		} else
+
+		if((Blender_Cycle1 == 0xC810) && (Blender_Cycle2 == 0x49D8)) {		//water + skulltula house spiderwebs ?!?
+			glBlendFunc(GL_SRC_COLOR, GL_ONE_MINUS_SRC_COLOR);
+			glAlphaFunc(GL_GREATER, 0.3f);
+		} else
+
+		if((Blender_Cycle1 == 0x0C18) && (Blender_Cycle2 == 0x49D8)) {		//water zora river waterfall
+			glBlendFunc(GL_ONE_MINUS_SRC_COLOR, GL_DST_COLOR);
+			glAlphaFunc(GL_GEQUAL, 0.5f);
+		} else
+
+/*		if((Blender_Cycle1 == 0xC810) && (Blender_Cycle2 == 0x4DD8)) {
 			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 			glAlphaFunc(GL_GEQUAL, 0.5f);
 		} else
 
-		if((Blender_Cycle1 == 0xC810) && (Blender_Cycle2 == 0x49D8)) {
+*/		if((Blender_Cycle1 == 0xC810) && (Blender_Cycle2 == 0x4B50)) {		//death mountain plane
 			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 			glAlphaFunc(GL_GEQUAL, 0.5f);
 		} else
 
-		if((Blender_Cycle1 == 0xC810) && (Blender_Cycle2 == 0x4A50)) {
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-			glAlphaFunc(GL_GEQUAL, 0.5f);
-		} else
-
-		if((Blender_Cycle1 == 0xC810) && (Blender_Cycle2 == 0x4B50)) {
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		if((Blender_Cycle1 == 0xC810) && (Blender_Cycle2 == 0x4F50)) {		//pathways
+			glBlendFunc(GL_SRC_COLOR, GL_ONE_MINUS_SRC_COLOR);
 			glAlphaFunc(GL_GEQUAL, 0.5f);
 		} else
 
@@ -241,6 +259,29 @@ int F3DEX2_ForceBlender(bool FORCE_BL, bool ALPHA_CVG_SEL)
 
 		glEnable(GL_BLEND);
 		glEnable(GL_ALPHA_TEST);
+/*
+		//DAEDALUS GRAPHICS 0.08B PRE 3
+		static const char * sc_szBlClr[4] = { "In",  "Mem",  "Bl",     "Fog" };
+		static const char * sc_szBlA1[4]  = { "AIn", "AFog", "AShade", "0" };
+		static const char * sc_szBlA2[4]  = { "1-A", "AMem", "1",      "?" };
+
+		unsigned int test = Blender_Cycle1 * 0x10000 + Blender_Cycle2;
+
+		unsigned int dwM1A_1 = (test>>14) & 0x3;
+		unsigned int dwM1B_1 = (test>>10) & 0x3;
+		unsigned int dwM2A_1 = (test>>6) & 0x3;
+		unsigned int dwM2B_1 = (test>>2) & 0x3;
+
+		unsigned int dwM1A_2 = (test>>12) & 0x3;
+		unsigned int dwM1B_2 = (test>>8) & 0x3;
+		unsigned int dwM2A_2 = (test>>4) & 0x3;
+		unsigned int dwM2B_2 = (test   ) & 0x3;
+
+		fprintf(FileSystemLog, "%08X: %s*%s + %s*%s | %s*%s + %s*%s\n",
+			test,
+			sc_szBlClr[dwM1A_1], sc_szBlA1[dwM1B_1], sc_szBlClr[dwM2A_1], sc_szBlA2[dwM2B_1],
+			sc_szBlClr[dwM1A_2], sc_szBlA1[dwM1B_2], sc_szBlClr[dwM2A_2], sc_szBlA2[dwM2B_2]);
+*/
 	} else {
 		glDisable(GL_BLEND);
 		glDisable(GL_ALPHA_TEST);

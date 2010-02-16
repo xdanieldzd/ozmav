@@ -24,7 +24,9 @@ int OGL_ResetProperties(void)
 {
 	glShadeModel(GL_SMOOTH);
 	glEnable(GL_POINT_SMOOTH);
+	glEnable(GL_LINE_SMOOTH);
 	glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
+	glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
 
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
@@ -71,6 +73,8 @@ int OGL_ResetProperties(void)
 
 int OGL_InitExtensions(void)
 {
+	memset(GLExtensionsSupported, 0x00, sizeof(GLExtensionsSupported));
+
 	GLExtension_List = strdup(glGetString(GL_EXTENSIONS));
 	int ExtListLen = strlen(GLExtension_List);
 	int i;
@@ -86,6 +90,7 @@ int OGL_InitExtensions(void)
 		glMultiTexCoord4fARB		= (PFNGLMULTITEXCOORD4FARBPROC) wglGetProcAddress("glMultiTexCoord4fARB");
 		glActiveTextureARB			= (PFNGLACTIVETEXTUREARBPROC) wglGetProcAddress("glActiveTextureARB");
 		glClientActiveTextureARB	= (PFNGLCLIENTACTIVETEXTUREARBPROC) wglGetProcAddress("glClientActiveTextureARB");
+		sprintf(GLExtensionsSupported, "%sGL_ARB_multitexture\n", GLExtensionsSupported);
 	} else {
 		GLExtensionsUnsupported = true;
 		sprintf(GLExtensionsErrorMsg, "%sGL_ARB_multitexture\n", GLExtensionsErrorMsg);
@@ -93,6 +98,7 @@ int OGL_InitExtensions(void)
 
 	if(strstr(GLExtension_List, "GL_ARB_texture_mirrored_repeat")) {
 		GLExtension_TextureMirror = true;
+		sprintf(GLExtensionsSupported, "%sGL_ARB_texture_mirrored_repeat\n", GLExtensionsSupported);
 	} else {
 		GLExtensionsUnsupported = true;
 		sprintf(GLExtensionsErrorMsg, "%sGL_ARB_texture_mirrored_repeat\n", GLExtensionsErrorMsg);
@@ -100,6 +106,7 @@ int OGL_InitExtensions(void)
 
 	if(strstr(GLExtension_List, "GL_EXT_texture_filter_anisotropic")) {
 		GLExtension_AnisoFilter = true;
+		sprintf(GLExtensionsSupported, "%sGL_EXT_texture_filter_anisotropic\n", GLExtensionsSupported);
 	} else {
 		GLExtensionsUnsupported = true;
 		sprintf(GLExtensionsErrorMsg, "%sGL_EXT_texture_filter_anisotropic\n", GLExtensionsErrorMsg);
@@ -113,9 +120,20 @@ int OGL_InitExtensions(void)
 		glProgramStringARB				= (PFNGLPROGRAMSTRINGARBPROC) wglGetProcAddress("glProgramStringARB");
 		glProgramEnvParameter4fARB		= (PFNGLPROGRAMENVPARAMETER4FARBPROC) wglGetProcAddress("glProgramEnvParameter4fARB");
 		glProgramLocalParameter4fARB	= (PFNGLPROGRAMLOCALPARAMETER4FARBPROC) wglGetProcAddress("glProgramLocalParameter4fARB");
+		sprintf(GLExtensionsSupported, "%sGL_ARB_fragment_program\n", GLExtensionsSupported);
 	} else {
 		GLExtensionsUnsupported = true;
 		sprintf(GLExtensionsErrorMsg, "%sGL_ARB_fragment_program\n", GLExtensionsErrorMsg);
+	}
+
+	if(strstr(GLExtension_List, "WGL_EXT_swap_control")) {
+		GLExtension_SwapControl = true;
+		wglSwapIntervalEXT				= (PFNWGLSWAPINTERVALEXTPROC) wglGetProcAddress("wglSwapIntervalEXT");
+		wglGetSwapIntervalEXT			= (PFNWGLGETSWAPINTERVALEXTPROC) wglGetProcAddress("wglGetSwapIntervalEXT");
+		sprintf(GLExtensionsSupported, "%sWGL_EXT_swap_control\n", GLExtensionsSupported);
+	} else {
+		GLExtensionsUnsupported = true;
+		sprintf(GLExtensionsErrorMsg, "%sWGL_EXT_swap_control\n", GLExtensionsErrorMsg);
 	}
 
 	if(GLExtensionsUnsupported) {
@@ -166,6 +184,48 @@ int OGL_DrawScene(void)
 		ScActorInfo_CurrentCount = 0;
 		DoorInfo_CurrentCount = 0;
 		Viewer_RenderAllActors();
+
+		/* skybox test */
+/*		glDisable(GL_FOG);
+		glDisable(GL_LIGHTING);
+		glCullFace(GL_FRONT);
+
+		glBegin(GL_QUADS);
+			glColor3f(0.0f, 0.0f, 0.0f);
+
+			glVertex3f( 15000.0f, 15000.0f, 15000.0f);   //V2
+			glVertex3f( 15000.0f,-15000.0f, 15000.0f);   //V1
+			glVertex3f( 15000.0f,-15000.0f,-15000.0f);   //V3
+			glVertex3f( 15000.0f, 15000.0f,-15000.0f);   //V4
+
+			glVertex3f( 15000.0f, 15000.0f,-15000.0f);   //V4
+			glVertex3f( 15000.0f,-15000.0f,-15000.0f);   //V3
+			glVertex3f(-15000.0f,-15000.0f,-15000.0f);   //V5
+			glVertex3f(-15000.0f, 15000.0f,-15000.0f);   //V6
+
+			glVertex3f(-15000.0f, 15000.0f,-15000.0f);   //V6
+			glVertex3f(-15000.0f,-15000.0f,-15000.0f);   //V5
+			glVertex3f(-15000.0f,-15000.0f, 15000.0f);   //V7
+			glVertex3f(-15000.0f, 15000.0f, 15000.0f);   //V8
+
+			glVertex3f(-15000.0f, 15000.0f,-15000.0f);   //V6
+			glVertex3f(-15000.0f, 15000.0f, 15000.0f);   //V8
+			glVertex3f( 15000.0f, 15000.0f, 15000.0f);   //V2
+			glVertex3f( 15000.0f, 15000.0f,-15000.0f);   //V4
+
+			glVertex3f(-15000.0f,-15000.0f, 15000.0f);   //V7
+			glVertex3f(-15000.0f,-15000.0f,-15000.0f);   //V5
+			glVertex3f( 15000.0f,-15000.0f,-15000.0f);   //V3
+			glVertex3f( 15000.0f,-15000.0f, 15000.0f);   //V1
+
+			glVertex3f(-15000.0f, 15000.0f, 15000.0f);   //V8
+			glVertex3f(-15000.0f,-15000.0f, 15000.0f);   //V7
+			glVertex3f( 15000.0f,-15000.0f, 15000.0f);   //V1
+			glVertex3f( 15000.0f, 15000.0f, 15000.0f);   //V2
+		glEnd();
+		glEnable(GL_LIGHTING);
+		if(Renderer_EnableFog) { glEnable(GL_FOG); } else { glDisable(GL_FOG); }*/
+		/* skybox test */
 
 		/* #2 - RENDER MAP */
 		Renderer_GLDisplayList_Current = Renderer_GLDisplayList;
@@ -232,17 +292,28 @@ int OGL_DrawScene(void)
 
 void OGL_ResizeScene(GLsizei width, GLsizei height)
 {
-	if (height == 0) height = 1;
+/*	if (height == 0) height = 1;
 
 	glViewport(0, 0, width, height);
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 
-	gluPerspective(60.0f, (GLfloat)width / (GLfloat)height, 0.1f, 100.0f);
+	gluPerspective(60.0f, (GLfloat)width / (GLfloat)height, 0.1f, 1000.0f);
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
+*/
+	GLfloat aspect, fnear = 0.1f, ffar = 1000000.0f;
+	glViewport (0, 0, width, height);
+	glMatrixMode (GL_PROJECTION);
+	glLoadIdentity ();
+	aspect = ((GLfloat) width ) / ((GLfloat) height );
+    GLfloat right, top;
+    top = fnear * tan(0.5 * 60.0f * 3.14159265f / 180.0);
+    right = aspect * top;
+    glFrustum(-right, right, -top, top, fnear, ffar);
+	glMatrixMode(GL_MODELVIEW);
 }
 
 void OGL_KillTarget(void)

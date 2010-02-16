@@ -25,7 +25,10 @@ PFNGLBINDPROGRAMARBPROC				glBindProgramARB				= NULL;
 PFNGLDELETEPROGRAMSARBPROC			glDeleteProgramsARB				= NULL;
 PFNGLPROGRAMSTRINGARBPROC			glProgramStringARB				= NULL;
 PFNGLPROGRAMENVPARAMETER4FARBPROC	glProgramEnvParameter4fARB		= NULL;
-PFNGLPROGRAMLOCALPARAMETER4FARBPROC	glProgramLocalParameter4fARB	= NULL;;
+PFNGLPROGRAMLOCALPARAMETER4FARBPROC	glProgramLocalParameter4fARB	= NULL;
+
+PFNWGLSWAPINTERVALEXTPROC			wglSwapIntervalEXT				= NULL;
+PFNWGLGETSWAPINTERVALEXTPROC		wglGetSwapIntervalEXT			= NULL;
 
 /*	------------------------------------------------------------
 	VARIABLES
@@ -104,6 +107,9 @@ int				MouseCenterX = 0, MouseCenterY = 0;
 bool			MouseButtonDown = false;
 
 /* FILE HANDLING VARIABLES */
+char			GameID[9] = "";
+int				VersionNo = 0;
+
 char			GameTitle[512] = "";
 
 FILE			* FileROM = NULL;
@@ -286,6 +292,8 @@ bool			Renderer_EnableWireframe = false;
 
 bool			Renderer_EnableFragShader = true;
 
+bool			Renderer_EnableVSync = true;
+
 int				CurrentEnvSetting = 0;
 
 /* OPENGL EXTENSION VARIABLES */
@@ -294,6 +302,7 @@ bool			GLExtension_MultiTexture = false;
 bool			GLExtension_TextureMirror = false;
 bool			GLExtension_AnisoFilter = false;
 bool			GLExtension_FragProgram = false;
+bool			GLExtension_SwapControl = false;
 char			GLExtensionsSupported[256] = "";
 
 bool			GLExtensionsUnsupported = false;
@@ -339,6 +348,8 @@ struct FPCache_Struct FPCache[256];
 struct CollisionType_Struct CollisionType[512];
 
 struct PrimColor_Struct PrimColor;
+
+struct SceneNameData_Struct SceneNameData[256];
 
 /*	------------------------------------------------------------ */
 
@@ -396,6 +407,7 @@ int Viewer_Initialize()
 	//	EnableMenuItem(hmenu, IDM_OPTIONS_FRAGSHADER, MF_BYCOMMAND | MF_ENABLED);
 		EnableMenuItem(hmenu, IDM_OPTIONS_RENDERFOG, MF_BYCOMMAND | MF_ENABLED);
 		EnableMenuItem(hmenu, IDM_OPTIONS_WIREFRAME, MF_BYCOMMAND | MF_ENABLED);
+		EnableMenuItem(hmenu, IDM_OPTIONS_VSYNC, MF_BYCOMMAND | MF_ENABLED);
 	}
 
 	Viewer_InitLevelSelector();
@@ -429,8 +441,6 @@ int Viewer_GetGameVersion()
 	char Temp[1024];
 
 	char Title[21]; memset(Title, 0x00, sizeof(Title));
-	char GameID[9];
-	int Version;
 
 	bool CheckOkay = true;
 	GameMode = 0;
@@ -439,11 +449,11 @@ int Viewer_GetGameVersion()
 
 	memcpy(Title, ROMBuffer + 8, 20);
 	memcpy(GameID, ROMBuffer + 14, 8);
-	Version = GameID[7];
+	VersionNo = GameID[7];
 	GameID[0] = GameID[3]; GameID[1] = GameID[4]; GameID[2] = GameID[5]; GameID[3] = GameID[6];
 	GameID[4] = 0x00; GameID[5] = 0x00; GameID[6] = 0x00; GameID[7] = 0x00;
 
-	if		(((strcmp(Title, "THE LEGEND OF ZELDA ") == 0) && strcmp(GameID, "CZLE") == 0) && Version == 0) {
+	if		(((strcmp(Title, "THE LEGEND OF ZELDA ") == 0) && strcmp(GameID, "CZLE") == 0) && VersionNo == 0) {
 		/* oot us/jpn 1.0 !decompressed! */
 		ROM_SceneTableOffset = 0xB71440;
 		ROM_MaxSceneCount = 0x64;
@@ -452,7 +462,7 @@ int Viewer_GetGameVersion()
 		strcpy(GameTitle, "Ocarina of Time (JU) [v1.0]");
 	}
 
-	else if	(((strcmp(Title, "THE LEGEND OF ZELDA ") == 0) && strcmp(GameID, "CZLE") == 0) && Version == 1) {
+	else if	(((strcmp(Title, "THE LEGEND OF ZELDA ") == 0) && strcmp(GameID, "CZLE") == 0) && VersionNo == 1) {
 		/* oot us/jpn 1.1 !decompressed! */
 		ROM_SceneTableOffset = 0xB71600;
 		ROM_MaxSceneCount = 0x64;
@@ -461,7 +471,7 @@ int Viewer_GetGameVersion()
 		strcpy(GameTitle, "Ocarina of Time (JU) [v1.1]");
 	}
 
-	else if	(((strcmp(Title, "THE LEGEND OF ZELDA ") == 0) && strcmp(GameID, "CZLE") == 0) && Version == 2) {
+	else if	(((strcmp(Title, "THE LEGEND OF ZELDA ") == 0) && strcmp(GameID, "CZLE") == 0) && VersionNo == 2) {
 		/* oot us/jpn 1.2 !decompressed! */
 		ROM_SceneTableOffset = 0xB71450;
 		ROM_MaxSceneCount = 0x64;
@@ -470,7 +480,7 @@ int Viewer_GetGameVersion()
 		strcpy(GameTitle, "Ocarina of Time (JU) [v1.2]");
 	}
 
-	else if	(((strcmp(Title, "THE LEGEND OF ZELDA ") == 0) && strcmp(GameID, "NZLP") == 0) && Version == 0) {
+	else if	(((strcmp(Title, "THE LEGEND OF ZELDA ") == 0) && strcmp(GameID, "NZLP") == 0) && VersionNo == 0) {
 		/* oot pal 1.0 !decompressed! */
 		ROM_SceneTableOffset = 0xB70D60;
 		ROM_MaxSceneCount = 0x64;
@@ -479,7 +489,7 @@ int Viewer_GetGameVersion()
 		strcpy(GameTitle, "Ocarina of Time (E) [v1.0]");
 	}
 
-	else if	(((strcmp(Title, "THE LEGEND OF ZELDA ") == 0) && strcmp(GameID, "NZLP") == 0) && Version == 1) {
+	else if	(((strcmp(Title, "THE LEGEND OF ZELDA ") == 0) && strcmp(GameID, "NZLP") == 0) && VersionNo == 1) {
 		/* oot pal 1.1 !decompressed! */
 		ROM_SceneTableOffset = 0xB70DA0;
 		ROM_MaxSceneCount = 0x64;
@@ -488,18 +498,18 @@ int Viewer_GetGameVersion()
 		strcpy(GameTitle, "Ocarina of Time (E) [v1.1]");
 	}
 
-	else if((((strcmp(Title, "THE LEGEND OF ZELDA ") == 0) && strcmp(GameID, "NZLE") == 0) && Version == 15) ||
-			(((strcmp(Title, "THE LEGEND OF DEBUG ") == 0) && strcmp(GameID, "CZLE") == 0) && Version == 15) ||
-			(((strcmp(Title, "ZELDA OOT NIGHTMARE ") == 0) && strcmp(GameID, "NZLE") == 0) && Version == 15)) {
+	else if((((strcmp(Title, "THE LEGEND OF ZELDA ") == 0) && strcmp(GameID, "NZLE") == 0) && VersionNo == 15) ||
+			(((strcmp(Title, "THE LEGEND OF DEBUG ") == 0) && strcmp(GameID, "CZLE") == 0) && VersionNo == 15) ||
+			(((strcmp(Title, "ZELDA OOT NIGHTMARE ") == 0) && strcmp(GameID, "NZLE") == 0) && VersionNo == 15)) {
 		/* mq debug rom */
 		ROM_SceneTableOffset = 0xBA0BB0;
 		ROM_MaxSceneCount = 0x6D;
 		ROM_SceneEntryLength = 0x14;
 		GameMode = 0;
-		strcpy(GameTitle, "OoT Master Quest [Debug]");
+		strcpy(GameTitle, "Ocarina of Time: Master Quest [Debug ROM]");
 	}
 
-	else if	(((strcmp(Title, "THE MASK OF MUJURA  ") == 0) && strcmp(GameID, "NZSJ") == 0) && Version == 0) {
+	else if	(((strcmp(Title, "THE MASK OF MUJURA  ") == 0) && strcmp(GameID, "NZSJ") == 0) && VersionNo == 0) {
 		/* mm jpn 1.0 !decompressed! */
 		ROM_SceneTableOffset = 0xC76510;
 		ROM_MaxSceneCount = 0x70;
@@ -508,7 +518,7 @@ int Viewer_GetGameVersion()
 		strcpy(GameTitle, "Majora's Mask (J) [v1.0]");
 	}
 
-	else if	(((strcmp(Title, "THE MASK OF MUJURA  ") == 0) && strcmp(GameID, "NZSJ") == 0) && Version == 1) {
+	else if	(((strcmp(Title, "THE MASK OF MUJURA  ") == 0) && strcmp(GameID, "NZSJ") == 0) && VersionNo == 1) {
 		/* mm jpn 1.1 !decompressed! */
 		ROM_SceneTableOffset = 0xC767E0;
 		ROM_MaxSceneCount = 0x70;
@@ -517,7 +527,7 @@ int Viewer_GetGameVersion()
 		strcpy(GameTitle, "Majora's Mask (J) [v1.1]");
 	}
 
-	else if	(((strcmp(Title, "ZELDA MAJORA'S MASK ") == 0) && strcmp(GameID, "NZSE") == 0) && Version == 0) {
+	else if	(((strcmp(Title, "ZELDA MAJORA'S MASK ") == 0) && strcmp(GameID, "NZSE") == 0) && VersionNo == 0) {
 		/* mm us 1.0 !decompressed! */
 		ROM_SceneTableOffset = 0xC5A1E0;
 		ROM_MaxSceneCount = 0x70;
@@ -526,7 +536,7 @@ int Viewer_GetGameVersion()
 		strcpy(GameTitle, "Majora's Mask (U) [v1.0]");
 	}
 
-	else if	(((strcmp(Title, "ZELDA MAJORA'S MASK ") == 0) && strcmp(GameID, "NZSP") == 0) && Version == 0) {
+	else if	(((strcmp(Title, "ZELDA MAJORA'S MASK ") == 0) && strcmp(GameID, "NZSP") == 0) && VersionNo == 0) {
 		/* mm pal 1.0 !decompressed! */
 		ROM_SceneTableOffset = 0xDA8860;
 		ROM_MaxSceneCount = 0x70;
@@ -535,13 +545,13 @@ int Viewer_GetGameVersion()
 		strcpy(GameTitle, "Majora's Mask (E) [v1.0]");
 	}
 
-	else if	(((strcmp(Title, "MAJORA'S MASK       ") == 0) && strcmp(GameID, "NDLE") == 0) && Version == 0) {
+	else if	(((strcmp(Title, "MAJORA'S MASK       ") == 0) && strcmp(GameID, "NDLE") == 0) && VersionNo == 0) {
 		/* mm us demo !decompressed! */
 		ROM_SceneTableOffset = 0xC5A3E0;
 		ROM_MaxSceneCount = 0x70;
 		ROM_SceneEntryLength = 0x10;
 		GameMode = 1;
-		strcpy(GameTitle, "Majora's Mask (U) [Demo]");
+		strcpy(GameTitle, "Majora's Mask (U) [Kiosk Demo]");
 	}
 
 	else {
@@ -550,7 +560,7 @@ int Viewer_GetGameVersion()
 
 	if(CheckOkay == false) {
 		sprintf(Temp, "ROM couldn't be recognized!\n\nTitle: '%s', Game ID: '%s', Version: %d",
-			Title, GameID, Version);
+			Title, GameID, VersionNo);
 		MessageBox(hwnd, Temp, "Error", MB_OK | MB_ICONEXCLAMATION);
 		GameMode = 0;
 		return -1;
@@ -559,9 +569,28 @@ int Viewer_GetGameVersion()
 	return 0;
 }
 
+int Viewer_GetSceneNameIndex(unsigned int SceneNo)
+{
+	int i = 0; unsigned int TempOffset = 0;
+
+	TempOffset = (ROM_SceneTableOffset / 4) + (SceneNo * ROM_SceneEntryLength) / 4;
+	memcpy(&Readout_Current1, &ROMBuffer[TempOffset], 4);
+	Helper_SplitCurrentVals(true);
+	TempOffset = (Readout_CurrentByte1 * 0x1000000) + (Readout_CurrentByte2 * 0x10000) + (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
+
+	for(i = 0; i < ROM_MaxSceneCount + 1; i++) {
+//		sprintf(ErrorMsg, "%x -> %x", SceneNameData[i].Offset, TempOffset);
+//		MessageBox(hwnd, ErrorMsg, "", 0);
+		if(SceneNameData[i].Offset == TempOffset) return i;
+	}
+
+	return -1;
+}
+
 int Viewer_InitLevelSelector()
 {
-	int i = 0; char Temp[256];
+	int i = 0, j = 0;
+	char Temp[256]; int MapCount[256];
 
 	/* delete root */
 	SendDlgItemMessage(hwnd, IDC_MAIN_LEVELTREE, TVM_DELETEITEM, 0, 0);
@@ -573,15 +602,73 @@ int Viewer_InitLevelSelector()
 	tvinsert.item.pszText = GameTitle;
 	Parent = (HTREEITEM)SendDlgItemMessage(hwnd, IDC_MAIN_LEVELTREE, TVM_INSERTITEM, 0, (LPARAM)&tvinsert);
 
+	/* get scene names + offsets */
+	unsigned int Offset = 0; char Name[256];
+	sprintf(Temp, "%s\\data\\%s_0x%02X.txt", AppPath, GameID, VersionNo);
+	FILE * SceneNames = fopen(Temp, "rb");
+	if(SceneNames) {
+		fseek(SceneNames, 0, SEEK_END);
+		int End = ftell(SceneNames);
+		rewind(SceneNames);
+
+		while(i < ROM_MaxSceneCount + 1) {
+			/* get offset */
+			if(Helper_FileReadLine(SceneNames, End, Temp) == -1) break;
+			sscanf(Temp, "%x", &Offset);
+			/* get name */
+			if(Helper_FileReadLine(SceneNames, End, Name) == -1) break;
+
+			SceneNameData[i].Offset = Offset;
+			strcpy(SceneNameData[i].Name, Name);
+			i++;
+		}
+	}
+
+	/* get amount of maps per scene */
+	for(i = 0; i < ROM_MaxSceneCount + 1; i++) {
+		bool End = false;
+		unsigned int TempOffset = (ROM_SceneTableOffset / 4) + (i * ROM_SceneEntryLength) / 4;
+		memcpy(&Readout_Current1, &ROMBuffer[TempOffset], 4);
+		Helper_SplitCurrentVals(true);
+		TempOffset = (Readout_CurrentByte1 * 0x1000000) + (Readout_CurrentByte2 * 0x10000) + (Readout_CurrentByte3 * 0x100) + Readout_CurrentByte4;
+		while(!End) {
+			unsigned int Cmd = (ROMBuffer[TempOffset / 4] & 0xFFFF00FF);
+			if(Cmd == 0x14) End = true;
+			if(Cmd == 0x04) MapCount[i] = (ROMBuffer[TempOffset / 4] & 0x00FFFF00) >> 8;
+//			sprintf(Temp, "%04X: %04X (%04X)", SceneOffset, Cmd, MapCount[i]);
+//			MessageBox(hwnd, Temp, "", 0);
+			TempOffset += 8;
+		}
+	}
+
+	memset(Temp, 0x00, sizeof(Temp));
+
 	/* create scene nodes */
 	for(i = 0; i < ROM_MaxSceneCount + 1; i++) {
-		sprintf(Temp, "0x%02X", i);
+		if(SceneNames) {
+			int ListIndex = Viewer_GetSceneNameIndex(i);
+			if(ListIndex == -1) {
+				sprintf(Temp, "0x%02X: <no description>", i);
+			} else {
+				sprintf(Temp, "0x%02X: %s", i, SceneNameData[ListIndex].Name);
+			}
+		} else {
+			sprintf(Temp, "0x%02X: <no description>", i);
+		}
 		Root = Parent;
 		Before = Parent;
 		tvinsert.hParent = Parent;
 		tvinsert.hInsertAfter = TVI_LAST;
 		tvinsert.item.pszText = Temp;
-		SendDlgItemMessage(hwnd, IDC_MAIN_LEVELTREE, TVM_INSERTITEM, 0, (LPARAM)&tvinsert);
+		Before = (HTREEITEM)SendDlgItemMessage(hwnd, IDC_MAIN_LEVELTREE, TVM_INSERTITEM, 0, (LPARAM)&tvinsert);
+
+		for(j = 0; j < MapCount[i]; j++) {
+			sprintf(Temp, "0x%02X: Map %02d", i, j);
+			tvinsert.hParent = Before;
+			tvinsert.hInsertAfter = TVI_LAST;
+			tvinsert.item.pszText = Temp;
+			SendDlgItemMessage(hwnd, IDC_MAIN_LEVELTREE, TVM_INSERTITEM, 0, (LPARAM)&tvinsert);
+		}
 	}
 
 	return 0;
@@ -693,7 +780,7 @@ int Viewer_LoadAreaData()
 
 	ZSceneFilesize = Scene_Length;
 
-	Zelda_GetSceneName();
+//	Zelda_GetSceneName();
 
 	/* copy current scene into buffer */
 	ZSceneBuffer = (unsigned int*) malloc (sizeof(int) * Scene_Length);
@@ -825,6 +912,9 @@ int Viewer_LoadAreaData()
 	memset(SystemLogMsg, 0x00, sizeof(SystemLogMsg));
 
 	sprintf(StatusMsg, "Level: 0x%02X", ROM_SceneToLoad);
+
+	memset(Scene_Name, 0x00, sizeof(Scene_Name));
+	strcpy(Scene_Name, SceneNameData[Viewer_GetSceneNameIndex(ROM_SceneToLoad)].Name);
 
 	sprintf(WindowTitle, "%s %s - %s", AppTitle, AppVersion, Scene_Name);
 	SetWindowText(hwnd, WindowTitle);
@@ -1099,7 +1189,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 			WS_OVERLAPPEDWINDOW,
 			CW_USEDEFAULT,
 			CW_USEDEFAULT,
-			798,
+			918,
 			551,
 			HWND_DESKTOP,
 			NULL,
@@ -1145,7 +1235,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 			WS_EX_CLIENTEDGE,
 			"SysTreeView32",
 			"",
-			TVS_HASBUTTONS | TVS_DISABLEDRAGDROP | TVS_LINESATROOT | WS_CHILD | WS_VISIBLE,
+			TVS_HASBUTTONS | TVS_DISABLEDRAGDROP | TVS_LINESATROOT | TVS_HASLINES | WS_CHILD | WS_VISIBLE,
 			0,
 			0,
 			128,
@@ -1186,6 +1276,8 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 
 	Renderer_EnableFragShader = GetPrivateProfileInt("Viewer", "UseFragShader", true, INIPath);
 
+	Renderer_EnableVSync = GetPrivateProfileInt("Viewer", "EnableVSync", true, INIPath);
+
 	CheckUncheckMenu(IDM_ACTORS_MAPRENDER, Renderer_EnableMapActors);
 	CheckUncheckMenu(IDM_ACTORS_SCENERENDER, Renderer_EnableSceneActors);
 	CheckUncheckMenu(IDM_ACTORS_DOORRENDER, Renderer_EnableDoors);
@@ -1194,6 +1286,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 	CheckUncheckMenu(IDM_OPTIONS_WAVEFRONT, Renderer_EnableWavefrontDump);
 	//CheckUncheckMenu(IDM_OPTIONS_FRAGSHADER, Renderer_EnableFragShader);
 	CheckUncheckMenu(IDM_OPTIONS_RENDERFOG, Renderer_EnableFog);
+	CheckUncheckMenu(IDM_OPTIONS_VSYNC, Renderer_EnableVSync);
 	CheckUncheckMenu(IDM_OPTIONS_WIREFRAME, Renderer_EnableWireframe);
 
 	CheckUncheckMenu_Filters();
@@ -1506,6 +1599,9 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 	sprintf(TempStr, "%d", Renderer_EnableFragShader);
 	WritePrivateProfileString("Viewer", "UseFragShader", TempStr, INIPath);
 
+	sprintf(TempStr, "%d", Renderer_EnableVSync);
+	WritePrivateProfileString("Viewer", "EnableVSync", TempStr, INIPath);
+
 	OGL_KillTarget();
 	DestroyWindow(hwnd);
 
@@ -1537,12 +1633,12 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
 			GetClientRect(hwnd, &rcClient);
 			//SetWindowPos(hogl, NULL, 0, 0, rcClient.right, rcClient.bottom - 20, SWP_NOZORDER);
 
-			SetWindowPos(hogl, NULL, 0, 0, rcClient.right - 180, rcClient.bottom - 20, SWP_NOZORDER);
-			SetWindowPos(hlvltree, NULL, rcClient.right - 176, rcClient.top, 176, rcClient.bottom - 20, SWP_NOZORDER);
+			SetWindowPos(hogl, NULL, 0, 0, rcClient.right - 270, rcClient.bottom - 20, SWP_NOZORDER);
+			SetWindowPos(hlvltree, NULL, rcClient.right - 266, rcClient.top, 266, rcClient.bottom - 20, SWP_NOZORDER);
 
 			SendMessage(hstatus, WM_SIZE, 0, 0);
 
-			OGL_ResizeScene(rcClient.right - 180, rcClient.bottom - 20);
+			OGL_ResizeScene(rcClient.right - 270, rcClient.bottom - 20);
 			OGL_DrawScene();
 			SwapBuffers(hDC_ogl);
 			break;
@@ -1690,17 +1786,19 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
 						);
 					MessageBox(hwnd, CtrlMsg, "Controls", MB_OK | MB_ICONINFORMATION);
 					break; }*/
+				case IDM_OPTIONS_VSYNC: {
+					if(GLExtension_SwapControl) {
+						Renderer_EnableVSync = !Renderer_EnableVSync;
+						wglSwapIntervalEXT(Renderer_EnableVSync);
+						CheckUncheckMenu(IDM_OPTIONS_VSYNC, Renderer_EnableVSync);
+					}
+					break; }
 				case IDM_HELP_ABOUT: {
-					sprintf(GLExtensionsSupported, "OpenGL extensions supported and used:\n");
-					if(GLExtension_MultiTexture) sprintf(GLExtensionsSupported, "%sGL_ARB_multitexture\n", GLExtensionsSupported);
-					if(GLExtension_TextureMirror) sprintf(GLExtensionsSupported, "%sGL_ARB_texture_mirrored_repeat\n", GLExtensionsSupported);
-					if(GLExtension_AnisoFilter) sprintf(GLExtensionsSupported, "%sGL_EXT_texture_filter_anisotropic\n", GLExtensionsSupported);
-					if(GLExtension_FragProgram) sprintf(GLExtensionsSupported, "%sGL_ARB_fragment_program\n", GLExtensionsSupported);
-
-					char AboutMsg[256] = "";
+					char AboutMsg[512] = "";
 					sprintf(AboutMsg, "%s %s (Build '%s') - OpenGL Zelda Map Viewer\n\n"
 						"Written 2008/2009 by xdaniel & contributors\n"
 						"http://ozmav.googlecode.com/\n\n"
+						"OpenGL extensions supported and used:\n"
 						"%s", AppTitle, AppVersion, AppBuildName, GLExtensionsSupported);
 					MessageBox(hwnd, AboutMsg, "About", MB_OK | MB_ICONINFORMATION);
 					break; }
@@ -1721,17 +1819,28 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
 						tvi.pszText = Text;
 						tvi.cchTextMax = 256;
 						tvi.hItem = Selected;
-						if(SendDlgItemMessage(hwnd, IDC_MAIN_LEVELTREE, TVM_GETITEM, TVGN_CARET, (LPARAM)&tvi)) sscanf(tvi.pszText, "%x", &ROM_SceneToLoad);
+						if(SendDlgItemMessage(hwnd, IDC_MAIN_LEVELTREE, TVM_GETITEM, TVGN_CARET, (LPARAM)&tvi)) {
+							int OldSceneNo = ROM_SceneToLoad, TempMapNo = 0;
+							char TempText[256];
+							sscanf(tvi.pszText, "0x%02X: %s %02d", &ROM_SceneToLoad, TempText, &TempMapNo);
 
-						SendMessage(hwnd, WM_SETFOCUS, (WPARAM)GetDlgItem(hwnd, IDC_MAIN_OPENGL), (LPARAM)NULL);
-						Viewer_ResetVariables();
-						if(Viewer_LoadAreaData() == -1) {
-							MessageBox(hwnd, "Error while loading level!", "Error", MB_OK | MB_ICONEXCLAMATION);
-							AreaLoaded = true;
-						} else {
-							Viewer_RenderMap();
+							if(OldSceneNo != ROM_SceneToLoad) {
+								SendMessage(hwnd, WM_SETFOCUS, (WPARAM)GetDlgItem(hwnd, IDC_MAIN_OPENGL), (LPARAM)NULL);
+								Viewer_ResetVariables();
+								if(Viewer_LoadAreaData() == -1) {
+									MessageBox(hwnd, "Error while loading level!", "Error", MB_OK | MB_ICONEXCLAMATION);
+									AreaLoaded = true;
+								} else {
+									Viewer_RenderMap();
+								}
+								sprintf(StatusMsg, "Level: 0x%02X", ROM_SceneToLoad);
+							}
+
+							if(!strcmp(TempText, "Map")) {
+								ROM_CurrentMap = TempMapNo;
+								sprintf(StatusMsg, "Map: 0x%02X", ROM_CurrentMap);
+							}
 						}
-						sprintf(StatusMsg, "Level: 0x%02X", ROM_SceneToLoad);
 
 						/* windows api = overly complicated at times */
 						break; }
