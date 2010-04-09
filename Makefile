@@ -18,6 +18,7 @@ targets:
 	@echo "    rebuild       == clean and re-build all"
 	@echo "    install       == install OZMAV2"
 	@echo "    uninstall     == uninstall OZMAV2"
+	@echo "    package       == Build package"
 	@echo "  Options:"
 	@echo "    WIN32=1       == mingw build"
 	@echo "  Debugging Options:"
@@ -32,13 +33,15 @@ all:
 
 install:
 	cp ozmav2/OZMAV2 $(PREFIX)/OZMAV2
-	ln $(PREFIX)/OZMAV2 $(PREFIX)/ozmav2
+	ln -f $(PREFIX)/OZMAV2 $(PREFIX)/ozmav2
 
 uninstall:
-	rm $(PREFIX)/OZMAV2
-	rm $(PREFIX)/ozmav2
+	rm -vf $(PREFIX)/OZMAV2 $(PREFIX)/ozmav2
 
 rebuild: clean all
+
+package:
+	tgz $(PROJECT).tgz
 
 clean:
 	$(MAKE) -C misaka clean

@@ -42,7 +42,7 @@ ifeq ($(WIN32), 1)
   PIECES += __win32.o
 else
   TARGET = $(PROJECT)
-  LDFLAGS = -lGL -lpng -lcurses 
+  LDFLAGS = -lGL -lpng -lcurses -lX11
   PIECES += __linux.o
 endif
 
@@ -66,9 +66,6 @@ endif
 # Make
 all: $(PIECES)
 	$(CC) $(CFLAGS) -o $(TARGET) $(PIECES) $(LDFLAGS)
-
-package:
-	tgz $(PROJECT).tgz
 
 # Cleanup
 clean:

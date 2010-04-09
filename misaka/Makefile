@@ -30,9 +30,6 @@ endif
 all: $(PIECES)
 	$(AR) rcs $(TARGET) $(PIECES)
 
-package:
-	tgz $(PROJECT).tgz
-
 # Cleanup
 clean:
 	rm -vf *.a *.o
