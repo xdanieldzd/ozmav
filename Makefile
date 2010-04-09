@@ -1,0 +1,45 @@
+#Options to send to other makefiles...
+ifeq ($(WIN32), 1)
+	OPTIONS += WIN32=1
+else ifeq ($(DBG), 1)
+	OPTIONS += DBG=1
+endif
+
+#Prefix
+ifeq ($(PREFIX),)
+	PREFIX = /usr/bin
+endif
+
+targets:
+	@echo "OZMAV2 Makefile."
+	@echo "  Targets:"
+	@echo "    all           == Build OZMAV2 and all plugins"
+	@echo "    clean         == Remove all files built from source"
+	@echo "    rebuild       == clean and re-build all"
+	@echo "    install       == install OZMAV2"
+	@echo "    uninstall     == uninstall OZMAV2"
+	@echo "  Options:"
+	@echo "    WIN32=1       == mingw build"
+	@echo "  Debugging Options:"
+	@echo "    DBG=1         == Enable debugging symbols. Rebuild"
+	@echo "                     suggested if not used previous build)"
+	@echo "  Install Options:"
+	@echo "    PREFIX=path   == install/uninstall prefix (default: /usr/bin)"
+
+all:
+	$(MAKE) -C misaka $(OPTIONS)
+	$(MAKE) -C ozmav2 $(OPTIONS)
+
+install:
+	cp ozmav2/OZMAV2 $(PREFIX)/OZMAV2
+	ln $(PREFIX)/OZMAV2 $(PREFIX)/ozmav2
+
+uninstall:
+	rm $(PREFIX)/OZMAV2
+	rm $(PREFIX)/ozmav2
+
+rebuild: clean all
+
+clean:
+	$(MAKE) -C misaka clean
+	$(MAKE) -C ozmav2 clean

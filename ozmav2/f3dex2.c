@@ -625,6 +625,8 @@ void dl_CheckFragmentCache()
 
 void dl_CreateCombinerProgram(unsigned int Cmb0, unsigned int Cmb1)
 {
+	if(!zOpenGL.Ext_FragmentProgram)
+		return;
 	int cA[2], cB[2], cC[2], cD[2], aA[2], aB[2], aC[2], aD[2];
 
 	cA[0] = ((Cmb0 >> 20) & 0x0F);
@@ -1015,7 +1017,7 @@ void dl_CreateCombinerProgram(unsigned int Cmb0, unsigned int Cmb1)
 			"MOV Comb.a, aComb.a;\n"
 			"MOV Out, Comb;\n"
 			"END\n");
-
+	
 	glGenProgramsARB(1, &zFragmentCache[zProgram.FragCachePosition].ProgramID);
 	glBindProgramARB(GL_FRAGMENT_PROGRAM_ARB, zFragmentCache[zProgram.FragCachePosition].ProgramID);
 	glProgramStringARB(GL_FRAGMENT_PROGRAM_ARB, GL_PROGRAM_FORMAT_ASCII_ARB, strlen(ProgramString), ProgramString);
