@@ -171,3 +171,37 @@ void cn_Cmd_ExtractFiles(unsigned char * Ptr)
 
 	dbgprintf(0, MSK_COLORTYPE_OKAY, "Done!\n");
 }
+
+void cn_Cmd_ListFiles(unsigned char * Ptr)
+{
+	if(!zGame.HasFilenames) dbgprintf(0, MSK_COLORTYPE_WARNING, "Error: ROM does not contain filenames!\n");
+
+	char Temp[256];
+
+	DMA CurrentFile = {0, 0, 0, 0, 0, ""};
+	int FileNo = 0;
+	bool IsFileValid = true;
+
+	CurrentFile = zl_DMAGetFile(FileNo);
+
+	dbgprintf(0, MSK_COLORTYPE_INFO, "#    VStart   VEnd     PStart   PEnd     Filename\n");
+
+	while((CurrentFile.VEnd != 0x00) || (CurrentFile.PStart != 0xFFFFFFFF)) {
+		if(CurrentFile.VStart == CurrentFile.VEnd) break;
+
+		CurrentFile = zl_DMAVirtualToPhysical(CurrentFile.VStart);
+
+		if(zGame.HasFilenames) zl_DMAGetFilename(CurrentFile.Filename, FileNo);
+
+		if((CurrentFile.PStart == 0xFFFFFFFF) || (CurrentFile.PEnd == 0xFFFFFFFF)) IsFileValid = false;
+
+		sprintf(Temp, "%4i %08X %08X %08X %08X %s\n", FileNo, CurrentFile.VStart, CurrentFile.VEnd, CurrentFile.PStart, CurrentFile.PEnd, CurrentFile.Filename);
+		dbgprintf(0, (IsFileValid ? MSK_COLORTYPE_INFO : MSK_COLORTYPE_WARNING), Temp);
+		FileNo++;
+
+		CurrentFile = zl_DMAGetFile(FileNo);
+		IsFileValid = true;
+	}
+
+	dbgprintf(0, MSK_COLORTYPE_OKAY, "Done!\n");
+}

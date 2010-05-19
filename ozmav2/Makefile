@@ -31,10 +31,8 @@ PIECES	= camera.o confunc.o draw.o dump.o f3dex2.o main.o oz.o zelda.o
 ifeq ($(WIN32), 1)
   CFLAGS += -DWIN32
   TARGET = $(PROJECT).exe
-  #Holy shit. Are these all really needed?
-  LDFLAGS = -lopengl32 -lglu32 -lglaux -lkernel32 -luser32 -lgdi32 -lwinspool	\
-           -lcomdlg32 -ladvapi32 -lshell32 -lole32 -loleaut32 -luuid -lodbc32	\
-           -lodbccp32 -lcomctl32						\
+  #Holy shit. Are these all really needed? - ...nope.
+  LDFLAGS = -lopengl32 -lglu32 -lglaux -lkernel32 -luser32 -lgdi32	\
            D:\libpng-1.2.37-lib\lib\libpng12.dll.a				\
            D:\zlib-1.2.3-lib\lib\libz.a						\
            C:\Programme\PDCurses-SO\win32\panel.a				\

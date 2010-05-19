@@ -66,6 +66,7 @@ int main(int argc, char * argv[])
 	MSK_AddCommand("setcombiner", "Disable/enable combiner (0-1)", cn_Cmd_SetCombiner);
 	MSK_AddCommand("resetcam", "Reset camera to initial position", cn_Cmd_ResetCam);
 	MSK_AddCommand("setdebug", "Set debug level (0-3)", cn_Cmd_SetDebug);
+	MSK_AddCommand("list", "List all files in ROM", cn_Cmd_ListFiles);
 	MSK_AddCommand("extract", "Extract all files from ROM", cn_Cmd_ExtractFiles);
 	MSK_AddCommand("options", "Show options dialog", cn_Cmd_Options);
 	MSK_AddCommand("about", "About the program", cn_Cmd_About);
