@@ -67,10 +67,6 @@ void MSK_ConsolePrint(int Color, char * Format, ...)
 
 void MSK_Refresh(int Line)
 {
-	// print title bar
-	wmove(Console.WindowMain, 0, 0);
-	wprintw(Console.WindowMain, Console.Title);
-
 	// refresh the log, show it from line n
 	refresh();
 	int PadStart = (Line - PAD_ROWS) + 1;

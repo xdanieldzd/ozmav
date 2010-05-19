@@ -108,6 +108,10 @@ int MSK_DoEvents()
 {
 	ReturnVal.Handle = Console.Handle;
 
+	// print title bar
+	wmove(Console.WindowMain, 0, 0);
+	wprintw(Console.WindowMain, Console.Title);
+
 	// display current time
   	char Time[256];
   	MSK_CurrentTime(Time);
