@@ -2,6 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <errno.h>
+
 #include <curses.h>
 
 #include "misaka.h"
@@ -49,6 +53,11 @@ typedef struct {
 struct __ROM {
 	char Filepath[MAX_PATH];
 	char Filename[256];
+	/*
+	 time_t and clock_t shall be integer or real-floating types.
+	 http://www.opengroup.org/onlinepubs/000095399/basedefs/sys/types.h.html#tag_13_67
+	*/
+	time_t LastModified;
 	unsigned int Size;
 	char Title[20];
 	char _Pad1;
@@ -88,5 +97,7 @@ extern struct __DMA DMA[256];
 
 extern __GameVer ThisGame;
 extern bool IsROMLoaded;
+
+extern struct stat romstat;
 
 // ----------------------------------------

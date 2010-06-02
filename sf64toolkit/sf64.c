@@ -3,6 +3,7 @@
 #include "sf64_ver.h"
 
 unsigned char * MIO0Buffer;
+struct stat romstat;
 
 bool sf_Init()
 {
@@ -24,7 +25,12 @@ bool sf_Init()
 		bool CheckOkay = FALSE;
 		int i = 0;
 		for(i = 0; i < ArraySize(GameVer); i++) {
-			if(!strcmp(ROM.GameID, GameVer[i].GameID) && ROM.Version == GameVer[i].Version && ROM.CRC1 == GameVer[i].CRC1 && ROM.CRC2 == GameVer[i].CRC2) {
+			/*
+			The following was removed from the "if" statement below:
+			 && ROM.CRC1 == GameVer[i].CRC1 && ROM.CRC2 == GameVer[i].CRC2
+			It was removed so that any modified ROMS could be identified.
+			*/
+			if(!strcmp(ROM.GameID, GameVer[i].GameID) && ROM.Version == GameVer[i].Version) {
 				CheckOkay = TRUE;
 				memcpy(&ThisGame, &GameVer[i], sizeof(__GameVer));
 			}
@@ -66,14 +72,66 @@ void sf_LoadROM(unsigned char * Ptr)
 	}
 }
 
-int sf_DoLoadROM()
+void sf_SaveROM()
 {
+	if(!IsROMLoaded) {
+		MSK_ConsolePrint(MSK_COLORTYPE_WARNING, "- No ROM loaded, cannot extract files!\n");
+		return;
+	}
+	
+	/* Make sure ROM has not been modified since it was read.. */
+	if(stat(ROM.Filepath, &romstat)) {
+		MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "- Error: Could not stat '%s' (%s)!\n", ROM.Filename, strerror(errno));
+		return;
+	}
+	
+	if( ROM.LastModified != romstat.st_mtime ) {
+		MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "- Error: ROM '%s' has been modified (on file) since last opened!\n", ROM.Filename);
+		return;
+	}
+	
+	/* okay, open ROM */
 	FILE * File;
-	if((File = fopen(ROM.Filepath, "rb")) == NULL) {
-		MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "- Error: File '%s' not found!\n", ROM.Filename);
-		return EXIT_FAILURE;
+	
+	if((File = fopen(ROM.Filepath, "r+b")) == NULL) {
+		MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "- Error: Could not open file '%s' (%s)!\n", ROM.Filename, strerror(errno));
+		return;
 	}
 
+	MSK_ConsolePrint(MSK_COLORTYPE_OKAY, "- Saving ROM...\n");
+	
+	/* seek to beggining, write and close */
+	rewind(File);
+	fwrite(ROM.Data, 1, ROM.Size, File);
+	fflush(File);
+	fclose(File);
+	
+	/* update last modified time */
+	stat(ROM.Filepath, &romstat);
+	ROM.LastModified = romstat.st_mtime;
+	
+	MSK_ConsolePrint(MSK_COLORTYPE_OKAY, "- Saved.\n");
+	
+	ReturnVal.s8 = EXIT_SUCCESS;
+}
+
+int sf_DoLoadROM()
+{
+	if(stat(ROM.Filepath, &romstat)) {
+		MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "- Error: Could not stat '%s' (%s)!\n", ROM.Filename, strerror(errno));
+		return EXIT_FAILURE;
+	}
+	
+	ROM.LastModified = romstat.st_mtime;
+		
+	FILE * File;
+	
+	if((File = fopen(ROM.Filepath, "rb")) == NULL) {
+		MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "- Error: Could not open file '%s' (%s)!\n", ROM.Filename, strerror(errno));
+		return EXIT_FAILURE;
+	}
+	
+	
 	MSK_ConsolePrint(MSK_COLORTYPE_OKAY, "- Loading ROM...\n");
 
 	fseek(File, 0, SEEK_END);
@@ -90,6 +148,23 @@ int sf_DoLoadROM()
 	ROM.CRC2 = Read32(ROM.Data, 20);
 
 	return EXIT_SUCCESS;
+}
+
+void sf_FixCrc()
+{
+	if(!IsROMLoaded) {
+		MSK_ConsolePrint(MSK_COLORTYPE_WARNING, "- No ROM loaded, cannot extract files!\n");
+		return;
+	}
+	
+	MSK_ConsolePrint(MSK_COLORTYPE_OKAY, "\n- Checking CRC...\n");
+
+	if(FixChecksum(ROM.Data)) {
+		MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "- Error: Could not fix CRCs!\n");
+		ReturnVal.s8 = EXIT_FAILURE;
+	}
+
+	ReturnVal.s8 = EXIT_SUCCESS;
 }
 
 int sf_ReadDMATable()

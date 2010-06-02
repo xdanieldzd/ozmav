@@ -67,15 +67,17 @@ void fn_About(unsigned char * Ptr)
 int main(int argc, char *argv[])
 {
 	// init MISAKA
-	sprintf(ProgTitle, "%s %s (build %s %s)", APPTITLE, VERSION, __DATE__, __TIME__);
+	sprintf(ProgTitle, APPTITLE" "VERSION" (build"__DATE__" "__TIME__")");
 	MSK_Init(ProgTitle);
-	MSK_SetValidCharacters("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789.\\/\"-()[]");
+	MSK_SetValidCharacters("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789.\\/\"-()[]~");
 	MSK_AddCommand("about", "About this program", fn_About);
 	MSK_AddCommand("loadrom", "Load a ROM to used", sf_LoadROM);
 	MSK_AddCommand("listfiles", "List all files found in DMA table", sf_ListDMATable);
 	MSK_AddCommand("extractfiles", "Extract all files found in DMA table", sf_ExtractFiles);
 	MSK_AddCommand("expandrom", "Create expanded ROM (argument: Filename)", sf_CreateExpandedROM);
 	MSK_AddCommand("createrom", "Create ROM from extracted files (argument: Layout file)", sf_CreateFreshROM);
+	MSK_AddCommand("fixcrc", "Fix ROM's CRC checksum", sf_FixCrc);
+	MSK_AddCommand("saverom", "Save any changes to ROM loaded by loadrom", sf_SaveROM);
 
 	MSK_ConsolePrint(MSK_COLORTYPE_INFO, "\n%s launched...\n\n", APPTITLE);
 
