@@ -10,6 +10,11 @@
 #include "n64sums.h"
 #include "sf64.h"
 
+#ifndef WIN32 /* MAX_PATH is Windows only */
+ #include <limits.h>
+ #define MAX_PATH	PATH_MAX
+#endif
+
 #define APPTITLE		"Star Fox 64 Toolkit"
 #define VERSION			"v1"
 
