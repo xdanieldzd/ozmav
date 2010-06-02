@@ -67,9 +67,9 @@ void fn_About(unsigned char * Ptr)
 int main(int argc, char *argv[])
 {
 	// init MISAKA
-	sprintf(ProgTitle, APPTITLE" "VERSION" (build"__DATE__" "__TIME__")");
+	sprintf(ProgTitle, APPTITLE" "VERSION" (build "__DATE__" "__TIME__")");
 	MSK_Init(ProgTitle);
-	MSK_SetValidCharacters("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789.\\/\"-()[]~");
+	MSK_SetValidCharacters("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789.\\/\"-()[]");
 	MSK_AddCommand("about", "About this program", fn_About);
 	MSK_AddCommand("loadrom", "Load a ROM to used", sf_LoadROM);
 	MSK_AddCommand("listfiles", "List all files found in DMA table", sf_ListDMATable);
