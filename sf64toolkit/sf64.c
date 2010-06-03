@@ -75,43 +75,43 @@ void sf_LoadROM(unsigned char * Ptr)
 void sf_SaveROM()
 {
 	if(!IsROMLoaded) {
-		MSK_ConsolePrint(MSK_COLORTYPE_WARNING, "- No ROM loaded, cannot extract files!\n");
+		MSK_ConsolePrint(MSK_COLORTYPE_WARNING, "- No ROM loaded, cannot save ROM!\n");
 		return;
 	}
-	
+
 	/* Make sure ROM has not been modified since it was read.. */
 	if(stat(ROM.Filepath, &romstat)) {
 		MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "- Error: Could not stat '%s' (%s)!\n", ROM.Filename, strerror(errno));
 		return;
 	}
-	
+
 	if( ROM.LastModified != romstat.st_mtime ) {
 		MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "- Error: ROM '%s' has been modified (on file) since last opened!\n", ROM.Filename);
 		return;
 	}
-	
+
 	/* okay, open ROM */
 	FILE * File;
-	
+
 	if((File = fopen(ROM.Filepath, "r+b")) == NULL) {
 		MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "- Error: Could not open file '%s' (%s)!\n", ROM.Filename, strerror(errno));
 		return;
 	}
 
 	MSK_ConsolePrint(MSK_COLORTYPE_OKAY, "- Saving ROM...\n");
-	
+
 	/* seek to beggining, write and close */
 	rewind(File);
 	fwrite(ROM.Data, 1, ROM.Size, File);
 	fflush(File);
 	fclose(File);
-	
+
 	/* update last modified time */
 	stat(ROM.Filepath, &romstat);
 	ROM.LastModified = romstat.st_mtime;
-	
+
 	MSK_ConsolePrint(MSK_COLORTYPE_OKAY, "- Saved.\n");
-	
+
 	ReturnVal.s8 = EXIT_SUCCESS;
 }
 
@@ -121,17 +121,17 @@ int sf_DoLoadROM()
 		MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "- Error: Could not stat '%s' (%s)!\n", ROM.Filename, strerror(errno));
 		return EXIT_FAILURE;
 	}
-	
+
 	ROM.LastModified = romstat.st_mtime;
-		
+
 	FILE * File;
-	
+
 	if((File = fopen(ROM.Filepath, "rb")) == NULL) {
 		MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "- Error: Could not open file '%s' (%s)!\n", ROM.Filename, strerror(errno));
 		return EXIT_FAILURE;
 	}
-	
-	
+
+
 	MSK_ConsolePrint(MSK_COLORTYPE_OKAY, "- Loading ROM...\n");
 
 	fseek(File, 0, SEEK_END);
@@ -153,10 +153,10 @@ int sf_DoLoadROM()
 void sf_FixCrc()
 {
 	if(!IsROMLoaded) {
-		MSK_ConsolePrint(MSK_COLORTYPE_WARNING, "- No ROM loaded, cannot extract files!\n");
+		MSK_ConsolePrint(MSK_COLORTYPE_WARNING, "- No ROM loaded, cannot fix CRCs!\n");
 		return;
 	}
-	
+
 	MSK_ConsolePrint(MSK_COLORTYPE_OKAY, "\n- Checking CRC...\n");
 
 	if(FixChecksum(ROM.Data)) {
