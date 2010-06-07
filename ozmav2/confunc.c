@@ -1,8 +1,25 @@
 #include "globals.h"
 #include "dialog.h"
 
+void cn_Cmd_LoadROM(unsigned char * Ptr)
+{
+	if(Ptr == NULL) {
+		dbgprintf(0, MSK_COLORTYPE_ERROR, "Error: No file specified!\n");
+	} else {
+		char Path[MAX_PATH];
+		strcpy(Path, zProgram.AppPath);
+		strcat(Path, Ptr+1);
+		zROM.IsROMLoaded = zl_Init(Path);
+	}
+}
+
 void cn_Cmd_LoadScene(unsigned char * Ptr)
 {
+	if(!zROM.IsROMLoaded) {
+		dbgprintf(0, MSK_COLORTYPE_ERROR, "Error: No ROM loaded!\n");
+		return;
+	}
+
 	if(Ptr == NULL) {
 		char * SceneSelParam = (char*)malloc(sizeof(char) * 256);
 		sprintf(SceneSelParam, "Scene ID|%i|1", zGame.SceneCount + 1);
@@ -11,10 +28,10 @@ void cn_Cmd_LoadScene(unsigned char * Ptr)
 		{
 			"Load Scene", 10, 40,
 			{
-				{ MSK_UI_DLGOBJ_LABEL,		1,	1,	-1,	"Select which Scene to load:",		NULL },
-				{ MSK_UI_DLGOBJ_NUMBERSEL,	3,	1,	0,	(char*)SceneSelParam,				(int*)&zOptions.SceneNo },
-				{ MSK_UI_DLGOBJ_LINE,		5,	1,	-1,	"-1",								NULL },
-				{ MSK_UI_DLGOBJ_BUTTON,		-1,	-1,	1,	"OK|1",								NULL }
+				{ MSK_UI_DLGOBJ_LABEL,     1,  1,  -1, "Select which Scene to load:", NULL },
+				{ MSK_UI_DLGOBJ_NUMBERSEL, 3,  1,  0,  (char*)SceneSelParam,          (int*)&zOptions.SceneNo },
+				{ MSK_UI_DLGOBJ_LINE,      5,  1,  -1, "-1",                          NULL },
+				{ MSK_UI_DLGOBJ_BUTTON,    -1, -1, 1,  "OK|1",                        NULL }
 			}
 		};
 
@@ -31,6 +48,11 @@ void cn_Cmd_LoadScene(unsigned char * Ptr)
 
 void cn_Cmd_DumpObj(unsigned char * Ptr)
 {
+	if(!zROM.IsROMLoaded) {
+		dbgprintf(0, MSK_COLORTYPE_ERROR, "Error: No ROM loaded!\n");
+		return;
+	}
+
 	int LastDbg = zOptions.DebugLevel;
 	bool LastDump = zOptions.DumpModel;
 
@@ -51,6 +73,11 @@ void cn_Cmd_DumpObj(unsigned char * Ptr)
 
 void cn_Cmd_SetTexture(unsigned char * Ptr)
 {
+	if(!zROM.IsROMLoaded) {
+		dbgprintf(0, MSK_COLORTYPE_ERROR, "Error: No ROM loaded!\n");
+		return;
+	}
+
 	if(Ptr == NULL) {
 		dbgprintf(0, MSK_COLORTYPE_ERROR, "> Error: No parameter specified!\n");
 	} else {
@@ -72,6 +99,11 @@ void cn_Cmd_SetTexture(unsigned char * Ptr)
 
 void cn_Cmd_SetCombiner(unsigned char * Ptr)
 {
+	if(!zROM.IsROMLoaded) {
+		dbgprintf(0, MSK_COLORTYPE_ERROR, "Error: No ROM loaded!\n");
+		return;
+	}
+
 	if(Ptr == NULL) {
 		dbgprintf(0, MSK_COLORTYPE_ERROR, "> Error: No parameter specified!\n");
 	} else {
@@ -111,6 +143,11 @@ void cn_Cmd_SetDebug(unsigned char * Ptr)
 
 void cn_Cmd_Options(unsigned char * Ptr)
 {
+	if(!zROM.IsROMLoaded) {
+		dbgprintf(0, MSK_COLORTYPE_ERROR, "Error: No ROM loaded!\n");
+		return;
+	}
+
 	zProgram.HandleOptions = MSK_Dialog(&DlgOptions);
 }
 
@@ -121,6 +158,11 @@ void cn_Cmd_About(unsigned char * Ptr)
 
 void cn_Cmd_ExtractFiles(unsigned char * Ptr)
 {
+	if(!zROM.IsROMLoaded) {
+		dbgprintf(0, MSK_COLORTYPE_ERROR, "Error: No ROM loaded!\n");
+		return;
+	}
+
 	dbgprintf(0, MSK_COLORTYPE_OKAY, "Extracting ROM data...\n");
 
 	char Temp[256];
@@ -152,7 +194,6 @@ void cn_Cmd_ExtractFiles(unsigned char * Ptr)
 		FileNo++;
 
 		sprintf(Temp, ".//extr//%s//%s", zGame.TitleText, CurrentFile.Filename);
-//		dbgprintf(0, MSK_COLORTYPE_INFO, Temp);
 
 		if(IsFileValid) {
 			FILE * File = fopen(Temp, "wb");
@@ -174,7 +215,12 @@ void cn_Cmd_ExtractFiles(unsigned char * Ptr)
 
 void cn_Cmd_ListFiles(unsigned char * Ptr)
 {
-	if(!zGame.HasFilenames) dbgprintf(0, MSK_COLORTYPE_WARNING, "Error: ROM does not contain filenames!\n");
+	if(!zROM.IsROMLoaded) {
+		dbgprintf(0, MSK_COLORTYPE_ERROR, "Error: No ROM loaded!\n");
+		return;
+	}
+
+	if(!zGame.HasFilenames) dbgprintf(0, MSK_COLORTYPE_WARNING, "Warning: ROM does not contain filenames!\n");
 
 	char Temp[256];
 

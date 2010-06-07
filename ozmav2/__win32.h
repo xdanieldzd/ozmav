@@ -5,6 +5,8 @@
 #undef MOUSE_MOVED
 #endif
 
+#define FILESEP '\\'
+
 int WinAPIInit(char * WndTitle, int Width, int Height);
 int WinAPIMain();
 int WinAPIExit();

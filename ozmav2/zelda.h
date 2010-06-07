@@ -5,7 +5,7 @@ typedef struct {
 	char Filename[256];
 } DMA;
 
-extern int zl_Init(char * Filename);
+extern bool zl_Init(char * Filename);
 extern int zl_LoadROM();
 extern int zl_GetGameVersion();
 extern int zl_LoadScene(int SceneNo);

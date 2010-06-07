@@ -2,6 +2,11 @@
 #include <GL/glx.h>
 #include <X11/X.h>
 #include <X11/keysym.h>
+#include <limits.h>
+
+#define MAX_PATH	PATH_MAX
+
+#define FILESEP '/'
 
 int XInit(char * WndTitle, int Width, int Height);
 int XMain();

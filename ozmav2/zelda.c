@@ -2,63 +2,70 @@
 
 #include "zelda_ver.h"
 
-int zl_Init(char * Filename)
+bool zl_Init(char * Filename)
 {
 	dbgprintf(3, MSK_COLORTYPE_OKAY, "[DEBUG] %s(\"%s\");\n", __FUNCTION__, Filename);
 
-	zOptions.EnableTextures = true;
-	zOptions.EnableCombiner = true;
+	dbgprintf(0, MSK_COLORTYPE_OKAY, "Loading ROM...\n");
 
 	memset(&zROM, 0x00, sizeof(zROM));
 
-	strcpy(zROM.Filename, Filename);
-	zl_LoadROM();
-	if(zROM.Size == 0) return EXIT_FAILURE;
+	bool RetVal = TRUE;
 
-	int MagChar = '\\';
-	#ifndef WIN32
-	MagChar = '/';
-	#endif
-	char *Ptr;
-	if(!(Ptr = strrchr(zROM.Filename, MagChar))) Ptr = zROM.Filename - 1;
+	if(!zl_LoadROM(Filename)) {
+		zOptions.EnableTextures = true;
+		zOptions.EnableCombiner = true;
 
-	dbgprintf(0, MSK_COLORTYPE_INFO, "ROM information:\n");
-	dbgprintf(0, MSK_COLORTYPE_INFO, "Filename:  %s\n", Ptr+1);
-	dbgprintf(0, MSK_COLORTYPE_INFO, "Size:      %iMB (%i Mbit)\n", (zROM.Size / 0x100000), (zROM.Size / 0x20000));
-	dbgprintf(0, MSK_COLORTYPE_INFO, "Title:     %s\n", zROM.Title);
-	dbgprintf(0, MSK_COLORTYPE_INFO, "Game ID:   %s\n", zROM.GameID);
-	dbgprintf(0, MSK_COLORTYPE_INFO, "Version:   1.%X\n", zROM.Version);
-	dbgprintf(0, MSK_COLORTYPE_INFO, "CRC1:      0x%08X\n", zROM.CRC1);
-	dbgprintf(0, MSK_COLORTYPE_INFO, "CRC2:      0x%08X\n\n", zROM.CRC2);
+		GetFileName(Filename, zROM.Filename);
 
-	if(zl_GetGameVersion()) return EXIT_FAILURE;
-	if(zl_GetDMATable()) return EXIT_FAILURE;
-	if(zl_GetFilenameTable()) zGame.HasFilenames = false;
-	if(zl_GetSceneTable(zGame.STBuffer)) return EXIT_FAILURE;
+		dbgprintf(0, MSK_COLORTYPE_INFO, " - Filename:      %s\n", zROM.Filename);
+		dbgprintf(0, MSK_COLORTYPE_INFO, " - Size:          %iMB (%i Mbit)\n", (zROM.Size / 0x100000), (zROM.Size / 0x20000));
+		dbgprintf(0, MSK_COLORTYPE_INFO, " - Title:         %s\n", zROM.Title);
+		dbgprintf(0, MSK_COLORTYPE_INFO, " - Game ID:       %s\n", zROM.GameID);
+		dbgprintf(0, MSK_COLORTYPE_INFO, " - Version:       1.%X\n", zROM.Version);
+		dbgprintf(0, MSK_COLORTYPE_INFO, " - CRC1:          0x%08X\n", zROM.CRC1);
+		dbgprintf(0, MSK_COLORTYPE_INFO, " - CRC2:          0x%08X\n", zROM.CRC2);
+		dbgprintf(0, MSK_COLORTYPE_INFO, "\n");
 
-	if(zl_LoadScene(zOptions.SceneNo)) return EXIT_FAILURE;
+		if(zl_GetGameVersion()) return EXIT_FAILURE;
+		if(zl_GetDMATable()) return EXIT_FAILURE;
+		if(zl_GetFilenameTable()) zGame.HasFilenames = false;
+		if(zl_GetSceneTable(zGame.STBuffer)) return EXIT_FAILURE;
 
-	return EXIT_SUCCESS;
+		if(zl_LoadScene(zOptions.SceneNo)) return EXIT_FAILURE;
+	} else {
+		return zROM.IsROMLoaded;
+	}
+
+	if(RetVal) {
+		MSK_ConsolePrint(MSK_COLORTYPE_OKAY, "- ROM has been loaded!\n");
+	} else {
+		free(zROM.Data);
+	}
+
+	return RetVal;
 }
 
-int zl_LoadROM()
+int zl_LoadROM(char * Filename)
 {
-	dbgprintf(3, MSK_COLORTYPE_OKAY, "[DEBUG] %s();\n", __FUNCTION__);
+	dbgprintf(3, MSK_COLORTYPE_OKAY, "[DEBUG] %s(\"%s\");\n", __FUNCTION__, Filename);
 
 	FILE * file;
-	if((file = fopen(zROM.Filename, "rb")) == NULL) {
-		dbgprintf(0, MSK_COLORTYPE_ERROR, "- Error: File '%s' not found\n", zROM.Filename);
+	if((file = fopen(Filename, "rb")) == NULL) {
+		char Temp[MAX_PATH];
+		GetFileName(Filename, Temp);
+		dbgprintf(0, MSK_COLORTYPE_ERROR, "- Error: File '%s' not found\n", Temp);
 		return EXIT_FAILURE;
 	}
+
+	strcpy(zROM.FilePath, Filename);
 
 	fseek(file, 0, SEEK_END);
 	zROM.Size = ftell(file);
 	rewind(file);
 	zROM.Data = (unsigned char*) malloc (sizeof(char) * zROM.Size);
-	size_t result = fread(zROM.Data, 1, zROM.Size, file);
+	fread(zROM.Data, 1, zROM.Size, file);
 	fclose(file);
-
-	if(result != zROM.Size) return EXIT_FAILURE;
 
 	memcpy(zROM.Title, &zROM.Data[32], 20);
 	memcpy(zROM.GameID, &zROM.Data[59], 4);
@@ -163,7 +170,7 @@ int zl_LoadScene(int SceneNo)
 
 	md_StopModelDumping();
 
-	dbgprintf(1, MSK_COLORTYPE_OKAY, "\nScene #%i has been loaded.\n\n", zOptions.SceneNo);
+	dbgprintf(1, MSK_COLORTYPE_OKAY, "\nScene #%i has been loaded.\n", zOptions.SceneNo);
 
 	return EXIT_SUCCESS;
 }

@@ -1,5 +1,5 @@
 // Project "OZMAV2"
-// February/March 2010 by xdaniel
+// February/March 2010 by xdaniel & contributors
 
 // ----------------------------------------
 
@@ -57,9 +57,37 @@ void die(int Code);
 
 int main(int argc, char * argv[])
 {
-	sprintf(zProgram.Title, "%s %s (build %s %s)", APPTITLE, VERSION, __DATE__, __TIME__);
+	char Temp[MAX_PATH];
+
+	sprintf(zProgram.Title, APPTITLE" "VERSION" (build "__DATE__" "__TIME__")");
+	sprintf(zGame.TitleText, "No ROM loaded");
+
+	// get working directory from executable path
+	GetFilePath(argv[0], zProgram.AppPath);
+
+	// check for --help and --about options
+	if(argc > 1) {
+		if(!strcmp(argv[1], "--help") || !strcmp(argv[1], "-h")) {
+			char Temp[MAX_PATH];
+			GetFileName(argv[0], Temp);
+			printf("Prototype:\n %s [options]\n\nOptions:\n -r PATH\tPath to Ocarina of Time or Majora's Mask ROM to load\n -s SCENE\tInitial scene number to load, in decimal\n -d LEVEL\tLevel of debugging messages shown, between 0 and 3\n -a, --about\tDisplay program information\n -h, --help\tThis message\n", Temp);
+			return EXIT_SUCCESS;
+		}
+
+		if(!strcmp(argv[1], "--about") || !strcmp(argv[1], "-a")) {
+			printf(zProgram.Title);
+			#ifdef DEBUG
+			printf(" (Debug build)");
+			#endif
+			printf("\n");
+			return EXIT_SUCCESS;
+		}
+	}
+
+	// init libMISAKA
 	MSK_Init(zProgram.Title);
-	MSK_SetValidCharacters("abcdefghijklmnopqrstuvwxyz 0123456789.\\/\"-");
+	MSK_SetValidCharacters("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789.\\/\"-()[]_");
+	MSK_AddCommand("loadrom", "Load ROM file to use", cn_Cmd_LoadROM);
 	MSK_AddCommand("loadscene", "Load specific Scene (0-x)", cn_Cmd_LoadScene);
 	MSK_AddCommand("dumpobj", "Dump Scene to .obj file", cn_Cmd_DumpObj);
 	MSK_AddCommand("settexture", "Disable/enable texturing (0-1)", cn_Cmd_SetTexture);
@@ -72,51 +100,59 @@ int main(int argc, char * argv[])
 	MSK_AddCommand("about", "About the program", cn_Cmd_About);
 
 	#ifdef WIN32
-	dbgprintf(0, MSK_COLORTYPE_INFO, "Running on 32/64-bit Windows...\n");
-	dbgprintf(0, MSK_COLORTYPE_INFO, "\n");
+	dbgprintf(0, MSK_COLORTYPE_INFO, APPTITLE" launched, running on 32/64-bit Windows...\n");
 	#else
-	dbgprintf(0, MSK_COLORTYPE_INFO, "Running on non-Windows OS...\n");
-	dbgprintf(0, MSK_COLORTYPE_INFO, "\n");
+	dbgprintf(0, MSK_COLORTYPE_INFO, APPTITLE" launched, running on non-Windows OS...\n");
 	#endif
+	dbgprintf(0, MSK_COLORTYPE_INFO, "\n");
 
-	if(argc < 2) {
-		dbgprintf(0, MSK_COLORTYPE_ERROR, "- Error: Invalid arguments specified\n");
-		die(EXIT_FAILURE);
-	}
-
+	// init API via OZ wrapper
 	if(oz_InitProgram(APPTITLE, WINDOW_WIDTH, WINDOW_HEIGHT)) die(EXIT_FAILURE);
 
-	oz_CreateFolder(".//dump");
+	// create folder for .obj & texture dumps
+	sprintf(Temp, "%s//dump", zProgram.AppPath);
+	oz_CreateFolder(Temp);
 
+	// init OpenGL & renderer
 	gl_InitExtensions();
 	gl_InitRenderer();
 
 	gl_ResizeScene(WINDOW_WIDTH, WINDOW_HEIGHT);
 
-	if(argc > 2) sscanf(argv[2], "%i", &zOptions.SceneNo);
+	// used to delay ROM loading until after reading eventual scene number and debug level arguments
+	bool LoadNow = false;
 
-	if(argc > 3) {
-		int curr_arg = 3;
+	if(argc == 2) {
+		// if exactly one argument, assume that it's the ROM (for drag-and-drop of ROM file onto executable)
+		strcpy(Temp, argv[1]);
+		LoadNow = true;
+	} else if(argc > 1) {
+		int curr_arg = 1;
 		while(curr_arg < argc) {
+			if(!strcmp(argv[curr_arg], "-r")) {
+				// load ROM
+				strcpy(Temp, argv[curr_arg + 1]);
+				LoadNow = true;
+				curr_arg++;
+			} else
+			if(!strcmp(argv[curr_arg], "-s")) {
+				// set initial scene number
+				sscanf(argv[curr_arg + 1], "%i", &zOptions.SceneNo);
+				curr_arg++;
+			} else
 			if(!strcmp(argv[curr_arg], "-d")) {
+				// set debug level
 				sscanf(argv[curr_arg + 1], "%i", &zOptions.DebugLevel);
 				curr_arg++;
 			}
 
-/*			else if(!strcmp(argv[curr_arg], "-l")) {
-				FILE * fp;
-				if((fp = freopen("log.txt", "w", stdout)) == NULL) dbgprintf(0, MSK_COLORTYPE_ERROR, "- Error: Could not create log file!\n");
-			}
-*/
-/*			else if(!strcmp(argv[curr_arg], "-w")) {
-				zOptions.DumpModel = true;
-			}
-*/
 			curr_arg++;
 		}
 	}
 
-	if(zl_Init(argv[1])) die(EXIT_FAILURE);
+	// now try loading the ROM
+	if(LoadNow) zROM.IsROMLoaded = zl_Init(Temp);
+	if(!zROM.IsROMLoaded) dbgprintf(0, MSK_COLORTYPE_WARNING, "- No ROM loaded!\n\n");
 
 	char WndTitle[256];
 	sprintf(WndTitle, "%s - %s", APPTITLE, zGame.TitleText);
@@ -125,19 +161,21 @@ int main(int argc, char * argv[])
 	zProgram.IsRunning = true;
 
 	while(zProgram.IsRunning) {
+		// let the API do whatever it needs to
 		switch(oz_APIMain()) {
+			// API's done...
 			case EXIT_SUCCESS: {
-				// all clear so do your stuff
+				// all clear, let MISAKA do her stuff
 				zProgram.IsRunning = MSK_DoEvents();
 
-				// options dialog
+				// handling Options dialog
 				if(ReturnVal.Handle == zProgram.HandleOptions) {
-					// -> button Dump .obj
+					// -> button "Dump .obj"
 					if(ReturnVal.s8 == 3) {
 						cn_Cmd_DumpObj(NULL);
 					}
 
-					// -> button OK
+					// -> button "OK"
 					if(ReturnVal.s8 == 4) {
 						int LastDbg = zOptions.DebugLevel;
 						zOptions.DebugLevel = 0;
@@ -149,9 +187,9 @@ int main(int argc, char * argv[])
 					}
 				}
 
-				// loadscene dialog
+				// handling Load Scene dialog
 				if(ReturnVal.Handle == zProgram.HandleLoadScene) {
-					// -> button Ok
+					// -> button "OK"
 					if(ReturnVal.s8 == 1) {
 						if(zl_LoadScene(zOptions.SceneNo)) {
 							dbgprintf(0, MSK_COLORTYPE_ERROR, "> Error: Failed to load Scene #%i!\n", zOptions.SceneNo);
@@ -159,32 +197,57 @@ int main(int argc, char * argv[])
 					}
 				}
 
+				// let OpenGL do the rendering
 				gl_DrawScene();
 				if(gl_FinishScene()) die(EXIT_FAILURE);
 
 				break;
 			}
 
+			// API's not done, so do nothing here...
 			case -1: {
-				// let the api do its shit
 				break; }
 
+			// ouch, something bad happened with the API, terminating now...
 			case EXIT_FAILURE: {
-				// error!
 				die(EXIT_FAILURE); }
-			}
+		}
 	}
 
-	zl_DeInit();
-
+	// trying to do a clean exit with the API
 	if(oz_ExitProgram()) die(EXIT_FAILURE);
 
+	// now die
 	die(EXIT_SUCCESS);
 
 	return EXIT_FAILURE;
 }
 
 // ----------------------------------------
+
+void GetFilePath(unsigned char * FullPath, unsigned char * Target)
+{
+	char Temp[MAX_PATH];
+	strcpy(Temp, FullPath);
+	char * Ptr;
+	if((Ptr = strrchr(Temp, FILESEP))) {
+		Ptr++;
+		*Ptr = '\0';
+		strcpy(Target, Temp);
+	} else {
+		sprintf(Target, ".%c", FILESEP);
+	}
+}
+
+void GetFileName(unsigned char * FullPath, unsigned char * Target)
+{
+	char * Ptr;
+	if((Ptr = strrchr(FullPath, FILESEP))) {
+		strcpy(Target, Ptr+1);
+	} else {
+		strcpy(Target, FullPath);
+	}
+}
 
 inline void dbgprintf(int Level, int Type, char * Format, ...)
 {
@@ -206,8 +269,12 @@ inline void dbgprintf(int Level, int Type, char * Format, ...)
 
 void die(int Code)
 {
+	// clear out Zelda stuff
+	zl_DeInit();
+
 	dbgprintf(0, MSK_COLORTYPE_INFO, "\n");
 
+	// determine if program exited normally or not
 	if(Code == EXIT_SUCCESS)
 		dbgprintf(0, MSK_COLORTYPE_INFO, "Program terminated normally.\n");
 	else
@@ -216,8 +283,11 @@ void die(int Code)
 	dbgprintf(0, MSK_COLORTYPE_INFO, "\n");
 	dbgprintf(0, MSK_COLORTYPE_INFO, "Press any key to continue...\n");
 
-	while(!getch()) { }
+	// one more MISAKA update
+	MSK_DoEvents();
 
+	// wait for keypress, then shut down MISAKA and exit
+	while(!getch());
 	MSK_Exit();
 
 	exit(Code);

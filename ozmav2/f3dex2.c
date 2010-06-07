@@ -561,14 +561,14 @@ void dl_DrawTriangle(int Vtxs[])
 
 	int i = 0;
 	for(i = 0; i < 3; i++) {
-		float TempS0 = _FIXED2FLOAT(zVertex[Vtxs[i]].S, 16) * (zTexture[0].ScaleS * zTexture[0].ShiftScaleS) / 32.0f / _FIXED2FLOAT(zTexture[0].Width, 16);
-		float TempT0 = _FIXED2FLOAT(zVertex[Vtxs[i]].T, 16) * (zTexture[0].ScaleT * zTexture[0].ShiftScaleT) / 32.0f / _FIXED2FLOAT(zTexture[0].Height, 16);
+		float TempS0 = _FIXED2FLOAT(zVertex[Vtxs[i]].S, 16) * (zTexture[0].ScaleS * zTexture[0].ShiftScaleS) / 32.0f / _FIXED2FLOAT(zTexture[0].RealWidth, 16);
+		float TempT0 = _FIXED2FLOAT(zVertex[Vtxs[i]].T, 16) * (zTexture[0].ScaleT * zTexture[0].ShiftScaleT) / 32.0f / _FIXED2FLOAT(zTexture[0].RealHeight, 16);
 
 		if(zOpenGL.Ext_MultiTexture) {
 			glMultiTexCoord2fARB(GL_TEXTURE0_ARB, TempS0, TempT0);
 			if(zGfx.IsMultiTexture) {
-				float TempS1 = _FIXED2FLOAT(zVertex[Vtxs[i]].S, 16) * (zTexture[1].ScaleS * zTexture[1].ShiftScaleS) / 32.0f / _FIXED2FLOAT(zTexture[1].Width, 16);
-				float TempT1 = _FIXED2FLOAT(zVertex[Vtxs[i]].T, 16) * (zTexture[1].ScaleT * zTexture[1].ShiftScaleT) / 32.0f / _FIXED2FLOAT(zTexture[1].Height, 16);
+				float TempS1 = _FIXED2FLOAT(zVertex[Vtxs[i]].S, 16) * (zTexture[1].ScaleS * zTexture[1].ShiftScaleS) / 32.0f / _FIXED2FLOAT(zTexture[1].RealWidth, 16);
+				float TempT1 = _FIXED2FLOAT(zVertex[Vtxs[i]].T, 16) * (zTexture[1].ScaleT * zTexture[1].ShiftScaleT) / 32.0f / _FIXED2FLOAT(zTexture[1].RealHeight, 16);
 				glMultiTexCoord2fARB(GL_TEXTURE1_ARB, TempS1, TempT1);
 			}
 		} else {
@@ -1017,7 +1017,7 @@ void dl_CreateCombinerProgram(unsigned int Cmb0, unsigned int Cmb1)
 			"MOV Comb.a, aComb.a;\n"
 			"MOV Out, Comb;\n"
 			"END\n");
-	
+
 	glGenProgramsARB(1, &zFragmentCache[zProgram.FragCachePosition].ProgramID);
 	glBindProgramARB(GL_FRAGMENT_PROGRAM_ARB, zFragmentCache[zProgram.FragCachePosition].ProgramID);
 	glProgramStringARB(GL_FRAGMENT_PROGRAM_ARB, GL_PROGRAM_FORMAT_ASCII_ARB, strlen(ProgramString), ProgramString);
@@ -1111,7 +1111,7 @@ void dl_CalcTextureSize(int TextureID)
 	if(zTexture[TextureID].CMS & G_TX_CLAMP) {
 		zTexture[TextureID].RealWidth = dl_Pow2(Clamp_Width);
 	} else if(zTexture[TextureID].CMS & G_TX_MIRROR) {
-		zTexture[TextureID].RealWidth = Mask_Width << 1;
+		zTexture[TextureID].RealWidth = dl_Pow2(Mask_Width);
 	} else {
 		zTexture[TextureID].RealWidth = dl_Pow2(zTexture[TextureID].Width);
 	}
@@ -1119,7 +1119,7 @@ void dl_CalcTextureSize(int TextureID)
 	if(zTexture[TextureID].CMT & G_TX_CLAMP) {
 		zTexture[TextureID].RealHeight = dl_Pow2(Clamp_Height);
 	} else if(zTexture[TextureID].CMT & G_TX_MIRROR) {
-		zTexture[TextureID].RealHeight = Mask_Height << 1;
+		zTexture[TextureID].RealHeight = dl_Pow2(Mask_Height);
 	} else {
 		zTexture[TextureID].RealHeight = dl_Pow2(zTexture[TextureID].Height);
 	}

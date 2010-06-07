@@ -1,3 +1,4 @@
+extern void cn_Cmd_LoadROM(unsigned char *);
 extern void cn_Cmd_LoadScene(unsigned char *);
 extern void cn_Cmd_DumpObj(unsigned char *);
 extern void cn_Cmd_SetTexture(unsigned char *);

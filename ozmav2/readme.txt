@@ -9,13 +9,12 @@ libMISAKA - Written in 2010 by xdaniel & contributors
 ----------------------------------------------------------------------------------------------------
 
 Prototype:
-OZMAV2 <Z64 ROM> <Scene ID> [options]
-Where:
- <Z64 ROM> is an Ocarina of Time or Majora's Mask ROM image, no matter the version, and
- <Scene ID> is the ID of the Scene to load initially (optional, defaults to 0).
+ OZMAV2.exe [options]
 
 Options:
- -d LEVEL       Level of debugging messages to output, listed below.
+ -r PATH        Path to Ocarina of Time or Majora's Mask ROM to load
+ -s SCENE       Initial scene number to load, in decimal (optional, defaults to 0).
+ -d LEVEL       Level of debugging messages shown, between 0 and 3 (optional, defaults to 0).
 
 Possible debug levels:
  0 = Errors only
@@ -23,15 +22,15 @@ Possible debug levels:
  2 = Errors, warnings, general information, important debugging messages only
  3 = All messages
 
-For more information about the console commands that can be used, type "help" at the console, which
-will list all available commands. Better documentation for those to follow.
-
-----------------------------------------------------------------------------------------------------
-
-Example: 'OZMAV2 "Legend of Zelda, The - Ocarina of Time (U) (V1.0) [!].z64" 85 -d 1'
+Example: 'OZMAV2 -r "Legend of Zelda, The - Ocarina of Time (U) (V1.0) [!].z64" -s 85 -d 1'
  The above loads the Ocarina of Time ROM named "Legend of Zelda, The - Ocarina of Time (U) (V1.0)
  [!].z64", loading Scene #85 initially, Kokiri Forest, and sets the debug level to 1, thus showing
  errors, warnings and general information about ex. the ROM.
+
+----------------------------------------------------------------------------------------------------
+
+For more information about the console commands that can be used, type "help" at the console, which
+will list all available commands. Better documentation for those to follow.
 
 ----------------------------------------------------------------------------------------------------
  

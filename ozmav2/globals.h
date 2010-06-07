@@ -114,6 +114,7 @@ struct __zProgram {
 	FILE * FileWavefrontMtl;
 
 	char Title[256];
+	char AppPath[MAX_PATH];
 	int HandleOptions;
 	int HandleAbout;
 	int HandleLoadScene;
@@ -139,6 +140,8 @@ struct __zOptions {
 };
 
 struct __zROM {
+	bool IsROMLoaded;
+	char FilePath[MAX_PATH];
 	char Filename[256];
 	unsigned int Size;
 	char Title[20];
@@ -348,4 +351,6 @@ extern struct __zCamera zCamera;
 
 // ----------------------------------------
 
+extern void GetFilePath(unsigned char * FullPath, unsigned char * Target);
+extern void GetFileName(unsigned char * FullPath, unsigned char * Target);
 extern inline void dbgprintf(int Level, int Type, char * Format, ...);
