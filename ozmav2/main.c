@@ -44,6 +44,11 @@ struct __zVertex zVertex[32];
 
 struct __zTexture zTexture[2];
 
+struct __zObject zObject[1024];
+struct __zActor zActor[1024];
+struct __zMapActor zLink[256];
+struct __zMapActor zMapActor[256][256];
+
 struct __zFragmentCache zFragmentCache[256];
 struct __zTextureCache zTextureCache[512];
 

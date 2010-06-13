@@ -30,7 +30,7 @@ bool zl_Init(char * Filename)
 		if(zl_GetGameVersion()) return EXIT_FAILURE;
 		if(zl_GetDMATable()) return EXIT_FAILURE;
 		if(zl_GetFilenameTable()) zGame.HasFilenames = false;
-		if(zl_GetSceneTable(zGame.STBuffer)) return EXIT_FAILURE;
+		if(zl_GetSceneTable(zGame.CodeBuffer)) return EXIT_FAILURE;
 
 		if(zl_LoadScene(zOptions.SceneNo)) return EXIT_FAILURE;
 	} else {
@@ -88,8 +88,11 @@ int zl_GetGameVersion()
 		if(!strcmp(zROM.Title, GameVer[i].Title) && !strcmp(zROM.GameID, GameVer[i].GameID) && zROM.Version == GameVer[i].Version) {
 			CheckOkay = true;
 			zGame.GameType = GameVer[i].GameType;
-			zGame.SceneTableFileNo = GameVer[i].SceneTableFileNo;
+			zGame.CodeFileNo = GameVer[i].CodeFileNo;
+			zGame.CodeRAMOffset = GameVer[i].CodeRAMOffset;
 			zGame.SceneTableOffset = GameVer[i].SceneTableOffset;
+			zGame.ObjectTableOffset = GameVer[i].ObjectTableOffset;
+			zGame.ActorTableOffset = GameVer[i].ActorTableOffset;
 			zGame.SceneCount = GameVer[i].SceneCount;
 			strcpy(zGame.TitleText, GameVer[i].TitleText);
 			break;
@@ -121,8 +124,8 @@ int zl_LoadScene(int SceneNo)
 
 	unsigned int BaseOffset = zGame.SceneTableOffset + (SceneNo * (zGame.GameType ? 0x10 : 0x14));	// OoT = 0x14 bytes, MM = 0x10 bytes
 
-	unsigned int SceneStart = Read32(zGame.STBuffer, BaseOffset);
-	unsigned int SceneEnd = Read32(zGame.STBuffer, BaseOffset + 4);
+	unsigned int SceneStart = Read32(zGame.CodeBuffer, BaseOffset);
+	unsigned int SceneEnd = Read32(zGame.CodeBuffer, BaseOffset + 4);
 	unsigned int SceneSize = SceneEnd - SceneStart;
 
 	DMA Scene = zl_DMAVirtualToPhysical(SceneStart);
@@ -137,6 +140,8 @@ int zl_LoadScene(int SceneNo)
 
 	unsigned char Segment = (zSHeader[0].MapOffset & 0xFF000000) >> 24;
 	unsigned int Offset = (zSHeader[0].MapOffset & 0x00FFFFFF);
+
+	zl_GetMapActors(0, -1);
 
 	int i = 0;
 	for(i = 0; i < zSHeader[0].MapCount; i++) {
@@ -159,6 +164,9 @@ int zl_LoadScene(int SceneNo)
 
 		zl_LoadToSegment(0x03, zROM.Data, Map.PStart, MapSize, zGame.IsCompressed);
 		zl_ExecuteHeader(0x03, 0x00, 0, i);
+
+		zl_GetMapObjects(0, i);
+		zl_GetMapActors(0, i);
 
 		zl_GetDisplayLists(i);
 		zl_ExecuteDisplayLists(i);
@@ -318,9 +326,9 @@ int zl_GetSceneTable()
 
 	char Check[5];
 
-	DMA File = zl_DMAGetFile(zGame.SceneTableFileNo);
+	DMA File = zl_DMAGetFile(zGame.CodeFileNo);
 	unsigned int File_BufferSize = File.VEnd - File.VStart;
-	dbgprintf(2, MSK_COLORTYPE_OKAY, "[DEBUG] Scene table in file #%i, File length is 0x%08X.\n", zGame.SceneTableFileNo, File_BufferSize);
+	dbgprintf(2, MSK_COLORTYPE_OKAY, "[DEBUG] Scene table in file #%i, File length is 0x%08X.\n", zGame.CodeFileNo, File_BufferSize);
 
 	zGame.IsCompressed = true;
 	if(File.PEnd == 0 || File.PEnd == 0xFFFFFFFF) zGame.IsCompressed = false;
@@ -329,7 +337,7 @@ int zl_GetSceneTable()
 	unsigned char * NewBuffer = malloc(sizeof(char) * File_BufferSize);
 	if(NewBuffer != NULL) {
 		memset(NewBuffer, 0x00, (sizeof(char) * File_BufferSize));
-		zGame.STBuffer = NewBuffer;
+		zGame.CodeBuffer = NewBuffer;
 	} else {
 		dbgprintf(0, MSK_COLORTYPE_ERROR, "- Error: Could not allocate temporary buffer!\n");
 		return EXIT_FAILURE;
@@ -342,14 +350,14 @@ int zl_GetSceneTable()
 
 		if((!strcmp(Check, "Yaz0")) && (Yaz0Size == File_BufferSize)) {
 			dbgprintf(2, MSK_COLORTYPE_OKAY, "[DEBUG] Decompressing data: Offset 0x%08X, Length 0x%08X...\n", File.PStart + 0x10, File_BufferSize);
-			zl_Yaz0Decode(&zROM.Data[File.PStart + 0x10], zGame.STBuffer, File_BufferSize);
+			zl_Yaz0Decode(&zROM.Data[File.PStart + 0x10], zGame.CodeBuffer, File_BufferSize);
 		} else {
 			dbgprintf(0, MSK_COLORTYPE_ERROR, "- Error: Could not decompress data, data appears to be invalid!\n");
 			return EXIT_FAILURE;
 		}
 	} else {
 		dbgprintf(2, MSK_COLORTYPE_OKAY, "[DEBUG] Copying data: Offset 0x%08X, Length 0x%08X...\n", File.PStart, File_BufferSize);
-		memcpy(zGame.STBuffer, &zROM.Data[File.PStart], File_BufferSize);
+		memcpy(zGame.CodeBuffer, &zROM.Data[File.PStart], File_BufferSize);
 	}
 
 	return EXIT_SUCCESS;
@@ -481,14 +489,14 @@ void zl_ClearStructures(bool Full)
 	int i = 0, j = 0;
 
 	static const struct __zVertex zVertex_Empty;
-	for(i = 0; i < 32; i++) zVertex[i] = zVertex_Empty;
+	for(i = 0; i < ArraySize(zVertex); i++) zVertex[i] = zVertex_Empty;
 
 	static const struct __zTexture zTexture_Empty;
 	zTexture[0] = zTexture_Empty;
 	zTexture[1] = zTexture_Empty;
 
 	static const struct __zTextureCache zTextureCache_Empty;
-	for(i = 0; i < 512; i++) zTextureCache[i] = zTextureCache_Empty;
+	for(i = 0; i < ArraySize(zTextureCache); i++) zTextureCache[i] = zTextureCache_Empty;
 	zProgram.TextureCachePosition = 0;
 
 	static const struct __zRGBA zRGBA_Empty;
@@ -509,15 +517,27 @@ void zl_ClearStructures(bool Full)
 	zGfx.Store_RDPHalf1 = 0; zGfx.Store_RDPHalf2 = 0;
 	zGfx.Combiner0 = 0; zGfx.Combiner1 = 0;
 
+	for(i = 0; i < ArraySize(zObject); i++) {
+		zObject[i].IsSet = false;
+		zObject[i].StartOffset = -1;
+		zObject[i].EndOffset = -1;
+	}
+
+	static const struct __zActor zActor_Empty;
+	for(i = 0; i < ArraySize(zActor); i++) {
+		zActor[i] = zActor_Empty;
+		zActor[i].IsSet = false;
+	}
+
 	if(Full) {
 		i = 0; j = 0;
 
 		static const struct __zHeader zHeader_Empty;
-		for(i = 0; i < 256; i++) zSHeader[i] = zHeader_Empty;
+		for(i = 0; i < ArraySize(zSHeader); i++) zSHeader[i] = zHeader_Empty;
 //		for(i = 0; i < 256; i++) for(j = 0; j < 256; j++) zMHeader[i][j] = zHeader_Empty;		// SEGFAULT
 
 		static const struct __zFragmentCache zFragmentCache_Empty;
-		for(i = 0; i < 256; i++) zFragmentCache[i] = zFragmentCache_Empty;
+		for(i = 0; i < ArraySize(zFragmentCache); i++) zFragmentCache[i] = zFragmentCache_Empty;
 		zProgram.FragCachePosition = 0;
 
 		static const struct __zCamera zCamera_Empty;
@@ -539,14 +559,14 @@ void zl_ExecuteHeader(unsigned char Segment, unsigned int Offset, int SHeaderNum
 
 		switch(w0 >> 24) {
 			case 0x00:
-				zSHeader[SHeaderNumber].SActorCount = (w0 & 0x00FF0000) >> 16;
-				zSHeader[SHeaderNumber].SActorOffset = w1;
-				dbgprintf(1, MSK_COLORTYPE_INFO, " - %i Scene actor(s) at 0x%08X.\n", zSHeader[SHeaderNumber].SActorCount, zSHeader[SHeaderNumber].SActorOffset);
+				zSHeader[SHeaderNumber].LinkCount = (w0 & 0x00FF0000) >> 16;
+				zSHeader[SHeaderNumber].LinkOffset = w1;
+				dbgprintf(1, MSK_COLORTYPE_INFO, " - %i Link(s) at 0x%08X.\n", zSHeader[SHeaderNumber].LinkCount, zSHeader[SHeaderNumber].LinkOffset);
 				break;
 			case 0x01:
-				zMHeader[SHeaderNumber][MHeaderNumber].MActorCount = (w0 & 0x00FF0000) >> 16;
-				zMHeader[SHeaderNumber][MHeaderNumber].MActorOffset = w1;
-				dbgprintf(1, MSK_COLORTYPE_INFO, " - %i Map actor(s) at 0x%08X.\n", zMHeader[SHeaderNumber][MHeaderNumber].MActorCount, zMHeader[SHeaderNumber][MHeaderNumber].MActorOffset);
+				zMHeader[SHeaderNumber][MHeaderNumber].ActorCount = (w0 & 0x00FF0000) >> 16;
+				zMHeader[SHeaderNumber][MHeaderNumber].ActorOffset = w1;
+				dbgprintf(1, MSK_COLORTYPE_INFO, " - %i Actor(s) at 0x%08X.\n", zMHeader[SHeaderNumber][MHeaderNumber].ActorCount, zMHeader[SHeaderNumber][MHeaderNumber].ActorOffset);
 				break;
 			case 0x03:
 				zSHeader[SHeaderNumber].ColDataOffset = w1;
@@ -593,6 +613,7 @@ void zl_ExecuteHeader(unsigned char Segment, unsigned int Offset, int SHeaderNum
 				dbgprintf(1, MSK_COLORTYPE_INFO, " - 'Echo level setting' is %i.\n", zMHeader[SHeaderNumber][MHeaderNumber].EchoLevel);
 				break;
 			default:
+				dbgprintf(1, MSK_COLORTYPE_WARNING, " - Unknown header command 0x%08X 0x%08X.\n", w0, w1);
 				break;
 		}
 
@@ -701,25 +722,166 @@ void zl_ExecuteDisplayLists(int MapNumber)
 	}
 }
 
+void zl_GetMapObjects(int SceneNumber, int MapNumber)
+{
+	dbgprintf(3, MSK_COLORTYPE_OKAY, "[DEBUG] %s(%i, %i);\n", __FUNCTION__, SceneNumber, MapNumber);
+
+	unsigned char Segment = (zMHeader[SceneNumber][MapNumber].ObjOffset & 0xFF000000) >> 24;
+	unsigned int Offset = (zMHeader[SceneNumber][MapNumber].ObjOffset & 0x00FFFFFF);
+
+	dbgprintf(0, MSK_COLORTYPE_OKAY, "%i object(s) at 0x%08X...", zMHeader[SceneNumber][MapNumber].ObjCount, zMHeader[SceneNumber][MapNumber].ObjOffset);
+
+	int CurrObj = 0;
+
+	while(CurrObj < zMHeader[SceneNumber][MapNumber].ObjCount) {
+		// get the object number
+		unsigned short ObjNumber = Read16(zRAM[Segment].Data, Offset + (CurrObj * 2));
+
+		zObject[ObjNumber].IsSet = false;
+
+		// get the start/end offsets from the object table
+		unsigned int TempStart = Read32(zGame.CodeBuffer, zGame.ObjectTableOffset + (0x8 * ObjNumber));
+		unsigned int TempEnd = Read32(zGame.CodeBuffer, zGame.ObjectTableOffset + (0x8 * ObjNumber) + 4);
+
+		// translate those offsets into physical offsets, if necessary
+		DMA Object = zl_DMAVirtualToPhysical(TempStart);
+
+		// if the offsets aren't all zero, assume we've got a valid object
+		if((TempStart != 0) && (TempEnd != 0)) {
+			zObject[ObjNumber].IsSet = true;
+			zObject[ObjNumber].StartOffset = Object.PStart;
+			zObject[ObjNumber].EndOffset = Object.PEnd;
+		}
+
+		dbgprintf(0, MSK_COLORTYPE_OKAY, "%2i: %04X -> %08X %08X -> %s (%s)",
+			CurrObj, ObjNumber,
+			zObject[ObjNumber].StartOffset, zObject[ObjNumber].EndOffset,
+			Object.Filename,
+			(zObject[ObjNumber].IsSet ? "okay" : "bad"));
+
+		CurrObj++;
+	}
+}
+
+void zl_GetMapActors(int SceneNumber, int MapNumber)
+{
+	dbgprintf(3, MSK_COLORTYPE_OKAY, "[DEBUG] %s(%i, %i);\n", __FUNCTION__, SceneNumber, MapNumber);
+
+	unsigned char Segment = 0;
+	unsigned int Offset = 0;
+
+	int CurrActor = 0;
+
+	if(MapNumber == -1) {
+		// Links
+		Segment = (zSHeader[SceneNumber].LinkOffset & 0xFF000000) >> 24;
+		Offset = (zSHeader[SceneNumber].LinkOffset & 0x00FFFFFF);
+
+//		dbgprintf(0, MSK_COLORTYPE_OKAY, "%i Link(s) at 0x%08X...", zSHeader[SceneNumber].LinkCount, zSHeader[SceneNumber].LinkOffset);
+
+		while(CurrActor < zSHeader[SceneNumber].LinkCount) {
+			zLink[CurrActor].Number = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10));
+			zLink[CurrActor].X = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 2);
+			zLink[CurrActor].Y = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 4);
+			zLink[CurrActor].Z = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 6);
+			zLink[CurrActor].RX = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 8);
+			zLink[CurrActor].RY = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 10);
+			zLink[CurrActor].RZ = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 12);
+			zLink[CurrActor].Var = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 14);
+
+/*			dbgprintf(0, MSK_COLORTYPE_OKAY, "%2i: %04X %6i %6i %6i %6i %6i %6i %04X",
+				CurrActor,
+				(unsigned short)zLink[CurrActor].Number,
+				zLink[CurrActor].X, zLink[CurrActor].Y, zLink[CurrActor].Z,
+				zLink[CurrActor].RX, zLink[CurrActor].RY, zLink[CurrActor].RZ,
+				(unsigned short)zLink[CurrActor].Var);
+*/
+			CurrActor++;
+		}
+
+	} else {
+		// Actors
+		Segment = (zMHeader[SceneNumber][MapNumber].ActorOffset & 0xFF000000) >> 24;
+		Offset = (zMHeader[SceneNumber][MapNumber].ActorOffset & 0x00FFFFFF);
+
+		dbgprintf(0, MSK_COLORTYPE_OKAY, "%i Actor(s) at 0x%08X...", zMHeader[SceneNumber][MapNumber].ActorCount, zMHeader[SceneNumber][MapNumber].ActorOffset);
+
+		while(CurrActor < zMHeader[SceneNumber][MapNumber].ActorCount) {
+			zMapActor[MapNumber][CurrActor].Number = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10));
+			zMapActor[MapNumber][CurrActor].X = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 2);
+			zMapActor[MapNumber][CurrActor].Y = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 4);
+			zMapActor[MapNumber][CurrActor].Z = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 6);
+			zMapActor[MapNumber][CurrActor].RX = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 8);
+			zMapActor[MapNumber][CurrActor].RY = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 10);
+			zMapActor[MapNumber][CurrActor].RZ = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 12);
+			zMapActor[MapNumber][CurrActor].Var = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 14);
+
+			// go to actor processing (actor table, etc)
+			zl_ProcessActor(zMapActor[MapNumber][CurrActor].Number);
+
+			dbgprintf(0, MSK_COLORTYPE_OKAY, "%2i: No:%04X, Var:%04X, X%6i Y%6i Z%6i, %s",
+				CurrActor,
+				(unsigned short)zMapActor[MapNumber][CurrActor].Number,
+				(unsigned short)zMapActor[MapNumber][CurrActor].Var,
+				zMapActor[MapNumber][CurrActor].X, zMapActor[MapNumber][CurrActor].Y, zMapActor[MapNumber][CurrActor].Z,
+				zActor[zMapActor[MapNumber][CurrActor].Number].Name);
+
+			CurrActor++;
+		}
+	}
+}
+
+void zl_ProcessActor(unsigned short Number)
+{
+	dbgprintf(3, MSK_COLORTYPE_OKAY, "[DEBUG] %s(%i);\n", __FUNCTION__, Number);
+
+	// if the actor hasn't been processed yet, do so
+	if(zActor[Number].IsSet == false) {
+		// get the base offset for reading from the actor table
+		unsigned int BaseOffset = zGame.ActorTableOffset + (Number * 0x20);
+
+		// get the data itself
+		zActor[Number].PStart = Read32(zGame.CodeBuffer, BaseOffset);
+		zActor[Number].PEnd = Read32(zGame.CodeBuffer, BaseOffset + 4);
+		zActor[Number].VStart = Read32(zGame.CodeBuffer, BaseOffset + 8);
+		zActor[Number].VEnd = Read32(zGame.CodeBuffer, BaseOffset + 12);
+		zActor[Number].ProfileVStart = Read32(zGame.CodeBuffer, BaseOffset + 20);
+		zActor[Number].NameRStart = Read32(zGame.CodeBuffer, BaseOffset + 24);
+
+		// calculate where the actor name starts inside the code file
+		zActor[Number].NameCStart = (zActor[Number].NameRStart - zGame.CodeRAMOffset);
+
+		// and read the name out
+		unsigned char * Current = &zGame.CodeBuffer[zActor[Number].NameCStart];
+		Current += sprintf(zActor[Number].Name, "%s", Current);
+		while(!*Current) Current++;
+
+		// mark actor as processed
+		zActor[Number].IsSet = true;
+/*
+		dbgprintf(0, MSK_COLORTYPE_OKAY, "   PStart %08X, PEnd %08X, VStart %08X, VEnd %08X\n   ProfileVStart %08X, NameRStart %08X\n",
+			zActor[Number].PStart, zActor[Number].PEnd, zActor[Number].VStart, zActor[Number].VEnd,
+			zActor[Number].ProfileVStart, zActor[Number].NameRStart);
+*/
+	}
+}
+
 void zl_DeInit()
 {
 	dbgprintf(3, MSK_COLORTYPE_OKAY, "[DEBUG] %s();\n", __FUNCTION__);
 
 	if(zROM.Data != NULL) free(zROM.Data);
-	if(zGame.STBuffer != NULL) free(zGame.STBuffer);
+	if(zGame.CodeBuffer != NULL) free(zGame.CodeBuffer);
 }
 
 void zl_HexPrint(unsigned char * Buffer, int Offset, int Length)
 {
 	dbgprintf(3, MSK_COLORTYPE_OKAY, "[DEBUG] %s(0x%08X, 0x%08X, 0x%08X);\n", __FUNCTION__, Buffer, Offset, Length);
 
-	int i = 0, j = 0;
-	for(i = Offset; i < Offset + Length; i+=16) {
-		dbgprintf(0, MSK_COLORTYPE_INFO, "%08X | ", i);
-		for(j = 0; j < 16; j+=4) {
-			int k = Read32(Buffer, (i + j));
-			dbgprintf(0, MSK_COLORTYPE_INFO, "%08X ", k);
-		}
-		dbgprintf(0, MSK_COLORTYPE_INFO, "\n");
+	int i = 0;
+	for(i = Offset; i < Offset + Length; i += 16) {
+		dbgprintf(0, MSK_COLORTYPE_INFO, "%08X | %08X %08X %08X %08X",
+			i,
+			Read32(Buffer, i), Read32(Buffer, i + 4), Read32(Buffer, i + 8), Read32(Buffer, i + 12));
 	}
 }

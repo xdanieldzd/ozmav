@@ -158,8 +158,11 @@ struct __zROM {
 struct __zGame {
 	int GameType;					// 0 = OoT, 1 = MM
 	unsigned int DMATableOffset;
-	int SceneTableFileNo;
+	int CodeFileNo;
+	int CodeRAMOffset;
 	unsigned int SceneTableOffset;
+	unsigned int ObjectTableOffset;
+	unsigned int ActorTableOffset;
 	int SceneCount;
 	char TitleText[256];
 	bool IsCompressed;
@@ -169,7 +172,7 @@ struct __zGame {
 	DMA DMATable;
 	DMA Bootfile;
 
-	unsigned char * STBuffer;
+	unsigned char * CodeBuffer;
 };
 
 struct __zRAM {
@@ -179,11 +182,11 @@ struct __zRAM {
 };
 
 struct __zHeader {
-	unsigned char MActorCount;
-	unsigned int MActorOffset;
+	unsigned char ActorCount;
+	unsigned int ActorOffset;
 
-	unsigned char SActorCount;
-	unsigned int SActorOffset;
+	unsigned char LinkCount;
+	unsigned int LinkOffset;
 
 	unsigned int ColDataOffset;
 
@@ -325,6 +328,35 @@ struct __zGfx {
 	int GLTextureCount;
 };
 
+struct __zObject {
+	bool IsSet;
+	unsigned int StartOffset;
+	unsigned int EndOffset;
+};
+
+struct __zActor {
+	bool IsSet;
+	unsigned int PStart;
+	unsigned int PEnd;
+	unsigned int VStart;
+	unsigned int VEnd;
+	unsigned int ProfileVStart;
+	unsigned int NameRStart;
+	unsigned int NameCStart;
+	char Name[128];
+};
+
+struct __zMapActor {
+	unsigned short Number;
+	short X;
+	short Y;
+	short Z;
+	short RX;
+	short RY;
+	short RZ;
+	unsigned short Var;
+};
+
 // ----------------------------------------
 
 extern struct __zProgram zProgram;
@@ -343,6 +375,11 @@ extern struct __zPalette zPalette[256];
 extern struct __zVertex zVertex[32];
 
 extern struct __zTexture zTexture[2];
+
+extern struct __zObject zObject[1024];
+extern struct __zActor zActor[1024];
+extern struct __zMapActor zLink[256];
+extern struct __zMapActor zMapActor[256][256];
 
 extern struct __zFragmentCache zFragmentCache[256];
 extern struct __zTextureCache zTextureCache[512];

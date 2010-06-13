@@ -24,5 +24,8 @@ extern void zl_ClearStructures(bool Full);
 extern void zl_ExecuteHeader(unsigned char Segment, unsigned int Offset, int SceneNumber, int MapNumber);
 extern void zl_GetDisplayLists(int MapNumber);
 extern void zl_ExecuteDisplayLists(int MapNumber);
+extern void zl_GetMapObjects(int SceneNumber, int MapNumber);
+extern void zl_GetMapActors(int SceneNumber, int MapNumber);
+extern void zl_ProcessActor(unsigned short Number);
 extern void zl_DeInit();
 extern void zl_HexPrint(unsigned char * Buffer, int Offset, int Length);
