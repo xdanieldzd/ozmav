@@ -53,6 +53,8 @@ typedef struct {
 	int ExitHandle;
 
 	bool IsRunning;
+	bool IsLogging;
+	FILE * Log;
 
 	void (* FuncStack[256])();
 	int FunctionNo;

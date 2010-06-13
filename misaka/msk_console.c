@@ -62,7 +62,20 @@ void MSK_ConsolePrint(int Color, char * Format, ...)
 	wattroff(Console.WindowPad, COLOR_PAIR(Color));
 	wrefresh(Console.WindowPad);
 
+	fprintf(Console.Log, Text);
+
 	MSK_Refresh(Console.TotalConsoleLine - 1);
+}
+
+void MSK_InitLogging(char * Path)
+{
+	Console.IsLogging = TRUE;
+	Console.Log = fopen(Path, "w");
+}
+
+void MSK_SetLogging(int Toggle)
+{
+	Console.IsLogging = Toggle;
 }
 
 void MSK_Refresh(int Line)

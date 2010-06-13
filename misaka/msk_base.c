@@ -92,6 +92,8 @@ void MSK_Exit()
 	delwin(Console.WindowCommand);
 	delwin(Console.WindowPad);
 	endwin();
+
+	if(Console.IsLogging) fclose(Console.Log);
 }
 
 void MSK_SetMainFunction(void * Function)

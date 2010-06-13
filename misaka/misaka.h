@@ -34,6 +34,8 @@ extern void MSK_SetValidCharacters(char * Chars);
 extern void MSK_AddCommand(char * Cmd, char * Help, void * Func);
 extern void MSK_Exit();
 extern void MSK_ConsolePrint(int Color, char * Format, ...);
+extern void MSK_InitLogging(char * Path);
+extern void MSK_SetLogging(int Toggle);
 extern int MSK_DoEvents();
 extern int MSK_MessageBox(char * Title, char * Text, int Type);
 extern int MSK_Dialog(__MSK_UI_Dialog * Dlg);
