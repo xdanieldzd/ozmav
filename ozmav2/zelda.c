@@ -776,9 +776,9 @@ void zl_GetMapObjects(int SceneNumber, int MapNumber)
 
 	int CurrObj = 0;
 	
-	unsigned short ObjNumber = 1;
+	unsigned short ObjNumber = 1; /* i was doing some stuff to try and get gameplay_keep to load. didn't work yet */
 
-	while(CurrObj <= zMHeader[SceneNumber][MapNumber].ObjCount) {
+	while(CurrObj </*=*/ zMHeader[SceneNumber][MapNumber].ObjCount) {
 		// get the object number
 		ObjNumber = Read16(zRAM[Segment].Data, Offset + (CurrObj * 2));
 		zObject[ObjNumber].IsSet = false;
