@@ -4,11 +4,6 @@
 #ifndef _MIPS_EVAL_H_
 #define _MIPS_EVAL_H_
 #include "r3400i.h"
-#include <stdio.h>
-#include <stdlib.h>
-
-#define true	1
-#define false	0
 
 #define MIPS_OP_JAL	3
 #define MIPS_OP_ADDIU	9

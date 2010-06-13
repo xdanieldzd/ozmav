@@ -60,10 +60,14 @@ void die(int Code);
 
 // ----------------------------------------
 
+FILE * dbglogf;
+bool debugLog;
+
 int main(int argc, char * argv[])
 {
 	char Temp[MAX_PATH];
-
+	debugLog = false;
+	
 	sprintf(zProgram.Title, APPTITLE" "VERSION" (build "__DATE__" "__TIME__")");
 	sprintf(zGame.TitleText, "No ROM loaded");
 
@@ -80,7 +84,7 @@ int main(int argc, char * argv[])
 		}
 
 		if(!strcmp(argv[1], "--about") || !strcmp(argv[1], "-a")) {
-			printf(zProgram.Title);
+			printf("%s", zProgram.Title);
 			#ifdef DEBUG
 			printf(" (Debug build)");
 			#endif
@@ -155,8 +159,12 @@ int main(int argc, char * argv[])
 				// set debug level
 				sscanf(argv[curr_arg + 1], "%i", &zOptions.DebugLevel);
 				curr_arg++;
+			} else
+			if(!strcmp(argv[curr_arg], "-l")) {
+				//debug log
+				debugLog=1;
+				dbglogf = fopen(argv[++curr_arg],"w");
 			}
-
 			curr_arg++;
 		}
 	}
@@ -236,7 +244,7 @@ int main(int argc, char * argv[])
 
 // ----------------------------------------
 
-void GetFilePath(unsigned char * FullPath, unsigned char * Target)
+void GetFilePath(char * FullPath, char * Target)
 {
 	char Temp[MAX_PATH];
 	strcpy(Temp, FullPath);
@@ -250,7 +258,7 @@ void GetFilePath(unsigned char * FullPath, unsigned char * Target)
 	}
 }
 
-void GetFileName(unsigned char * FullPath, unsigned char * Target)
+void GetFileName(char * FullPath, char * Target)
 {
 	char * Ptr;
 	if((Ptr = strrchr(FullPath, FILESEP))) {
@@ -271,7 +279,12 @@ inline void dbgprintf(int Level, int Type, char * Format, ...)
 		va_start(argp, Format);
 		vsprintf(Text, Format, argp);
 		va_end(argp);
-
+		
+		if (debugLog){
+			fprintf(dbglogf, "%s%s", Text, (Text[strlen(Text)-1] == '\n') ? " " : "\n" );
+			fflush(dbglogf);
+		}
+		
 		MSK_ConsolePrint(Type, Text);
 	}
 }

@@ -40,10 +40,10 @@ enum { true = 1, false = 0 };
 // ----------------------------------------
 
 #define Read16(Buffer, Offset) \
-	(Buffer[Offset] << 8) | Buffer[Offset + 1]
+	(Buffer[Offset] << 8) | Buffer[(Offset) + 1]
 
 #define Read32(Buffer, Offset) \
-	(Buffer[Offset] << 24) | (Buffer[Offset + 1] << 16) | (Buffer[Offset + 2] << 8) | Buffer[Offset + 3]
+	(Buffer[Offset] << 24) | (Buffer[(Offset) + 1] << 16) | (Buffer[(Offset) + 2] << 8) | Buffer[(Offset) + 3]
 
 #define Write32(Buffer, Offset, Value) \
 	Buffer[Offset] = (Value & 0xFF000000) >> 24; \
@@ -335,6 +335,8 @@ struct __zObject {
 	bool IsSet;
 	unsigned int StartOffset;
 	unsigned int EndOffset;
+	int Size;
+	unsigned char * Data;
 };
 
 struct __zActor {
@@ -347,6 +349,13 @@ struct __zActor {
 	unsigned int NameRStart;
 	unsigned int NameCStart;
 	char Name[128];
+	unsigned short Object;
+	int Size;
+	unsigned char * Data;
+	float Scale;
+	unsigned int BoneSetup;
+	unsigned int Animation;
+	unsigned int DisplayList;
 };
 
 struct __zMapActor {
@@ -391,6 +400,6 @@ extern struct __zCamera zCamera;
 
 // ----------------------------------------
 
-extern void GetFilePath(unsigned char * FullPath, unsigned char * Target);
-extern void GetFileName(unsigned char * FullPath, unsigned char * Target);
+extern void GetFilePath(char * FullPath, char * Target);
+extern void GetFileName(char * FullPath, char * Target);
 extern inline void dbgprintf(int Level, int Type, char * Format, ...);
