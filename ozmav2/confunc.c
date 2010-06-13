@@ -166,9 +166,8 @@ void cn_Cmd_ExtractFiles(unsigned char * Ptr)
 	dbgprintf(0, MSK_COLORTYPE_OKAY, "Extracting ROM data...\n");
 
 	char Temp[256];
-	sprintf(Temp, ".//extr");
-	oz_CreateFolder(Temp);
-	sprintf(Temp, ".//extr//%s", zGame.TitleText);
+
+	sprintf(Temp, "%s//extr//%s", zProgram.AppPath, zGame.TitleText);
 	oz_CreateFolder(Temp);
 
 	DMA CurrentFile = {0, 0, 0, 0, 0, ""};
@@ -193,7 +192,7 @@ void cn_Cmd_ExtractFiles(unsigned char * Ptr)
 		dbgprintf(0, MSK_COLORTYPE_INFO, "File %i: %s, PStart 0x%08X, PEnd 0x%08X%s\n", FileNo, CurrentFile.Filename, CurrentFile.PStart, CurrentFile.PEnd, (IsFileValid ? "" : " XX"));
 		FileNo++;
 
-		sprintf(Temp, ".//extr//%s//%s", zGame.TitleText, CurrentFile.Filename);
+		sprintf(Temp, "%s//extr//%s//%s", zProgram.AppPath, zGame.TitleText, CurrentFile.Filename);
 
 		if(IsFileValid) {
 			FILE * File = fopen(Temp, "wb");

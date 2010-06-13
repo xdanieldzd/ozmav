@@ -136,7 +136,7 @@ int zl_LoadScene(int SceneNo)
 	dbgprintf(1, MSK_COLORTYPE_INFO, " - Location in ROM: 0x%08X to 0x%08X (0x%04X bytes)\n\n", Scene.PStart, Scene.PEnd, SceneSize);
 
 	zl_LoadToSegment(0x02, zROM.Data, Scene.PStart, SceneSize, zGame.IsCompressed);
-	zl_ExecuteHeader(0x02, 0x00, 0, -1);
+	if(zl_ExecuteHeader(0x02, 0x00, 0, -1)) return EXIT_FAILURE;
 
 	unsigned char Segment = (zSHeader[0].MapOffset & 0xFF000000) >> 24;
 	unsigned int Offset = (zSHeader[0].MapOffset & 0x00FFFFFF);
@@ -163,7 +163,7 @@ int zl_LoadScene(int SceneNo)
 		dbgprintf(1, MSK_COLORTYPE_INFO, " - Location in ROM: 0x%08X to 0x%08X (0x%04X bytes)\n\n", Map.PStart, Map.PEnd, MapSize);
 
 		zl_LoadToSegment(0x03, zROM.Data, Map.PStart, MapSize, zGame.IsCompressed);
-		zl_ExecuteHeader(0x03, 0x00, 0, i);
+		if(zl_ExecuteHeader(0x03, 0x00, 0, i)) break;
 
 		zl_GetMapObjects(0, i);
 		zl_GetMapActors(0, i);
@@ -545,11 +545,21 @@ void zl_ClearStructures(bool Full)
 	}
 }
 
-void zl_ExecuteHeader(unsigned char Segment, unsigned int Offset, int SHeaderNumber, int MHeaderNumber)
+int zl_ExecuteHeader(unsigned char Segment, unsigned int Offset, int SHeaderNumber, int MHeaderNumber)
 {
 	dbgprintf(3, MSK_COLORTYPE_OKAY, "[DEBUG] %s(0x%02X, 0x%08X, %i, %i);\n", __FUNCTION__, Segment, Offset, SHeaderNumber, MHeaderNumber);
 
-	if(!zl_CheckAddressValidity((Segment << 24) | Offset)) return;
+	if(!zl_CheckAddressValidity((Segment << 24) | Offset)) return EXIT_FAILURE;
+
+	// if we're executing a Map header...
+	if(MHeaderNumber != -1) {
+		// check if the first command is either 0x08, 0x16 or 0x18...
+		if((zRAM[Segment].Data[0] != 0x08) && (zRAM[Segment].Data[0] != 0x16) && (zRAM[Segment].Data[0] != 0x18)) {
+			// ...and if it's not die, as we can assume that the header is invalid (see unfixed syotes, Scene 104)
+			dbgprintf(0, MSK_COLORTYPE_ERROR, "- Error: Invalid or non-standard Map header!");
+			return EXIT_FAILURE;
+		}
+	}
 
 	bool EndOfHeader = false;
 
@@ -621,6 +631,8 @@ void zl_ExecuteHeader(unsigned char Segment, unsigned int Offset, int SHeaderNum
 	}
 
 	dbgprintf(1, MSK_COLORTYPE_INFO, "\n");
+
+	return EXIT_SUCCESS;
 }
 
 void zl_GetDisplayLists(int MapNumber)
@@ -817,7 +829,7 @@ void zl_GetMapActors(int SceneNumber, int MapNumber)
 			zMapActor[MapNumber][CurrActor].Var = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 14);
 
 			// go to actor processing (actor table, etc)
-			zl_ProcessActor(zMapActor[MapNumber][CurrActor].Number);
+			zl_ProcessActor(MapNumber, CurrActor);
 
 			dbgprintf(0, MSK_COLORTYPE_OKAY, "%2i: No:%04X, Var:%04X, X%6i Y%6i Z%6i, %s",
 				CurrActor,
@@ -831,38 +843,115 @@ void zl_GetMapActors(int SceneNumber, int MapNumber)
 	}
 }
 
-void zl_ProcessActor(unsigned short Number)
+void zl_ProcessActor(int MapNumber, int CurrActor)
 {
-	dbgprintf(3, MSK_COLORTYPE_OKAY, "[DEBUG] %s(%i);\n", __FUNCTION__, Number);
+	dbgprintf(3, MSK_COLORTYPE_OKAY, "[DEBUG] %s(%i, %i);\n", __FUNCTION__, MapNumber, CurrActor);
+
+	unsigned short ActorNumber = zMapActor[MapNumber][CurrActor].Number;
 
 	// if the actor hasn't been processed yet, do so
-	if(zActor[Number].IsSet == false) {
+	if(zActor[ActorNumber].IsSet == false) {
 		// get the base offset for reading from the actor table
-		unsigned int BaseOffset = zGame.ActorTableOffset + (Number * 0x20);
+		unsigned int BaseOffset = zGame.ActorTableOffset + (ActorNumber * 0x20);
 
 		// get the data itself
-		zActor[Number].PStart = Read32(zGame.CodeBuffer, BaseOffset);
-		zActor[Number].PEnd = Read32(zGame.CodeBuffer, BaseOffset + 4);
-		zActor[Number].VStart = Read32(zGame.CodeBuffer, BaseOffset + 8);
-		zActor[Number].VEnd = Read32(zGame.CodeBuffer, BaseOffset + 12);
-		zActor[Number].ProfileVStart = Read32(zGame.CodeBuffer, BaseOffset + 20);
-		zActor[Number].NameRStart = Read32(zGame.CodeBuffer, BaseOffset + 24);
+		zActor[ActorNumber].PStart = Read32(zGame.CodeBuffer, BaseOffset);
+		zActor[ActorNumber].PEnd = Read32(zGame.CodeBuffer, BaseOffset + 4);
+		zActor[ActorNumber].VStart = Read32(zGame.CodeBuffer, BaseOffset + 8);
+		zActor[ActorNumber].VEnd = Read32(zGame.CodeBuffer, BaseOffset + 12);
+		zActor[ActorNumber].ProfileVStart = Read32(zGame.CodeBuffer, BaseOffset + 20);
+		zActor[ActorNumber].NameRStart = Read32(zGame.CodeBuffer, BaseOffset + 24);
 
 		// calculate where the actor name starts inside the code file
-		zActor[Number].NameCStart = (zActor[Number].NameRStart - zGame.CodeRAMOffset);
+		zActor[ActorNumber].NameCStart = (zActor[ActorNumber].NameRStart - zGame.CodeRAMOffset);
 
 		// and read the name out
-		unsigned char * Current = &zGame.CodeBuffer[zActor[Number].NameCStart];
-		Current += sprintf(zActor[Number].Name, "%s", Current);
+		unsigned char * Current = &zGame.CodeBuffer[zActor[ActorNumber].NameCStart];
+		Current += sprintf(zActor[ActorNumber].Name, "%s", Current);
 		while(!*Current) Current++;
 
 		// mark actor as processed
-		zActor[Number].IsSet = true;
-/*
-		dbgprintf(0, MSK_COLORTYPE_OKAY, "   PStart %08X, PEnd %08X, VStart %08X, VEnd %08X\n   ProfileVStart %08X, NameRStart %08X\n",
-			zActor[Number].PStart, zActor[Number].PEnd, zActor[Number].VStart, zActor[Number].VEnd,
-			zActor[Number].ProfileVStart, zActor[Number].NameRStart);
-*/
+		zActor[ActorNumber].IsSet = true;
+	}
+
+	DMA Actor = zl_DMAVirtualToPhysical(zActor[ActorNumber].PStart);
+
+	if((Actor.PStart != 0) && (Actor.PEnd != 0)) {
+		unsigned int ObjNumber = Read16(zROM.Data, (Actor.PStart + (zActor[ActorNumber].ProfileVStart - zActor[ActorNumber].VStart) + 8));
+
+		dbgprintf(0, MSK_COLORTYPE_OKAY, "  Actor name is %s, object # is %04X...", Actor.Filename, ObjNumber);
+
+		if(zObject[ObjNumber].IsSet == true) {
+			zl_LoadToSegment(0x06, zROM.Data, zObject[ObjNumber].StartOffset, (zObject[ObjNumber].EndOffset - zObject[ObjNumber].StartOffset), zGame.IsCompressed);
+
+			zGfx.DLStackPos = 0;
+			unsigned int DListOffset = 0;
+			float ObjScale = 1.0f;
+
+			// -------- CODE BELOW IS UGLY HACK --------
+
+			dbgprintf(0, MSK_COLORTYPE_OKAY, "   HACK: trying to exec dlist 0x%08X for object 0x%04X", DListOffset, ObjNumber);
+
+			if(ObjNumber == 0x163) {
+				DListOffset = 0x060009E0;
+				ObjScale = 0.15;
+			} else if(ObjNumber == 0xA2) {
+				DListOffset = 0x060001B0;
+				ObjScale = 0.15;
+			} else if(ObjNumber == 0x11F) {
+				DListOffset = 0x060006B0;
+				ObjScale = 0.15;
+			} else if(ObjNumber == 0x5F) {
+				DListOffset = 0x06000970;
+				ObjScale = 1.0;
+			} else {
+				int i = 0;
+				for(i = 0; i < zRAM[0x06].Size; i+=8) {
+					unsigned int w0 = Read32(zRAM[0x06].Data, i);
+					unsigned int w1 = Read32(zRAM[0x06].Data, i + 1);
+					//assume 1st 0xe7 is entry point
+					if((w0 == 0xe7000000) && (w1 == 0x00000000)) {
+						DListOffset = 0x06000000 + i;
+						break;
+					}
+				}
+				ObjScale = 0.1;
+			}
+
+			zGfx.ActorDLCount[MapNumber][CurrActor] = 1;
+
+			// -------- CODE ABOVE IS UGLY HACK --------
+
+			if(DListOffset != 0) {
+				int DL = 0;
+
+				zGfx.ActorGLListCount[MapNumber][CurrActor] = glGenLists(zGfx.ActorDLCount[MapNumber][CurrActor]);
+				glListBase(zGfx.ActorGLListCount[MapNumber][CurrActor]);
+
+				while(DL < zGfx.ActorDLCount[MapNumber][CurrActor]) {
+					if(zl_CheckAddressValidity(DListOffset)) {
+						glNewList(zGfx.ActorGLListCount[MapNumber][CurrActor] + DL, GL_COMPILE);
+							glPushMatrix();
+
+							glTranslated(zMapActor[MapNumber][CurrActor].X, zMapActor[MapNumber][CurrActor].Y, zMapActor[MapNumber][CurrActor].Z);
+							glRotated(zMapActor[MapNumber][CurrActor].RX / 180, 1, 0, 0);
+							glRotated(zMapActor[MapNumber][CurrActor].RY / 180, 0, 1, 0);
+							glRotated(zMapActor[MapNumber][CurrActor].RZ / 180, 0, 0, 1);
+							glScalef(ObjScale, ObjScale, ObjScale);
+
+							zGfx.DLStackPos = 0;
+							dl_ParseDisplayList(DListOffset);
+
+							glPopMatrix();
+						glEndList();
+					}
+
+					DL++;
+				}
+			}
+
+			zl_ClearSegment(0x06);
+		}
 	}
 }
 

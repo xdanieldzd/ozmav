@@ -7,16 +7,16 @@ void md_InitModelDumping(int SceneNo)
 	char MtlFilename[256];
 	char FilePath[256];
 
-	sprintf(FilePath, "dump//%s", zGame.TitleText);
+	sprintf(FilePath, "%s//dump//%s", zProgram.AppPath, zGame.TitleText);
 	oz_CreateFolder(FilePath);
-	sprintf(FilePath, "dump//%s//scene_%i", zGame.TitleText, (unsigned int)SceneNo);
+	sprintf(FilePath, "%s//dump//%s//scene_%i", zProgram.AppPath, zGame.TitleText, (unsigned int)SceneNo);
 	oz_CreateFolder(FilePath);
 
-	sprintf(FilePath, "dump//%s//scene_%i//model.obj", zGame.TitleText, (unsigned int)SceneNo);
+	sprintf(FilePath, "%s//dump//%s//scene_%i//model.obj", zProgram.AppPath, zGame.TitleText, (unsigned int)SceneNo);
 	zProgram.FileWavefrontObj = fopen(FilePath, "w");
 
 	sprintf(MtlFilename, "material.mtl");
-	sprintf(FilePath, "dump//%s//scene_%i//%s", zGame.TitleText, (unsigned int)SceneNo, MtlFilename);
+	sprintf(FilePath, "%s//dump//%s//scene_%i//%s", zProgram.AppPath, zGame.TitleText, (unsigned int)SceneNo, MtlFilename);
 	zProgram.FileWavefrontMtl = fopen(FilePath, "w");
 
 	if(!zProgram.FileWavefrontObj || !zProgram.FileWavefrontMtl) {
@@ -44,7 +44,7 @@ void md_CreateMaterial(int TextureID, unsigned char * TextureData)
 	sprintf(TextureFilename, "texture_fmt0x%02X_0x%08X.png", zTexture[TextureID].Format, zTexture[TextureID].Offset);
 
 	char TexturePath[256];
-	sprintf(TexturePath, "dump//%s//scene_%i//%s", zGame.TitleText, (unsigned int)zOptions.SceneNo, TextureFilename);
+	sprintf(TexturePath, "%s//dump//%s//scene_%i//%s", zProgram.AppPath, zGame.TitleText, (unsigned int)zOptions.SceneNo, TextureFilename);
 
 	md_SavePNG(TextureData, zTexture[TextureID].RealWidth, zTexture[TextureID].RealHeight, TexturePath);
 

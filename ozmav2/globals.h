@@ -35,6 +35,7 @@ enum { true = 1, false = 0 };
 #include "f3dex2.h"
 #include "camera.h"
 #include "dump.h"
+#include "mips-eval.h"
 
 // ----------------------------------------
 
@@ -303,6 +304,8 @@ struct __zGfx {
 	int DLCount[256];
 	int DLCountTotal;
 	GLuint GLListCount[256];
+	int ActorDLCount[256][1024];
+	GLuint ActorGLListCount[256][1024];
 
 	unsigned int ChangedModes;
 	unsigned int GeometryMode;

@@ -36,10 +36,10 @@ void mips_EvalWord(unsigned int * words, int pos)
 	{
 		/* delay slot */
 		mips_EvalWord( words, pos+1);
-		
+
 		/* report function */
 		mips_ReportFunc( getTARGET(word) );
-		
+
 		/* clear registers
 		  I know this does not respect the mips calling convention */
 		int __count;
@@ -84,7 +84,7 @@ int mips_ReportFunc(unsigned int target)
 	int i;
 	int func_no = -1;
 	target &= 0x0FFFFFFF;
-	
+
 	/* is the function being watched for? */
 	for(i=0;i<funcs_watching_count;i++)
 	{
@@ -94,16 +94,16 @@ int mips_ReportFunc(unsigned int target)
 			break;
 		}
 	}
-	
+
 	/* was it found ? */
 	if(func_no < 0)
 		return -1;
-	
+
 	/* yep - put it in the list */
 	mips_funcs_found_count++;
 	mips_funcs_found = (struct mips_args*) realloc(mips_funcs_found, mips_funcs_found_count * sizeof(struct mips_args));
 	mips_funcs_found[mips_funcs_found_count-1].target = target;
-	
+
 	/* copy args. arguments in stack is for another day (or night, amirite?) */
 	for(i=0;i<4;i++)
 	{
@@ -115,7 +115,7 @@ int mips_ReportFunc(unsigned int target)
 			break;
 		}
 	}
-	
+
 	return func_no;
 }
 
@@ -149,15 +149,15 @@ void * mips_GetFuncArg(unsigned int target, int argc)
 			break;
 		}
 	}
-	
+
 	/* was it found ? */
 	if(func_no < 0)
 		return NULL;
-	
+
 	/* does the value exist? */
 	if(mips_funcs_found[func_no].argc < argc)
 		return NULL;
-	
+
 	*ret = mips_funcs_found[func_no].args[argc];
 	return ret;
 }

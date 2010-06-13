@@ -118,6 +118,10 @@ int main(int argc, char * argv[])
 	sprintf(Temp, "%s//dump", zProgram.AppPath);
 	oz_CreateFolder(Temp);
 
+	// create folder for file extraction
+	sprintf(Temp, "%s//extr", zProgram.AppPath);
+	oz_CreateFolder(Temp);
+
 	// init OpenGL & renderer
 	gl_InitExtensions();
 	gl_InitRenderer();
