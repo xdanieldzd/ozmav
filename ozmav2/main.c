@@ -60,14 +60,11 @@ void die(int Code);
 
 // ----------------------------------------
 
-FILE * dbglogf;
-bool debugLog;
-
 int main(int argc, char * argv[])
 {
 	char Temp[MAX_PATH];
-	debugLog = false;
-	
+//	debugLog = false;
+
 	sprintf(zProgram.Title, APPTITLE" "VERSION" (build "__DATE__" "__TIME__")");
 	sprintf(zGame.TitleText, "No ROM loaded");
 
@@ -162,8 +159,8 @@ int main(int argc, char * argv[])
 			} else
 			if(!strcmp(argv[curr_arg], "-l")) {
 				//debug log
-				debugLog=1;
-				dbglogf = fopen(argv[++curr_arg],"w");
+//				debugLog=1;
+//				dbglogf = fopen(argv[++curr_arg],"w");
 			}
 			curr_arg++;
 		}
@@ -279,12 +276,12 @@ inline void dbgprintf(int Level, int Type, char * Format, ...)
 		va_start(argp, Format);
 		vsprintf(Text, Format, argp);
 		va_end(argp);
-		
+/*
 		if (debugLog){
 			fprintf(dbglogf, "%s%s", Text, (Text[strlen(Text)-1] == '\n') ? " " : "\n" );
 			fflush(dbglogf);
 		}
-		
+*/
 		MSK_ConsolePrint(Type, Text);
 	}
 }

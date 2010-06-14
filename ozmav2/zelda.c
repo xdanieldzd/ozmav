@@ -323,7 +323,7 @@ int zl_GetDMATable()
 int zl_GetSceneTable()
 {
 	dbgprintf(3, MSK_COLORTYPE_OKAY, "[DEBUG] %s();\n", __FUNCTION__);
-	
+
 	/* xdaniel: you probably know of a better spot for this. This is where I put it for now, though */
 	mips_SetFuncWatch(0x80035260);// u32 a1 = display list
 	mips_SetFuncWatch(0x800A457C);// u32 a2 = hierarchy; u32 a3 = animation
@@ -775,7 +775,7 @@ void zl_GetMapObjects(int SceneNumber, int MapNumber)
 	dbgprintf(0, MSK_COLORTYPE_OKAY, "%i object(s) at 0x%08X...\n", zMHeader[SceneNumber][MapNumber].ObjCount, zMHeader[SceneNumber][MapNumber].ObjOffset);
 
 	int CurrObj = 0;
-	
+
 	unsigned short ObjNumber = 1; /* i was doing some stuff to try and get gameplay_keep to load. didn't work yet */
 
 	while(CurrObj </*=*/ zMHeader[SceneNumber][MapNumber].ObjCount) {
@@ -803,7 +803,7 @@ void zl_GetMapObjects(int SceneNumber, int MapNumber)
 			zObject[ObjNumber].StartOffset, zObject[ObjNumber].EndOffset,
 			Object.Filename,
 			(zObject[ObjNumber].IsSet ? "okay" : "bad"));
-		
+
 //		ObjNumber = Read16(zRAM[Segment].Data, Offset + (CurrObj * 2));
 		CurrObj++;
 	}
@@ -818,7 +818,7 @@ void zl_GetMapActors(int SceneNumber, int MapNumber)
 
 	int CurrActor = 0;
 
-	if(MapNumber == -1) { 
+	if(MapNumber == -1) {
 		// Links
 		Segment = (zSHeader[SceneNumber].LinkOffset & 0xFF000000) >> 24;
 		Offset = (zSHeader[SceneNumber].LinkOffset & 0x00FFFFFF);
@@ -864,8 +864,8 @@ void zl_GetMapActors(int SceneNumber, int MapNumber)
 
 			// go to actor processing (actor table, etc)
 			zl_ProcessActor(MapNumber, CurrActor);
-			
-			dbgprintf(0, MSK_COLORTYPE_OKAY, "%2i: No%04X;Obj%04X;Var%04X;DL%08X;Ani%08X/%08X;Siz%.3f;%s",
+
+/*			dbgprintf(0, MSK_COLORTYPE_OKAY, "%2i: No%04X;Obj%04X;Var%04X;DL%08X;Ani%08X/%08X;Siz%.3f;%s",
 				CurrActor,
 				(unsigned short)zMapActor[MapNumber][CurrActor].Number,
 				zActor[zMapActor[MapNumber][CurrActor].Number].Object,
@@ -875,7 +875,7 @@ void zl_GetMapActors(int SceneNumber, int MapNumber)
 				zActor[zMapActor[MapNumber][CurrActor].Number].Animation,
 				zActor[zMapActor[MapNumber][CurrActor].Number].Scale,
 				zActor[zMapActor[MapNumber][CurrActor].Number].Name);
-
+*/
 			CurrActor++;
 		}
 	}
@@ -908,10 +908,10 @@ void zl_ProcessActor(int MapNumber, int CurrActor)
 		unsigned char * Current = &zGame.CodeBuffer[zActor[ActorNumber].NameCStart];
 		Current += sprintf(zActor[ActorNumber].Name, "%s", Current);
 		while(!*Current) Current++;
-		
+
 		//Display list stuff
 		DMA Actor = zl_DMAVirtualToPhysical(zActor[ActorNumber].PStart);
-		
+
 		if((Actor.PStart != 0) && (Actor.PEnd != 0))
 		{
 			/*
@@ -927,35 +927,35 @@ void zl_ProcessActor(int MapNumber, int CurrActor)
 					- Scan for 0xE7
 			*/
 			zActor[ActorNumber].Data = zl_DMAToBuffer( Actor );
-			
+
 			zActor[ActorNumber].Size = Actor.VEnd - Actor.VStart;
-		
+
 			zActor[ActorNumber].Object = Read16(zActor[ActorNumber].Data, (zActor[ActorNumber].ProfileVStart - zActor[ActorNumber].VStart) + 8);
-			
+
 			dbgprintf(1, MSK_COLORTYPE_OKAY, " - zActor[%04X].Object = 0x%04X; (%s loaded)", ActorNumber, zActor[ActorNumber].Object, (zObject[zActor[ActorNumber].Object].IsSet) ? "is" : "not");
-			
+
 			if(zObject[zActor[ActorNumber].Object].IsSet == true) {
-				
-			
+
+
 				zRAM[0x06].Data = zObject[zActor[ActorNumber].Object].Data;
 				zRAM[0x06].Size = zObject[zActor[ActorNumber].Object].EndOffset - zObject[zActor[ActorNumber].Object].StartOffset;
 				zRAM[0x06].IsSet = true;
-				
-				
+
+
 				#if 1
 				int indent = Read32(zActor[ActorNumber].Data, zActor[ActorNumber].Size-4);
-				
+
 				int sections_addr = zActor[ActorNumber].Size - indent;
-				
+
 				int text_size = Read32(zActor[ActorNumber].Data, sections_addr );
 				dbgprintf(1, MSK_COLORTYPE_OKAY, " - .text size: %08X; evaluating ASM...", ActorNumber, text_size);
-				
+
 				float * scale = NULL;
 				int *dlist = NULL, *bones = NULL, *anim = NULL;
-				
+
 				mips_ResetResults();
 				mips_EvalWords((unsigned int *)zActor[ActorNumber].Data, text_size / 4);
-				
+
 				if(zGame.ActorTableOffset == 0x0F9440)
 				{
 					scale	= mips_GetFuncArg(0x8002D62C,1);
@@ -963,12 +963,16 @@ void zl_ProcessActor(int MapNumber, int CurrActor)
 					bones	= mips_GetFuncArg(0x800A457C,2);
 					anim	= mips_GetFuncArg(0x800A457C,3);
 				}
-				
+
 				zActor[ActorNumber].Scale = (scale != NULL) ? *scale : 0.01f;
 				zActor[ActorNumber].DisplayList = (dlist != NULL) ? *dlist : 0;
 				zActor[ActorNumber].BoneSetup = (bones != NULL) ? *bones : 0;
 				zActor[ActorNumber].Animation = (anim != NULL) ? *anim : 0;
-				
+
+				dbgprintf(0, MSK_COLORTYPE_OKAY, " - scale %4.2f, dlist %08X, bone %08X, anim %08X",
+					zActor[ActorNumber].Scale, zActor[ActorNumber].DisplayList,
+					zActor[ActorNumber].BoneSetup, zActor[ActorNumber].Animation);
+
 				#endif
 
 				// -------- CODE BELOW IS UGLY HACK --------
@@ -1003,9 +1007,9 @@ void zl_ProcessActor(int MapNumber, int CurrActor)
 					}
 				}
 				// end hack
-				
+
 				dbgprintf(1, MSK_COLORTYPE_OKAY, " - zActor[%04X].DisplayList = 0x%08X;", ActorNumber, zActor[ActorNumber].DisplayList);
-				zl_ClearSegment(0x06);
+				//zl_ClearSegment(0x06);
 			}
 		}
 		else
@@ -1021,11 +1025,11 @@ void zl_ProcessActor(int MapNumber, int CurrActor)
 		zRAM[0x06].Data = zObject[zActor[ActorNumber].Object].Data;
 		zRAM[0x06].Size = zObject[zActor[ActorNumber].Object].EndOffset - zObject[zActor[ActorNumber].Object].StartOffset;
 		zRAM[0x06].IsSet = true;
-		
+
 		/* I don't know what this variable is exactly */
 		zGfx.DLStackPos = 0;
 		zGfx.ActorDLCount[MapNumber][CurrActor] = 1;
-		
+
 		dbgprintf(0, MSK_COLORTYPE_OKAY, " Trying to exec dlist 0x%08X for object 0x%04X", zActor[ActorNumber].DisplayList, zActor[ActorNumber].Object);
 
 		int DL = 0;

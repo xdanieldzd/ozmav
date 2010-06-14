@@ -78,12 +78,12 @@ void mips_SetFuncWatch(unsigned int target)
 int mips_ReportFunc(unsigned int target)
 {
 	dbgprintf(3, MSK_COLORTYPE_OKAY, "%s(%08X)", __FUNCTION__, target);
-	
+
 	int i;
 	int func_no = -1;
 	target &= 0x0FFFFFFF;
-	
-	
+
+
 	/* is the function being watched for? */
 	for(i=0;i<funcs_watching_count;i++)
 	{
@@ -93,11 +93,11 @@ int mips_ReportFunc(unsigned int target)
 			break;
 		}
 	}
-	
+
 	/* was it found ? */
 	if(func_no < 0)
 		return -1;
-	
+
 	/* yep - put it in the list */
 	mips_funcs_found_count++;
 	mips_funcs_found = (struct mips_args*) realloc(mips_funcs_found, mips_funcs_found_count * sizeof(struct mips_args));
@@ -107,11 +107,11 @@ int mips_ReportFunc(unsigned int target)
 	for(i=0;i<4;i++)
 	{
 		mips_funcs_found[mips_funcs_found_count-1].args[i] = regs[i+MIPS_REG_A0];
-		
+
 	}
-	
+
 	mips_funcs_found[mips_funcs_found_count-1].argc = 4;
-	
+
 	dbgprintf(2, MSK_COLORTYPE_OKAY, " - Recording %08X with arguments 0x%08X, 0x%08X, 0x%08X, 0x%08X", target,
 		regs[MIPS_REG_A0], regs[MIPS_REG_A0+1], regs[MIPS_REG_A0+2], regs[MIPS_REG_A0+3] );
 
@@ -139,12 +139,12 @@ void * mips_GetFuncArg(unsigned int target, int argc)
 {
 	if(argc > 3)
 		return NULL;
-	
+
 	int i, func_no = -1;
 	unsigned int * ret = NULL;
 	target &= 0x0FFFFFFF;
 	dbgprintf(2, MSK_COLORTYPE_OKAY, " - Requesting %08X #%i", target, argc);
-	
+
 	for(i=0;i<mips_funcs_found_count;i++)
 	{
 		if((mips_funcs_found[i].target&0x0FFFFFFF) == target)
@@ -153,7 +153,7 @@ void * mips_GetFuncArg(unsigned int target, int argc)
 			break;
 		}
 	}
-	
+
 	/* was it found ? */
 	if(func_no < 0){
 		dbgprintf(1, MSK_COLORTYPE_OKAY, " - %08X not caught", target);
