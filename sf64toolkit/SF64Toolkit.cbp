@@ -11,6 +11,7 @@
 				<Option object_output="obj\Debug\" />
 				<Option type="1" />
 				<Option compiler="gcc" />
+				<Option parameters="..\sf64dec.z64" />
 				<Compiler>
 					<Add option="-g" />
 				</Compiler>
@@ -34,10 +35,37 @@
 			<Add directory="C:\Programme\PDCurses-SO\win32" />
 		</Compiler>
 		<Linker>
+			<Add library="opengl32" />
+			<Add library="glu32" />
+			<Add library="glaux" />
+			<Add library="kernel32" />
+			<Add library="user32" />
+			<Add library="gdi32" />
 			<Add library="..\..\libMISAKA\libMISAKA.a" />
 			<Add library="C:\Programme\PDCurses-SO\win32\panel.a" />
 			<Add library="C:\Programme\PDCurses-SO\win32\pdcurses.a" />
 		</Linker>
+		<Unit filename="__linux.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="__linux.h" />
+		<Unit filename="__win32.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="__win32.h" />
+		<Unit filename="camera.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="camera.h" />
+		<Unit filename="draw.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="draw.h" />
+		<Unit filename="f3dex.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="f3dex.h" />
+		<Unit filename="f3dex_cmd.h" />
 		<Unit filename="globals.h" />
 		<Unit filename="main.c">
 			<Option compilerVar="CC" />
@@ -48,11 +76,19 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="n64sums.h" />
+		<Unit filename="oz.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="oz.h" />
 		<Unit filename="sf64.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="sf64.h" />
 		<Unit filename="sf64_ver.h" />
+		<Unit filename="sf64_viewer.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="sf64_viewer.h" />
 		<Extensions>
 			<code_completion />
 			<envvars />

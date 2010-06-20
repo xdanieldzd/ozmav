@@ -48,7 +48,7 @@ bool sf_Init()
 		}
 	} else {
 		// if ROM couldn't even be loaded, just return the old status here, to (if true) preserve whatever ROM was loaded before
-		return IsROMLoaded;
+		return Program.IsROMLoaded;
 	}
 
 	if(RetVal) {
@@ -68,13 +68,13 @@ void sf_LoadROM(unsigned char * Ptr)
 		MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "- Error: No file specified!\n");
 	} else {
 		fn_GetFilename(Ptr+1);
-		IsROMLoaded = sf_Init();
+		Program.IsROMLoaded = sf_Init();
 	}
 }
 
 void sf_SaveROM()
 {
-	if(!IsROMLoaded) {
+	if(!Program.IsROMLoaded) {
 		MSK_ConsolePrint(MSK_COLORTYPE_WARNING, "- No ROM loaded, cannot save ROM!\n");
 		return;
 	}
@@ -152,7 +152,7 @@ int sf_DoLoadROM()
 
 void sf_FixCrc()
 {
-	if(!IsROMLoaded) {
+	if(!Program.IsROMLoaded) {
 		MSK_ConsolePrint(MSK_COLORTYPE_WARNING, "- No ROM loaded, cannot fix CRCs!\n");
 		return;
 	}
@@ -172,7 +172,7 @@ int sf_ReadDMATable()
 	MSK_ConsolePrint(MSK_COLORTYPE_OKAY, "- Reading DMA table...\n");
 
 	int i = 0;
-	DMAFileCount = 0;
+	Program.DMAFileCount = 0;
 
 	unsigned int CurrentPos = ThisGame.DMATableOffset;
 
@@ -188,13 +188,13 @@ int sf_ReadDMATable()
 		i++;
 	}
 
-	DMAFileCount = i;
+	Program.DMAFileCount = i;
 
-	if(DMAFileCount == 0) {
+	if(Program.DMAFileCount == 0) {
 		MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "- Error: No files found in DMA table!\n");
 		return EXIT_FAILURE;
 	} else {
-		MSK_ConsolePrint(MSK_COLORTYPE_OKAY, "- %i files found in DMA table.\n\n", DMAFileCount);
+		MSK_ConsolePrint(MSK_COLORTYPE_OKAY, "- %i files found in DMA table.\n\n", Program.DMAFileCount);
 	}
 
 	return EXIT_SUCCESS;
@@ -202,7 +202,7 @@ int sf_ReadDMATable()
 
 void sf_ListDMATable(unsigned char * Ptr)
 {
-	if(!IsROMLoaded) {
+	if(!Program.IsROMLoaded) {
 		MSK_ConsolePrint(MSK_COLORTYPE_WARNING, "- No ROM loaded, cannot list files!\n");
 		return;
 	}
@@ -210,7 +210,7 @@ void sf_ListDMATable(unsigned char * Ptr)
 	MSK_ConsolePrint(MSK_COLORTYPE_OKAY, "- Listing files in DMA table...\n");
 
 	int i = 0;
-	while(!(i == DMAFileCount)) {
+	while(!(i == Program.DMAFileCount)) {
 		MSK_ConsolePrint(MSK_COLORTYPE_INFO, " - File %i: VStart 0x%06X, PStart 0x%06X, PEnd 0x%06X%s\n", i + 1, DMA[i].VStart, DMA[i].PStart, DMA[i].PEnd, (DMA[i].CompFlag ? " (MIO0)" : ""));
 		i++;
 	}
@@ -220,7 +220,7 @@ void sf_ListDMATable(unsigned char * Ptr)
 
 void sf_ExtractFiles(unsigned char * Ptr)
 {
-	if(!IsROMLoaded) {
+	if(!Program.IsROMLoaded) {
 		MSK_ConsolePrint(MSK_COLORTYPE_WARNING, "- No ROM loaded, cannot extract files!\n");
 		return;
 	}
@@ -228,7 +228,7 @@ void sf_ExtractFiles(unsigned char * Ptr)
 	MSK_ConsolePrint(MSK_COLORTYPE_OKAY, "- Extracting all files in DMA table...\n");
 
 	char Filepath[MAX_PATH];
-	sprintf(Filepath, "%s%s%c", AppPath, ROM.GameID, Sep);
+	sprintf(Filepath, "%s%s%c", Program.AppPath, ROM.GameID, FILESEP);
 
 	char Cmd[MAX_PATH];
 	#ifdef WIN32
@@ -256,7 +256,7 @@ void sf_ExtractFiles(unsigned char * Ptr)
 	int RebuildFilesize = 0;
 	fprintf(LayoutFile, "0x00000000 rebuilt.z64\n");
 
-	while(!(i == DMAFileCount)) {
+	while(!(i == Program.DMAFileCount)) {
 		strcpy(Filename, Filepath);
 		sprintf(Filename, "%s%02i_%08X-%08X_vs%08X.%s", Filename, i, DMA[i].PStart, DMA[i].PEnd, DMA[i].VStart, (DMA[i].CompFlag ? "mio" : "bin"));
 
@@ -318,7 +318,7 @@ void sf_ExtractFiles(unsigned char * Ptr)
 
 void sf_CreateExpandedROM(unsigned char * Ptr)
 {
-	if(!IsROMLoaded) {
+	if(!Program.IsROMLoaded) {
 		MSK_ConsolePrint(MSK_COLORTYPE_WARNING, "- No ROM loaded, cannot create expanded ROM!\n");
 		return;
 	}
@@ -327,7 +327,7 @@ void sf_CreateExpandedROM(unsigned char * Ptr)
 		MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "- Error: No output file specified!\n");
 	} else {
 		char Filename[256];
-		strcpy(Filename, AppPath);
+		strcpy(Filename, Program.AppPath);
 		strcat(Filename, Ptr+1);
 
 		MSK_ConsolePrint(MSK_COLORTYPE_OKAY, "- Creating ROM...\n");
@@ -335,7 +335,7 @@ void sf_CreateExpandedROM(unsigned char * Ptr)
 		unsigned char * DecROMBuffer = (unsigned char*) malloc (sizeof(char) * (ROM.Size + 0x400000));
 
 		int i = 0;
-		while(!(i == DMAFileCount)) {
+		while(!(i == Program.DMAFileCount)) {
 			if(DMA[i].CompFlag == 0x00) {
 				//virtual start = virtual start
 				//physical start = virtual start
@@ -377,7 +377,7 @@ void sf_CreateExpandedROM(unsigned char * Ptr)
 			i++;
 		}
 
-		if(i == DMAFileCount) {
+		if(i == Program.DMAFileCount) {
 			MSK_ConsolePrint(MSK_COLORTYPE_OKAY, "\n- Okay, now checking and fixing CRCs...\n");
 
 			// now fixing checksum
@@ -420,9 +420,8 @@ void sf_CreateFreshROM(unsigned char * Ptr)
 
 		// get layout file name
 		char Temp[256];
-		strcpy(Temp, AppPath);
+		strcpy(Temp, Program.AppPath);
 		strcat(Temp, Ptr+1);
-//		strcat(Temp, "sf64-rebuild\\layout.txt");
 
 		// figure out path (needed as working dir)
 		char FreshPath[MAX_PATH];
