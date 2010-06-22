@@ -54,6 +54,9 @@ void dl_ParseDisplayList(unsigned int Address)
 
 	dl_SetRenderMode(0, 0);
 
+	Gfx.GeometryMode = G_LIGHTING | F3DEX_SHADING_SMOOTH;
+	Gfx.ChangedModes |= CHANGED_GEOMETRYMODE;
+
 	while(Gfx.DLStackPos >= 0) {
 		Segment = (DListAddress & 0xFF000000) >> 24;
 		Offset = (DListAddress & 0x00FFFFFF);
@@ -75,7 +78,7 @@ void dl_ParseDisplayList(unsigned int Address)
 
 void dl_UnemulatedCmd()
 {
-	//
+	MSK_ConsolePrint(MSK_COLORTYPE_WARNING, "Illegal Ucode command 0x%02X!", w0 >> 24);
 }
 
 void dl_F3DEX_MTX()
@@ -273,8 +276,6 @@ void dl_F3DEX_TEXTURE()
 
 	Texture[1].ScaleS = Texture[0].ScaleS;
 	Texture[1].ScaleT = Texture[0].ScaleT;
-
-	MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "%4.2f", Texture[0].ScaleS);
 }
 
 void dl_F3DEX_MOVEWORD()
@@ -502,16 +503,6 @@ void dl_G_SETTIMG()
 {
 	Gfx.CurrentTexture = 0;
 	Gfx.IsMultiTexture = false;
-
-	if((wp0 >> 24) == 0xF2) {
-		Gfx.CurrentTexture = 1;
-		Gfx.IsMultiTexture = true;
-	}
-
-	if((wn0 >> 24) == 0xE8) {
-		Texture[Gfx.CurrentTexture].PalOffset = w1;
-		return;
-	}
 
 	Texture[Gfx.CurrentTexture].Offset = w1;
 }
@@ -1050,12 +1041,9 @@ void dl_CalcTextureSize(int TextureID)
 	unsigned int Mask_Height = 1 << Texture[TextureID].MaskT;
 
 	unsigned int Line_Height = 0;
-	if(Line_Width) {
-		Line_Height = Tile_Height;
-		if(MaxTexel / Line_Width < Tile_Height) Line_Height = MaxTexel / Line_Width;
-	}
+	if(Line_Width > 0) Line_Height = min(MaxTexel / Line_Width, Tile_Height);
 
-	if(Texture[TextureID].MaskS && ((Mask_Width * Mask_Height) <= MaxTexel)) {
+	if((Texture[TextureID].MaskS > 0) && ((Mask_Width * Mask_Height) <= MaxTexel)) {
 		Texture[TextureID].Width = Mask_Width;
 	} else if((Tile_Width * Tile_Height) <= MaxTexel) {
 		Texture[TextureID].Width = Tile_Width;
@@ -1063,7 +1051,7 @@ void dl_CalcTextureSize(int TextureID)
 		Texture[TextureID].Width = Line_Width;
 	}
 
-	if(Texture[TextureID].MaskT && ((Mask_Width * Mask_Height) <= MaxTexel)) {
+	if((Texture[TextureID].MaskT > 0) && ((Mask_Width * Mask_Height) <= MaxTexel)) {
 		Texture[TextureID].Height = Mask_Height;
 	} else if((Tile_Width * Tile_Height) <= MaxTexel) {
 		Texture[TextureID].Height = Tile_Height;
@@ -1071,11 +1059,19 @@ void dl_CalcTextureSize(int TextureID)
 		Texture[TextureID].Height = Line_Height;
 	}
 
-	unsigned int Clamp_Width = (Texture[TextureID].CMS & G_TX_CLAMP) ? Tile_Width : Texture[TextureID].Width;
-	unsigned int Clamp_Height = (Texture[TextureID].CMT & G_TX_CLAMP) ? Tile_Height : Texture[TextureID].Height;
+	unsigned int Clamp_Width = 0;
+	unsigned int Clamp_Height = 0;
 
-	if(Clamp_Width > 128) Texture[TextureID].CMS &= G_TX_MIRROR;
-	if(Clamp_Height > 128) Texture[TextureID].CMT &= G_TX_MIRROR;
+	if((Texture[TextureID].CMS & G_TX_CLAMP) && (!Texture[TextureID].CMS & G_TX_MIRROR)) {
+		Clamp_Width = Tile_Width;
+	} else {
+		Clamp_Width = Texture[TextureID].Width;
+	}
+	if((Texture[TextureID].CMT & G_TX_CLAMP) && (!Texture[TextureID].CMT & G_TX_MIRROR)) {
+		Clamp_Height = Tile_Height;
+	} else {
+		Clamp_Height = Texture[TextureID].Height;
+	}
 
 	if(Mask_Width > Texture[TextureID].Width) {
 		Texture[TextureID].MaskS = dl_PowOf(Texture[TextureID].Width);
@@ -1106,25 +1102,16 @@ void dl_CalcTextureSize(int TextureID)
 	Texture[TextureID].ShiftScaleT = 1.0f;
 
 	if(Texture[TextureID].ShiftS > 10) {
-		Texture[TextureID].ShiftScaleS = (float)(1 << (16 - Texture[TextureID].ShiftS));
+		Texture[TextureID].ShiftScaleS = (1 << (16 - Texture[TextureID].ShiftS));
 	} else if(Texture[TextureID].ShiftS > 0) {
-		Texture[TextureID].ShiftScaleS /= (float)(1 << Texture[TextureID].ShiftS);
+		Texture[TextureID].ShiftScaleS /= (1 << Texture[TextureID].ShiftS);
 	}
 
 	if(Texture[TextureID].ShiftT > 10) {
-		Texture[TextureID].ShiftScaleT = (float)(1 << (16 - Texture[TextureID].ShiftT));
+		Texture[TextureID].ShiftScaleT = (1 << (16 - Texture[TextureID].ShiftT));
 	} else if(Texture[TextureID].ShiftT > 0) {
-		Texture[TextureID].ShiftScaleT /= (float)(1 << Texture[TextureID].ShiftT);
+		Texture[TextureID].ShiftScaleT /= (1 << Texture[TextureID].ShiftT);
 	}
-
-	/* NULLIFYING SOME STUFF ABOVE SINCE IT'S STILL BROKEN */
-	/* --------------------------------------------------- */
-	Texture[TextureID].RealWidth = dl_Pow2(Texture[TextureID].Width);
-	Texture[TextureID].RealHeight = dl_Pow2(Texture[TextureID].Height);
-	/* --------------------------------------------------- */
-
-	if(Texture[TextureID].RealWidth == 0) Texture[TextureID].RealWidth = 1;
-	if(Texture[TextureID].RealHeight == 0) Texture[TextureID].RealHeight = 1;
 }
 
 inline unsigned long dl_Pow2(unsigned long dim) {
@@ -1219,8 +1206,6 @@ GLuint dl_LoadTexture(int TextureID)
 {
 	unsigned char TexSegment = (Texture[TextureID].Offset & 0xFF000000) >> 24;
 	unsigned int TexOffset = (Texture[TextureID].Offset & 0x00FFFFFF);
-
-	if((wn0 == 0x03000000) || (wn0 == 0xE1000000)) return -1;
 
 	dl_CalcTextureSize(TextureID);
 

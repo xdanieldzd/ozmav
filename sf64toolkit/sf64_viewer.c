@@ -46,17 +46,17 @@ int sv_Init()
 		case 0x03: Viewer.LevelFile = 29; break;	// Area 6
 		case 0x04: Viewer.LevelFile = 29; break;	// Glitch
 		case 0x05: Viewer.LevelFile = 35; break;	// Sector Y
-		case 0x06: Viewer.LevelFile = -1; break;	// Venom 1
-		case 0x07: Viewer.LevelFile = -1; break;	// Solar
-		case 0x08: Viewer.LevelFile = -1; break;	// Zoness
-		case 0x09: Viewer.LevelFile = -1; break;	// Venom 2
+		case 0x06: Viewer.LevelFile = 30; break;	// Venom 1
+		case 0x07: Viewer.LevelFile = 36; break;	// Solar
+		case 0x08: Viewer.LevelFile = 37; break;	// Zoness
+		case 0x09: Viewer.LevelFile = 47; break;	// Venom 2
 		case 0x0A: Viewer.LevelFile = 53; break;	// Training Mode
-		case 0x0B: Viewer.LevelFile = -1; break;	// Macbeth
-		case 0x0C: Viewer.LevelFile = -1; break;	// Titania
-		case 0x0D: Viewer.LevelFile = -1; break;	// Aquas
-		case 0x0E: Viewer.LevelFile = -1; break;	// Fortuna
-		case 0x0F: Viewer.LevelFile = -1; break;	// ????
-		case 0x10: Viewer.LevelFile = -1; break;	// Katina
+		case 0x0B: Viewer.LevelFile = -1; break;	// Macbeth				39
+		case 0x0C: Viewer.LevelFile = -1; break;	// Titania				20,25
+		case 0x0D: Viewer.LevelFile = -1; break;	// Aquas				28
+		case 0x0E: Viewer.LevelFile = 34; break;	// Fortuna
+		case 0x0F: Viewer.LevelFile = -1; break;	// ----
+		case 0x10: Viewer.LevelFile = 38; break;	// Katina
 		case 0x11: Viewer.LevelFile = 33; break;	// Bolse
 		case 0x12: Viewer.LevelFile = 27; break;	// Sector Z
 		case 0x13: Viewer.LevelFile = 31; break;	// Venom (Star Wolf)
@@ -80,19 +80,27 @@ int sv_Init()
 		Object[Viewer.ObjCount].Z = Read16(RAM[Segment].Data, Offset + 4);
 		Object[Viewer.ObjCount].X = Read16(RAM[Segment].Data, Offset + 6);
 		Object[Viewer.ObjCount].Y = Read16(RAM[Segment].Data, Offset + 8);
-		Object[Viewer.ObjCount].ZRot = Read16(RAM[Segment].Data, Offset + 10);
-		Object[Viewer.ObjCount].XRot = Read16(RAM[Segment].Data, Offset + 12);
-		Object[Viewer.ObjCount].YRot = Read16(RAM[Segment].Data, Offset + 14);
+		Object[Viewer.ObjCount].XRot = Read16(RAM[Segment].Data, Offset + 10);
+		Object[Viewer.ObjCount].YRot = Read16(RAM[Segment].Data, Offset + 12);
+		Object[Viewer.ObjCount].ZRot = Read16(RAM[Segment].Data, Offset + 14);
 		Object[Viewer.ObjCount].ID = Read16(RAM[Segment].Data, Offset + 16);
 		Object[Viewer.ObjCount].Unk = Read16(RAM[Segment].Data, Offset + 18);
 
+		// default dlist offset to 0
 		Object[Viewer.ObjCount].DListOffset = 0x00;
+
+		// if object id == 0xffff, break out because this marks end of data!
+		if(Object[Viewer.ObjCount].ID == 0xFFFF) break;
+
+		// if object id < 0x190, get offset like this
 		if(Object[Viewer.ObjCount].ID < 0x190) {
 			Object[Viewer.ObjCount].DListOffset = Read32(ROM.Data, (0xC8334 + (Object[Viewer.ObjCount].ID * 0x24)));
-			if((Object[Viewer.ObjCount].DListOffset & 0xFF000000) == 0x80000000) Object[Viewer.ObjCount].DListOffset = 0x00;
 		}
 
-		if(Object[Viewer.ObjCount].ID == 0xFFFF) break;
+		// dlist offset sanity checks
+		if((Object[Viewer.ObjCount].DListOffset & 3) ||							// dlist offset not 4 byte aligned
+		  ((Object[Viewer.ObjCount].DListOffset & 0xFF000000) == 0x80000000))	// dlist offset lies in ram
+				Object[Viewer.ObjCount].DListOffset = 0x00;
 
 		Offset += 0x14;
 		Viewer.ObjCount++;
@@ -227,9 +235,9 @@ void sv_ExecuteDisplayLists()
 			u.ul = Object[ObjectNo].LvlPos;
 
 			glTranslatef((float)Object[ObjectNo].X, (float)Object[ObjectNo].Y, ((float)Object[ObjectNo].Z - u.f));
-			glRotated(Object[ObjectNo].XRot / 180, 1, 0, 0);
-			glRotated(Object[ObjectNo].YRot / 180, 0, 1, 0);
-			glRotated(Object[ObjectNo].ZRot / 180, 0, 0, 1);
+			glRotated(Object[ObjectNo].XRot, 1, 0, 0);
+			glRotated(Object[ObjectNo].YRot, 0, 1, 0);
+			glRotated(Object[ObjectNo].ZRot, 0, 0, 1);
 
 			if(sv_CheckAddressValidity(Object[ObjectNo].DListOffset)) {
 				Gfx.DLStackPos = 0;

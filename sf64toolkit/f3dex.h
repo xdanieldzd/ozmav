@@ -2,53 +2,53 @@ extern void dl_InitCombiner();
 extern void dl_ParseDisplayList(unsigned int Address);
 
 extern void dl_UnemulatedCmd();
-extern void dl_F3DEX_MTX();
-extern void dl_F3DEX_MOVEMEM();
-extern void dl_F3DEX_VTX();
-extern void dl_F3DEX_DL();
-extern void dl_F3DEX_LOAD_UCODE();
-extern void dl_F3DEX_BRANCH_Z();
-extern void dl_F3DEX_TRI2();
-extern void dl_F3DEX_MODIFYVTX();
-extern void dl_F3DEX_RDPHALF_2();
-extern void dl_F3DEX_RDPHALF_1();
-extern void dl_F3DEX_CLEARGEOMETRYMODE();
-extern void dl_F3DEX_SETGEOMETRYMODE();
-extern void dl_F3DEX_ENDDL();
-extern void dl_F3DEX_SETOTHERMODE_L();
-extern void dl_F3DEX_SETOTHERMODE_H();
-extern void dl_F3DEX_TEXTURE();
-extern void dl_F3DEX_MOVEWORD();
-extern void dl_F3DEX_POPMTX();
-extern void dl_F3DEX_CULLDL();
-extern void dl_F3DEX_TRI1();
-extern void dl_G_TEXRECT();
-extern void dl_G_TEXRECTFLIP();
-extern void dl_G_RDPLOADSYNC();
-extern void dl_G_RDPPIPESYNC();
-extern void dl_G_RDPTILESYNC();
-extern void dl_G_RDPFULLSYNC();
-extern void dl_G_SETKEYGB();
-extern void dl_G_SETKEYR();
-extern void dl_G_SETCONVERT();
-extern void dl_G_SETSCISSOR();
-extern void dl_G_SETPRIMDEPTH();
-extern void dl_G_RDPSETOTHERMODE();
-extern void dl_G_LOADTLUT();
-extern void dl_G_SETTILESIZE();
-extern void dl_G_LOADBLOCK();
-extern void dl_G_LOADTILE();
-extern void dl_G_SETTILE();
-extern void dl_G_FILLRECT();
-extern void dl_G_SETFILLCOLOR();
-extern void dl_G_SETFOGCOLOR();
-extern void dl_G_SETBLENDCOLOR();
-extern void dl_G_SETPRIMCOLOR();
-extern void dl_G_SETENVCOLOR();
-extern void dl_G_SETCOMBINE();
-extern void dl_G_SETTIMG();
-extern void dl_G_SETZIMG();
-extern void dl_G_SETCIMG();
+extern void dl_F3DEX_MTX();					//0x01
+extern void dl_F3DEX_MOVEMEM();				//0x03
+extern void dl_F3DEX_VTX();					//0x04
+extern void dl_F3DEX_DL();					//0x06
+extern void dl_F3DEX_LOAD_UCODE();			//0xAF
+extern void dl_F3DEX_BRANCH_Z();			//0xB0
+extern void dl_F3DEX_TRI2();				//0xB1
+extern void dl_F3DEX_MODIFYVTX();			//0xB2
+extern void dl_F3DEX_RDPHALF_2();			//0xB3
+extern void dl_F3DEX_RDPHALF_1();			//0xB4
+extern void dl_F3DEX_CLEARGEOMETRYMODE();	//0xB6
+extern void dl_F3DEX_SETGEOMETRYMODE();		//0xB7
+extern void dl_F3DEX_ENDDL();				//0xB8
+extern void dl_F3DEX_SETOTHERMODE_L();		//0xB9
+extern void dl_F3DEX_SETOTHERMODE_H();		//0xBA
+extern void dl_F3DEX_TEXTURE();				//0xBB
+extern void dl_F3DEX_MOVEWORD();			//0xBC
+extern void dl_F3DEX_POPMTX();				//0xBD
+extern void dl_F3DEX_CULLDL();				//0xBE
+extern void dl_F3DEX_TRI1();				//0xBF
+extern void dl_G_TEXRECT();					//0xE4
+extern void dl_G_TEXRECTFLIP();				//0xE5
+extern void dl_G_RDPLOADSYNC();				//0xE6
+extern void dl_G_RDPPIPESYNC();				//0xE7
+extern void dl_G_RDPTILESYNC();				//0xE8
+extern void dl_G_RDPFULLSYNC();				//0xE9
+extern void dl_G_SETKEYGB();				//0xEA
+extern void dl_G_SETKEYR();					//0xEB
+extern void dl_G_SETCONVERT();				//0xEC
+extern void dl_G_SETSCISSOR();				//0xED
+extern void dl_G_SETPRIMDEPTH();			//0xEE
+extern void dl_G_RDPSETOTHERMODE();			//0xEF
+extern void dl_G_LOADTLUT();				//0xF0
+extern void dl_G_SETTILESIZE();				//0xF2
+extern void dl_G_LOADBLOCK();				//0xF3
+extern void dl_G_LOADTILE();				//0xF4
+extern void dl_G_SETTILE();					//0xF5
+extern void dl_G_FILLRECT();				//0xF6
+extern void dl_G_SETFILLCOLOR();			//0xF7
+extern void dl_G_SETFOGCOLOR();				//0xF8
+extern void dl_G_SETBLENDCOLOR();			//0xF9
+extern void dl_G_SETPRIMCOLOR();			//0xFA
+extern void dl_G_SETENVCOLOR();				//0xFB
+extern void dl_G_SETCOMBINE();				//0xFC
+extern void dl_G_SETTIMG();					//0xFD
+extern void dl_G_SETZIMG();					//0xFE
+extern void dl_G_SETCIMG();					//0xFF
 
 extern void dl_DrawTriangle(int Vtxs[]);
 extern void dl_UpdateGeometryMode();

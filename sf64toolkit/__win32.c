@@ -52,6 +52,11 @@ int WinAPIMain()
 		if(Program.Key['A']) ca_Movement(true, -6.0f);
 		if(Program.Key['D']) ca_Movement(true, 6.0f);
 
+		if(Program.Key['T']) ca_Movement(false, 24.0f);
+		if(Program.Key['G']) ca_Movement(false, -24.0f);
+		if(Program.Key['F']) ca_Movement(true, -24.0f);
+		if(Program.Key['H']) ca_Movement(true, 24.0f);
+
 		if(Program.Key[VK_F1] && Viewer.LevelID > 0) {
 			Viewer.LevelID--;
 			sv_Init();
