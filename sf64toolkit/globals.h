@@ -123,6 +123,7 @@ struct __Program {
 	bool Key[256];
 
 	bool IsROMLoaded;
+	bool IsROMCompressed;
 	bool IsViewerEnabled;
 
 	unsigned int FragCachePosition;

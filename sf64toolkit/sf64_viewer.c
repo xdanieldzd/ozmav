@@ -2,6 +2,8 @@
 
 #include "globals.h"
 
+unsigned char * MIO0Buffer;
+
 int sv_EnableViewer(unsigned char * Ptr)
 {
 	if(!Program.IsROMLoaded) {
@@ -35,7 +37,9 @@ int sv_Init()
 	Viewer.LevelFile = 0;
 	Viewer.ObjCount = 0;
 
-	unsigned int Offset = Read32(ROM.Data, (0xCF1A8 + (Viewer.LevelID * 0x04)));
+	unsigned char * CodeBuffer = sv_LoadToBuffer(ROM.Data, DMA[1].PStart, (DMA[1].PEnd - DMA[1].PStart));
+
+	unsigned int Offset = Read32(CodeBuffer, (0xCE158 + (Viewer.LevelID * 0x04)));
 	unsigned char Segment = (Offset & 0xFF000000) >> 24;
 	Offset = (Offset & 0x00FFFFFF);
 
@@ -69,7 +73,17 @@ int sv_Init()
 		return EXIT_FAILURE;
 	}
 
-	sv_LoadToSegment(Segment, ROM.Data, DMA[Viewer.LevelFile].PStart, (DMA[Viewer.LevelFile].PEnd - DMA[Viewer.LevelFile].PStart));
+	if(Program.IsROMCompressed) {
+		int MIO0Size = sf_DecompressMIO0(DMA[Viewer.LevelFile].PStart);
+		if(MIO0Size == EXIT_FAILURE) {
+			MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "\n- Error: Failed to decompress MIO0 data!\n");
+			ReturnVal.s8 = EXIT_FAILURE;
+			return EXIT_FAILURE;
+		}
+		sv_LoadToSegment(Segment, MIO0Buffer, 0, MIO0Size);
+	} else {
+		sv_LoadToSegment(Segment, ROM.Data, DMA[Viewer.LevelFile].PStart, (DMA[Viewer.LevelFile].PEnd - DMA[Viewer.LevelFile].PStart));
+	}
 
 	Offset += 0x44;	// skip over header
 
@@ -94,7 +108,7 @@ int sv_Init()
 
 		// if object id < 0x190, get offset like this
 		if(Object[Viewer.ObjCount].ID < 0x190) {
-			Object[Viewer.ObjCount].DListOffset = Read32(ROM.Data, (0xC8334 + (Object[Viewer.ObjCount].ID * 0x24)));
+			Object[Viewer.ObjCount].DListOffset = Read32(CodeBuffer, (0xC72E4 + (Object[Viewer.ObjCount].ID * 0x24)));
 		}
 
 		// dlist offset sanity checks
@@ -109,6 +123,8 @@ int sv_Init()
 	sv_ExecuteDisplayLists();
 
 	ca_Reset();
+
+	free(CodeBuffer);
 
 	Program.IsViewerEnabled = true;
 	oz_ShowWindow(true);
@@ -135,6 +151,14 @@ void sv_ClearSegment(unsigned char Segment)
 		RAM[Segment].Size = 0;
 		RAM[Segment].IsSet = false;
 	}
+}
+
+unsigned char * sv_LoadToBuffer(unsigned char * SourceBuffer, unsigned int Offset, unsigned int Size)
+{
+	unsigned char * TargetBuffer = (unsigned char*) malloc (sizeof(char) * Size);
+	memcpy(TargetBuffer, &SourceBuffer[Offset], Size);
+
+	return TargetBuffer;
 }
 
 void sv_ClearAllSegments()

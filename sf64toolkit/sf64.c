@@ -42,9 +42,12 @@ bool sf_Init()
 			RetVal = FALSE;
 		} else {
 			// if it was recognized, tell us and try to read the DMA table
-			MSK_ConsolePrint(MSK_COLORTYPE_OKAY, "- ROM has been recognized as '%s'.\n\n", ThisGame.TitleText);
+			MSK_ConsolePrint(MSK_COLORTYPE_OKAY, "- ROM has been recognized as '%s'.\n", ThisGame.TitleText);
 
 			if(sf_ReadDMATable()) RetVal = FALSE;
+
+			// if the ROM appears to be compressed, tell us
+			if(Program.IsROMCompressed) MSK_ConsolePrint(MSK_COLORTYPE_WARNING, "- ROM appears to be compressed.\n");
 		}
 	} else {
 		// if ROM couldn't even be loaded, just return the old status here, to (if true) preserve whatever ROM was loaded before
@@ -176,11 +179,16 @@ int sf_ReadDMATable()
 
 	unsigned int CurrentPos = ThisGame.DMATableOffset;
 
+	// assume rom is not compressed
+	Program.IsROMCompressed = false;
+
 	while(1) {	// keep going
 		DMA[i].VStart = Read32(ROM.Data, CurrentPos);
 		DMA[i].PStart = Read32(ROM.Data, CurrentPos + 4);
 		DMA[i].PEnd = Read32(ROM.Data, CurrentPos + 8);
 		DMA[i].CompFlag = Read32(ROM.Data, CurrentPos + 12);
+
+		if(DMA[i].CompFlag == 1) Program.IsROMCompressed = true;
 
 		if((DMA[i].PStart == 0x00) && (DMA[i].PEnd == 0x00)) break;
 
