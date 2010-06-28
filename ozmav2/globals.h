@@ -306,6 +306,8 @@ struct __zGfx {
 	GLuint GLListCount[256];
 	int ActorDLCount[256][1024];
 	GLuint ActorGLListCount[256][1024];
+	int DoorDLCount[256];
+	GLuint DoorGLListCount[256];
 
 	unsigned int ChangedModes;
 	unsigned int GeometryMode;
@@ -369,6 +371,19 @@ struct __zMapActor {
 	unsigned short Var;
 };
 
+struct __zDoor {
+	unsigned char RoomFront;
+	unsigned char FadeFront;
+	unsigned char RoomRear;
+	unsigned char FadeRear;
+	unsigned short Number;
+	short X;
+	short Y;
+	short Z;
+	short RY;
+	unsigned short Var;
+};
+
 // ----------------------------------------
 
 extern struct __zProgram zProgram;
@@ -392,6 +407,7 @@ extern struct __zObject zObject[1024];
 extern struct __zActor zActor[1024];
 extern struct __zMapActor zLink[256];
 extern struct __zMapActor zMapActor[256][256];
+extern struct __zDoor zDoor[256];
 
 extern struct __zFragmentCache zFragmentCache[256];
 extern struct __zTextureCache zTextureCache[512];

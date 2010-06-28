@@ -75,7 +75,7 @@ void dl_ParseDisplayList(unsigned int Address)
 
 void dl_UnemulatedCmd()
 {
-	//
+	dbgprintf(0, MSK_COLORTYPE_WARNING, "Unknown cmd 0x%02X!", w0 >> 24);
 }
 
 void dl_F3DEX2_VTX()
@@ -1072,12 +1072,9 @@ void dl_CalcTextureSize(int TextureID)
 	unsigned int Mask_Height = 1 << zTexture[TextureID].MaskT;
 
 	unsigned int Line_Height = 0;
-	if(Line_Width) {
-		Line_Height = Tile_Height;
-		if(MaxTexel / Line_Width < Tile_Height) Line_Height = MaxTexel / Line_Width;
-	}
+	if(Line_Width > 0) Line_Height = min(MaxTexel / Line_Width, Tile_Height);
 
-	if(zTexture[TextureID].MaskS && ((Mask_Width * Mask_Height) <= MaxTexel)) {
+	if((zTexture[TextureID].MaskS > 0) && ((Mask_Width * Mask_Height) <= MaxTexel)) {
 		zTexture[TextureID].Width = Mask_Width;
 	} else if((Tile_Width * Tile_Height) <= MaxTexel) {
 		zTexture[TextureID].Width = Tile_Width;
@@ -1085,7 +1082,7 @@ void dl_CalcTextureSize(int TextureID)
 		zTexture[TextureID].Width = Line_Width;
 	}
 
-	if(zTexture[TextureID].MaskT && ((Mask_Width * Mask_Height) <= MaxTexel)) {
+	if((zTexture[TextureID].MaskT > 0) && ((Mask_Width * Mask_Height) <= MaxTexel)) {
 		zTexture[TextureID].Height = Mask_Height;
 	} else if((Tile_Width * Tile_Height) <= MaxTexel) {
 		zTexture[TextureID].Height = Tile_Height;
@@ -1093,11 +1090,19 @@ void dl_CalcTextureSize(int TextureID)
 		zTexture[TextureID].Height = Line_Height;
 	}
 
-	unsigned int Clamp_Width = (zTexture[TextureID].CMS & G_TX_CLAMP) ? Tile_Width : zTexture[TextureID].Width;
-	unsigned int Clamp_Height = (zTexture[TextureID].CMT & G_TX_CLAMP) ? Tile_Height : zTexture[TextureID].Height;
+	unsigned int Clamp_Width = 0;
+	unsigned int Clamp_Height = 0;
 
-	if(Clamp_Width > 128) zTexture[TextureID].CMS &= G_TX_MIRROR;
-	if(Clamp_Height > 128) zTexture[TextureID].CMT &= G_TX_MIRROR;
+	if((zTexture[TextureID].CMS & G_TX_CLAMP) && (!zTexture[TextureID].CMS & G_TX_MIRROR)) {
+		Clamp_Width = Tile_Width;
+	} else {
+		Clamp_Width = zTexture[TextureID].Width;
+	}
+	if((zTexture[TextureID].CMT & G_TX_CLAMP) && (!zTexture[TextureID].CMT & G_TX_MIRROR)) {
+		Clamp_Height = Tile_Height;
+	} else {
+		Clamp_Height = zTexture[TextureID].Height;
+	}
 
 	if(Mask_Width > zTexture[TextureID].Width) {
 		zTexture[TextureID].MaskS = dl_PowOf(zTexture[TextureID].Width);
@@ -1108,17 +1113,17 @@ void dl_CalcTextureSize(int TextureID)
 		Mask_Height = 1 << zTexture[TextureID].MaskT;
 	}
 
-	if(zTexture[TextureID].CMS & G_TX_CLAMP) {
+	if((zTexture[TextureID].CMS == 2) || (zTexture[TextureID].CMS == 3)) {
 		zTexture[TextureID].RealWidth = dl_Pow2(Clamp_Width);
-	} else if(zTexture[TextureID].CMS & G_TX_MIRROR) {
+	} else if(zTexture[TextureID].CMS == 1) {
 		zTexture[TextureID].RealWidth = dl_Pow2(Mask_Width);
 	} else {
 		zTexture[TextureID].RealWidth = dl_Pow2(zTexture[TextureID].Width);
 	}
 
-	if(zTexture[TextureID].CMT & G_TX_CLAMP) {
+	if((zTexture[TextureID].CMT == 2) || (zTexture[TextureID].CMT == 3)) {
 		zTexture[TextureID].RealHeight = dl_Pow2(Clamp_Height);
-	} else if(zTexture[TextureID].CMT & G_TX_MIRROR) {
+	} else if(zTexture[TextureID].CMT == 1) {
 		zTexture[TextureID].RealHeight = dl_Pow2(Mask_Height);
 	} else {
 		zTexture[TextureID].RealHeight = dl_Pow2(zTexture[TextureID].Height);
@@ -1128,22 +1133,16 @@ void dl_CalcTextureSize(int TextureID)
 	zTexture[TextureID].ShiftScaleT = 1.0f;
 
 	if(zTexture[TextureID].ShiftS > 10) {
-		zTexture[TextureID].ShiftScaleS = (float)(1 << (16 - zTexture[TextureID].ShiftS));
+		zTexture[TextureID].ShiftScaleS = (1 << (16 - zTexture[TextureID].ShiftS));
 	} else if(zTexture[TextureID].ShiftS > 0) {
-		zTexture[TextureID].ShiftScaleS /= (float)(1 << zTexture[TextureID].ShiftS);
+		zTexture[TextureID].ShiftScaleS /= (1 << zTexture[TextureID].ShiftS);
 	}
 
 	if(zTexture[TextureID].ShiftT > 10) {
-		zTexture[TextureID].ShiftScaleT = (float)(1 << (16 - zTexture[TextureID].ShiftT));
+		zTexture[TextureID].ShiftScaleT = (1 << (16 - zTexture[TextureID].ShiftT));
 	} else if(zTexture[TextureID].ShiftT > 0) {
-		zTexture[TextureID].ShiftScaleT /= (float)(1 << zTexture[TextureID].ShiftT);
+		zTexture[TextureID].ShiftScaleT /= (1 << zTexture[TextureID].ShiftT);
 	}
-
-	/* NULLIFYING SOME STUFF ABOVE SINCE IT'S STILL BROKEN */
-	/* --------------------------------------------------- */
-	zTexture[TextureID].RealWidth = dl_Pow2(zTexture[TextureID].Width);
-	zTexture[TextureID].RealHeight = dl_Pow2(zTexture[TextureID].Height);
-	/* --------------------------------------------------- */
 }
 
 inline unsigned long dl_Pow2(unsigned long dim) {
@@ -1515,16 +1514,39 @@ GLuint dl_LoadTexture(int TextureID)
 	md_CreateMaterial(TextureID, TextureData);
 
 	glBindTexture(GL_TEXTURE_2D, zGfx.GLTextureID[zGfx.GLTextureCount]);
-
-	if(zTexture[TextureID].CMT & G_TX_CLAMP) { glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); }
-	if(zTexture[TextureID].CMT & G_TX_WRAP) { glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT); }
-	if(zTexture[TextureID].CMT & G_TX_MIRROR) { if(zOpenGL.Ext_TexMirroredRepeat) glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT_ARB); }
-
-	if(zTexture[TextureID].CMS & G_TX_CLAMP) { glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); }
-	if(zTexture[TextureID].CMS & G_TX_WRAP) { glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); }
-	if(zTexture[TextureID].CMS & G_TX_MIRROR) { if(zOpenGL.Ext_TexMirroredRepeat) glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT_ARB); }
-
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, zTexture[TextureID].RealWidth, zTexture[TextureID].RealHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, TextureData);
+
+	switch(zTexture[TextureID].CMS) {
+		case G_TX_CLAMP:
+		case 3:
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			break;
+		case G_TX_MIRROR:
+			if(zOpenGL.Ext_TexMirroredRepeat) glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT_ARB);
+			break;
+		case G_TX_WRAP:
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+			break;
+		default:
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+			break;
+	}
+
+	switch(zTexture[TextureID].CMT) {
+		case G_TX_CLAMP:
+		case 3:
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			break;
+		case G_TX_MIRROR:
+			if(zOpenGL.Ext_TexMirroredRepeat) glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT_ARB);
+			break;
+		case G_TX_WRAP:
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+			break;
+		default:
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+			break;
+	}
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);

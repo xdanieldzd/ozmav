@@ -184,10 +184,16 @@ void gl_DrawScene()
 
 	glScalef(0.005, 0.005, 0.005);
 
-	int Maps = 0, DL = 0, Actor = 0;
+	int Maps = 0, DL = 0, Door = 0, Actor = 0;
 	for(Maps = 0; Maps < zSHeader[0].MapCount; Maps++) {
 		for(DL = 0; DL < zGfx.DLCount[Maps]; DL++) {
 			glCallList(zGfx.GLListCount[Maps] + DL);
+		}
+
+		for(Door = 0; Door < zSHeader[0].DoorCount; Door++) {
+			for(DL = 0; DL < zGfx.DoorDLCount[Door]; DL++) {
+				glCallList(zGfx.DoorGLListCount[Door] + DL);
+			}
 		}
 
 		for(Actor = 0; Actor < zMHeader[0][Maps].ActorCount; Actor++) {

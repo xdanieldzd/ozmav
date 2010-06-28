@@ -52,6 +52,7 @@ void md_CreateMaterial(int TextureID, unsigned char * TextureData)
 		fprintf(zProgram.FileWavefrontMtl, "newmtl material_%d\n", zProgram.WavefrontObjMaterialCnt);
 		fprintf(zProgram.FileWavefrontMtl, "Kd 0.0000 0.0000 0.0000\n");
 		fprintf(zProgram.FileWavefrontMtl, "illum 1\n");
+		fprintf(zProgram.FileWavefrontMtl, "map_Ka %s\n", TextureFilename);
 		fprintf(zProgram.FileWavefrontMtl, "map_Kd %s\n\n", TextureFilename);
 
 		fprintf(zProgram.FileWavefrontObj, "usemtl material_%d\n", zProgram.WavefrontObjMaterialCnt);

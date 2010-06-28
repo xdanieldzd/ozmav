@@ -48,6 +48,7 @@ struct __zObject zObject[1024];
 struct __zActor zActor[1024];
 struct __zMapActor zLink[256];
 struct __zMapActor zMapActor[256][256];
+struct __zDoor zDoor[256];
 
 struct __zFragmentCache zFragmentCache[256];
 struct __zTextureCache zTextureCache[512];

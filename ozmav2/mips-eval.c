@@ -19,10 +19,10 @@ unsigned int regs[32] = {
 
 unsigned int * funcs_watching;
 int funcs_watching_count = 0;
-
-//#define flip32(w)\
+/*
+#define flip32(w)\
 	(((w)&0xFF000000)>>24)|(((w)&0x00FF0000)>>8)|(((w)&0x0000FF00)<<8)|(((w)&0x000000FF)<<24)
-
+*/
 /* Very hackish way to get arguments for function calls. It'll work for now */
 void mips_EvalWord(unsigned int * words, int pos)
 {
