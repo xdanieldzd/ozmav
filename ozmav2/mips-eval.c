@@ -143,7 +143,7 @@ void * mips_GetFuncArg(unsigned int target, int argc)
 	int i, func_no = -1;
 	unsigned int * ret = NULL;
 	target &= 0x0FFFFFFF;
-	dbgprintf(2, MSK_COLORTYPE_OKAY, " - Requesting %08X #%i", target, argc);
+	dbgprintf(2, MSK_COLORTYPE_INFO, "  - Requesting %08X #%i", target, argc);
 
 	for(i=0;i<mips_funcs_found_count;i++)
 	{
@@ -156,12 +156,11 @@ void * mips_GetFuncArg(unsigned int target, int argc)
 
 	/* was it found ? */
 	if(func_no < 0){
-		dbgprintf(1, MSK_COLORTYPE_OKAY, " - %08X not caught", target);
+		dbgprintf(1, MSK_COLORTYPE_WARNING, "  - %08X not caught", target);
 		return NULL;
 	}
 
 	ret = &mips_funcs_found[func_no].args[argc];
-	dbgprintf(2, MSK_COLORTYPE_OKAY, " - Reporting %08X %i : 0x%08X", target, argc, *ret);
+	dbgprintf(2, MSK_COLORTYPE_INFO, "  - Reporting %08X %i : 0x%08X", target, argc, *ret);
 	return ret;
 }
-

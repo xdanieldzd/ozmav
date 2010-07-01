@@ -98,6 +98,11 @@ PFNGLPROGRAMLOCALPARAMETER4FARBPROC	glProgramLocalParameter4fARB;
 
 // ----------------------------------------
 
+#define CACHE_TEXTURES		1024
+#define CACHE_FRAGMENT		256
+
+// ----------------------------------------
+
 struct __zProgram {
 	bool IsRunning;
 	bool Key[256];
@@ -143,7 +148,7 @@ struct __zOptions {
 struct __zROM {
 	bool IsROMLoaded;
 	char FilePath[MAX_PATH];
-	char Filename[256];
+	char Filename[MAX_PATH];
 	unsigned int Size;
 	char Title[20];
 	char _Pad1;
@@ -209,8 +214,11 @@ struct __zHeader {
 	unsigned char TimeFlow;
 
 	unsigned char Skybox;
+	unsigned char TimeOfDay;
 
 	unsigned char EchoLevel;
+
+	unsigned char GameplayObj;
 };
 
 struct __zVertex {
@@ -302,8 +310,8 @@ struct __zGfx {
 
 	unsigned int DLOffset[256][512];
 	int DLCount[256];
-	int DLCountTotal;
 	GLuint GLListCount[256];
+
 	int ActorDLCount[256][1024];
 	GLuint ActorGLListCount[256][1024];
 	int DoorDLCount[256];
@@ -329,7 +337,7 @@ struct __zGfx {
 	bool IsMultiTexture;
 	int CurrentTexture;
 
-	GLuint GLTextureID[512];
+	GLuint GLTextureID[CACHE_TEXTURES];
 	int GLTextureCount;
 };
 
@@ -409,8 +417,8 @@ extern struct __zMapActor zLink[256];
 extern struct __zMapActor zMapActor[256][256];
 extern struct __zDoor zDoor[256];
 
-extern struct __zFragmentCache zFragmentCache[256];
-extern struct __zTextureCache zTextureCache[512];
+extern struct __zFragmentCache zFragmentCache[CACHE_FRAGMENT];
+extern struct __zTextureCache zTextureCache[CACHE_TEXTURES];
 
 extern struct __zCamera zCamera;
 

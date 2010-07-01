@@ -75,7 +75,7 @@ void dl_ParseDisplayList(unsigned int Address)
 
 void dl_UnemulatedCmd()
 {
-	dbgprintf(0, MSK_COLORTYPE_WARNING, "Unknown cmd 0x%02X!", w0 >> 24);
+	//no error message as this shouldn't happen with valid dlists, and because it clutters up the log if it happens
 }
 
 void dl_F3DEX2_VTX()
@@ -600,7 +600,7 @@ void dl_CheckFragmentCache()
 			SearchingCache = false;
 			NewProg = false;
 		} else {
-			if(CacheCheck != 256) {
+			if(CacheCheck != CACHE_FRAGMENT) {
 				CacheCheck++;
 			} else {
 				SearchingCache = false;
@@ -617,16 +617,18 @@ void dl_CheckFragmentCache()
 		glBindProgramARB(GL_FRAGMENT_PROGRAM_ARB, zFragmentCache[CacheCheck].ProgramID);
 	}
 
-	if(zProgram.FragCachePosition > 256) {
+	if(zProgram.FragCachePosition > CACHE_FRAGMENT) {
+		int i = 0;
+		static const struct __zFragmentCache zFragmentCache_Empty;
+		for(i = 0; i < CACHE_FRAGMENT; i++) zFragmentCache[i] = zFragmentCache_Empty;
 		zProgram.FragCachePosition = 0;
-		memset(zFragmentCache, 0x00, sizeof(zFragmentCache));
 	}
 }
 
 void dl_CreateCombinerProgram(unsigned int Cmb0, unsigned int Cmb1)
 {
-	if(!zOpenGL.Ext_FragmentProgram)
-		return;
+	if(!zOpenGL.Ext_FragmentProgram) return;
+
 	int cA[2], cB[2], cC[2], cD[2], aA[2], aB[2], aC[2], aD[2];
 
 	cA[0] = ((Cmb0 >> 20) & 0x0F);
@@ -1207,7 +1209,7 @@ GLuint dl_CheckTextureCache(unsigned int TexID)
 			SearchingCache = false;
 			NewTexture = false;
 		} else {
-			if(CacheCheck != 512) {
+			if(CacheCheck != CACHE_TEXTURES) {
 				CacheCheck++;
 			} else {
 				SearchingCache = false;
@@ -1227,10 +1229,10 @@ GLuint dl_CheckTextureCache(unsigned int TexID)
 		GLID = zTextureCache[CacheCheck].TextureID;
 	}
 
-	if(zProgram.TextureCachePosition > 512) {
+	if(zProgram.TextureCachePosition > CACHE_TEXTURES) {
 		int i = 0;
 		static const struct __zTextureCache zTextureCache_Empty;
-		for(i = 0; i < 512; i++) zTextureCache[i] = zTextureCache_Empty;
+		for(i = 0; i < CACHE_TEXTURES; i++) zTextureCache[i] = zTextureCache_Empty;
 		zProgram.TextureCachePosition = 0;
 	}
 

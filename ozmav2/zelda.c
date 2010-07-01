@@ -171,8 +171,6 @@ int zl_LoadScene(int SceneNo)
 
 		zl_GetDisplayLists(i);
 		zl_ExecuteDisplayLists(i);
-
-		zGfx.DLCountTotal += zGfx.DLCount[i];
 	}
 
 	ca_Reset();
@@ -545,28 +543,26 @@ void zl_ClearStructures(bool Full)
 	zGfx.OtherModeH = 0;
 	zGfx.Store_RDPHalf1 = 0; zGfx.Store_RDPHalf2 = 0;
 	zGfx.Combiner0 = 0; zGfx.Combiner1 = 0;
-/*
+
 	for(i = 0; i < ArraySize(zObject); i++) {
 		zObject[i].IsSet = false;
 		zObject[i].StartOffset = -1;
 		zObject[i].EndOffset = -1;
-		if(zObject[i].Data != NULL)
-			free(zObject[i].Data);
+//		if(zObject[i].Data != NULL) free(zObject[i].Data);
 	}
 
 	static const struct __zActor zActor_Empty = {false,0,0,0,0, 0,0,0,"",0,0,NULL,0.01f,0,0,0};
 	for(i = 0; i < ArraySize(zActor); i++) {
-		if(zActor[i].Data != NULL)
-			free(zActor[i].Data);
+//		if(zActor[i].Data != NULL) free(zActor[i].Data);
 		zActor[i] = zActor_Empty;
 	}
-*/
+
 	if(Full) {
 		i = 0; j = 0;
 
 		static const struct __zHeader zHeader_Empty;
 		for(i = 0; i < ArraySize(zSHeader); i++) zSHeader[i] = zHeader_Empty;
-//		for(i = 0; i < 256; i++) for(j = 0; j < 256; j++) zMHeader[i][j] = zHeader_Empty;		// SEGFAULT
+		for(i = 0; i < 256; i++) for(j = 0; j < 256; j++) zMHeader[i][j] = zHeader_Empty;
 
 		static const struct __zFragmentCache zFragmentCache_Empty;
 		for(i = 0; i < ArraySize(zFragmentCache); i++) zFragmentCache[i] = zFragmentCache_Empty;
@@ -619,6 +615,10 @@ int zl_ExecuteHeader(unsigned char Segment, unsigned int Offset, int SHeaderNumb
 				zSHeader[SHeaderNumber].MapOffset = w1;
 				dbgprintf(1, MSK_COLORTYPE_INFO, " - %i map definition(s) at 0x%08X.\n", zSHeader[SHeaderNumber].MapCount, zSHeader[SHeaderNumber].MapOffset);
 				break;
+			case 0x07:
+				zSHeader[SHeaderNumber].GameplayObj = (w1 & 0x000000FF);
+				dbgprintf(1, MSK_COLORTYPE_INFO, " - Additional Gameplay objects from object 0x%04X.\n", zSHeader[SHeaderNumber].GameplayObj);
+				break;
 			case 0x0A:
 				zMHeader[SHeaderNumber][MHeaderNumber].MeshHeaderOffset = w1;
 				dbgprintf(1, MSK_COLORTYPE_INFO, " - Mesh header at 0x%08X.\n", zMHeader[SHeaderNumber][MHeaderNumber].MeshHeaderOffset);
@@ -643,9 +643,10 @@ int zl_ExecuteHeader(unsigned char Segment, unsigned int Offset, int SHeaderNumb
 				zMHeader[SHeaderNumber][MHeaderNumber].TimeFlow = (w1 & 0x0000FF00) >> 8;
 				dbgprintf(1, MSK_COLORTYPE_INFO, " - 'Map time' is %i, 'time flow setting' is %i.\n", zMHeader[SHeaderNumber][MHeaderNumber].MapTime, zMHeader[SHeaderNumber][MHeaderNumber].TimeFlow);
 				break;
-			case 0x12:
-				zMHeader[SHeaderNumber][MHeaderNumber].Skybox = (w0 & 0xFF000000) >> 24;
-				dbgprintf(1, MSK_COLORTYPE_INFO, " - 'Skybox setting' is %i.\n", zMHeader[SHeaderNumber][MHeaderNumber].Skybox);
+			case 0x11:
+				zMHeader[SHeaderNumber][MHeaderNumber].Skybox = (w1 & 0xFF000000) >> 24;
+				zMHeader[SHeaderNumber][MHeaderNumber].TimeOfDay = (w1 & 0x00000F00) >> 8;
+				dbgprintf(1, MSK_COLORTYPE_INFO, " - Skybox background is %i, 'time of day' is %i.\n", zMHeader[SHeaderNumber][MHeaderNumber].Skybox, zMHeader[SHeaderNumber][MHeaderNumber].TimeOfDay);
 				break;
 			case 0x14:
 				EndOfHeader = true;
@@ -678,7 +679,7 @@ void zl_GetDisplayLists(int MapNumber)
 	unsigned char MeshType = (MeshHeader & 0xFF000000) >> 24;
 	unsigned char MeshTotal = (MeshHeader & 0x00FF0000) >> 16;
 
-	dbgprintf(1, MSK_COLORTYPE_INFO, " - Mesh setup type %i, %i meshes.\n", MeshType, MeshTotal);
+	dbgprintf(1, MSK_COLORTYPE_INFO, "- Mesh setup type %i, %i meshes.\n", MeshType, MeshTotal);
 
 	int MeshCount = 0;
 
@@ -739,7 +740,7 @@ void zl_GetDisplayLists(int MapNumber)
 	}
 
 	if(zGfx.DLCount > 0) {
-		dbgprintf(1, MSK_COLORTYPE_INFO, " - Found %i Display Lists.\n", zGfx.DLCount[MapNumber]);
+		dbgprintf(1, MSK_COLORTYPE_INFO, "- Found %i Display Lists.\n", zGfx.DLCount[MapNumber]);
 	}
 }
 
@@ -770,26 +771,28 @@ void zl_GetMapObjects(int SceneNumber, int MapNumber)
 {
 	dbgprintf(3, MSK_COLORTYPE_OKAY, "[DEBUG] %s(%i, %i);\n", __FUNCTION__, SceneNumber, MapNumber);
 
-	unsigned char Segment = (zMHeader[SceneNumber][MapNumber].ObjOffset & 0xFF000000) >> 24;
-	unsigned int Offset = (zMHeader[SceneNumber][MapNumber].ObjOffset & 0x00FFFFFF);
+	dbgprintf(0, MSK_COLORTYPE_OKAY, "Loading Gameplay object(s)...\n");
 
-	dbgprintf(0, MSK_COLORTYPE_OKAY, "%i object(s) at 0x%08X...\n", zMHeader[SceneNumber][MapNumber].ObjCount, zMHeader[SceneNumber][MapNumber].ObjOffset);
-
-	int CurrObj = 0;
-	unsigned short ObjNumber = 0;
-
-	//todo, only load the needed gameplay_xxx file(s)
 	zl_LoadObject(1);
-	zl_LoadObject(2);
-	zl_LoadObject(3);
+	if(zSHeader[SceneNumber].GameplayObj) zl_LoadObject(zSHeader[SceneNumber].GameplayObj);
 
-	while(CurrObj < zMHeader[SceneNumber][MapNumber].ObjCount) {
-		// get the object number
-		ObjNumber = Read16(zRAM[Segment].Data, Offset + (CurrObj * 2));
-		// load object
-		zl_LoadObject(ObjNumber);
-		// go to next
-		CurrObj++;
+	if(zMHeader[SceneNumber][MapNumber].ObjCount) {
+		unsigned char Segment = (zMHeader[SceneNumber][MapNumber].ObjOffset & 0xFF000000) >> 24;
+		unsigned int Offset = (zMHeader[SceneNumber][MapNumber].ObjOffset & 0x00FFFFFF);
+
+		dbgprintf(0, MSK_COLORTYPE_OKAY, "Loading %i object(s) at 0x%08X...\n", zMHeader[SceneNumber][MapNumber].ObjCount, zMHeader[SceneNumber][MapNumber].ObjOffset);
+
+		int CurrObj = 0;
+		unsigned short ObjNumber = 0;
+
+		while(CurrObj < zMHeader[SceneNumber][MapNumber].ObjCount) {
+			// get the object number
+			ObjNumber = Read16(zRAM[Segment].Data, Offset + (CurrObj * 2));
+			// load object
+			zl_LoadObject(ObjNumber);
+			// go to next
+			CurrObj++;
+		}
 	}
 }
 
@@ -813,7 +816,7 @@ void zl_LoadObject(unsigned short ObjNumber)
 		zObject[ObjNumber].Data = zl_DMAToBuffer( Object );
 	}
 
-	dbgprintf(0, MSK_COLORTYPE_OKAY, "%04X -> %08X %08X -> %s (%s)",
+	dbgprintf(0, (zObject[ObjNumber].IsSet ? MSK_COLORTYPE_INFO : MSK_COLORTYPE_ERROR), "- %04X -> %08X %08X -> %s (%s)",
 		ObjNumber,
 		zObject[ObjNumber].StartOffset, zObject[ObjNumber].EndOffset,
 		Object.Filename,
@@ -830,91 +833,92 @@ void zl_GetMapActors(int SceneNumber, int MapNumber)
 	int CurrActor = 0;
 
 	if(MapNumber == -1) {
-		// Links
-		Segment = (zSHeader[SceneNumber].LinkOffset & 0xFF000000) >> 24;
-		Offset = (zSHeader[SceneNumber].LinkOffset & 0x00FFFFFF);
+		if(zSHeader[SceneNumber].LinkCount) {
+			// Links
+			Segment = (zSHeader[SceneNumber].LinkOffset & 0xFF000000) >> 24;
+			Offset = (zSHeader[SceneNumber].LinkOffset & 0x00FFFFFF);
 
-//		dbgprintf(0, MSK_COLORTYPE_OKAY, "%i Link(s) at 0x%08X...", zSHeader[SceneNumber].LinkCount, zSHeader[SceneNumber].LinkOffset);
+			dbgprintf(0, MSK_COLORTYPE_OKAY, "Loading %i Link(s) at 0x%08X...", zSHeader[SceneNumber].LinkCount, zSHeader[SceneNumber].LinkOffset);
 
-		while(CurrActor < zSHeader[SceneNumber].LinkCount) {
-			zLink[CurrActor].Number = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10));
-			zLink[CurrActor].X = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 2);
-			zLink[CurrActor].Y = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 4);
-			zLink[CurrActor].Z = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 6);
-			zLink[CurrActor].RX = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 8);
-			zLink[CurrActor].RY = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 10);
-			zLink[CurrActor].RZ = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 12);
-			zLink[CurrActor].Var = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 14);
+			while(CurrActor < zSHeader[SceneNumber].LinkCount) {
+				zLink[CurrActor].Number = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10));
+				zLink[CurrActor].X = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 2);
+				zLink[CurrActor].Y = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 4);
+				zLink[CurrActor].Z = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 6);
+				zLink[CurrActor].RX = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 8);
+				zLink[CurrActor].RY = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 10);
+				zLink[CurrActor].RZ = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 12);
+				zLink[CurrActor].Var = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 14);
 
-/*			dbgprintf(0, MSK_COLORTYPE_OKAY, "%2i: %04X %6i %6i %6i %6i %6i %6i %04X",
-				CurrActor,
-				(unsigned short)zLink[CurrActor].Number,
-				zLink[CurrActor].X, zLink[CurrActor].Y, zLink[CurrActor].Z,
-				zLink[CurrActor].RX, zLink[CurrActor].RY, zLink[CurrActor].RZ,
-				(unsigned short)zLink[CurrActor].Var);
-*/
-			CurrActor++;
+				CurrActor++;
+			}
+
+			CurrActor = 0;
 		}
 
-		CurrActor = 0;
+		if(zSHeader[SceneNumber].DoorCount) {
+			// Doors
+			Segment = (zSHeader[SceneNumber].DoorOffset & 0xFF000000) >> 24;
+			Offset = (zSHeader[SceneNumber].DoorOffset & 0x00FFFFFF);
 
-		// Doors
-		Segment = (zSHeader[SceneNumber].DoorOffset & 0xFF000000) >> 24;
-		Offset = (zSHeader[SceneNumber].DoorOffset & 0x00FFFFFF);
+			dbgprintf(0, MSK_COLORTYPE_OKAY, "Loading %i Door(s) at 0x%08X...", zSHeader[SceneNumber].DoorCount, zSHeader[SceneNumber].DoorOffset);
 
-		dbgprintf(0, MSK_COLORTYPE_OKAY, "%i Door(s) at 0x%08X...", zSHeader[SceneNumber].DoorCount, zSHeader[SceneNumber].DoorOffset);
+			while(CurrActor < zSHeader[SceneNumber].DoorCount) {
+				zDoor[CurrActor].RoomFront = zRAM[Segment].Data[Offset + (CurrActor * 0x10)];
+				zDoor[CurrActor].FadeFront = zRAM[Segment].Data[Offset + (CurrActor * 0x10) + 1];
+				zDoor[CurrActor].RoomRear = zRAM[Segment].Data[Offset + (CurrActor * 0x10) + 2];
+				zDoor[CurrActor].FadeRear = zRAM[Segment].Data[Offset + (CurrActor * 0x10) + 3];
+				zDoor[CurrActor].Number = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 4);
+				zDoor[CurrActor].X = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 6);
+				zDoor[CurrActor].Y = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 8);
+				zDoor[CurrActor].Z = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 10);
+				zDoor[CurrActor].RY = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 12);
+				zDoor[CurrActor].Var = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 14);
 
-		while(CurrActor < zSHeader[SceneNumber].DoorCount) {
-			zDoor[CurrActor].RoomFront = zRAM[Segment].Data[Offset + (CurrActor * 0x10)];
-			zDoor[CurrActor].FadeFront = zRAM[Segment].Data[Offset + (CurrActor * 0x10) + 1];
-			zDoor[CurrActor].RoomRear = zRAM[Segment].Data[Offset + (CurrActor * 0x10) + 2];
-			zDoor[CurrActor].FadeRear = zRAM[Segment].Data[Offset + (CurrActor * 0x10) + 3];
-			zDoor[CurrActor].Number = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 4);
-			zDoor[CurrActor].X = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 6);
-			zDoor[CurrActor].Y = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 8);
-			zDoor[CurrActor].Z = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 10);
-			zDoor[CurrActor].RY = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 12);
-			zDoor[CurrActor].Var = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 14);
+				if((!zGame.IsCompressed) && (!zGame.GameType)) zl_ProcessActor(MapNumber, CurrActor, 1);
 
-			if((!zGame.IsCompressed) && (!zGame.GameType)) zl_ProcessActor(MapNumber, CurrActor, 1);
-
-			CurrActor++;
+				CurrActor++;
+			}
 		}
 
 	} else {
-		// Actors
-		Segment = (zMHeader[SceneNumber][MapNumber].ActorOffset & 0xFF000000) >> 24;
-		Offset = (zMHeader[SceneNumber][MapNumber].ActorOffset & 0x00FFFFFF);
+		if(zMHeader[SceneNumber][MapNumber].ActorCount) {
+			// Actors
+			Segment = (zMHeader[SceneNumber][MapNumber].ActorOffset & 0xFF000000) >> 24;
+			Offset = (zMHeader[SceneNumber][MapNumber].ActorOffset & 0x00FFFFFF);
 
-		dbgprintf(0, MSK_COLORTYPE_OKAY, "%i Actor(s) at 0x%08X...", zMHeader[SceneNumber][MapNumber].ActorCount, zMHeader[SceneNumber][MapNumber].ActorOffset);
+			dbgprintf(0, MSK_COLORTYPE_OKAY, "Loading %i Actor(s) at 0x%08X...", zMHeader[SceneNumber][MapNumber].ActorCount, zMHeader[SceneNumber][MapNumber].ActorOffset);
 
-		while(CurrActor < zMHeader[SceneNumber][MapNumber].ActorCount) {
-			zMapActor[MapNumber][CurrActor].Number = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10));
-			zMapActor[MapNumber][CurrActor].X = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 2);
-			zMapActor[MapNumber][CurrActor].Y = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 4);
-			zMapActor[MapNumber][CurrActor].Z = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 6);
-			zMapActor[MapNumber][CurrActor].RX = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 8);
-			zMapActor[MapNumber][CurrActor].RY = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 10);
-			zMapActor[MapNumber][CurrActor].RZ = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 12);
-			zMapActor[MapNumber][CurrActor].Var = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 14);
+			while(CurrActor < zMHeader[SceneNumber][MapNumber].ActorCount) {
+				zMapActor[MapNumber][CurrActor].Number = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10));
+				zMapActor[MapNumber][CurrActor].X = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 2);
+				zMapActor[MapNumber][CurrActor].Y = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 4);
+				zMapActor[MapNumber][CurrActor].Z = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 6);
+				zMapActor[MapNumber][CurrActor].RX = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 8);
+				zMapActor[MapNumber][CurrActor].RY = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 10);
+				zMapActor[MapNumber][CurrActor].RZ = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 12);
+				zMapActor[MapNumber][CurrActor].Var = Read16(zRAM[Segment].Data, Offset + (CurrActor * 0x10) + 14);
 
-			// go to actor processing (actor table, etc)
-			if((!zGame.IsCompressed) && (!zGame.GameType)) zl_ProcessActor(MapNumber, CurrActor, 0);
+				// go to actor processing (actor table, etc)
+				if((!zGame.IsCompressed) && (!zGame.GameType)) zl_ProcessActor(MapNumber, CurrActor, 0);
 
-/*			dbgprintf(0, MSK_COLORTYPE_OKAY, "%2i: No%04X;Obj%04X;Var%04X;DL%08X;Ani%08X/%08X;Siz%.3f;%s",
-				CurrActor,
-				(unsigned short)zMapActor[MapNumber][CurrActor].Number,
-				zActor[zMapActor[MapNumber][CurrActor].Number].Object,
-				(unsigned short)zMapActor[MapNumber][CurrActor].Var,
-				zActor[zMapActor[MapNumber][CurrActor].Number].DisplayList,
-				zActor[zMapActor[MapNumber][CurrActor].Number].BoneSetup,
-				zActor[zMapActor[MapNumber][CurrActor].Number].Animation,
-				zActor[zMapActor[MapNumber][CurrActor].Number].Scale,
-				zActor[zMapActor[MapNumber][CurrActor].Number].Name);
-*/
-			CurrActor++;
+	/*			dbgprintf(0, MSK_COLORTYPE_OKAY, "%2i: No%04X;Obj%04X;Var%04X;DL%08X;Ani%08X/%08X;Siz%.3f;%s",
+					CurrActor,
+					(unsigned short)zMapActor[MapNumber][CurrActor].Number,
+					zActor[zMapActor[MapNumber][CurrActor].Number].Object,
+					(unsigned short)zMapActor[MapNumber][CurrActor].Var,
+					zActor[zMapActor[MapNumber][CurrActor].Number].DisplayList,
+					zActor[zMapActor[MapNumber][CurrActor].Number].BoneSetup,
+					zActor[zMapActor[MapNumber][CurrActor].Number].Animation,
+					zActor[zMapActor[MapNumber][CurrActor].Number].Scale,
+					zActor[zMapActor[MapNumber][CurrActor].Number].Name);
+	*/
+				CurrActor++;
+			}
 		}
 	}
+
+	dbgprintf(1, MSK_COLORTYPE_INFO, "\n");
 }
 
 void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
@@ -938,18 +942,19 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 		case 1: {
 			//doors
 			ActorNumber = zDoor[CurrActor].Number;
-			X = zDoor[CurrActor].X + 30;
+			X = zDoor[CurrActor].X;
 			Y = zDoor[CurrActor].Y;
 			Z = zDoor[CurrActor].Z;
-			RX = 0;//270 * 180;
+			RX = 0;
 			RY = zDoor[CurrActor].RY;
-			RZ = 0;//180 * 180;
+			RZ = 0;
 			break; }
 	}
 
 	// if the actor hasn't been processed yet, do so
 	if(zActor[ActorNumber].IsSet == false) {
-		dbgprintf(1, MSK_COLORTYPE_OKAY, "Evaluating actor 0x%04X...", ActorNumber);
+		dbgprintf(1, MSK_COLORTYPE_INFO, "- Evaluating actor 0x%04X...", ActorNumber);
+
 		// get the base offset for reading from the actor table
 		unsigned int BaseOffset = zGame.ActorTableOffset + (ActorNumber * 0x20);
 
@@ -968,6 +973,8 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 		unsigned char * Current = &zGame.CodeBuffer[zActor[ActorNumber].NameCStart];
 		Current += sprintf(zActor[ActorNumber].Name, "%s", Current);
 		while(!*Current) Current++;
+
+		dbgprintf(1, MSK_COLORTYPE_INFO, "- Actor is called '%s'", zActor[ActorNumber].Name);
 
 		//Display list stuff
 		DMA Actor = zl_DMAVirtualToPhysical(zActor[ActorNumber].PStart);
@@ -992,24 +999,12 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 
 			zActor[ActorNumber].Object = Read16(zActor[ActorNumber].Data, (zActor[ActorNumber].ProfileVStart - zActor[ActorNumber].VStart) + 8);
 
-			dbgprintf(1, MSK_COLORTYPE_OKAY, " - zActor[%04X].Object = 0x%04X; (%s loaded)", ActorNumber, zActor[ActorNumber].Object, (zObject[zActor[ActorNumber].Object].IsSet) ? "is" : "not");
+			dbgprintf(1, MSK_COLORTYPE_INFO, "- Actor uses object 0x%04X (%s loaded)", zActor[ActorNumber].Object, (zObject[zActor[ActorNumber].Object].IsSet) ? "is" : "not");
 
 			if(zObject[zActor[ActorNumber].Object].IsSet == true) {
-				unsigned char TargetSeg = 0x06;
-
-				if(zActor[ActorNumber].Object == 0x0001) {
-					TargetSeg = 0x04;
-				} else if(zActor[ActorNumber].Object == 0x0002) {
-					TargetSeg = 0x05;
-				} else {
-					TargetSeg = 0x06;
-				}
-
-				zActor[ActorNumber].DisplayList = (TargetSeg << 24) | (zActor[ActorNumber].DisplayList & 0x00FFFFFF);
-
-				zRAM[TargetSeg].Data = zObject[zActor[ActorNumber].Object].Data;
-				zRAM[TargetSeg].Size = zObject[zActor[ActorNumber].Object].EndOffset - zObject[zActor[ActorNumber].Object].StartOffset;
-				zRAM[TargetSeg].IsSet = true;
+				zRAM[0x06].Data = zObject[zActor[ActorNumber].Object].Data;
+				zRAM[0x06].Size = zObject[zActor[ActorNumber].Object].EndOffset - zObject[zActor[ActorNumber].Object].StartOffset;
+				zRAM[0x06].IsSet = true;
 
 				#if 1
 				int indent = Read32(zActor[ActorNumber].Data, zActor[ActorNumber].Size-4);
@@ -1017,7 +1012,7 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 				int sections_addr = zActor[ActorNumber].Size - indent;
 
 				int text_size = Read32(zActor[ActorNumber].Data, sections_addr );
-				dbgprintf(1, MSK_COLORTYPE_OKAY, " - .text size: %08X; evaluating ASM...", text_size);
+				dbgprintf(1, MSK_COLORTYPE_INFO, " - .text size is 0x%08X; evaluating ASM...", text_size);
 
 				float * scale = NULL;
 				int *dlist = NULL, *bones = NULL, *anim = NULL;
@@ -1033,35 +1028,75 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 					anim	= mips_GetFuncArg(0x800A457C,3);
 				}
 
-				zActor[ActorNumber].Scale = (scale != NULL) ? *scale : 0.01f;
+				zActor[ActorNumber].Scale = (scale != NULL) ? *scale : 0.015f;
 				zActor[ActorNumber].DisplayList = (dlist != NULL) ? *dlist : 0;
 				zActor[ActorNumber].BoneSetup = (bones != NULL) ? *bones : 0;
 				zActor[ActorNumber].Animation = (anim != NULL) ? *anim : 0;
 
-				dbgprintf(0, MSK_COLORTYPE_OKAY, " - scale %4.2f, dlist %08X, bone %08X, anim %08X",
+				dbgprintf(0, MSK_COLORTYPE_INFO, "  - Scale %4.2f, DList %08X, Bones %08X, Animation %08X",
 					zActor[ActorNumber].Scale, zActor[ActorNumber].DisplayList,
 					zActor[ActorNumber].BoneSetup, zActor[ActorNumber].Animation);
 
 				#endif
 
+				// where does 0x060002E0 come from for actors using object 0x0001??
+				if(zActor[ActorNumber].DisplayList == 0x060002E0) zActor[ActorNumber].DisplayList = 0;
+
 				// -------- CODE BELOW IS UGLY HACK --------
-				if(!zActor[ActorNumber].DisplayList)
-					{
-					// doors
-					if((zActor[ActorNumber].Object == 0x1) && (ActorNumber == 0x9)) {
+				if(((zActor[ActorNumber].DisplayList & 0xFF000000) == 0x80000000) || (!zActor[ActorNumber].DisplayList) || (zActor[ActorNumber].Scale <= 0.01f)) {
+					dbgprintf(1, MSK_COLORTYPE_WARNING, "  - Not all required information found, trying to find via hacks...");
+
+					// pot
+					if(ActorNumber == 0x111) {
+						zActor[ActorNumber].Object = 0x12C;
+						zActor[ActorNumber].DisplayList = 0x060017C0;
+						zActor[ActorNumber].Scale = 0.2;
+
+					// normal doors
+					} else if((zActor[ActorNumber].Object == 0x1) && (ActorNumber == 0x9)) {
 						zActor[ActorNumber].DisplayList = 0x0600ECB8;
+
+					// sliding doors
+					} else if((zActor[ActorNumber].Object == 0x1) && (ActorNumber == 0x2E)) {
+						zActor[ActorNumber].DisplayList = 0x04049FE0;
+						zActor[ActorNumber].Scale = 1.0;
+
+					// greenery
+					} else if((zActor[ActorNumber].Object == 0x7C) && (ActorNumber == 0x77)) {
+						zActor[ActorNumber].Scale = 1.0;
+
+					// greenery
+					} else if(ActorNumber == 0x14E) {
+						zActor[ActorNumber].Scale = 1.0;
+
+					// bombable boulder
 					} else if(zActor[ActorNumber].Object == 0x163) {
-						zActor[ActorNumber].DisplayList = 0x060009E0;
-						zActor[ActorNumber].Scale = 0.15;
+						zActor[ActorNumber].Scale = 0.1;
+
+					// grass
+					} else if(ActorNumber == 0x125) {
+						zActor[ActorNumber].DisplayList = 0x040355E0; //wrong but w/e, can't find the right one
+
+					// gravestones
 					} else if(zActor[ActorNumber].Object == 0xA2) {
 						zActor[ActorNumber].DisplayList = 0x060001B0;
 						zActor[ActorNumber].Scale = 0.15;
+
+					// ? forgot
 					} else if(zActor[ActorNumber].Object == 0x11F) {
 						zActor[ActorNumber].DisplayList = 0x060006B0;
 						zActor[ActorNumber].Scale = 0.15;
+
+					// ? forgot
 					} else if(zActor[ActorNumber].Object == 0x5F) {
 						zActor[ActorNumber].DisplayList = 0x06000970;
 						zActor[ActorNumber].Scale = 1.0;
+
+					// windmill spinning thingy
+					} else if((zActor[ActorNumber].Object == 0x6C) && (ActorNumber == 0x123)) {
+						zActor[ActorNumber].Scale = 0.1;
+
+					// everything else, atm disabled (&& 0)
 					} else if(zActor[ActorNumber].Object > 0x3 && 0) {
 						int i = 0;
 						for(i = 0; i < zRAM[0x06].Size; i+=8) {
@@ -1080,15 +1115,17 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 				}
 				// end hack
 
-				dbgprintf(1, MSK_COLORTYPE_OKAY, " - zActor[%04X].DisplayList = 0x%08X;", ActorNumber, zActor[ActorNumber].DisplayList);
+				if(zActor[ActorNumber].DisplayList) dbgprintf(1, MSK_COLORTYPE_INFO, "  - Display List at 0x%08X, scaling %4.2f", zActor[ActorNumber].DisplayList, zActor[ActorNumber].Scale);
 			}
 		}
 		else
 			zActor[ActorNumber].DisplayList = 0;
+
 		// mark actor as processed
 		zActor[ActorNumber].IsSet = true;
+	} else {
+		dbgprintf(1, MSK_COLORTYPE_INFO, "- Actor 0x%04X already known...", ActorNumber);
 	}
-
 
 	if(zActor[ActorNumber].DisplayList)
 	{
@@ -1109,10 +1146,7 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 		zRAM[TargetSeg].Size = zObject[zActor[ActorNumber].Object].EndOffset - zObject[zActor[ActorNumber].Object].StartOffset;
 		zRAM[TargetSeg].IsSet = true;
 
-		/* I don't know what this variable is exactly */
 		zGfx.DLStackPos = 0;
-
-		dbgprintf(0, MSK_COLORTYPE_OKAY, " Trying to exec dlist 0x%08X for object 0x%04X", zActor[ActorNumber].DisplayList, zActor[ActorNumber].Object);
 
 		int DL = 0;
 		int DLCount = 0;
@@ -1136,8 +1170,10 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 		}
 
 		while(DL < DLCount) {
+			dbgprintf(0, MSK_COLORTYPE_OKAY, " - Trying to execute DList for object 0x%04X...", zActor[ActorNumber].Object);
+
 			if(zl_CheckAddressValidity(zActor[ActorNumber].DisplayList)) {
-				dbgprintf(0, MSK_COLORTYPE_OKAY, " - Address: 0x%08X: Valid!", zActor[ActorNumber].DisplayList);
+				dbgprintf(0, MSK_COLORTYPE_OKAY, " - DList Address 0x%08X is valid!", zActor[ActorNumber].DisplayList);
 				glNewList(DLBase + DL, GL_COMPILE);
 					glPushMatrix();
 

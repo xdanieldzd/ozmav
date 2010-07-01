@@ -185,21 +185,22 @@ void gl_DrawScene()
 	glScalef(0.005, 0.005, 0.005);
 
 	int Maps = 0, DL = 0, Door = 0, Actor = 0;
+
 	for(Maps = 0; Maps < zSHeader[0].MapCount; Maps++) {
 		for(DL = 0; DL < zGfx.DLCount[Maps]; DL++) {
 			glCallList(zGfx.GLListCount[Maps] + DL);
-		}
-
-		for(Door = 0; Door < zSHeader[0].DoorCount; Door++) {
-			for(DL = 0; DL < zGfx.DoorDLCount[Door]; DL++) {
-				glCallList(zGfx.DoorGLListCount[Door] + DL);
-			}
 		}
 
 		for(Actor = 0; Actor < zMHeader[0][Maps].ActorCount; Actor++) {
 			for(DL = 0; DL < zGfx.ActorDLCount[Maps][Actor]; DL++) {
 				glCallList(zGfx.ActorGLListCount[Maps][Actor] + DL);
 			}
+		}
+	}
+
+	for(Door = 0; Door < zSHeader[0].DoorCount; Door++) {
+		for(DL = 0; DL < zGfx.DoorDLCount[Door]; DL++) {
+			glCallList(zGfx.DoorGLListCount[Door] + DL);
 		}
 	}
 }
@@ -309,12 +310,22 @@ void gl_UpdateStates()
 void gl_ClearRenderer(bool Full)
 {
 	if(Full) {
-		int i = 0;
+		int i = 0, j = 0;
 		for(i = 0; i < 256; i++) {
+			// maps
 			if(glIsList(zGfx.GLListCount[i])) glDeleteLists(zGfx.GLListCount[i], zGfx.DLCount[i]);
 			zGfx.DLCount[i] = 0;
+
+			// doors
+			if(glIsList(zGfx.DoorGLListCount[i])) glDeleteLists(zGfx.DoorGLListCount[i], zGfx.DoorDLCount[i]);
+			zGfx.DoorDLCount[i] = 0;
+
+			// actors
+			for(j = 0; j < 1024; j++) {
+				if(glIsList(zGfx.ActorGLListCount[i][j])) glDeleteLists(zGfx.ActorGLListCount[i][j], zGfx.ActorDLCount[i][j]);
+				zGfx.ActorDLCount[i][j] = 0;
+			}
 		}
-		zGfx.DLCountTotal = 0;
 	}
 
 	if(zGfx.GLTextureID[0]) glDeleteTextures(zGfx.GLTextureCount, zGfx.GLTextureID);

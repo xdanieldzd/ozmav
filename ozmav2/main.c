@@ -50,8 +50,8 @@ struct __zMapActor zLink[256];
 struct __zMapActor zMapActor[256][256];
 struct __zDoor zDoor[256];
 
-struct __zFragmentCache zFragmentCache[256];
-struct __zTextureCache zTextureCache[512];
+struct __zFragmentCache zFragmentCache[CACHE_FRAGMENT];
+struct __zTextureCache zTextureCache[CACHE_TEXTURES];
 
 struct __zCamera zCamera;
 
