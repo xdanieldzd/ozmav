@@ -926,7 +926,7 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 	dbgprintf(3, MSK_COLORTYPE_OKAY, "[DEBUG] %s(%i, %i, %i);\n", __FUNCTION__, MapNumber, CurrActor, Type);
 
 	unsigned short ActorNumber = 0;
-	short X, Y, Z, RX, RY, RZ;
+	short X = 0, Y = 0, Z = 0, RX = 0, RY = 0, RZ = 0;
 
 	switch(Type) {
 		case 0:	{
