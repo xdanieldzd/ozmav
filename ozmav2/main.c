@@ -95,7 +95,7 @@ int main(int argc, char * argv[])
 	MSK_Init(zProgram.Title);
 	sprintf(Temp, "%s//log.txt", zProgram.AppPath);
 	MSK_InitLogging(Temp);
-	MSK_SetValidCharacters("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789.\\/\"-()[]_");
+	MSK_SetValidCharacters("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789.,\\/\"-()[]_!");
 	MSK_AddCommand("loadrom", "Load ROM file to use", cn_Cmd_LoadROM);
 	MSK_AddCommand("loadscene", "Load specific Scene (0-x)", cn_Cmd_LoadScene);
 	MSK_AddCommand("dumpobj", "Dump Scene to .obj file", cn_Cmd_DumpObj);
