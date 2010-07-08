@@ -118,6 +118,8 @@ int zl_LoadScene(int SceneNo)
 	zl_ClearAllSegments();
 	zl_ClearStructures(true);
 	gl_ClearRenderer(true);
+
+	dl_InitParser(F3DEX2);
 	dl_InitCombiner();
 
 	md_InitModelDumping(SceneNo);
@@ -544,19 +546,6 @@ void zl_ClearStructures(bool Full)
 	zGfx.Store_RDPHalf1 = 0; zGfx.Store_RDPHalf2 = 0;
 	zGfx.Combiner0 = 0; zGfx.Combiner1 = 0;
 
-	for(i = 0; i < ArraySize(zObject); i++) {
-		zObject[i].IsSet = false;
-		zObject[i].StartOffset = -1;
-		zObject[i].EndOffset = -1;
-//		if(zObject[i].Data != NULL) free(zObject[i].Data);
-	}
-
-	static const struct __zActor zActor_Empty = {false,0,0,0,0, 0,0,0,"",0,0,NULL,0.01f,0,0,0};
-	for(i = 0; i < ArraySize(zActor); i++) {
-//		if(zActor[i].Data != NULL) free(zActor[i].Data);
-		zActor[i] = zActor_Empty;
-	}
-
 	if(Full) {
 		i = 0; j = 0;
 
@@ -570,6 +559,17 @@ void zl_ClearStructures(bool Full)
 
 		static const struct __zCamera zCamera_Empty;
 		zCamera = zCamera_Empty;
+
+		for(i = 0; i < ArraySize(zObject); i++) {
+			zObject[i].IsSet = false;
+			zObject[i].StartOffset = -1;
+			zObject[i].EndOffset = -1;
+		}
+
+		static const struct __zActor zActor_Empty = {false,0,0,0,0, 0,0,0,"",0,0,NULL,0.01f,0,0,0};
+		for(i = 0; i < ArraySize(zActor); i++) {
+			zActor[i] = zActor_Empty;
+		}
 	}
 }
 
@@ -1182,6 +1182,9 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 					glRotated(RY / 180, 0, 1, 0);
 					glRotated(RZ / 180, 0, 0, 1);
 					glScalef(zActor[ActorNumber].Scale, zActor[ActorNumber].Scale, zActor[ActorNumber].Scale);
+
+					zl_ClearStructures(false);
+					gl_ClearRenderer(false);
 
 					zGfx.DLStackPos = 0;
 					dl_ParseDisplayList(zActor[ActorNumber].DisplayList);

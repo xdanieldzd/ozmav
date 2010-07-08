@@ -32,7 +32,8 @@ enum { true = 1, false = 0 };
 #include "oz.h"
 #include "draw.h"
 #include "zelda.h"
-#include "f3dex2.h"
+#include "dlparse.h"
+#include "rdp.h"
 #include "camera.h"
 #include "dump.h"
 #include "mips-eval.h"
@@ -258,6 +259,8 @@ struct __zTexture {
 	unsigned int CMT, CMS;
 	float ScaleT, ScaleS;
 	float ShiftScaleT, ShiftScaleS;
+
+	unsigned int CRC32;
 };
 
 struct __zRGBA {

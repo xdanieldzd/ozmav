@@ -121,6 +121,10 @@
 		</Unit>
 		<Unit filename="confunc.h" />
 		<Unit filename="dialog.h" />
+		<Unit filename="dlparse.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="dlparse.h" />
 		<Unit filename="draw.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -133,7 +137,6 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="f3dex2.h" />
-		<Unit filename="f3dex2_cmd.h" />
 		<Unit filename="globals.h" />
 		<Unit filename="main.c">
 			<Option compilerVar="CC" />
@@ -148,6 +151,10 @@
 		</Unit>
 		<Unit filename="oz.h" />
 		<Unit filename="r3400i.h" />
+		<Unit filename="rdp.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="rdp.h" />
 		<Unit filename="zelda.c">
 			<Option compilerVar="CC" />
 		</Unit>
