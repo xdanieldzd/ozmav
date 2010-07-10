@@ -13,14 +13,14 @@ endif
 targets:
 	@echo "OZMAV2 Makefile."
 	@echo "  Targets:"
-	@echo "    all           == Build OZMAV2 and all plugins"
+	@echo "    all           == Build OZMAV2 and all needed libs"
 	@echo "    clean         == Remove all files built from source"
 	@echo "    rebuild       == clean and re-build all"
 	@echo "    install       == install OZMAV2"
 	@echo "    uninstall     == uninstall OZMAV2"
 	@echo "    package       == Build package"
 	@echo "  Options:"
-	@echo "    WIN32=1       == mingw build"
+	@echo "    WIN32=1       == mingw build (Makefiles need fixing)"
 	@echo "  Debugging Options:"
 	@echo "    DBG=1         == Enable debugging symbols. Rebuild"
 	@echo "                     suggested if not used previous build)"
@@ -41,7 +41,7 @@ uninstall:
 rebuild: clean all
 
 package:
-	tgz $(PROJECT).tgz
+	tgz ozmav2.tgz
 
 clean:
 	$(MAKE) -C misaka clean

@@ -1,6 +1,7 @@
 #include "globals.h"
 
 // ----------------------------------------
+#define min(a, b)				((a) < (b) ? (a) : (b))
 
 RDPInstruction RDP_UcodeCmd[256];
 
