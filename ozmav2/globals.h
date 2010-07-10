@@ -384,13 +384,6 @@ struct __zMapActor {
 	unsigned short Var;
 };
 
-struct __zMapDoor {
-	unsigned short Number;
-	short X, Y, Z;
-	short RY;
-	unsigned char To, ToFade, From, FromFade;
-};
-
 struct __zDoor {
 	unsigned char RoomFront;
 	unsigned char FadeFront;
