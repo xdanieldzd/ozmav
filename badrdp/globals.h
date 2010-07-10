@@ -30,8 +30,8 @@ enum { true = 1, false = 0 };
 
 // ----------------------------------------
 
-#define CACHE_TEXTURES		1024
-#define CACHE_FRAGMENT		256
+#define CACHE_TEXTURES		2048
+#define CACHE_FRAGMENT		512
 
 // ----------------------------------------
 

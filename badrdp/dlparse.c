@@ -988,11 +988,13 @@ void RDP_CalcTextureSize(int TextureID)
 		Clamp_Width = Tile_Width;
 	} else {
 		Clamp_Width = Texture[TextureID].Width;
+		Texture[TextureID].CMS &= G_TX_MIRROR;
 	}
 	if((Texture[TextureID].CMT & G_TX_CLAMP) && (!Texture[TextureID].CMT & G_TX_MIRROR)) {
 		Clamp_Height = Tile_Height;
 	} else {
 		Clamp_Height = Texture[TextureID].Height;
+		Texture[TextureID].CMT &= G_TX_MIRROR;
 	}
 
 	if(Mask_Width > Texture[TextureID].Width) {
