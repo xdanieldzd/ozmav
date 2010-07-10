@@ -174,53 +174,58 @@ int zl_LoadScene(int SceneNo)
 	DMA Scene = zl_DMAVirtualToPhysical(SceneStart);
 	dbgprintf(2, MSK_COLORTYPE_OKAY, "[DEBUG] Physical offsets: PStart 0x%08X, PEnd 0x%08X\n", Scene.PStart, Scene.PEnd);
 
-	dbgprintf(1, MSK_COLORTYPE_INFO, "Loading Scene #%i:\n", SceneNo);
-	if(zGame.HasFilenames) dbgprintf(1, MSK_COLORTYPE_INFO, " - Filename: %s\n", Scene.Filename);
-	dbgprintf(1, MSK_COLORTYPE_INFO, " - Location in ROM: 0x%08X to 0x%08X (0x%04X bytes)\n\n", Scene.PStart, Scene.PEnd, SceneSize);
+	if((Scene.PStart != 0x00) && (Scene.PEnd != 0x00)) {
+		dbgprintf(1, MSK_COLORTYPE_INFO, "Loading Scene #%i:\n", SceneNo);
+		if(zGame.HasFilenames) dbgprintf(1, MSK_COLORTYPE_INFO, " - Filename: %s\n", Scene.Filename);
+		dbgprintf(1, MSK_COLORTYPE_INFO, " - Location in ROM: 0x%08X to 0x%08X (0x%04X bytes)\n\n", Scene.PStart, Scene.PEnd, SceneSize);
 
-	RDP_LoadToSegment(0x02, zROM.Data, Scene.PStart, SceneSize);
-	if(zl_ExecuteHeader(0x02, 0x00, 0, -1)) return EXIT_FAILURE;
+		RDP_LoadToSegment(0x02, zROM.Data, Scene.PStart, SceneSize);
+		if(zl_ExecuteHeader(0x02, 0x00, 0, -1)) return EXIT_FAILURE;
 
-	unsigned char Segment = zSHeader[0].MapOffset >> 24;
-	unsigned int Offset = (zSHeader[0].MapOffset & 0x00FFFFFF);
+		unsigned char Segment = zSHeader[0].MapOffset >> 24;
+		unsigned int Offset = (zSHeader[0].MapOffset & 0x00FFFFFF);
 
-	zl_GetMapObjects(0, -1);
-	zl_GetMapActors(0, -1);
+		zl_GetMapObjects(0, -1);
+		zl_GetMapActors(0, -1);
 
-	int i = 0;
-	for(i = 0; i < zSHeader[0].MapCount; i++) {
-		RDP_ClearSegment(0x03);
-		RDP_ClearStructures(false);
+		int i = 0;
+		for(i = 0; i < zSHeader[0].MapCount; i++) {
+			RDP_ClearSegment(0x03);
+			RDP_ClearStructures(false);
 
-		zGfx.DLCount[i] = 0;
+			zGfx.DLCount[i] = 0;
 
-		unsigned int MapStart = Read32(RAM[Segment].Data, Offset + (i * 0x08));
-		unsigned int MapEnd = Read32(RAM[Segment].Data, Offset + 4 + (i * 0x08));
-		unsigned int MapSize = MapEnd - MapStart;
+			unsigned int MapStart = Read32(RAM[Segment].Data, Offset + (i * 0x08));
+			unsigned int MapEnd = Read32(RAM[Segment].Data, Offset + 4 + (i * 0x08));
+			unsigned int MapSize = MapEnd - MapStart;
 
-		DMA Map = zl_DMAVirtualToPhysical(MapStart);
-		dbgprintf(2, MSK_COLORTYPE_OKAY, "[DEBUG] Physical offsets: PStart 0x%08X, PEnd 0x%08X\n", Map.PStart, Map.PEnd);
+			DMA Map = zl_DMAVirtualToPhysical(MapStart);
+			dbgprintf(2, MSK_COLORTYPE_OKAY, "[DEBUG] Physical offsets: PStart 0x%08X, PEnd 0x%08X\n", Map.PStart, Map.PEnd);
 
-		dbgprintf(1, MSK_COLORTYPE_INFO, "\nLoading Map #%i:\n", i);
-		if(zGame.HasFilenames) dbgprintf(1, MSK_COLORTYPE_INFO, " - Filename: %s\n", Map.Filename);
-		dbgprintf(1, MSK_COLORTYPE_INFO, " - Location in ROM: 0x%08X to 0x%08X (0x%04X bytes)\n\n", Map.PStart, Map.PEnd, MapSize);
+			dbgprintf(1, MSK_COLORTYPE_INFO, "\nLoading Map #%i:\n", i);
+			if(zGame.HasFilenames) dbgprintf(1, MSK_COLORTYPE_INFO, " - Filename: %s\n", Map.Filename);
+			dbgprintf(1, MSK_COLORTYPE_INFO, " - Location in ROM: 0x%08X to 0x%08X (0x%04X bytes)\n\n", Map.PStart, Map.PEnd, MapSize);
 
-		RDP_LoadToSegment(0x03, zROM.Data, Map.PStart, MapSize);
-		if(zl_ExecuteHeader(0x03, 0x00, 0, i)) break;
+			RDP_LoadToSegment(0x03, zROM.Data, Map.PStart, MapSize);
+			if(zl_ExecuteHeader(0x03, 0x00, 0, i)) break;
 
-		zl_GetMapObjects(0, i);
-		zl_GetMapActors(0, i);
+			zl_GetMapObjects(0, i);
+			zl_GetMapActors(0, i);
 
-		zl_GetDisplayLists(i);
-		zl_ExecuteDisplayLists(i);
+			zl_GetDisplayLists(i);
+			zl_ExecuteDisplayLists(i);
+		}
+
+		ca_Reset();
+
+		md_StopModelDumping();
+
+		dbgprintf(1, MSK_COLORTYPE_OKAY, "\nScene #%i has been loaded.\n", zOptions.SceneNo);
+	} else {
+		md_StopModelDumping();
+
+		dbgprintf(1, MSK_COLORTYPE_ERROR, "- Error: Could not load Scene #%i.\n", zOptions.SceneNo);
 	}
-
-	ca_Reset();
-
-	md_StopModelDumping();
-
-	dbgprintf(1, MSK_COLORTYPE_OKAY, "\nScene #%i has been loaded.\n", zOptions.SceneNo);
-
 	return EXIT_SUCCESS;
 }
 
@@ -1098,7 +1103,7 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 		RAM[TargetSeg].Data = NULL;
 		RAM[TargetSeg].Size = 0;
 		RAM[TargetSeg].IsSet = false;
-		
+
 	}
 }
 
@@ -1127,25 +1132,25 @@ void zl_DrawBones(unsigned int BoneOffset, unsigned int AnimationOffset, float S
 	dbgprintf(0, MSK_COLORTYPE_INFO, "%s(0x%x, 0x%x, %.3f, %i, %i, %i, %i, %i, %i, %i);",__FUNCTION__, BoneOffset, AnimationOffset, Scale, X, Y, Z, RX, RY, RZ, DLBase);
 	int BoneCount, BoneListListOffset, Seg, _Seg, i;
 	z_bone Bones[128];
-	
+
 	if(!RDP_CheckAddressValidity(BoneOffset)){
 		return;
 	}
 	if(Scale < 0.001f){
 		Scale = 0.01f;
 	}
-	
+
 	Seg = (BoneOffset >> 24) & 0xFF;
 	BoneOffset &= 0xFFFFFF;
 	memset(Bones, 0, sizeof(z_bone) * 128);
-	
+
 	//parse bones
 	BoneCount = RAM[Seg].Data[(BoneOffset) + 4];
 	BoneListListOffset = Read32(RAM[Seg].Data, BoneOffset);
 	if(!RDP_CheckAddressValidity(BoneListListOffset)){
 		return;
 	}
-	
+
 	Seg = (BoneListListOffset >> 24) & 0xFF;
 	BoneListListOffset &= 0xFFFFFF;
 	dbgprintf(0, MSK_COLORTYPE_INFO, "Seg=0x%x; BoneListListOffset=0x%x; BoneCount=%i", Seg, BoneListListOffset, BoneCount);
@@ -1169,15 +1174,15 @@ void zl_DrawBones(unsigned int BoneOffset, unsigned int AnimationOffset, float S
 	//render
 	glNewList(DLBase, GL_COMPILE);
 		glPushMatrix();
-	
+
 		glTranslated(X, Y, Z);
 		glRotated(RX / 180, 1, 0, 0);
 		glRotated(RY / 180, 0, 1, 0);
 		glRotated(RZ / 180, 0, 0, 1);
-		
+
 		glScalef(Scale, Scale, Scale);
 		zl_DrawBone(Bones, 0);
-		
+
 		glPopMatrix();
 	glEndList();
 	# if 0
