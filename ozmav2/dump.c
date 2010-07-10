@@ -38,7 +38,7 @@ void md_StopModelDumping()
 
 void md_CreateMaterial(int TextureID, unsigned char * TextureData)
 {
-	if(!zProgram.FileWavefrontObj || !zProgram.FileWavefrontMtl) return;
+/*	if(!zProgram.FileWavefrontObj || !zProgram.FileWavefrontMtl) return;
 
 	char TextureFilename[256];
 	sprintf(TextureFilename, "texture_fmt0x%02X_0x%08X.png", zTexture[TextureID].Format, zTexture[TextureID].Offset);
@@ -58,12 +58,12 @@ void md_CreateMaterial(int TextureID, unsigned char * TextureData)
 		fprintf(zProgram.FileWavefrontObj, "usemtl material_%d\n", zProgram.WavefrontObjMaterialCnt);
 
 		zProgram.WavefrontObjMaterialCnt++;
-	}
+	}*/
 }
 
 void md_DumpTriangle(int Vtxs[])
 {
-	if(!zProgram.FileWavefrontObj || !zProgram.FileWavefrontMtl) return;
+/*	if(!zProgram.FileWavefrontObj || !zProgram.FileWavefrontMtl) return;
 
 	if(zTexture[0].Width == 0 || zTexture[0].Height == 0) return;
 
@@ -84,7 +84,7 @@ void md_DumpTriangle(int Vtxs[])
 		zProgram.WavefrontObjVertCount + 1, zProgram.WavefrontObjVertCount + 1, zProgram.WavefrontObjVertCount + 1,
 		zProgram.WavefrontObjVertCount + 2, zProgram.WavefrontObjVertCount + 2, zProgram.WavefrontObjVertCount + 2);
 
-	zProgram.WavefrontObjVertCount += 3;
+	zProgram.WavefrontObjVertCount += 3;*/
 }
 
 int md_SavePNG(unsigned char * Buffer, int Width, int Height, char * Filename)

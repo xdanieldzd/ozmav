@@ -28,12 +28,11 @@ enum { true = 1, false = 0 };
 #include <curses.h>
 
 #include "misaka.h"
+#include "badrdp.h"
 
 #include "oz.h"
 #include "draw.h"
 #include "zelda.h"
-#include "dlparse.h"
-#include "rdp.h"
 #include "camera.h"
 #include "dump.h"
 #include "mips-eval.h"
@@ -79,39 +78,15 @@ enum { true = 1, false = 0 };
 
 #define ArraySize(x)	(sizeof((x)) / sizeof((x)[0]))
 
+#ifndef min
 #define min(a, b)				((a) < (b) ? (a) : (b))
-
-// ----------------------------------------
-
-#ifdef WIN32
-PFNGLMULTITEXCOORD1FARBPROC			glMultiTexCoord1fARB;
-PFNGLMULTITEXCOORD2FARBPROC			glMultiTexCoord2fARB;
-PFNGLMULTITEXCOORD3FARBPROC			glMultiTexCoord3fARB;
-PFNGLMULTITEXCOORD4FARBPROC			glMultiTexCoord4fARB;
-PFNGLACTIVETEXTUREARBPROC			glActiveTextureARB;
-PFNGLCLIENTACTIVETEXTUREARBPROC		glClientActiveTextureARB;
 #endif
-
-PFNGLGENPROGRAMSARBPROC				glGenProgramsARB;
-PFNGLBINDPROGRAMARBPROC				glBindProgramARB;
-PFNGLDELETEPROGRAMSARBPROC			glDeleteProgramsARB;
-PFNGLPROGRAMSTRINGARBPROC			glProgramStringARB;
-PFNGLPROGRAMENVPARAMETER4FARBPROC	glProgramEnvParameter4fARB;
-PFNGLPROGRAMLOCALPARAMETER4FARBPROC	glProgramLocalParameter4fARB;
-
-// ----------------------------------------
-
-#define CACHE_TEXTURES		1024
-#define CACHE_FRAGMENT		256
 
 // ----------------------------------------
 
 struct __zProgram {
 	bool IsRunning;
 	bool Key[256];
-
-	unsigned int FragCachePosition;
-	unsigned int TextureCachePosition;
 
 	int MousePosX, MousePosY;
 	int MouseCenterX, MouseCenterY;
@@ -127,16 +102,6 @@ struct __zProgram {
 	int HandleOptions;
 	int HandleAbout;
 	int HandleLoadScene;
-};
-
-struct __zOpenGL {
-	char * ExtensionList;
-	char ExtSupported[256];
-	char ExtUnsupported[256];
-	bool IsExtUnsupported;
-	bool Ext_MultiTexture;
-	bool Ext_TexMirroredRepeat;
-	bool Ext_FragmentProgram;
 };
 
 struct __zOptions {
@@ -184,12 +149,6 @@ struct __zGame {
 	unsigned char * CodeBuffer;
 };
 
-struct __zRAM {
-	bool IsSet;
-	unsigned int Size;
-	unsigned char * Data;
-};
-
 struct __zHeader {
 	unsigned char ActorCount;
 	unsigned int ActorOffset;
@@ -224,85 +183,6 @@ struct __zHeader {
 	unsigned char GameplayObj;
 };
 
-struct __zVertex {
-	short X;
-	short Y;
-	short Z;
-	short S;
-	short T;
-	unsigned char R;
-	unsigned char G;
-	unsigned char B;
-	unsigned char A;
-};
-
-struct __zPalette {
-	unsigned char R;
-	unsigned char G;
-	unsigned char B;
-	unsigned char A;
-};
-
-struct __zTexture {
-	unsigned int Offset;
-	unsigned int PalOffset;
-
-	unsigned int Format;
-	unsigned int Tile;
-	unsigned int Width;
-	unsigned int RealWidth;
-	unsigned int Height;
-	unsigned int RealHeight;
-	unsigned int ULT, ULS;
-	unsigned int LRT, LRS;
-	unsigned int LineSize, Palette;
-	unsigned int MaskT, MaskS;
-	unsigned int ShiftT, ShiftS;
-	unsigned int CMT, CMS;
-	float ScaleT, ScaleS;
-	float ShiftScaleT, ShiftScaleS;
-
-	unsigned int CRC32;
-};
-
-struct __zRGBA {
-	float R;
-	float G;
-	float B;
-	float A;
-};
-
-struct __zFillColor {
-	float R;
-	float G;
-	float B;
-	float A;
-	float Z;
-	float DZ;
-};
-
-struct __zPrimColor {
-	float R;
-	float G;
-	float B;
-	float A;
-	float L;
-	unsigned short M;
-};
-
-struct __zFragmentCache {
-	unsigned int zCombiner0;
-	unsigned int zCombiner1;
-	GLuint ProgramID;
-};
-
-struct __zTextureCache {
-	unsigned int Offset;
-	unsigned int RealWidth;
-	unsigned int RealHeight;
-	GLuint TextureID;
-};
-
 struct __zCamera {
 	float AngleX, AngleY;
 	float X, Y, Z;
@@ -310,9 +190,6 @@ struct __zCamera {
 };
 
 struct __zGfx {
-	int DLStack[16];
-	int DLStackPos;
-
 	unsigned int DLOffset[256][512];
 	int DLCount[256];
 	GLuint GLListCount[256];
@@ -321,29 +198,6 @@ struct __zGfx {
 	GLuint ActorGLListCount[256][1024];
 	int DoorDLCount[256];
 	GLuint DoorGLListCount[256];
-
-	unsigned int ChangedModes;
-	unsigned int GeometryMode;
-	unsigned int OtherModeL;
-	unsigned int OtherModeH;
-	GLfloat LightAmbient[4];
-	GLfloat LightDiffuse[4];
-	GLfloat LightSpecular[4];
-	GLfloat LightPosition[4];
-	unsigned int Store_RDPHalf1, Store_RDPHalf2;
-	unsigned int Combiner0, Combiner1;
-
-	struct __zRGBA BlendColor;
-	struct __zRGBA EnvColor;
-	struct __zRGBA FogColor;
-	struct __zFillColor FillColor;
-	struct __zPrimColor PrimColor;
-
-	bool IsMultiTexture;
-	int CurrentTexture;
-
-	GLuint GLTextureID[CACHE_TEXTURES];
-	int GLTextureCount;
 };
 
 struct __zObject {
@@ -400,30 +254,20 @@ struct __zDoor {
 // ----------------------------------------
 
 extern struct __zProgram zProgram;
-extern struct __zOpenGL zOpenGL;
 extern struct __zOptions zOptions;
 
 extern struct __zROM zROM;
 extern struct __zGame zGame;
-extern struct __zRAM zRAM[64];
 extern struct __zHeader zSHeader[256];
 extern struct __zHeader zMHeader[256][256];
 
 extern struct __zGfx zGfx;
-extern struct __zPalette zPalette[256];
-
-extern struct __zVertex zVertex[32];
-
-extern struct __zTexture zTexture[2];
 
 extern struct __zObject zObject[1024];
 extern struct __zActor zActor[1024];
 extern struct __zMapActor zLink[256];
 extern struct __zMapActor zMapActor[256][256];
 extern struct __zDoor zDoor[256];
-
-extern struct __zFragmentCache zFragmentCache[CACHE_FRAGMENT];
-extern struct __zTextureCache zTextureCache[CACHE_TEXTURES];
 
 extern struct __zCamera zCamera;
 

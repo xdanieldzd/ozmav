@@ -9,40 +9,15 @@
 
 // ----------------------------------------
 
-#ifdef WIN32
-PFNGLMULTITEXCOORD1FARBPROC			glMultiTexCoord1fARB = NULL;
-PFNGLMULTITEXCOORD2FARBPROC			glMultiTexCoord2fARB = NULL;
-PFNGLMULTITEXCOORD3FARBPROC			glMultiTexCoord3fARB = NULL;
-PFNGLMULTITEXCOORD4FARBPROC			glMultiTexCoord4fARB = NULL;
-PFNGLACTIVETEXTUREARBPROC			glActiveTextureARB = NULL;
-PFNGLCLIENTACTIVETEXTUREARBPROC		glClientActiveTextureARB = NULL;
-#endif
-
-PFNGLGENPROGRAMSARBPROC				glGenProgramsARB = NULL;
-PFNGLBINDPROGRAMARBPROC				glBindProgramARB = NULL;
-PFNGLDELETEPROGRAMSARBPROC			glDeleteProgramsARB = NULL;
-PFNGLPROGRAMSTRINGARBPROC			glProgramStringARB = NULL;
-PFNGLPROGRAMENVPARAMETER4FARBPROC	glProgramEnvParameter4fARB = NULL;
-PFNGLPROGRAMLOCALPARAMETER4FARBPROC	glProgramLocalParameter4fARB = NULL;
-
-// ----------------------------------------
-
 struct __zProgram zProgram;
-struct __zOpenGL zOpenGL;
 struct __zOptions zOptions;
 
 struct __zROM zROM;
 struct __zGame zGame;
-struct __zRAM zRAM[64];
 struct __zHeader zSHeader[256];
 struct __zHeader zMHeader[256][256];
 
 struct __zGfx zGfx;
-struct __zPalette zPalette[256];
-
-struct __zVertex zVertex[32];
-
-struct __zTexture zTexture[2];
 
 struct __zObject zObject[1024];
 struct __zActor zActor[1024];
@@ -50,10 +25,11 @@ struct __zMapActor zLink[256];
 struct __zMapActor zMapActor[256][256];
 struct __zDoor zDoor[256];
 
-struct __zFragmentCache zFragmentCache[CACHE_FRAGMENT];
-struct __zTextureCache zTextureCache[CACHE_TEXTURES];
-
 struct __zCamera zCamera;
+
+// ----------------------------------------
+
+struct __RAM RAM[64];
 
 // ----------------------------------------
 
@@ -95,7 +71,7 @@ int main(int argc, char * argv[])
 	MSK_Init(zProgram.Title);
 	sprintf(Temp, "%s//log.txt", zProgram.AppPath);
 	MSK_InitLogging(Temp);
-	MSK_SetValidCharacters("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789.,\\/\"-()[]_!");
+	MSK_SetValidCharacters("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789.,:\\/\"-()[]_!");
 	MSK_AddCommand("loadrom", "Load ROM file to use", cn_Cmd_LoadROM);
 	MSK_AddCommand("loadscene", "Load specific Scene (0-x)", cn_Cmd_LoadScene);
 	MSK_AddCommand("dumpobj", "Dump Scene to .obj file", cn_Cmd_DumpObj);
@@ -127,8 +103,7 @@ int main(int argc, char * argv[])
 	oz_CreateFolder(Temp);
 
 	// init OpenGL & renderer
-	gl_InitExtensions();
-	gl_InitRenderer();
+	RDP_SetupOpenGL();
 
 	gl_ResizeScene(WINDOW_WIDTH, WINDOW_HEIGHT);
 

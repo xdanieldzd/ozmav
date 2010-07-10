@@ -5,5 +5,5 @@ extern void gl_InitExtensions();
 extern void gl_ResizeScene(int Width, int Height);
 extern void gl_DrawScene();
 extern void gl_UpdateStates();
-extern void gl_ClearRenderer(bool Full);
+extern void gl_ClearDisplayLists();
 extern int gl_FinishScene();

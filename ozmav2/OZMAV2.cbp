@@ -21,6 +21,7 @@
 					<Add directory="C:\Programme\PDCurses-SO\win32" />
 				</Compiler>
 				<Linker>
+					<Add library="..\..\libbadRDP\libbadRDP_debug.a" />
 					<Add library="opengl32" />
 					<Add library="glu32" />
 					<Add library="glaux" />
@@ -50,6 +51,7 @@
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
+					<Add library="..\..\libbadRDP\libbadRDP.a" />
 					<Add library="opengl32" />
 					<Add library="glu32" />
 					<Add library="glaux" />
@@ -74,6 +76,7 @@
 					<Add option="-g" />
 				</Compiler>
 				<Linker>
+					<Add library="..\..\libbadRDP\libbadRDP_debug.a" />
 					<Add library="GL" />
 					<Add library="X11" />
 					<Add library="png" />
@@ -93,6 +96,7 @@
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
+					<Add library="..\..\libbadRDP\libbadRDP.a" />
 					<Add library="GL" />
 					<Add library="X11" />
 					<Add library="png" />
@@ -112,6 +116,7 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="__win32.h" />
+		<Unit filename="badrdp.h" />
 		<Unit filename="camera.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -121,10 +126,6 @@
 		</Unit>
 		<Unit filename="confunc.h" />
 		<Unit filename="dialog.h" />
-		<Unit filename="dlparse.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="dlparse.h" />
 		<Unit filename="draw.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -133,10 +134,6 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="dump.h" />
-		<Unit filename="f3dex2.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="f3dex2.h" />
 		<Unit filename="globals.h" />
 		<Unit filename="main.c">
 			<Option compilerVar="CC" />
@@ -151,10 +148,6 @@
 		</Unit>
 		<Unit filename="oz.h" />
 		<Unit filename="r3400i.h" />
-		<Unit filename="rdp.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="rdp.h" />
 		<Unit filename="zelda.c">
 			<Option compilerVar="CC" />
 		</Unit>

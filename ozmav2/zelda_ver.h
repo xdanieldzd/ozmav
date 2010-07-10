@@ -15,10 +15,10 @@ typedef struct {
 static __zGameVer GameVer[] =
 {
 	// retail releases
-	{ "THE LEGEND OF ZELDA ", "CZLJ", 0,  0, 27, 0x8001CE60, 0x0EA440, 0x0,      0x0,      0x64, "Ocarina of Time (J) [v1.0]" },
+	{ "THE LEGEND OF ZELDA ", "CZLJ", 0,  0, 27, 0x8001CE60, 0x0EA440, 0x0E7F58, 0x0D7490, 0x64, "Ocarina of Time (J) [v1.0]" },
 	{ "THE LEGEND OF ZELDA ", "CZLJ", 1,  0, 27, 0x8001CE60, 0x0EA600, 0x0,      0x0,      0x64, "Ocarina of Time (J) [v1.1]" },
 	{ "THE LEGEND OF ZELDA ", "CZLJ", 2,  0, 27, 0x8001CE60, 0x0EA450, 0x0,      0x0,      0x64, "Ocarina of Time (J) [v1.2]" },
-	{ "THE LEGEND OF ZELDA ", "CZLE", 0,  0, 27, 0x8001CE60, 0x0EA440, 0x0,      0x0,      0x64, "Ocarina of Time (U) [v1.0]" },
+	{ "THE LEGEND OF ZELDA ", "CZLE", 0,  0, 27, 0x8001CE60, 0x0EA440, 0x0E7F58, 0x0D7490, 0x64, "Ocarina of Time (U) [v1.0]" },
 	{ "THE LEGEND OF ZELDA ", "CZLE", 1,  0, 27, 0x8001CE60, 0x0EA600, 0x0,      0x0,      0x64, "Ocarina of Time (U) [v1.1]" },
 	{ "THE LEGEND OF ZELDA ", "CZLE", 2,  0, 27, 0x8001CE60, 0x0EA450, 0x0,      0x0,      0x64, "Ocarina of Time (U) [v1.2]" },
 	{ "THE LEGEND OF ZELDA ", "NZLP", 0,  0, 28, 0x8001CE60, 0x0E7D60, 0x0,      0x0,      0x64, "Ocarina of Time (E) [v1.0]" },

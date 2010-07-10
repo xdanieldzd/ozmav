@@ -176,7 +176,8 @@ void cn_Cmd_ExtractFiles(unsigned char * Ptr)
 
 	CurrentFile = zl_DMAGetFile(FileNo);
 
-	while((CurrentFile.VEnd != 0x00) || (CurrentFile.PStart != 0xFFFFFFFF)) {
+	//while((CurrentFile.VEnd != 0x00) || (CurrentFile.PStart != 0xFFFFFFFF)) {
+	while(FileNo < 30) {
 		if(CurrentFile.VStart == CurrentFile.VEnd) break;
 
 		CurrentFile = zl_DMAVirtualToPhysical(CurrentFile.VStart);
@@ -202,6 +203,24 @@ void cn_Cmd_ExtractFiles(unsigned char * Ptr)
 			} else {
 				dbgprintf(0, MSK_COLORTYPE_ERROR, "Error: Could not create file!\n");
 				break;
+			}
+
+			unsigned int ID = Read32(zROM.Data, CurrentFile.PStart);
+			if(ID == 0x59617A30) {
+				strcat(Temp, ".dec");
+
+				File = fopen(Temp, "wb");
+				if(File != NULL) {
+					unsigned int Size = Read32(zROM.Data, CurrentFile.PStart + 4);
+					unsigned char * FileBuffer = malloc(sizeof(char) * Size);
+					RDP_Yaz0Decode(&zROM.Data[CurrentFile.PStart], FileBuffer, Size);
+					dbgprintf(0, MSK_COLORTYPE_WARNING, "%08X", Read32(FileBuffer, 0));
+					fwrite(FileBuffer, 1, Size, File);
+					fclose(File);
+				} else {
+					dbgprintf(0, MSK_COLORTYPE_ERROR, "Error: Could not create file!\n");
+					break;
+				}
 			}
 		}
 
