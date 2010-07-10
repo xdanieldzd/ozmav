@@ -79,6 +79,8 @@ enum { true = 1, false = 0 };
 
 #define ArraySize(x)	(sizeof((x)) / sizeof((x)[0]))
 
+#define min(a, b)				((a) < (b) ? (a) : (b))
+
 // ----------------------------------------
 
 #ifdef WIN32
@@ -380,6 +382,13 @@ struct __zMapActor {
 	short RY;
 	short RZ;
 	unsigned short Var;
+};
+
+struct __zMapDoor {
+	unsigned short Number;
+	short X, Y, Z;
+	short RY;
+	unsigned char To, ToFade, From, FromFade;
 };
 
 struct __zDoor {
