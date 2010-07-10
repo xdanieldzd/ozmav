@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="libbadRDP" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="Debug - Win32">
+				<Option platforms="Windows;" />
+				<Option output="..\..\libbadRDP_debug" prefix_auto="1" extension_auto="1" />
+				<Option working_dir="" />
+				<Option object_output="obj\DebugW32\" />
+				<Option type="2" />
+				<Option compiler="gcc" />
+				<Option createDefFile="1" />
+				<Compiler>
+					<Add option="-Wall" />
+					<Add option="-g" />
+				</Compiler>
+				<Linker>
+					<Add library="opengl32" />
+					<Add library="glu32" />
+					<Add library="glaux" />
+					<Add library="kernel32" />
+					<Add library="user32" />
+					<Add library="gdi32" />
+				</Linker>
+			</Target>
+			<Target title="Release - Win32">
+				<Option platforms="Windows;" />
+				<Option output="..\..\libbadRDP" prefix_auto="1" extension_auto="1" />
+				<Option working_dir="" />
+				<Option object_output="obj\ReleaseW32\" />
+				<Option type="2" />
+				<Option compiler="gcc" />
+				<Option createDefFile="1" />
+				<Compiler>
+					<Add option="-Wall" />
+					<Add option="-O2" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+					<Add library="opengl32" />
+					<Add library="glu32" />
+					<Add library="glaux" />
+					<Add library="kernel32" />
+					<Add library="user32" />
+					<Add library="gdi32" />
+				</Linker>
+			</Target>
+			<Target title="Debug - Linux">
+				<Option platforms="Unix;" />
+				<Option output="..\..\libbadRDP_debug" prefix_auto="1" extension_auto="1" />
+				<Option working_dir="" />
+				<Option object_output="obj\DebugLinux\" />
+				<Option type="2" />
+				<Option compiler="gcc" />
+				<Option createDefFile="1" />
+				<Compiler>
+					<Add option="-Wall" />
+					<Add option="-g" />
+				</Compiler>
+			</Target>
+			<Target title="Release - Linux">
+				<Option platforms="Unix;" />
+				<Option output="..\..\libbadRDP" prefix_auto="1" extension_auto="1" />
+				<Option working_dir="" />
+				<Option object_output="obj\ReleaseLinux\" />
+				<Option type="2" />
+				<Option compiler="gcc" />
+				<Option createDefFile="1" />
+				<Compiler>
+					<Add option="-O2" />
+					<Add option="-Wall" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+				</Linker>
+			</Target>
+		</Build>
+		<Unit filename="badrdp.h" />
+		<Unit filename="dlparse.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="dlparse.h" />
+		<Unit filename="f3d.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="f3d.h" />
+		<Unit filename="f3dex.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="f3dex.h" />
+		<Unit filename="f3dex2.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="f3dex2.h" />
+		<Unit filename="globals.h" />
+		<Unit filename="rdp.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="rdp.h" />
+		<Extensions>
+			<code_completion />
+			<envvars />
+			<debugger />
+			<lib_finder disable_auto="1" />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>
