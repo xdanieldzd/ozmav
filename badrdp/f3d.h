@@ -65,3 +65,12 @@ extern void RDP_F3D_TRI1();
 #define F3D_CULL_BACK			0x00002000
 #define F3D_CULL_BOTH			0x00003000
 #define F3D_CLIPPING			0x00000000
+
+#define F3D_MTX_STACKSIZE		10
+
+#define F3D_MTX_MODELVIEW		0x00
+#define F3D_MTX_PROJECTION		0x01
+#define F3D_MTX_MUL				0x00
+#define F3D_MTX_LOAD			0x02
+#define F3D_MTX_NOPUSH			0x00
+#define F3D_MTX_PUSH			0x04

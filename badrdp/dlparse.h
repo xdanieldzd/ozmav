@@ -17,13 +17,29 @@ extern unsigned int G_CULL_BACK;
 extern unsigned int G_CULL_BOTH;
 extern unsigned int G_CLIPPING;
 
+extern unsigned int G_MTX_STACKSIZE;
+extern unsigned int G_MTX_MODELVIEW;
+extern unsigned int G_MTX_PROJECTION;
+extern unsigned int G_MTX_MUL;
+extern unsigned int G_MTX_LOAD;
+extern unsigned int G_MTX_NOPUSH;
+extern unsigned int G_MTX_PUSH;
+
 #define RDP_InitFlags(Ucode) \
 	G_TEXTURE_ENABLE	= Ucode##_TEXTURE_ENABLE; \
 	G_SHADING_SMOOTH	= Ucode##_SHADING_SMOOTH; \
 	G_CULL_FRONT		= Ucode##_CULL_FRONT; \
 	G_CULL_BACK			= Ucode##_CULL_BACK; \
 	G_CULL_BOTH			= Ucode##_CULL_BOTH; \
-	G_CLIPPING			= Ucode##_CLIPPING;
+	G_CLIPPING			= Ucode##_CLIPPING; \
+\
+	G_MTX_STACKSIZE		= Ucode##_MTX_STACKSIZE; \
+	G_MTX_MODELVIEW		= Ucode##_MTX_MODELVIEW; \
+	G_MTX_PROJECTION	= Ucode##_MTX_PROJECTION; \
+	G_MTX_MUL			= Ucode##_MTX_MUL; \
+	G_MTX_LOAD			= Ucode##_MTX_LOAD; \
+	G_MTX_NOPUSH		= Ucode##_MTX_NOPUSH; \
+	G_MTX_PUSH			= Ucode##_MTX_PUSH;
 
 // ----------------------------------------
 

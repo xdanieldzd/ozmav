@@ -22,6 +22,14 @@ unsigned int G_CULL_BACK;
 unsigned int G_CULL_BOTH;
 unsigned int G_CLIPPING;
 
+unsigned int G_MTX_STACKSIZE;
+unsigned int G_MTX_MODELVIEW;
+unsigned int G_MTX_PROJECTION;
+unsigned int G_MTX_MUL;
+unsigned int G_MTX_LOAD;
+unsigned int G_MTX_NOPUSH;
+unsigned int G_MTX_PUSH;
+
 #ifdef WIN32
 PFNGLMULTITEXCOORD1FARBPROC			glMultiTexCoord1fARB = NULL;
 PFNGLMULTITEXCOORD2FARBPROC			glMultiTexCoord2fARB = NULL;
@@ -203,10 +211,14 @@ void RDP_InitParser(int UcodeID)
 		case F3DEX2:	RDP_F3DEX2_Init(); break;
 		default:		break;
 	}
+
+	Matrix.ModelStackSize = G_MTX_STACKSIZE;
 }
 
 void RDP_LoadToSegment(unsigned char Segment, unsigned char * Buffer, unsigned int Offset, unsigned int Size)
 {
+	if(Segment >= MAX_SEGMENTS) return;
+
 	RAM[Segment].Data = (unsigned char*) malloc (sizeof(char) * Size);
 
 	unsigned int ID = Read32(Buffer, Offset);
@@ -353,6 +365,8 @@ bool RDP_CheckAddressValidity(unsigned int Address)
 {
 	unsigned char Segment = Address >> 24;
 	unsigned int Offset = (Address & 0x00FFFFFF);
+
+	if(Segment >= MAX_SEGMENTS) return false;
 
 	if((RAM[Segment].IsSet == false) || (RAM[Segment].Size < Offset)) return false;
 

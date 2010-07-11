@@ -138,13 +138,21 @@ void RDP_F3DEX2_DMA_IO()
 
 void RDP_F3DEX2_TEXTURE()
 {
-	memset(Texture, 0x00, sizeof(Texture));
+	static const struct __Texture Texture_Empty = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.0f, 0.0f, 0.0f, 0.0f };
+	Texture[0] = Texture_Empty;
+	Texture[1] = Texture_Empty;
 
-	Texture[0].ScaleS = _FIXED2FLOAT(_SHIFTR(w1, 16, 16), 16);
-	Texture[0].ScaleT = _FIXED2FLOAT(_SHIFTR(w1, 0, 16), 16);
+	if(_SHIFTR(w1, 16, 16) < 0xFFFF) {
+		Texture[0].ScaleS = _FIXED2FLOAT(_SHIFTR(w1, 16, 16), 16);
+	} else {
+		Texture[0].ScaleS = 1.0f;
+	}
 
-	if(Texture[0].ScaleS == 0.0f) Texture[0].ScaleS = 1.0f;
-	if(Texture[0].ScaleT == 0.0f) Texture[0].ScaleT = 1.0f;
+	if(_SHIFTR(w1, 0, 16) < 0xFFFF) {
+		Texture[0].ScaleT = _FIXED2FLOAT(_SHIFTR(w1, 0, 16), 16);
+	} else {
+		Texture[0].ScaleT = 1.0f;
+	}
 
 	Texture[1].ScaleS = Texture[0].ScaleS;
 	Texture[1].ScaleT = Texture[0].ScaleT;
@@ -154,13 +162,7 @@ void RDP_F3DEX2_POPMTX()
 {
 	glPopMatrix();
 
-/*	unsigned int MtxPopCommand = _SHIFTR(w0, 0, 8);
-
-	switch(MtxPopCommand) {
-		case 0x02:
-			RDP_Matrix_ModelviewPop(w1 >> 6);
-			break;
-	}*/
+//	RDP_Matrix_ModelviewPop(w1 >> 6);
 }
 
 void RDP_F3DEX2_GEOMETRYMODE()
@@ -188,55 +190,41 @@ void RDP_F3DEX2_MTX()
 
 	if(!RDP_CheckAddressValidity(w1)) return;
 
-	signed long MtxTemp1 = 0, MtxTemp2 = 0;
+	int MtxTemp1 = 0, MtxTemp2 = 0;
 	int x = 0, y = 0;
 
 	float TempMatrix[4][4];
 
 	for(x = 0; x < 4; x++) {
 		for(y = 0; y < 4; y++) {
-			MtxTemp1 = ((RAM[Segment].Data[Offset] * 0x100) + RAM[Segment].Data[Offset + 1]);
-			MtxTemp2 = ((RAM[Segment].Data[Offset + 32] * 0x100) + RAM[Segment].Data[Offset + 33]);
+			MtxTemp1 = Read16(RAM[Segment].Data, Offset);
+			MtxTemp2 = Read16(RAM[Segment].Data, Offset + 32);
 			TempMatrix[x][y] = ((MtxTemp1 << 16) | MtxTemp2) * (1.0f / 65536.0f);
-
 			Offset += 2;
 		}
 	}
-
-	// below does not yet work right
 /*
-	unsigned char MtxCommand = _SHIFTR(w0, 0, 8);
+	// below does not yet work right
+	unsigned char MtxCommand = (_SHIFTR(w0, 0, 8) ^ G_MTX_PUSH);
 
-	switch(MtxCommand) {
-		case 0:	// modelview mul nopush
-			RDP_Matrix_ModelviewMul(TempMatrix);
-			break;
-
-		case 1:	// modelview mul push
-			RDP_Matrix_ModelviewPush();
-			RDP_Matrix_ModelviewMul(TempMatrix);
-			break;
-
-		case 2:	// modelview load nopush
-			RDP_Matrix_ModelviewLoad(TempMatrix);
-			break;
-
-		case 3:	// modelview load push
-			RDP_Matrix_ModelviewPush();
-			RDP_Matrix_ModelviewLoad(TempMatrix);
-			break;
-
-		case 4:	// projection mul nopush
-		case 5:	// projection mul push, can't push projection
-			RDP_Matrix_ProjectionMul(TempMatrix);
-			break;
-
-		case 6:	// projection load nopush
-		case 7:	// projection load push, can't push projection
+	if(MtxCommand & G_MTX_PROJECTION) {
+		if(MtxCommand & G_MTX_LOAD) {
 			RDP_Matrix_ProjectionLoad(TempMatrix);
-			break;
-	}*/
+		} else {
+			RDP_Matrix_ProjectionMul(TempMatrix);
+		}
+	} else {
+		if((MtxCommand & G_MTX_PUSH) && (Matrix.ModelIndex < (Matrix.ModelStackSize - 1))) {
+			RDP_Matrix_ModelviewPush();
+		}
 
+		if(MtxCommand & G_MTX_LOAD) {
+			RDP_Matrix_ModelviewLoad(TempMatrix);
+		} else {
+			RDP_Matrix_ModelviewMul(TempMatrix);
+		}
+	}
+*/
 	glPushMatrix();
 	glMultMatrixf(*TempMatrix);
 }
