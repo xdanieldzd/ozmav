@@ -40,6 +40,13 @@ extern void RDP_InitLoadTexture();
 extern GLuint RDP_CheckTextureCache(unsigned int TexID);
 extern GLuint RDP_LoadTexture(int TextureID);
 extern void RDP_UpdateGLStates();
+extern void RDP_Matrix_MulMatrices(float [4][4], float [4][4], float [4][4]);
+extern void RDP_Matrix_ModelviewLoad(float [4][4]);
+extern void RDP_Matrix_ModelviewMul(float [4][4]);
+extern void RDP_Matrix_ModelviewPush();
+extern void RDP_Matrix_ModelviewPop(int);
+extern void RDP_Matrix_ProjectionLoad(float [4][4]);
+extern void RDP_Matrix_ProjectionMul(float [4][4]);
 
 // ----------------------------------------
 

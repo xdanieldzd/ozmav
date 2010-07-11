@@ -1,7 +1,10 @@
 #include "globals.h"
 
 // ----------------------------------------
+
+#ifndef min
 #define min(a, b)				((a) < (b) ? (a) : (b))
+#endif
 
 RDPInstruction RDP_UcodeCmd[256];
 
@@ -36,6 +39,7 @@ PFNGLPROGRAMENVPARAMETER4FARBPROC	glProgramEnvParameter4fARB = NULL;
 PFNGLPROGRAMLOCALPARAMETER4FARBPROC	glProgramLocalParameter4fARB = NULL;
 
 struct __System System;
+struct __Matrix Matrix;
 struct __Gfx Gfx;
 struct __Palette Palette[256];
 struct __Vertex Vertex[32];
@@ -369,7 +373,7 @@ void RDP_ClearTextures()
 	if(Gfx.GLTextureID[0]) glDeleteTextures(Gfx.GLTextureCount, Gfx.GLTextureID);
 	Gfx.GLTextureCount = 0;
 
-	glGenTextures(512, &Gfx.GLTextureID[0]);
+	glGenTextures(CACHE_TEXTURES, &Gfx.GLTextureID[0]);
 }
 
 void RDP_ClearStructures(bool Full)
@@ -1545,4 +1549,78 @@ void RDP_UpdateGLStates()
 			glDisable(GL_BLEND);
 		}
 	}
+}
+
+void RDP_Matrix_MulMatrices(float Src1[4][4], float Src2[4][4], float Target[4][4])
+{
+	int i = 0, j = 0;
+
+	for(i = 0; i < 4; i++) {
+		for(j = 0; j < 4; j++) {
+			Target[i][j] =
+				Src1[i][0] * Src2[0][j] +
+				Src1[i][1] * Src2[1][j] +
+				Src1[i][2] * Src2[2][j] +
+				Src1[i][3] * Src2[3][j];
+		}
+	}
+}
+
+void RDP_Matrix_ModelviewLoad(float Mat[4][4])
+{
+	memcpy(Matrix.Model, Mat, 64);
+
+	glMatrixMode(GL_MODELVIEW);
+	glLoadMatrixf(*Matrix.Model);
+}
+
+void RDP_Matrix_ModelviewMul(float Mat[4][4])
+{
+	float MatTemp[4][4];
+	memcpy(MatTemp, Matrix.Model, 64);
+
+	RDP_Matrix_MulMatrices(Mat, MatTemp, Matrix.Model);
+
+	glMatrixMode(GL_MODELVIEW);
+	glLoadMatrixf(*Matrix.Model);
+}
+
+void RDP_Matrix_ModelviewPush()
+{
+	if(Matrix.ModelIndex == Matrix.ModelStackSize) return;
+
+	memcpy(Matrix.ModelStack[Matrix.ModelIndex], Matrix.Model, 64);
+	Matrix.ModelIndex++;
+}
+
+void RDP_Matrix_ModelviewPop(int PopTo)
+{
+	if(Matrix.ModelIndex > PopTo - 1) {
+		Matrix.ModelIndex -= PopTo;
+		memcpy(Matrix.Model, Matrix.ModelStack[Matrix.ModelIndex], 64);
+
+		glMatrixMode(GL_MODELVIEW);
+		glLoadMatrixf(*Matrix.Model);
+	} else {
+		return;
+	}
+}
+
+void RDP_Matrix_ProjectionLoad(float Mat[4][4])
+{
+	memcpy(Matrix.Proj, Mat, 64);
+
+	glMatrixMode(GL_PROJECTION);
+	glLoadMatrixf(*Matrix.Proj);
+}
+
+void RDP_Matrix_ProjectionMul(float Mat[4][4])
+{
+	float MatTemp[4][4];
+	memcpy(MatTemp, Matrix.Proj, 64);
+
+	RDP_Matrix_MulMatrices(Mat, MatTemp, Matrix.Proj);
+
+	glMatrixMode(GL_PROJECTION);
+	glLoadMatrixf(*Matrix.Proj);
 }

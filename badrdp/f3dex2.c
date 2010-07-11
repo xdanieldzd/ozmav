@@ -152,9 +152,15 @@ void RDP_F3DEX2_TEXTURE()
 
 void RDP_F3DEX2_POPMTX()
 {
-	// from OZMAV, wrong but works...
-
 	glPopMatrix();
+
+/*	unsigned int MtxPopCommand = _SHIFTR(w0, 0, 8);
+
+	switch(MtxPopCommand) {
+		case 0x02:
+			RDP_Matrix_ModelviewPop(w1 >> 6);
+			break;
+	}*/
 }
 
 void RDP_F3DEX2_GEOMETRYMODE()
@@ -167,16 +173,8 @@ void RDP_F3DEX2_GEOMETRYMODE()
 
 void RDP_F3DEX2_MTX()
 {
-	// from OZMAV, wrong but works...
-
-	int i = 0, j = 0;
-	signed long MtxTemp1 = 0, MtxTemp2 = 0;
-
 	unsigned char Segment = w1 >> 24;
 	unsigned int Offset = (w1 & 0x00FFFFFF);
-
-	GLfloat Matrix[4][4];
-	float fRecip = 1.0f / 65536.0f;
 
 	switch(Segment) {
 		case 0x01:
@@ -188,18 +186,59 @@ void RDP_F3DEX2_MTX()
 			return;
 	}
 
-	for(i = 0; i < 4; i++) {
-		for(j = 0; j < 4; j++) {
-			MtxTemp1 = ((RAM[Segment].Data[Offset		] * 0x100) + RAM[Segment].Data[Offset + 1		]);
-			MtxTemp2 = ((RAM[Segment].Data[Offset + 32	] * 0x100) + RAM[Segment].Data[Offset + 33	]);
-			Matrix[i][j] = ((MtxTemp1 << 16) | MtxTemp2) * fRecip;
+	if(!RDP_CheckAddressValidity(w1)) return;
+
+	signed long MtxTemp1 = 0, MtxTemp2 = 0;
+	int x = 0, y = 0;
+
+	float TempMatrix[4][4];
+
+	for(x = 0; x < 4; x++) {
+		for(y = 0; y < 4; y++) {
+			MtxTemp1 = ((RAM[Segment].Data[Offset] * 0x100) + RAM[Segment].Data[Offset + 1]);
+			MtxTemp2 = ((RAM[Segment].Data[Offset + 32] * 0x100) + RAM[Segment].Data[Offset + 33]);
+			TempMatrix[x][y] = ((MtxTemp1 << 16) | MtxTemp2) * (1.0f / 65536.0f);
 
 			Offset += 2;
 		}
 	}
 
+	// below does not yet work right
+/*
+	unsigned char MtxCommand = _SHIFTR(w0, 0, 8);
+
+	switch(MtxCommand) {
+		case 0:	// modelview mul nopush
+			RDP_Matrix_ModelviewMul(TempMatrix);
+			break;
+
+		case 1:	// modelview mul push
+			RDP_Matrix_ModelviewPush();
+			RDP_Matrix_ModelviewMul(TempMatrix);
+			break;
+
+		case 2:	// modelview load nopush
+			RDP_Matrix_ModelviewLoad(TempMatrix);
+			break;
+
+		case 3:	// modelview load push
+			RDP_Matrix_ModelviewPush();
+			RDP_Matrix_ModelviewLoad(TempMatrix);
+			break;
+
+		case 4:	// projection mul nopush
+		case 5:	// projection mul push, can't push projection
+			RDP_Matrix_ProjectionMul(TempMatrix);
+			break;
+
+		case 6:	// projection load nopush
+		case 7:	// projection load push, can't push projection
+			RDP_Matrix_ProjectionLoad(TempMatrix);
+			break;
+	}*/
+
 	glPushMatrix();
-	glMultMatrixf(*Matrix);
+	glMultMatrixf(*TempMatrix);
 }
 
 void RDP_F3DEX2_MOVEWORD()

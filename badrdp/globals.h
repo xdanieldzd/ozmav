@@ -101,6 +101,14 @@ struct __System {
 	unsigned int TextureCachePosition;
 };
 
+struct __Matrix {
+	float Model[4][4];
+	float Proj[4][4];
+	float ModelStack[32][4][4];
+	int ModelStackSize;
+	int ModelIndex;
+};
+
 struct __Vertex {
 	short X;
 	short Y;
@@ -217,6 +225,7 @@ struct __OpenGL {
 };
 
 extern struct __System System;
+extern struct __Matrix Matrix;
 extern struct __Gfx Gfx;
 extern struct __Palette Palette[256];
 extern struct __Vertex Vertex[32];
