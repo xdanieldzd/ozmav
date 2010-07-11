@@ -844,7 +844,7 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 
 	unsigned short ActorNumber = 0;
 	short X = 0, Y = 0, Z = 0, RX = 0, RY = 0, RZ = 0;
-	int DL = 0, i, DLCount = 0;
+	int DL = 0, /*i,*/ DLCount = 0;
 	GLuint DLBase = 0;
 
 	switch(Type) {
@@ -857,7 +857,7 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 			RX = zMapActor[MapNumber][CurrActor].RX;
 			RY = zMapActor[MapNumber][CurrActor].RY;
 			RZ = zMapActor[MapNumber][CurrActor].RZ;
-			
+
 			//drawing stuff
 			zGfx.ActorDLCount[MapNumber][CurrActor] = 1;
 			zGfx.ActorGLListCount[MapNumber][CurrActor] = glGenLists(zGfx.ActorDLCount[MapNumber][CurrActor]);
@@ -874,7 +874,7 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 			RX = 0;
 			RY = zDoor[CurrActor].RY;
 			RZ = 0;
-			
+
 			//drawing stuff
 			zGfx.DoorDLCount[CurrActor] = 1;
 			zGfx.DoorGLListCount[CurrActor] = glGenLists(zGfx.DoorDLCount[CurrActor]);
@@ -1183,7 +1183,7 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 	} else { // draw a cube
 		dbgprintf(0, MSK_COLORTYPE_INFO, " - Drawing a cube :(");
 
-		for (i = 0; i < 6; i++) {
+//		for (i = 0; i < 6; i++) {
 			glNewList(DLBase, GL_COMPILE);
 				glPushMatrix();
 				glTranslated(X, Y, Z);
@@ -1192,7 +1192,7 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 				glRotated(RZ / 182.0444444, 0, 0, 1);
 				glScalef(10.0, 10.0, 10.0);
 				glBegin(GL_QUADS);
-					// Front Face		
+					// Front Face
 					glVertex3f(-1.0f, -1.0f,  1.0f);
 					glVertex3f( 1.0f, -1.0f,  1.0f);
 					glVertex3f( 1.0f,  1.0f,  1.0f);
@@ -1202,7 +1202,7 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 					glVertex3f(-1.0f,  1.0f, -1.0f);
 					glVertex3f( 1.0f,  1.0f, -1.0f);
 					glVertex3f( 1.0f, -1.0f, -1.0f);
-					// Top Face		
+					// Top Face
 					glVertex3f(-1.0f,  1.0f, -1.0f);
 					glVertex3f(-1.0f,  1.0f,  1.0f);
 					glVertex3f( 1.0f,  1.0f,  1.0f);
@@ -1225,7 +1225,7 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 				glEnd();
 				glPopMatrix();
 			glEndList();
-		}
+//		}
 	}
 }
 
@@ -1310,7 +1310,7 @@ void zl_DrawBones(unsigned int BoneOffset, unsigned int AnimationOffset, float S
 			Bones[i].RY = Read16(RAM[AniSeg].Data, RotValOffset + (2 * Read16(RAM[AniSeg].Data, RotIndexOffset + (i * 6)+2)) );
 			Bones[i].RZ = Read16(RAM[AniSeg].Data, RotValOffset + (2 * Read16(RAM[AniSeg].Data, RotIndexOffset + (i * 6)+4)) );
 		}
-		dbgprintf(3, MSK_COLORTYPE_INFO, " Bone %i: (%i %i %i) (%i %i) %08X", i, Bones[i].X, Bones[i].Y, Bones[i].Z, Bones[i].Child1, Bones[i].Child2, Bones[i].DList);
+		dbgprintf(3, MSK_COLORTYPE_INFO, " Bone %i: (%i %i %i) (%i %i %i) (%i %i) %08X", i, Bones[i].X, Bones[i].Y, Bones[i].Z, Bones[i].RX, Bones[i].RY, Bones[i].RZ, Bones[i].Child1, Bones[i].Child2, Bones[i].DList);
 	}
 	//render
 	glNewList(DLBase, GL_COMPILE);

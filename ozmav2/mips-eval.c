@@ -170,7 +170,7 @@ int mips_ReportFunc(unsigned int target)
 
 	mips_funcs_found[mips_funcs_found_count-1].argc = 4;
 
-	dbgprintf(2, MSK_COLORTYPE_OKAY, " - Recording %08X with arguments 0x%08X, 0x%08X, 0x%08X, 0x%08X", target,
+	dbgprintf(2, MSK_COLORTYPE_OKAY, " - Recording %08X with args 0x%08X, 0x%08X, 0x%08X, 0x%08X", target,
 		mips_funcs_found[mips_funcs_found_count-1].args[0],
 		mips_funcs_found[mips_funcs_found_count-1].args[1],
 		mips_funcs_found[mips_funcs_found_count-1].args[2],

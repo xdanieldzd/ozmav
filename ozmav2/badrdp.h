@@ -1,10 +1,12 @@
+#define MAX_SEGMENTS		16
+
 struct __RAM {
 	bool IsSet;
 	unsigned int Size;
 	unsigned char * Data;
 };
 
-extern struct __RAM RAM[64];
+extern struct __RAM RAM[MAX_SEGMENTS];
 
 extern enum { F3D, F3DEX, F3DEX2 } UcodeIDs;
 

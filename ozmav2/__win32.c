@@ -53,6 +53,11 @@ int WinAPIMain()
 		if(zProgram.Key['A']) ca_Movement(true, -6.0f);
 		if(zProgram.Key['D']) ca_Movement(true, 6.0f);
 
+		if(zProgram.Key['T']) ca_Movement(false, 1.0f);
+		if(zProgram.Key['G']) ca_Movement(false, -1.0f);
+		if(zProgram.Key['F']) ca_Movement(true, -1.0f);
+		if(zProgram.Key['H']) ca_Movement(true, 1.0f);
+
 		if(zProgram.Key[VK_F1] && zOptions.SceneNo > 0) {
 			zOptions.SceneNo--;
 			if(zl_LoadScene(zOptions.SceneNo)) return EXIT_FAILURE;

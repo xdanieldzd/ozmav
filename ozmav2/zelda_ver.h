@@ -10,7 +10,7 @@ typedef struct {
 	unsigned int ActorTableOffset;
 	int SceneCount;
 	int ObjectCount;
-	char TitleText[256];
+	char TitleText[64];
 } __zGameVer;
 
 static __zGameVer GameVer[] =

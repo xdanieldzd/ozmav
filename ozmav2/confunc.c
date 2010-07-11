@@ -15,11 +15,11 @@ void cn_Cmd_LoadROM(unsigned char * Ptr)
 
 void cn_Cmd_LoadScene(unsigned char * Ptr)
 {
-	if(!zROM.IsROMLoaded) {
+/*	if(!zROM.IsROMLoaded) {
 		dbgprintf(0, MSK_COLORTYPE_ERROR, "Error: No ROM loaded!\n");
 		return;
 	}
-
+*/
 	if(Ptr == NULL) {
 		char * SceneSelParam = (char*)malloc(sizeof(char) * 256);
 		sprintf(SceneSelParam, "Scene ID|%i|1", zGame.SceneCount + 1);

@@ -29,7 +29,7 @@ struct __zCamera zCamera;
 
 // ----------------------------------------
 
-struct __RAM RAM[64];
+struct __RAM RAM[MAX_SEGMENTS];
 
 // ----------------------------------------
 
