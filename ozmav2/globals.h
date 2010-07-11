@@ -147,6 +147,7 @@ struct __zGame {
 	DMA Bootfile;
 
 	unsigned char * CodeBuffer;
+	int ObjectCount;
 };
 
 struct __zHeader {

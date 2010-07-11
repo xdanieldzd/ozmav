@@ -7,6 +7,7 @@ typedef struct {
 
 typedef struct {
     signed short X, Y, Z;
+    signed short RX, RY, RZ;
     signed char Child1, Child2;
     unsigned long DList;
     bool isSet;

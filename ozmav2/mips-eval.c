@@ -7,6 +7,8 @@
 
 #include "globals.h"
 
+#define SAFETY_VAL	4
+
 int mips_funcs_found_count = 0;
 
 /* registers to hold values */
@@ -19,6 +21,10 @@ unsigned int regs[32] = {
 
 unsigned int * funcs_watching;
 int funcs_watching_count = 0;
+
+unsigned int stack[256*SAFETY_VAL];
+signed int stack_pos = 128*SAFETY_VAL;
+
 /*
 #define flip32(w)\
 	(((w)&0xFF000000)>>24)|(((w)&0x00FF0000)>>8)|(((w)&0x0000FF00)<<8)|(((w)&0x000000FF)<<24)
@@ -48,12 +54,39 @@ void mips_EvalWord(unsigned int * words, int pos)
 	}
 	case MIPS_OP_ADDIU:
 		regs[getRT(word)] = regs[getRS(word)] + getIMM(word);
+		if(getRT(word) == getRS(word) && getRT(word) == MIPS_REG_SP){
+			stack_pos += (signed short)getIMM(word);
+		}
 		break;
 	case MIPS_OP_LUI:
 		regs[getRT(word)] = getIMM(word)<<16;
 		break;
 	case MIPS_OP_ORI:
 		regs[getRT(word)] = regs[getRS(word)] | getIMM(word);
+		break;
+	case MIPS_OP_SW:
+		if(getRS(word) == MIPS_REG_SP){
+			stack[stack_pos+getIMM(word)] = regs[getRT(word)];
+			
+		}
+		break;
+	case MIPS_OP_LW:
+		if(getRS(word) == MIPS_REG_SP){
+			regs[getRT(word)] = stack[stack_pos+getIMM(word)];
+		}
+		break;
+	case MIPS_OP_TYPE_R:
+	{
+		switch (word & 0x3F)
+		{
+		case MIPS_ROP_SLL:
+			regs[getRD(word)] = regs[getRT(word)] << getSA(word);
+			break;
+		case MIPS_ROP_SRA:
+			regs[getRD(word)] = regs[getRT(word)] >> getSA(word);
+			break;
+		}
+	}
 		break;
 	}
 }
@@ -62,9 +95,11 @@ void mips_EvalWords(unsigned int * words, int count)
 {
 	dbgprintf(3, MSK_COLORTYPE_OKAY, "%s(%p, %i)", __FUNCTION__, words, count);
 	int pos;
+	stack_pos = 128 * SAFETY_VAL;
 	for(pos=0; pos<count; pos++)
 	{
 		mips_EvalWord(words, pos);
+		regs[0] = 0;
 	}
 }
 
@@ -77,8 +112,7 @@ void mips_SetFuncWatch(unsigned int target)
 
 int mips_ReportFunc(unsigned int target)
 {
-	dbgprintf(3, MSK_COLORTYPE_OKAY, "%s(%08X)", __FUNCTION__, target);
-
+	dbgprintf(3, MSK_COLORTYPE_OKAY, "%s(%08X);", __FUNCTION__, target);
 	int i;
 	int func_no = -1;
 	target &= 0x0FFFFFFF;
@@ -107,13 +141,16 @@ int mips_ReportFunc(unsigned int target)
 	for(i=0;i<4;i++)
 	{
 		mips_funcs_found[mips_funcs_found_count-1].args[i] = regs[i+MIPS_REG_A0];
-
 	}
 
 	mips_funcs_found[mips_funcs_found_count-1].argc = 4;
 
 	dbgprintf(2, MSK_COLORTYPE_OKAY, " - Recording %08X with arguments 0x%08X, 0x%08X, 0x%08X, 0x%08X", target,
-		regs[MIPS_REG_A0], regs[MIPS_REG_A0+1], regs[MIPS_REG_A0+2], regs[MIPS_REG_A0+3] );
+		mips_funcs_found[mips_funcs_found_count-1].args[0],
+		mips_funcs_found[mips_funcs_found_count-1].args[1],
+		mips_funcs_found[mips_funcs_found_count-1].args[2],
+		mips_funcs_found[mips_funcs_found_count-1].args[3]
+		);
 
 	return func_no;
 }
