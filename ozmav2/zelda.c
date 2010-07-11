@@ -166,6 +166,9 @@ int zl_LoadScene(int SceneNo)
 
 	md_InitModelDumping(SceneNo);
 
+	// default to rendering the first map of the scene
+	zOptions.MapToRender = 0;
+
 	unsigned int BaseOffset = zGame.SceneTableOffset + (SceneNo * (zGame.GameType ? 0x10 : 0x14));	// OoT = 0x14 bytes, MM = 0x10 bytes
 
 	unsigned int SceneStart = Read32(zGame.CodeBuffer, BaseOffset);
@@ -910,9 +913,19 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 			dbgprintf(1, MSK_COLORTYPE_INFO, "- Actor uses object 0x%04X (%s loaded)", zActor[ActorNumber].Object, (zObject[zActor[ActorNumber].Object].IsSet) ? "is" : "not");
 
 			if(zObject[zActor[ActorNumber].Object].IsSet == true) {
-				RAM[0x06].Data = zObject[zActor[ActorNumber].Object].Data;
-				RAM[0x06].Size = zObject[zActor[ActorNumber].Object].EndOffset - zObject[zActor[ActorNumber].Object].StartOffset;
-				RAM[0x06].IsSet = true;
+				unsigned char TargetSeg = 0x06;
+
+				if(zActor[ActorNumber].Object == 0x0001) {
+					TargetSeg = 0x04;
+				} else if(zActor[ActorNumber].Object == 0x0002) {
+					TargetSeg = 0x05;
+				} else {
+					TargetSeg = 0x06;
+				}
+
+				RAM[TargetSeg].Data = zObject[zActor[ActorNumber].Object].Data;
+				RAM[TargetSeg].Size = zObject[zActor[ActorNumber].Object].EndOffset - zObject[zActor[ActorNumber].Object].StartOffset;
+				RAM[TargetSeg].IsSet = true;
 
 				int indent = Read32(zActor[ActorNumber].Data, zActor[ActorNumber].Size-4);
 
@@ -938,12 +951,12 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 						dlist = mips_GetFuncArg(0x80093D18, 3);
 					}
 				}
-				
+
 				zActor[ActorNumber].Animation = (anim != NULL) ? *anim : 0;
 				zActor[ActorNumber].BoneSetup = (bones != NULL) ? *bones : 0;
 				zActor[ActorNumber].Scale = (scale != NULL) ? *scale : 0.01f;
 				zActor[ActorNumber].DisplayList = (dlist != NULL) ? *dlist : 0;
-				
+
 				if(alt_objn!=NULL && *alt_objn <= zGame.ObjectCount && zActor[ActorNumber].Object < 3 && *alt_objn > 3 && zObject[*alt_objn].IsSet){
 					zActor[ActorNumber].Object = *alt_objn;
 					dbgprintf(0, MSK_COLORTYPE_INFO, "  - Alternate object found for actor %s: 0x%04X", zActor[ActorNumber].Name, *alt_objn);
@@ -951,7 +964,7 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 				if(!(zActor[ActorNumber].DisplayList >> 24) && zActor[ActorNumber].DisplayList){
 					zActor[ActorNumber].DisplayList = 0;
 				}
-				
+
 				// -------- CODE BELOW IS UGLY HACK --------
 				if(zActor[ActorNumber].Object == 0x61){	//warp pad scale
 					zActor[ActorNumber].Scale = 1.0;
@@ -968,7 +981,7 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 					zActor[ActorNumber].BoneSetup = 0;
 					zActor[ActorNumber].DisplayList = 0x060006F0;
 				}
-				
+
 				if(((zActor[ActorNumber].DisplayList & 0xFF000000) == 0x80000000) || ((!zActor[ActorNumber].DisplayList) && (!zActor[ActorNumber].BoneSetup))){//(zActor[ActorNumber].Scale <= 0.01f)) {
 					dbgprintf(1, MSK_COLORTYPE_WARNING, "  - Not all required information found, trying to find via hacks...");
 
@@ -1133,7 +1146,7 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 		RAM[TargetSeg].Data = NULL;
 		RAM[TargetSeg].Size = 0;
 		RAM[TargetSeg].IsSet = false;
-		
+
 	}
 }
 
@@ -1165,18 +1178,18 @@ void zl_DrawBones(unsigned int BoneOffset, unsigned int AnimationOffset, float S
 	dbgprintf(3, MSK_COLORTYPE_INFO, "%s(0x%x, 0x%x, %.3f, %i, %i, %i, %i, %i, %i, %i);",__FUNCTION__, BoneOffset, AnimationOffset, Scale, X, Y, Z, RX, RY, RZ, DLBase);
 	int BoneCount, BoneListListOffset, Seg, _Seg, i, AniSeg=0, RotIndexOffset=0, RotValOffset=0;
 	z_bone Bones[128];
-	
+
 	if(!RDP_CheckAddressValidity(BoneOffset)){
 		return;
 	}
 	if(Scale < 0.001f){
 		Scale = 0.02f;
 	}
-	
+
 	Seg = (BoneOffset >> 24) & 0xFF;
 	BoneOffset &= 0xFFFFFF;
 	memset(Bones, 0, sizeof(z_bone) * 128);
-	
+
 	//parse bones
 	BoneCount = RAM[Seg].Data[(BoneOffset) + 4];
 	BoneListListOffset = Read32(RAM[Seg].Data, BoneOffset);
@@ -1195,7 +1208,7 @@ void zl_DrawBones(unsigned int BoneOffset, unsigned int AnimationOffset, float S
 		Bones[0].Z = Read16(RAM[AniSeg].Data, RotValOffset + (2 * Read16(RAM[AniSeg].Data, RotIndexOffset+4) ) );
 */		RotIndexOffset += 6;
 	}
-	
+
 	Seg = (BoneListListOffset >> 24) & 0xFF;
 	BoneListListOffset &= 0xFFFFFF;
 	dbgprintf(3, MSK_COLORTYPE_INFO, " - Seg=0x%x; BoneListListOffset=0x%x; BoneCount=%i", Seg, BoneListListOffset, BoneCount);
@@ -1224,15 +1237,15 @@ void zl_DrawBones(unsigned int BoneOffset, unsigned int AnimationOffset, float S
 	//render
 	glNewList(DLBase, GL_COMPILE);
 		glPushMatrix();
-	
+
 		glTranslated(X, Y, Z);
 		glRotated(RX / 182.0444444, 1, 0, 0);
 		glRotated(RY / 182.0444444, 0, 1, 0);
 		glRotated(RZ / 182.0444444, 0, 0, 1);
-		
+
 		glScalef(Scale, Scale, Scale);
 		zl_DrawBone(Bones, 0);
-		
+
 		glPopMatrix();
 	glEndList();
 	# if 0

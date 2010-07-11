@@ -76,7 +76,13 @@ void gl_DrawScene()
 
 	int Maps = 0, DL = 0, Door = 0, Actor = 0;
 
-	for(Maps = 0; Maps < zSHeader[0].MapCount; Maps++) {
+	int StartMap = 0; int EndMap = zSHeader[0].MapCount;
+	if(zOptions.MapToRender != -1) {
+		StartMap = zOptions.MapToRender;
+		EndMap = StartMap + 1;
+	}
+
+	for(Maps = StartMap; Maps < EndMap; Maps++) {
 		for(DL = 0; DL < zGfx.DLCount[Maps]; DL++) {
 			glCallList(zGfx.GLListCount[Maps] + DL);
 		}

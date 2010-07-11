@@ -106,6 +106,7 @@ struct __zProgram {
 
 struct __zOptions {
 	unsigned int SceneNo;
+	int MapToRender;
 	int DebugLevel;
 	int CreateLog;
 	int DumpModel;

@@ -121,6 +121,16 @@ int XMain()
 		zProgram.Key[XK_2] = false;
 	}
 
+	if(zProgram.Key[XK_3] && zOptions.MapToRender > -1) {
+		zOptions.MapToRender--;
+		zProgram.Key[XK_3] = false;
+	}
+
+	if(zProgram.Key[XK_4] && zOptions.MapToRender < zSHeader[0].MapCount - 1) {
+		zOptions.MapToRender++;
+		zProgram.Key[XK_4] = false;
+	}
+
 	return EXIT_SUCCESS;
 }
 
