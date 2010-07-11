@@ -376,11 +376,14 @@ int zl_GetSceneTable()
 
 	/* xdaniel: you probably know of a better spot for this. This is where I put it for now, though */
 	mips_SetFuncWatch(0x80035260);// u32 a1 = display list
-	mips_SetFuncWatch(0x800A457C);// u32 a2 = hierarchy; u32 a3 = animation
+	mips_SetFuncWatch(0x800A457C);// u32 a2 = bones; u32 a3 = animation
 	mips_SetFuncWatch(0x8002D62C);// f32 a1 = scale
 	mips_SetFuncWatch(0x8009812C);// u16 a1 = object number to use
 	mips_SetFuncWatch(0x80093D18);// u32 a3 = display list
 	//mips_SetFuncWatch(0x800D0984);// u32 a0 = display list
+	mips_SetFuncWatch(0x800A46F8);// u32 a2 = bones
+	mips_SetFuncWatch(0x800A51A0);// u32 a1 = animation
+	mips_SetFuncWatch(0x800A46F8);// u32 a2 = bones
 
 	char Check[4];
 
@@ -729,6 +732,12 @@ void zl_LoadObject(unsigned short ObjNumber)
 		zObject[ObjNumber].StartOffset, zObject[ObjNumber].EndOffset,
 		Object.Filename,
 		(zObject[ObjNumber].IsSet ? "okay" : "bad"));
+	if(zObject[ObjNumber].IsSet && Object.Filename!=NULL && strlen(Object.Filename) < 20){
+		zObject[ObjNumber].Name = malloc(20);
+		memcpy(zObject[ObjNumber].Name, Object.Filename,20);
+	} else {
+		zObject[ObjNumber].Name = NULL;
+	}
 }
 
 void zl_GetMapActors(int SceneNumber, int MapNumber)
@@ -835,6 +844,8 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 
 	unsigned short ActorNumber = 0;
 	short X = 0, Y = 0, Z = 0, RX = 0, RY = 0, RZ = 0;
+	int DL = 0, i, DLCount = 0;
+	GLuint DLBase = 0;
 
 	switch(Type) {
 		case Z_ACTOR_MAP:	{
@@ -846,6 +857,13 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 			RX = zMapActor[MapNumber][CurrActor].RX;
 			RY = zMapActor[MapNumber][CurrActor].RY;
 			RZ = zMapActor[MapNumber][CurrActor].RZ;
+			
+			//drawing stuff
+			zGfx.ActorDLCount[MapNumber][CurrActor] = 1;
+			zGfx.ActorGLListCount[MapNumber][CurrActor] = glGenLists(zGfx.ActorDLCount[MapNumber][CurrActor]);
+			glListBase(zGfx.ActorGLListCount[MapNumber][CurrActor]);
+			DLCount = zGfx.ActorDLCount[MapNumber][CurrActor];
+			DLBase = zGfx.ActorGLListCount[MapNumber][CurrActor];
 			break; }
 		case Z_ACTOR_DOOR: {
 			//doors
@@ -856,8 +874,16 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 			RX = 0;
 			RY = zDoor[CurrActor].RY;
 			RZ = 0;
+			
+			//drawing stuff
+			zGfx.DoorDLCount[CurrActor] = 1;
+			zGfx.DoorGLListCount[CurrActor] = glGenLists(zGfx.DoorDLCount[CurrActor]);
+			glListBase(zGfx.DoorGLListCount[CurrActor]);
+			DLCount = zGfx.DoorDLCount[CurrActor];
+			DLBase = zGfx.DoorGLListCount[CurrActor];
 			break; }
 	}
+
 
 	// if the actor hasn't been processed yet, do so
 	if(zActor[ActorNumber].IsSet == false) {
@@ -945,7 +971,16 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 					scale	= mips_GetFuncArg(0x8002D62C,1);
 					dlist	= mips_GetFuncArg(0x80035260,1);
 					bones	= mips_GetFuncArg(0x800A457C,2);
+					if(bones == NULL || !*bones){
+						bones = mips_GetFuncArg(0x800A46F8,2);
+						if(bones == NULL || !*bones){
+							bones = mips_GetFuncArg(0x800A46F8,2);
+						}
+					}
 					anim	= mips_GetFuncArg(0x800A457C,3);
+					if(anim == NULL || !*anim){
+						anim = mips_GetFuncArg(0x800A51A0,1);
+					}
 					alt_objn = mips_GetFuncArg(0x8009812C,1);
 					if(dlist == NULL || *dlist > 0x80000000){
 						dlist = mips_GetFuncArg(0x80093D18, 3);
@@ -972,17 +1007,19 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 				if(zActor[ActorNumber].Object == 0x170){ //crate scale
 					zActor[ActorNumber].Scale = 0.1f;
 				}
+				if(zActor[ActorNumber].Scale < 0.001){
+					zActor[ActorNumber].Scale = 0.1f;
+				}
 				// where does 0x060002E0 come from for actors using object 0x0001?? ... Grass!
 				if(ActorNumber == 0x125){
 					zActor[ActorNumber].Object = 0x12B;
 					zActor[ActorNumber].DisplayList = 0x06000140;
-				}
-				if(ActorNumber == 0xA){
+				} else if(ActorNumber == 0xA){	//treasure chest
 					zActor[ActorNumber].BoneSetup = 0;
 					zActor[ActorNumber].DisplayList = 0x060006F0;
 				}
 
-				if(((zActor[ActorNumber].DisplayList & 0xFF000000) == 0x80000000) || ((!zActor[ActorNumber].DisplayList) && (!zActor[ActorNumber].BoneSetup))){//(zActor[ActorNumber].Scale <= 0.01f)) {
+				if(zActor[ActorNumber].DisplayList > 0x80000000 || ((!zActor[ActorNumber].DisplayList) && (!zActor[ActorNumber].BoneSetup))){//(zActor[ActorNumber].Scale <= 0.01f)) {
 					dbgprintf(1, MSK_COLORTYPE_WARNING, "  - Not all required information found, trying to find via hacks...");
 
 					// pot
@@ -1017,10 +1054,27 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 					} else if(zActor[ActorNumber].Object == 0x163) {
 						zActor[ActorNumber].Scale = 0.1;
 
+					// gossip stones
+					} else if(zActor[ActorNumber].Object == 0x188) {
+						zActor[ActorNumber].DisplayList = 0x06000950;
+						zActor[ActorNumber].Scale = 0.1;
+						//really ugly hack - NOP an ENDDL
+						RAM[0x06].Data[0x9C8] = 0;
+
 					// gravestones
 					} else if(zActor[ActorNumber].Object == 0xA2) {
 						zActor[ActorNumber].DisplayList = 0x060001B0;
 						zActor[ActorNumber].Scale = 0.15;
+
+					// torch
+					} else if(zActor[ActorNumber].Object == 0xA4) {
+						zActor[ActorNumber].Scale = 1.0;
+						zActor[ActorNumber].DisplayList = 0x06000870;
+
+					// sign
+					} else if(ActorNumber == 0x141) {
+						zActor[ActorNumber].DisplayList = 0x0403C050;
+						zActor[ActorNumber].Object = 1;
 
 					// ? forgot
 					} else if(zActor[ActorNumber].Object == 0x11F) {
@@ -1036,8 +1090,8 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 					} else if((zActor[ActorNumber].Object == 0x6C) && (ActorNumber == 0x123)) {
 						zActor[ActorNumber].Scale = 0.1;
 
-					// everything else, atm disabled (&& 0)
-					} else if(zActor[ActorNumber].Object > 0x3 && 0) {
+					// everything else, atm disabled if not gi
+					} else if(zActor[ActorNumber].Object > 0x3 && 0){//!strncmp(zObject[zActor[ActorNumber].Object].Name, "object_gi_", 10)) {
 						int i = 0;
 						for(i = 0; i < RAM[0x06].Size; i+=8) {
 							unsigned int w0 = Read32(RAM[0x06].Data, i);
@@ -1048,7 +1102,7 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 								break;
 							}
 						}
-						zActor[ActorNumber].Scale = 0.01;
+						zActor[ActorNumber].Scale = 0.25;
 					} else {
 						zActor[ActorNumber].DisplayList = 0;
 					}
@@ -1090,27 +1144,6 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 		RAM[TargetSeg].Size = zObject[zActor[ActorNumber].Object].EndOffset - zObject[zActor[ActorNumber].Object].StartOffset;
 		RAM[TargetSeg].IsSet = true;
 
-
-		int DL = 0;
-		int DLCount = 0;
-		GLuint DLBase = 0;
-
-		switch(Type) {
-			case Z_ACTOR_MAP:	{
-				zGfx.ActorDLCount[MapNumber][CurrActor] = 1;
-				zGfx.ActorGLListCount[MapNumber][CurrActor] = glGenLists(zGfx.ActorDLCount[MapNumber][CurrActor]);
-				glListBase(zGfx.ActorGLListCount[MapNumber][CurrActor]);
-				DLCount = zGfx.ActorDLCount[MapNumber][CurrActor];
-				DLBase = zGfx.ActorGLListCount[MapNumber][CurrActor];
-				break; }
-			case Z_ACTOR_DOOR: {
-				zGfx.DoorDLCount[CurrActor] = 1;
-				zGfx.DoorGLListCount[CurrActor] = glGenLists(zGfx.DoorDLCount[CurrActor]);
-				glListBase(zGfx.DoorGLListCount[CurrActor]);
-				DLCount = zGfx.DoorDLCount[CurrActor];
-				DLBase = zGfx.DoorGLListCount[CurrActor];
-				break; }
-		}
 		//Bone structure
 		if(zActor[ActorNumber].BoneSetup) {
 			dbgprintf(0, MSK_COLORTYPE_OKAY, " - Drawing bone structure for actor %04X", ActorNumber);
@@ -1147,6 +1180,52 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 		RAM[TargetSeg].Size = 0;
 		RAM[TargetSeg].IsSet = false;
 
+	} else { // draw a cube
+		dbgprintf(0, MSK_COLORTYPE_INFO, " - Drawing a cube :(");
+
+		for (i = 0; i < 6; i++) {
+			glNewList(DLBase, GL_COMPILE);
+				glPushMatrix();
+				glTranslated(X, Y, Z);
+				glRotated(RX / 182.0444444, 1, 0, 0);
+				glRotated(RY / 182.0444444, 0, 1, 0);
+				glRotated(RZ / 182.0444444, 0, 0, 1);
+				glScalef(10.0, 10.0, 10.0);
+				glBegin(GL_QUADS);
+					// Front Face		
+					glVertex3f(-1.0f, -1.0f,  1.0f);
+					glVertex3f( 1.0f, -1.0f,  1.0f);
+					glVertex3f( 1.0f,  1.0f,  1.0f);
+					glVertex3f(-1.0f,  1.0f,  1.0f);
+					// Back Face
+					glVertex3f(-1.0f, -1.0f, -1.0f);
+					glVertex3f(-1.0f,  1.0f, -1.0f);
+					glVertex3f( 1.0f,  1.0f, -1.0f);
+					glVertex3f( 1.0f, -1.0f, -1.0f);
+					// Top Face		
+					glVertex3f(-1.0f,  1.0f, -1.0f);
+					glVertex3f(-1.0f,  1.0f,  1.0f);
+					glVertex3f( 1.0f,  1.0f,  1.0f);
+					glVertex3f( 1.0f,  1.0f, -1.0f);
+					// Bottom Face
+					glVertex3f(-1.0f, -1.0f, -1.0f);
+					glVertex3f( 1.0f, -1.0f, -1.0f);
+					glVertex3f( 1.0f, -1.0f,  1.0f);
+					glVertex3f(-1.0f, -1.0f,  1.0f);
+					// Right Face
+					glVertex3f( 1.0f, -1.0f, -1.0f);
+					glVertex3f( 1.0f,  1.0f, -1.0f);
+					glVertex3f( 1.0f,  1.0f,  1.0f);
+					glVertex3f( 1.0f, -1.0f,  1.0f);
+					// Left Face
+					glVertex3f(-1.0f, -1.0f, -1.0f);
+					glVertex3f(-1.0f, -1.0f,  1.0f);
+					glVertex3f(-1.0f,  1.0f,  1.0f);
+					glVertex3f(-1.0f,  1.0f, -1.0f);
+				glEnd();
+				glPopMatrix();
+			glEndList();
+		}
 	}
 }
 
@@ -1185,7 +1264,6 @@ void zl_DrawBones(unsigned int BoneOffset, unsigned int AnimationOffset, float S
 	if(Scale < 0.001f){
 		Scale = 0.02f;
 	}
-
 	Seg = (BoneOffset >> 24) & 0xFF;
 	BoneOffset &= 0xFFFFFF;
 	memset(Bones, 0, sizeof(z_bone) * 128);
@@ -1227,7 +1305,7 @@ void zl_DrawBones(unsigned int BoneOffset, unsigned int AnimationOffset, float S
 		Bones[i].Child2 = RAM[_Seg].Data[BoneOffset+7];
 		Bones[i].DList = Read32(RAM[_Seg].Data, BoneOffset+8);
 		Bones[i].isSet = 1;
-		if(AniSeg){
+		if(AniSeg && RDP_CheckAddressValidity((AniSeg<<24)|(RotIndexOffset + (i * 6) + 4) ) ){
 			Bones[i].RX = Read16(RAM[AniSeg].Data, RotValOffset + (2 * Read16(RAM[AniSeg].Data, RotIndexOffset + (i * 6))) );
 			Bones[i].RY = Read16(RAM[AniSeg].Data, RotValOffset + (2 * Read16(RAM[AniSeg].Data, RotIndexOffset + (i * 6)+2)) );
 			Bones[i].RZ = Read16(RAM[AniSeg].Data, RotValOffset + (2 * Read16(RAM[AniSeg].Data, RotIndexOffset + (i * 6)+4)) );

@@ -208,6 +208,7 @@ struct __zObject {
 	unsigned int EndOffset;
 	int Size;
 	unsigned char * Data;
+	char * Name;
 };
 
 struct __zActor {

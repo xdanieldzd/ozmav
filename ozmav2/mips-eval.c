@@ -24,6 +24,7 @@ int funcs_watching_count = 0;
 
 unsigned int stack[256*SAFETY_VAL];
 signed int stack_pos = 128*SAFETY_VAL;
+signed int imm;
 
 /*
 #define flip32(w)\
@@ -43,19 +44,36 @@ void mips_EvalWord(unsigned int * words, int pos)
 		/* report function */
 		mips_ReportFunc( getTARGET(word) );
 
-		/* clear registers
-		  I know this does not respect the mips calling convention */
-		int __count;
-		for(__count=0;__count<32;__count++)
-		{
-		    regs[__count] = 0;
-		}
+		/* clear registers */
+		regs[1] = 0;
+		regs[2] = 0;
+		regs[3] = 0;
+		regs[4] = 0;
+		regs[5] = 0;
+		regs[6] = 0;
+		regs[7] = 0;
+		regs[8] = 0;
+		regs[9] = 0;
+		regs[10] = 0;
+		regs[11] = 0;
+		regs[12] = 0;
+		regs[13] = 0;
+		regs[14] = 0;
+		regs[15] = 0;
+		regs[24] = 0;
+		regs[25] = 0;
+		regs[26] = 0;
+		regs[27] = 0;
 		break;
 	}
 	case MIPS_OP_ADDIU:
-		regs[getRT(word)] = regs[getRS(word)] + getIMM(word);
+		imm = getIMM(word);
+		if(imm & 0x8000){
+			imm |= 0xFFFF0000;
+		}
+		regs[getRT(word)] = regs[getRS(word)] + imm;
 		if(getRT(word) == getRS(word) && getRT(word) == MIPS_REG_SP){
-			stack_pos += (signed short)getIMM(word);
+			stack_pos += (signed short)imm;
 		}
 		break;
 	case MIPS_OP_LUI:
@@ -117,7 +135,6 @@ int mips_ReportFunc(unsigned int target)
 	int func_no = -1;
 	target &= 0x0FFFFFFF;
 
-
 	/* is the function being watched for? */
 	for(i=0;i<funcs_watching_count;i++)
 	{
@@ -129,9 +146,17 @@ int mips_ReportFunc(unsigned int target)
 	}
 
 	/* was it found ? */
-	if(func_no < 0)
+	if(func_no < 0){
+		/* Wait a second. Maybe there's something useful.. */
+		int seg;
+		for(i=0;i<4;i++){
+			seg = regs[i+MIPS_REG_A0] >> 24;
+			if((seg == 6 || seg == 4) && !(regs[i+MIPS_REG_A0] & 0x00F00003) ){
+				dbgprintf(0, MSK_COLORTYPE_WARNING, "Unwatched function %08X has suspicious argument: %08X", target, regs[i+MIPS_REG_A0]);
+			}
+		}
 		return -1;
-
+	}
 	/* yep - put it in the list */
 	mips_funcs_found_count++;
 	mips_funcs_found = (struct mips_args*) realloc(mips_funcs_found, mips_funcs_found_count * sizeof(struct mips_args));

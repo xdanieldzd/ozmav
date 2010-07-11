@@ -62,7 +62,10 @@ void MSK_ConsolePrint(int Color, char * Format, ...)
 	wattroff(Console.WindowPad, COLOR_PAIR(Color));
 	wrefresh(Console.WindowPad);
 
-	if(Console.Log != NULL) fprintf(Console.Log, Text);
+	if(Console.Log != NULL){
+		fprintf(Console.Log, Text);
+		fflush(Console.Log);
+	}
 
 	MSK_Refresh(Console.TotalConsoleLine - 1);
 }
