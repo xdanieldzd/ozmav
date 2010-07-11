@@ -29,6 +29,7 @@ targets:
 
 all:
 	$(MAKE) -C misaka $(OPTIONS)
+	$(MAKE) -C badrdp $(OPTIONS)
 	$(MAKE) -C ozmav2 $(OPTIONS)
 
 install:
@@ -45,4 +46,5 @@ package:
 
 clean:
 	$(MAKE) -C misaka clean
+	$(MAKE) -C badrdp clean
 	$(MAKE) -C ozmav2 clean
