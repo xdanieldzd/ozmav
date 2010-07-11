@@ -943,6 +943,11 @@ void RDP_ChangeTileSize(unsigned int Tile, unsigned int ULS, unsigned int ULT, u
 	Texture[Gfx.CurrentTexture].ULT = ULT;
 	Texture[Gfx.CurrentTexture].LRS = LRS;
 	Texture[Gfx.CurrentTexture].LRT = LRT;
+
+	Texture[Gfx.CurrentTexture].Width = (Texture[Gfx.CurrentTexture].LRS - Texture[Gfx.CurrentTexture].ULS) + 1;
+	Texture[Gfx.CurrentTexture].Height = (Texture[Gfx.CurrentTexture].LRT - Texture[Gfx.CurrentTexture].ULT) + 1;
+
+	RDP_CalcTextureSize(Gfx.CurrentTexture);
 }
 
 void RDP_CalcTextureSize(int TextureID)
@@ -1002,17 +1007,15 @@ void RDP_CalcTextureSize(int TextureID)
 	unsigned int Clamp_Width = 0;
 	unsigned int Clamp_Height = 0;
 
-	if((Texture[TextureID].CMS & G_TX_CLAMP) && (!Texture[TextureID].CMS & G_TX_MIRROR)) {
+	if(Texture[TextureID].CMS == 1) {
 		Clamp_Width = Tile_Width;
 	} else {
 		Clamp_Width = Texture[TextureID].Width;
-		Texture[TextureID].CMS &= G_TX_MIRROR;
 	}
-	if((Texture[TextureID].CMT & G_TX_CLAMP) && (!Texture[TextureID].CMT & G_TX_MIRROR)) {
+	if(Texture[TextureID].CMT == 1) {
 		Clamp_Height = Tile_Height;
 	} else {
 		Clamp_Height = Texture[TextureID].Height;
-		Texture[TextureID].CMT &= G_TX_MIRROR;
 	}
 
 	if(Mask_Width > Texture[TextureID].Width) {
@@ -1152,8 +1155,6 @@ GLuint RDP_LoadTexture(int TextureID)
 	unsigned int TexOffset = (Texture[TextureID].Offset & 0x00FFFFFF);
 
 //	if((wn0 == 0x03000000) || (wn0 == 0xE1000000)) return EXIT_SUCCESS;
-
-	RDP_CalcTextureSize(TextureID);
 
 	int i = 0, j = 0;
 

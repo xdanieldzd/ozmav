@@ -101,7 +101,6 @@ void RDP_G_LOADTLUT()
 	}
 }
 
-
 void RDP_G_SETTILESIZE()
 {
 	RDP_ChangeTileSize(_SHIFTR(w1, 24, 3), _SHIFTR(w0, 12, 12), _SHIFTR(w0, 0, 12), _SHIFTR(w1, 12, 12), _SHIFTR(w1, 0, 12));
@@ -109,7 +108,7 @@ void RDP_G_SETTILESIZE()
 
 void RDP_G_LOADBLOCK()
 {
-	RDP_ChangeTileSize(_SHIFTR(w1, 24, 3), _SHIFTR(w0, 12, 12), _SHIFTR(w0, 0, 12), _SHIFTR(w1, 12, 12), _SHIFTR(w1, 0, 12));
+	//RDP_ChangeTileSize(_SHIFTR(w1, 24, 3), _SHIFTR(w0, 12, 12), _SHIFTR(w0, 0, 12), _SHIFTR(w1, 12, 12), _SHIFTR(w1, 0, 12));
 }
 
 void RDP_G_LOADTILE()
