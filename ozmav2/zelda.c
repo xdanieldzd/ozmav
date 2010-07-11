@@ -1007,7 +1007,7 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 				if(zActor[ActorNumber].Object == 0x170){ //crate scale
 					zActor[ActorNumber].Scale = 0.1f;
 				}
-				if(zActor[ActorNumber].Scale < 0.001){
+				if(zActor[ActorNumber].Scale < 0.001 && !zActor[ActorNumber].BoneSetup){
 					zActor[ActorNumber].Scale = 0.1f;
 				}
 				// where does 0x060002E0 come from for actors using object 0x0001?? ... Grass!
