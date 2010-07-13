@@ -88,7 +88,7 @@ extern void mips_SetFuncWatch(unsigned int target);
 extern int mips_ReportFunc(unsigned int target);
 extern void mips_ResetResults();
 extern void mips_ResetWatch();
-extern void * mips_GetFuncArg(unsigned int target, int argc);
+extern void * mips_GetFuncArg(unsigned int target, int argc, int nonzero);
 
 
 #endif /* _MIPS_EVAL_H_ */

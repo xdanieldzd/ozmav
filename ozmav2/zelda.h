@@ -27,6 +27,7 @@ extern DMA zl_DMAVirtualToPhysical(unsigned int VStart);
 extern int zl_GetFilenameTable();
 extern int zl_GetDMATable();
 extern int zl_GetSceneTable();
+extern void zl_SetMipsWatchers();
 extern unsigned char * zl_DMAToBuffer(DMA File);
 extern void zl_ClearAllSegments();
 extern void zl_ClearViewerStructures();

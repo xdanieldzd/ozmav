@@ -85,7 +85,7 @@ void mips_EvalWord(unsigned int * words, int pos)
 	case MIPS_OP_SW:
 		if(getRS(word) == MIPS_REG_SP){
 			stack[stack_pos+getIMM(word)] = regs[getRT(word)];
-			
+
 		}
 		break;
 	case MIPS_OP_LW:
@@ -152,7 +152,7 @@ int mips_ReportFunc(unsigned int target)
 		for(i=0;i<4;i++){
 			seg = regs[i+MIPS_REG_A0] >> 24;
 			if((seg == 6 || seg == 4) && !(regs[i+MIPS_REG_A0] & 0x00F00003) ){
-				dbgprintf(0, MSK_COLORTYPE_WARNING, "Unwatched function %08X has suspicious argument: %08X", target, regs[i+MIPS_REG_A0]);
+				dbgprintf(0, MSK_COLORTYPE_WARNING, "Unwatched function %08X has suspicious argument #%i: %08X", target, i, regs[i+MIPS_REG_A0]);
 			}
 		}
 		return -1;
@@ -197,7 +197,7 @@ void mips_ResetWatch()
 /*
  returns a pointer because the potential value is anything
 */
-void * mips_GetFuncArg(unsigned int target, int argc)
+void * mips_GetFuncArg(unsigned int target, int argc, int nonzero)
 {
 	if(argc > 3)
 		return NULL;
@@ -211,8 +211,11 @@ void * mips_GetFuncArg(unsigned int target, int argc)
 	{
 		if((mips_funcs_found[i].target&0x0FFFFFFF) == target)
 		{
-			func_no = i;
-			break;
+			// if we're specifically looking for a non-zero value, check for that
+			if(nonzero && mips_funcs_found[i].args[argc] != 0) {
+				func_no = i;
+				break;
+			}
 		}
 	}
 

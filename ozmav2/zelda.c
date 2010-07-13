@@ -32,6 +32,8 @@ bool zl_Init(char * Filename)
 		if(zl_GetFilenameTable()) zGame.HasFilenames = false;
 		if(zl_GetSceneTable(zGame.CodeBuffer)) return EXIT_FAILURE;
 
+		zl_SetMipsWatchers();
+
 		if(zl_LoadScene(zOptions.SceneNo)) return EXIT_FAILURE;
 	} else {
 		return zROM.IsROMLoaded;
@@ -374,17 +376,6 @@ int zl_GetSceneTable()
 {
 	dbgprintf(3, MSK_COLORTYPE_OKAY, "[DEBUG] %s();\n", __FUNCTION__);
 
-	/* xdaniel: you probably know of a better spot for this. This is where I put it for now, though */
-	mips_SetFuncWatch(0x80035260);// u32 a1 = display list
-	mips_SetFuncWatch(0x800A457C);// u32 a2 = bones; u32 a3 = animation
-	mips_SetFuncWatch(0x8002D62C);// f32 a1 = scale
-	mips_SetFuncWatch(0x8009812C);// u16 a1 = object number to use
-	mips_SetFuncWatch(0x80093D18);// u32 a3 = display list
-	//mips_SetFuncWatch(0x800D0984);// u32 a0 = display list
-	mips_SetFuncWatch(0x800A46F8);// u32 a2 = bones
-	mips_SetFuncWatch(0x800A51A0);// u32 a1 = animation
-	mips_SetFuncWatch(0x800A46F8);// u32 a2 = bones
-
 	char Check[4];
 
 	DMA File = zl_DMAGetFile(zGame.CodeFileNo);
@@ -421,6 +412,24 @@ int zl_GetSceneTable()
 	}
 
 	return EXIT_SUCCESS;
+}
+
+void zl_SetMipsWatchers()
+{
+	/* xdaniel: you probably know of a better spot for this. This is where I put it for now, though */
+	/* ...new function, called before loading the scene, should be a good spot */
+
+	mips_SetFuncWatch(0x80035260);// u32 a1 = display list
+	mips_SetFuncWatch(0x800A457C);// u32 a2 = bones; u32 a3 = animation
+	mips_SetFuncWatch(0x8002D62C);// f32 a1 = scale
+	mips_SetFuncWatch(0x8009812C);// u16 a1 = object number to use
+	mips_SetFuncWatch(0x80093D18);// u32 a3 = display list
+	//mips_SetFuncWatch(0x800D0984);// u32 a0 = display list
+	mips_SetFuncWatch(0x800A46F8);// u32 a2 = bones
+	mips_SetFuncWatch(0x800A51A0);// u32 a1 = animation
+	mips_SetFuncWatch(0x800A46F8);// u32 a2 = bones
+
+	return;
 }
 
 unsigned char * zl_DMAToBuffer(DMA File)
@@ -968,22 +977,22 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 
 				if(zGame.ActorTableOffset == 0x0F9440)
 				{
-					scale	= mips_GetFuncArg(0x8002D62C,1);
-					dlist	= mips_GetFuncArg(0x80035260,1);
-					bones	= mips_GetFuncArg(0x800A457C,2);
+					scale	= mips_GetFuncArg(0x8002D62C,1,true);
+					dlist	= mips_GetFuncArg(0x80035260,1,true);
+					bones	= mips_GetFuncArg(0x800A457C,2,true);
 					if(bones == NULL || !*bones){
-						bones = mips_GetFuncArg(0x800A46F8,2);
+						bones = mips_GetFuncArg(0x800A46F8,2,true);
 						if(bones == NULL || !*bones){
-							bones = mips_GetFuncArg(0x800A46F8,2);
+							bones = mips_GetFuncArg(0x800A46F8,2,true);
 						}
 					}
-					anim	= mips_GetFuncArg(0x800A457C,3);
+					anim	= mips_GetFuncArg(0x800A457C,3,true);
 					if(anim == NULL || !*anim){
-						anim = mips_GetFuncArg(0x800A51A0,1);
+						anim = mips_GetFuncArg(0x800A51A0,1,true);
 					}
-					alt_objn = mips_GetFuncArg(0x8009812C,1);
+					alt_objn = mips_GetFuncArg(0x8009812C,1,true);
 					if(dlist == NULL || *dlist > 0x80000000){
-						dlist = mips_GetFuncArg(0x80093D18, 3);
+						dlist = mips_GetFuncArg(0x80093D18, 3,true);
 					}
 				}
 
@@ -1010,6 +1019,23 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 				if(zActor[ActorNumber].Scale < 0.001 && !zActor[ActorNumber].BoneSetup){
 					zActor[ActorNumber].Scale = 0.1f;
 				}
+				// bombable boulder
+				if(zActor[ActorNumber].Object == 0x163) {
+					zActor[ActorNumber].Scale = 0.1;
+				}
+				// greenery
+				if((zActor[ActorNumber].Object == 0x7C) && (ActorNumber == 0x77)) {
+					zActor[ActorNumber].Scale = 1.0;
+				}
+				// greenery
+				if(ActorNumber == 0x14E) {
+					zActor[ActorNumber].Scale = 1.0;
+				}
+				// windmill spinning thingy
+				if((zActor[ActorNumber].Object == 0x6C) && (ActorNumber == 0x123)) {
+					zActor[ActorNumber].Scale = 0.1;
+				}
+
 				// where does 0x060002E0 come from for actors using object 0x0001?? ... Grass!
 				if(ActorNumber == 0x125){
 					zActor[ActorNumber].Object = 0x12B;
@@ -1041,18 +1067,6 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 					} else if((zActor[ActorNumber].Object == 0x1) && (ActorNumber == 0x2E)) {
 						zActor[ActorNumber].DisplayList = 0x04049FE0;
 						zActor[ActorNumber].Scale = 1.0;
-
-					// greenery
-					} else if((zActor[ActorNumber].Object == 0x7C) && (ActorNumber == 0x77)) {
-						zActor[ActorNumber].Scale = 1.0;
-
-					// greenery
-					} else if(ActorNumber == 0x14E) {
-						zActor[ActorNumber].Scale = 1.0;
-
-					// bombable boulder
-					} else if(zActor[ActorNumber].Object == 0x163) {
-						zActor[ActorNumber].Scale = 0.1;
 
 					// gossip stones
 					} else if(zActor[ActorNumber].Object == 0x188) {
@@ -1086,9 +1100,10 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 						zActor[ActorNumber].DisplayList = 0x06000970;
 						zActor[ActorNumber].Scale = 1.0;
 
-					// windmill spinning thingy
-					} else if((zActor[ActorNumber].Object == 0x6C) && (ActorNumber == 0x123)) {
-						zActor[ActorNumber].Scale = 0.1;
+					// deku tree mouth
+					} else if(ActorNumber == 0x3E) {
+						zActor[ActorNumber].DisplayList = 0x060009D0;
+						zActor[ActorNumber].Scale = 1.0;
 
 					// everything else, atm disabled if not gi
 					} else if(zActor[ActorNumber].Object > 0x3 && 0){//!strncmp(zObject[zActor[ActorNumber].Object].Name, "object_gi_", 10)) {
@@ -1183,78 +1198,109 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 	} else { // draw a cube
 		dbgprintf(0, MSK_COLORTYPE_INFO, " - Drawing a cube :(");
 
-//		for (i = 0; i < 6; i++) {
-			glNewList(DLBase, GL_COMPILE);
-				glPushMatrix();
-				glTranslated(X, Y, Z);
-				glRotated(RX / 182.0444444, 1, 0, 0);
-				glRotated(RY / 182.0444444, 0, 1, 0);
-				glRotated(RZ / 182.0444444, 0, 0, 1);
-				glScalef(10.0, 10.0, 10.0);
-				glBegin(GL_QUADS);
-					// Front Face
-					glVertex3f(-1.0f, -1.0f,  1.0f);
-					glVertex3f( 1.0f, -1.0f,  1.0f);
-					glVertex3f( 1.0f,  1.0f,  1.0f);
-					glVertex3f(-1.0f,  1.0f,  1.0f);
-					// Back Face
-					glVertex3f(-1.0f, -1.0f, -1.0f);
-					glVertex3f(-1.0f,  1.0f, -1.0f);
-					glVertex3f( 1.0f,  1.0f, -1.0f);
-					glVertex3f( 1.0f, -1.0f, -1.0f);
-					// Top Face
-					glVertex3f(-1.0f,  1.0f, -1.0f);
-					glVertex3f(-1.0f,  1.0f,  1.0f);
-					glVertex3f( 1.0f,  1.0f,  1.0f);
-					glVertex3f( 1.0f,  1.0f, -1.0f);
-					// Bottom Face
-					glVertex3f(-1.0f, -1.0f, -1.0f);
-					glVertex3f( 1.0f, -1.0f, -1.0f);
-					glVertex3f( 1.0f, -1.0f,  1.0f);
-					glVertex3f(-1.0f, -1.0f,  1.0f);
-					// Right Face
-					glVertex3f( 1.0f, -1.0f, -1.0f);
-					glVertex3f( 1.0f,  1.0f, -1.0f);
-					glVertex3f( 1.0f,  1.0f,  1.0f);
-					glVertex3f( 1.0f, -1.0f,  1.0f);
-					// Left Face
-					glVertex3f(-1.0f, -1.0f, -1.0f);
-					glVertex3f(-1.0f, -1.0f,  1.0f);
-					glVertex3f(-1.0f,  1.0f,  1.0f);
-					glVertex3f(-1.0f,  1.0f, -1.0f);
-				glEnd();
-				glPopMatrix();
-			glEndList();
-//		}
+		glNewList(DLBase, GL_COMPILE);
+			glPushMatrix();
+			glTranslated(X, Y, Z);
+			glRotated(RX / 182.0444444, 1, 0, 0);
+			glRotated(RY / 182.0444444, 0, 1, 0);
+			glRotated(RZ / 182.0444444, 0, 0, 1);
+			glScalef(10.0, 10.0, 10.0);
+			glBegin(GL_QUADS);
+				// Front Face
+				glVertex3f(-1.0f, -1.0f,  1.0f);
+				glVertex3f( 1.0f, -1.0f,  1.0f);
+				glVertex3f( 1.0f,  1.0f,  1.0f);
+				glVertex3f(-1.0f,  1.0f,  1.0f);
+				// Back Face
+				glVertex3f(-1.0f, -1.0f, -1.0f);
+				glVertex3f(-1.0f,  1.0f, -1.0f);
+				glVertex3f( 1.0f,  1.0f, -1.0f);
+				glVertex3f( 1.0f, -1.0f, -1.0f);
+				// Top Face
+				glVertex3f(-1.0f,  1.0f, -1.0f);
+				glVertex3f(-1.0f,  1.0f,  1.0f);
+				glVertex3f( 1.0f,  1.0f,  1.0f);
+				glVertex3f( 1.0f,  1.0f, -1.0f);
+				// Bottom Face
+				glVertex3f(-1.0f, -1.0f, -1.0f);
+				glVertex3f( 1.0f, -1.0f, -1.0f);
+				glVertex3f( 1.0f, -1.0f,  1.0f);
+				glVertex3f(-1.0f, -1.0f,  1.0f);
+				// Right Face
+				glVertex3f( 1.0f, -1.0f, -1.0f);
+				glVertex3f( 1.0f,  1.0f, -1.0f);
+				glVertex3f( 1.0f,  1.0f,  1.0f);
+				glVertex3f( 1.0f, -1.0f,  1.0f);
+				// Left Face
+				glVertex3f(-1.0f, -1.0f, -1.0f);
+				glVertex3f(-1.0f, -1.0f,  1.0f);
+				glVertex3f(-1.0f,  1.0f,  1.0f);
+				glVertex3f(-1.0f,  1.0f, -1.0f);
+			glEnd();
+			glPopMatrix();
+		glEndList();
 	}
 }
 
 void zl_DrawBone(z_bone Bones[], int CurrentBone)
 {
+	#if 0
+	//borrowed from UoT
+	glDisable(GL_TEXTURE);
+	glDisable(GL_LIGHTING);
+	glDepthRange(0, 0);
+	glLineWidth(9);
+	glBegin(GL_LINES);
+	glColor3f(1.0f, 0.0f, 1.0f);
+	glVertex3d(0, 0, 0);
+	glVertex3d(Bones[CurrentBone].X, Bones[CurrentBone].Y, Bones[CurrentBone].Z);
+	glEnd();
+	glPointSize(11);
+	glBegin(GL_POINTS);
+	glColor3f(0, 0, 0);
+	glVertex3d(Bones[CurrentBone].X, Bones[CurrentBone].Y, Bones[CurrentBone].Z);
+	glEnd();
+	glPointSize(8);
+	glBegin(GL_POINTS);
+	glColor3f(1, 0, 0);
+	glVertex3d(Bones[CurrentBone].X, Bones[CurrentBone].Y, Bones[CurrentBone].Z);
+	glEnd();
+	glPointSize(1);
+	glLineWidth(1);
+	glDepthRange(0, 1);
+	glEnable(GL_TEXTURE);
+	glEnable(GL_LIGHTING);
+	#endif
+
 	glPushMatrix();
-/*	glRotated(Bones[CurrentBone].RX / 182.0444444, 1, 0, 0);
+
+	glTranslated(Bones[CurrentBone].X, Bones[CurrentBone].Y, Bones[CurrentBone].Z);
+	glRotated(Bones[CurrentBone].RX / 182.0444444, 1, 0, 0);
 	glRotated(Bones[CurrentBone].RY / 182.0444444, 0, 1, 0);
 	glRotated(Bones[CurrentBone].RZ / 182.0444444, 0, 0, 1);
-*/	glTranslated(Bones[CurrentBone].X, Bones[CurrentBone].Y, Bones[CurrentBone].Z);
-	RDP_ClearStructures(false);
+
 	//Draw display list
 	if(Bones[CurrentBone].DList && RDP_CheckAddressValidity(Bones[CurrentBone].DList)){
+		RDP_ClearStructures(false);
 		RDP_ParseDisplayList(Bones[CurrentBone].DList, true);
 	}
+
 	//Draw child 1
-	if(Bones[CurrentBone].Child1 > 0){
+	if(Bones[CurrentBone].Child1 > -1){
 		zl_DrawBone(Bones, Bones[CurrentBone].Child1);
 	}
+
+	glPopMatrix();
+
 	//Draw child 2
-	if(Bones[CurrentBone].Child2 > 0){
+	if(Bones[CurrentBone].Child2 > -1){
 		zl_DrawBone(Bones, Bones[CurrentBone].Child2);
 	}
-	glPopMatrix();
 }
 
 void zl_DrawBones(unsigned int BoneOffset, unsigned int AnimationOffset, float Scale, short X, short Y, short Z, short RX, short RY, short RZ, GLuint DLBase)
 {
-	dbgprintf(3, MSK_COLORTYPE_INFO, "%s(0x%x, 0x%x, %.3f, %i, %i, %i, %i, %i, %i, %i);",__FUNCTION__, BoneOffset, AnimationOffset, Scale, X, Y, Z, RX, RY, RZ, DLBase);
+//	dbgprintf(2, MSK_COLORTYPE_INFO, "%s(0x%x, 0x%x, %.3f, %i, %i, %i, %i, %i, %i, %i);",__FUNCTION__, BoneOffset, AnimationOffset, Scale, X, Y, Z, RX, RY, RZ, DLBase);
 	int BoneCount, BoneListListOffset, Seg, _Seg, i, AniSeg=0, RotIndexOffset=0, RotValOffset=0;
 	z_bone Bones[128];
 
@@ -1281,15 +1327,15 @@ void zl_DrawBones(unsigned int BoneOffset, unsigned int AnimationOffset, float S
 		RotIndexOffset &= 0xFFFFFF;
 		RotValOffset = Read32((RAM[AniSeg].Data), (AnimationOffset+4));
 		RotValOffset &= 0xFFFFFF;
-		/*Bones[0].X = Read16(RAM[AniSeg].Data, RotValOffset + (2 * Read16(RAM[AniSeg].Data, RotIndexOffset) ) );
-		Bones[0].Y = Read16(RAM[AniSeg].Data, RotValOffset + (2 * Read16(RAM[AniSeg].Data, RotIndexOffset+2) ) );
-		Bones[0].Z = Read16(RAM[AniSeg].Data, RotValOffset + (2 * Read16(RAM[AniSeg].Data, RotIndexOffset+4) ) );
+/*		Bones[0].X = Read16(RAM[AniSeg].Data, RotValOffset + (Read16(RAM[AniSeg].Data, RotIndexOffset) * 2) );
+		Bones[0].Y = Read16(RAM[AniSeg].Data, RotValOffset + (Read16(RAM[AniSeg].Data, RotIndexOffset+2) * 2) );
+		Bones[0].Z = Read16(RAM[AniSeg].Data, RotValOffset + (Read16(RAM[AniSeg].Data, RotIndexOffset+4) * 2) );
 */		RotIndexOffset += 6;
 	}
 
 	Seg = (BoneListListOffset >> 24) & 0xFF;
 	BoneListListOffset &= 0xFFFFFF;
-	dbgprintf(3, MSK_COLORTYPE_INFO, " - Seg=0x%x; BoneListListOffset=0x%x; BoneCount=%i", Seg, BoneListListOffset, BoneCount);
+	dbgprintf(2, MSK_COLORTYPE_INFO, " - Seg=0x%x; BoneListListOffset=0x%x; BoneCount=%i", Seg, BoneListListOffset, BoneCount);
 	for(i=0; i<BoneCount; i++)
 	{
 		BoneOffset = Read32(RAM[Seg].Data, BoneListListOffset + (i << 2));
@@ -1306,11 +1352,11 @@ void zl_DrawBones(unsigned int BoneOffset, unsigned int AnimationOffset, float S
 		Bones[i].DList = Read32(RAM[_Seg].Data, BoneOffset+8);
 		Bones[i].isSet = 1;
 		if(AniSeg && RDP_CheckAddressValidity((AniSeg<<24)|(RotIndexOffset + (i * 6) + 4) ) ){
-			Bones[i].RX = Read16(RAM[AniSeg].Data, RotValOffset + (2 * Read16(RAM[AniSeg].Data, RotIndexOffset + (i * 6))) );
-			Bones[i].RY = Read16(RAM[AniSeg].Data, RotValOffset + (2 * Read16(RAM[AniSeg].Data, RotIndexOffset + (i * 6)+2)) );
-			Bones[i].RZ = Read16(RAM[AniSeg].Data, RotValOffset + (2 * Read16(RAM[AniSeg].Data, RotIndexOffset + (i * 6)+4)) );
+			Bones[i].RX = Read16(RAM[AniSeg].Data, RotValOffset + (Read16(RAM[AniSeg].Data, RotIndexOffset + (i * 6)) * 2) );
+			Bones[i].RY = Read16(RAM[AniSeg].Data, RotValOffset + (Read16(RAM[AniSeg].Data, RotIndexOffset + (i * 6)+2) * 2) );
+			Bones[i].RZ = Read16(RAM[AniSeg].Data, RotValOffset + (Read16(RAM[AniSeg].Data, RotIndexOffset + (i * 6)+4) * 2) );
 		}
-		dbgprintf(3, MSK_COLORTYPE_INFO, " Bone %i: (%i %i %i) (%i %i %i) (%i %i) %08X", i, Bones[i].X, Bones[i].Y, Bones[i].Z, Bones[i].RX, Bones[i].RY, Bones[i].RZ, Bones[i].Child1, Bones[i].Child2, Bones[i].DList);
+		dbgprintf(2, MSK_COLORTYPE_INFO, " Bone %2i (%08X): (%6i %6i %6i) (%2i %2i) %08X", i, BoneOffset, Bones[i].X, Bones[i].Y, Bones[i].Z, Bones[i].Child1, Bones[i].Child2, Bones[i].DList);
 	}
 	//render
 	glNewList(DLBase, GL_COMPILE);
@@ -1320,8 +1366,8 @@ void zl_DrawBones(unsigned int BoneOffset, unsigned int AnimationOffset, float S
 		glRotated(RX / 182.0444444, 1, 0, 0);
 		glRotated(RY / 182.0444444, 0, 1, 0);
 		glRotated(RZ / 182.0444444, 0, 0, 1);
-
 		glScalef(Scale, Scale, Scale);
+
 		zl_DrawBone(Bones, 0);
 
 		glPopMatrix();
