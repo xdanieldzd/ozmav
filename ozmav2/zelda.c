@@ -1055,8 +1055,8 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 						zActor[ActorNumber].Scale = 0.2;
 
 					// normal doors
-					} else if((zActor[ActorNumber].Object == 0x1) && (ActorNumber == 0x9)) {
-						zActor[ActorNumber].DisplayList = 0x0600ECB8;
+//					} else if((zActor[ActorNumber].Object == 0x1) && (ActorNumber == 0x9)) {
+//						zActor[ActorNumber].DisplayList = 0x0600ECB8;
 
 					// flames
 					} else if(ActorNumber == 0x8) {
@@ -1275,9 +1275,9 @@ void zl_DrawBone(z_bone Bones[], int CurrentBone)
 	glPushMatrix();
 
 	glTranslated(Bones[CurrentBone].X, Bones[CurrentBone].Y, Bones[CurrentBone].Z);
-	glRotated(Bones[CurrentBone].RX / 182.0444444, 1, 0, 0);
-	glRotated(Bones[CurrentBone].RY / 182.0444444, 0, 1, 0);
 	glRotated(Bones[CurrentBone].RZ / 182.0444444, 0, 0, 1);
+	glRotated(Bones[CurrentBone].RY / 182.0444444, 0, 1, 0);
+	glRotated(Bones[CurrentBone].RX / 182.0444444, 1, 0, 0);
 
 	//Draw display list
 	if(Bones[CurrentBone].DList && RDP_CheckAddressValidity(Bones[CurrentBone].DList)){
@@ -1300,7 +1300,7 @@ void zl_DrawBone(z_bone Bones[], int CurrentBone)
 
 void zl_DrawBones(unsigned int BoneOffset, unsigned int AnimationOffset, float Scale, short X, short Y, short Z, short RX, short RY, short RZ, GLuint DLBase)
 {
-//	dbgprintf(2, MSK_COLORTYPE_INFO, "%s(0x%x, 0x%x, %.3f, %i, %i, %i, %i, %i, %i, %i);",__FUNCTION__, BoneOffset, AnimationOffset, Scale, X, Y, Z, RX, RY, RZ, DLBase);
+	dbgprintf(2, MSK_COLORTYPE_INFO, "%s(0x%x, 0x%x, %.3f, %i, %i, %i, %i, %i, %i, %i);",__FUNCTION__, BoneOffset, AnimationOffset, Scale, X, Y, Z, RX, RY, RZ, DLBase);
 	int BoneCount, BoneListListOffset, Seg, _Seg, i, AniSeg=0, RotIndexOffset=0, RotValOffset=0;
 	z_bone Bones[128];
 
@@ -1352,11 +1352,14 @@ void zl_DrawBones(unsigned int BoneOffset, unsigned int AnimationOffset, float S
 		Bones[i].DList = Read32(RAM[_Seg].Data, BoneOffset+8);
 		Bones[i].isSet = 1;
 		if(AniSeg && RDP_CheckAddressValidity((AniSeg<<24)|(RotIndexOffset + (i * 6) + 4) ) ){
-			Bones[i].RX = Read16(RAM[AniSeg].Data, RotValOffset + (Read16(RAM[AniSeg].Data, RotIndexOffset + (i * 6)) * 2) );
-			Bones[i].RY = Read16(RAM[AniSeg].Data, RotValOffset + (Read16(RAM[AniSeg].Data, RotIndexOffset + (i * 6)+2) * 2) );
-			Bones[i].RZ = Read16(RAM[AniSeg].Data, RotValOffset + (Read16(RAM[AniSeg].Data, RotIndexOffset + (i * 6)+4) * 2) );
+			unsigned short RXIndex = Read16(RAM[AniSeg].Data, RotIndexOffset + (i * 6));
+			unsigned short RYIndex = Read16(RAM[AniSeg].Data, RotIndexOffset + (i * 6) + 2);
+			unsigned short RZIndex = Read16(RAM[AniSeg].Data, RotIndexOffset + (i * 6) + 4);
+
+			Bones[i].RX = Read16(RAM[AniSeg].Data, RotValOffset + (RXIndex * 2));
+			Bones[i].RY = Read16(RAM[AniSeg].Data, RotValOffset + (RYIndex * 2));
+			Bones[i].RZ = Read16(RAM[AniSeg].Data, RotValOffset + (RZIndex * 2));
 		}
-		dbgprintf(2, MSK_COLORTYPE_INFO, " Bone %2i (%08X): (%6i %6i %6i) (%2i %2i) %08X", i, BoneOffset, Bones[i].X, Bones[i].Y, Bones[i].Z, Bones[i].Child1, Bones[i].Child2, Bones[i].DList);
 	}
 	//render
 	glNewList(DLBase, GL_COMPILE);
