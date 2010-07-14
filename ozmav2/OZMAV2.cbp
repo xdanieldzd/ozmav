@@ -148,6 +148,10 @@
 		</Unit>
 		<Unit filename="oz.h" />
 		<Unit filename="r3400i.h" />
+		<Unit filename="zactors.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="zactors.h" />
 		<Unit filename="zelda.c">
 			<Option compilerVar="CC" />
 		</Unit>
