@@ -21,7 +21,11 @@ void zl_SetMipsWatchers()
 	mips_SetFuncWatch(0x800A51A0);// u32 a1 = animation
 	mips_SetFuncWatch(0x800A46F8);// u32 a2 = bones
 	mips_SetFuncWatch(0x800A2000);// a0 = animation
+	//mips_SetFuncWatch(0x80041880);// a0 = dlist
 
+	mips_SetFuncWatch(0x800A663C);// a2 = bones a3 = ani Note: different bone structure, possibly different animation type!
+	mips_SetFuncWatch(0x80031F50);// a2 = actor number to spawn
+	
 	return;
 }
 
@@ -237,6 +241,22 @@ struct zActorSections zl_GetActSections(unsigned char * Data, size_t Size, unsig
 	
 	return ret;
 }
+unsigned collectables[0x20] = {
+	 0x04042440, 0x04042440, 0x04042440, /* rupees 0-2 */
+	 0x0403BCD8, /* recovery heart (3) */
+	 0x04007860, /* bomb (4) */
+	 0x04005AA0, /* arrow (5) */
+	 0x0403B030, /* heart peice (6) */
+	 0x0403B030, /* alpha heart container FIXME wrong dlist (7) */
+	 0x04005AA0, 0x04005AA0, 0x04005AA0, /* arrow (8-A) */
+	 0x04007860, /* bomb (B) */
+	 0x04015740, 0x04015740,0x04015740,0x04015740,0x04015740, /* C-11 */
+	 0x0403BCD8, /* heart (12) */
+	 0x04042440, 0x04042440, /* rupees (13,14) */
+	 0x04015740, 0x04015740, 0x04015740, 0x04015740, /* 15-18 */
+	 0x04007860, /* bomb (19) */
+	 0x04015740, 0x04015740, 0x04015740, 0x04015740, 0x04015740, 0x04015740 /* 1A - 1F */
+};
 
 /*
 	zl_ProcessActor - do all actions necessary for loading, processing and rendering each actor
@@ -281,7 +301,7 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 			Var = zDoor[CurrActor].Var;
 
 			//drawing stuff
-			zGfx.DoorDLCount[CurrActor] = 1;
+			zGfx.DoorDLCount[CurrActor] = 2;
 			zGfx.DoorGLListCount[CurrActor] = glGenLists(zGfx.DoorDLCount[CurrActor]);
 			glListBase(zGfx.DoorGLListCount[CurrActor]);
 			DLCount = zGfx.DoorDLCount[CurrActor];
@@ -292,6 +312,8 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 	// if the actor hasn't been processed yet, do so
 	if(zActor[ActorNumber].IsSet == false) {
 		dbgprintf(1, MSK_COLORTYPE_INFO, "- Evaluating actor 0x%04X...", ActorNumber);
+		
+		
 
 		// get the base offset for reading from the actor table
 		unsigned int BaseOffset = zGame.ActorTableOffset + (ActorNumber * 0x20);
@@ -319,7 +341,6 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 
 		// get the actor's physical offsets via the DMA table
 		DMA Actor = zl_DMAVirtualToPhysical(zActor[ActorNumber].PStart);
-
 		// if the physical offset are not zero, continue with the processing
 		if((Actor.PStart != 0) && (Actor.PEnd != 0))
 		{
@@ -347,7 +368,7 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 			if(zObject[zActor[ActorNumber].Object].IsSet == true) {
 				unsigned char TargetSeg = 0x06;
 				float * scale = NULL;
-				int *dlist = NULL, *bones = NULL, *anim = NULL, *alt_objn = NULL;
+				int *dlist = NULL, *bones = NULL, *anim = NULL, *alt_objn = NULL, *spawnact = NULL;
 				struct zActorSections Sections;
 
 				if(zActor[ActorNumber].Object == 0x0001) {
@@ -410,14 +431,21 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 					alt_objn = mips_GetFuncArg(0x8009812C,1,true);
 					if(dlist == NULL || *dlist > 0x80000000){
 						dlist = mips_GetFuncArg(0x80093D18, 3,true);
+						/*if(dlist == NULL || *dlist > 0x80000000){
+							dlist = mips_GetFuncArg(0x80041880, 0, true);
+						}*/
 					}
+					spawnact = mips_GetFuncArg(0x80031F50,3,false); // maybe...
 				}
 
 				zActor[ActorNumber].Animation = (anim != NULL) ? *anim : 0;
 				zActor[ActorNumber].BoneSetup = (bones != NULL) ? *bones : 0;
 				zActor[ActorNumber].Scale = (scale != NULL) ? *scale : 0.01f;
 				zActor[ActorNumber].DisplayList = (dlist != NULL) ? *dlist : 0;
-
+				
+				if(spawnact!=NULL)
+					dbgprintf(2, MSK_COLORTYPE_INFO, "  - Note: Spawns actor 0x%04X (not spawning)", *spawnact);
+				
 				if(alt_objn!=NULL && *alt_objn <= zGame.ObjectCount && zActor[ActorNumber].Object < 3 && *alt_objn > 3 && zObject[*alt_objn].IsSet){
 					zActor[ActorNumber].Object = *alt_objn;
 					dbgprintf(0, MSK_COLORTYPE_INFO, "  - Alternate object found for actor %s: 0x%04X", zActor[ActorNumber].Name, *alt_objn);
@@ -453,8 +481,13 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 					zActor[ActorNumber].Scale = 0.1;
 				}
 
+				// pot
+				if(ActorNumber == 0x111) {
+					zActor[ActorNumber].Object = 0x12C;
+					zActor[ActorNumber].DisplayList = 0x060017C0;
+					zActor[ActorNumber].Scale = 0.2;
 				// where does 0x060002E0 come from for actors using object 0x0001?? ... Grass!
-				if(ActorNumber == 0x125){
+				} else if(ActorNumber == 0x125){
 					zActor[ActorNumber].Object = 0x12B;
 					zActor[ActorNumber].DisplayList = 0x06000140;
 				} else if(ActorNumber == 0xA){	//treasure chest
@@ -465,14 +498,8 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 				if(zActor[ActorNumber].DisplayList > 0x80000000 || ((!zActor[ActorNumber].DisplayList) && (!zActor[ActorNumber].BoneSetup))){//(zActor[ActorNumber].Scale <= 0.01f)) {
 					dbgprintf(1, MSK_COLORTYPE_WARNING, "  - Not all required information found, trying to find via hacks...");
 
-					// pot
-					if(ActorNumber == 0x111) {
-						zActor[ActorNumber].Object = 0x12C;
-						zActor[ActorNumber].DisplayList = 0x060017C0;
-						zActor[ActorNumber].Scale = 0.2;
-
 					// flames
-					} else if(ActorNumber == 0x8) {
+					if(ActorNumber == 0x8) {
 						zActor[ActorNumber].DisplayList = 0x0404D4E0;	//mips eval can't pick this up yet but it's there.
 						zActor[ActorNumber].Scale = 0.005;
 
@@ -537,10 +564,6 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 					}
 				}
 				// end hack
-				dbgprintf(0, MSK_COLORTYPE_INFO, "  -Scale %.3f DL %08X, Bones %08X, Ani %08X %s",
-					zActor[ActorNumber].Scale, zActor[ActorNumber].DisplayList,
-					zActor[ActorNumber].BoneSetup, zActor[ActorNumber].Animation,
-					zActor[ActorNumber].Name);
 			}
 		}
 		else
@@ -549,10 +572,22 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 		// mark actor as processed
 		zActor[ActorNumber].IsSet = true;
 
+		dbgprintf(0, MSK_COLORTYPE_INFO, "  -Scale %.3f DL %08X, Bones %08X, Ani %08X %s, Obj %i",
+			zActor[ActorNumber].Scale, zActor[ActorNumber].DisplayList,
+			zActor[ActorNumber].BoneSetup, zActor[ActorNumber].Animation,
+			zActor[ActorNumber].Name, zActor[ActorNumber].Object);
+		
 		dbgprintf(1, MSK_COLORTYPE_INFO, "- Actor 0x%04X has been processed.", ActorNumber);
 
 	} else {
 		dbgprintf(1, MSK_COLORTYPE_INFO, "- Actor 0x%04X already known...", ActorNumber);
+	}
+	
+	//collectables
+	if(ActorNumber == 0x15 && zGame.ActorTableOffset == 0x0F9440){
+		zActor[ActorNumber].DisplayList = collectables[Var&0x1F];
+		zActor[ActorNumber].Scale = 0.01f;
+		zActor[ActorNumber].Object = 1;
 	}
 
 	if(zActor[ActorNumber].BoneSetup || zActor[ActorNumber].DisplayList){
@@ -572,7 +607,7 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 		RAM[TargetSeg].Data = zObject[zActor[ActorNumber].Object].Data;
 		RAM[TargetSeg].Size = zObject[zActor[ActorNumber].Object].EndOffset - zObject[zActor[ActorNumber].Object].StartOffset;
 		RAM[TargetSeg].IsSet = true;
-
+		
 		//Bone structure
 		if(zActor[ActorNumber].BoneSetup) {
 			dbgprintf(0, MSK_COLORTYPE_OKAY, " - Drawing bone structure for actor %04X", ActorNumber);
@@ -741,10 +776,10 @@ void zl_DrawBones(unsigned int BoneOffset, unsigned int AnimationOffset, float S
 		RotIndexOffset &= 0xFFFFFF;
 		RotValOffset = Read32((RAM[AniSeg].Data), (AnimationOffset+4));
 		RotValOffset &= 0xFFFFFF;
-/*		Bones[0].X = Read16(RAM[AniSeg].Data, RotValOffset + (Read16(RAM[AniSeg].Data, RotIndexOffset) * 2) );
+		/*Bones[0].X = Read16(RAM[AniSeg].Data, RotValOffset + (Read16(RAM[AniSeg].Data, RotIndexOffset) * 2) );
 		Bones[0].Y = Read16(RAM[AniSeg].Data, RotValOffset + (Read16(RAM[AniSeg].Data, RotIndexOffset+2) * 2) );
-		Bones[0].Z = Read16(RAM[AniSeg].Data, RotValOffset + (Read16(RAM[AniSeg].Data, RotIndexOffset+4) * 2) );
-*/		RotIndexOffset += 6;
+		Bones[0].Z = Read16(RAM[AniSeg].Data, RotValOffset + (Read16(RAM[AniSeg].Data, RotIndexOffset+4) * 2) );*/
+		RotIndexOffset += 6;
 	}
 
 	Seg = (BoneListListOffset >> 24) & 0xFF;
