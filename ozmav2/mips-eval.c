@@ -3,8 +3,6 @@
  spinout/2010-06-13
 */
 
-#include "mips-eval.h"
-
 #include "globals.h"
 
 #define SAFETY_VAL	4
@@ -24,7 +22,23 @@ int funcs_watching_count = 0;
 
 unsigned int stack[256*SAFETY_VAL];
 signed int stack_pos = 128*SAFETY_VAL;
-signed int imm;
+
+typedef struct {
+	unsigned int Op;
+	int Value;
+} SpecialOp;
+
+typedef struct {
+	unsigned int Addr;
+	size_t Size;
+	unsigned char * Data;
+} __mipsRAM;
+
+SpecialOp SpecialOps [256];
+int SpecialOpCount = 0;
+
+__mipsRAM mipsRAM[256];
+int mipsRAMSetCount = 0;
 
 /*
 #define flip32(w)\
@@ -33,8 +47,18 @@ signed int imm;
 /* Very hackish way to get arguments for function calls. It'll work for now */
 void mips_EvalWord(unsigned int * words, int pos)
 {
-	unsigned int word = flip32(words[pos]);
-	switch(word >> 26)
+	unsigned int word = flip32(words[pos]), CalcAddr;
+	int i, imm;
+	for(i=0;i<SpecialOpCount;i++){
+		if((word & SpecialOps[i].Op) == SpecialOps[i].Op){
+			if(!word & 0xFC000000)	//R type ops
+				regs[getRD(word)] = SpecialOps[i].Value;
+			else
+				regs[getRT(word)] = SpecialOps[i].Value;
+			return;
+		}
+	}
+	switch((word >> 26) & 0x3F)
 	{
 	case MIPS_OP_JAL:
 	{
@@ -45,6 +69,7 @@ void mips_EvalWord(unsigned int * words, int pos)
 		mips_ReportFunc( getTARGET(word) );
 
 		/* clear registers */
+		clearregs:
 		regs[1] = 0;
 		regs[2] = 0;
 		regs[3] = 0;
@@ -89,8 +114,20 @@ void mips_EvalWord(unsigned int * words, int pos)
 		}
 		break;
 	case MIPS_OP_LW:
+		imm = getIMM(word);
+		if(imm & 0x8000){
+			imm |= 0xFFFF0000;
+		}
+		CalcAddr = imm + regs[getRS(word)];
 		if(getRS(word) == MIPS_REG_SP){
-			regs[getRT(word)] = stack[stack_pos+getIMM(word)];
+			regs[getRT(word)] = stack[stack_pos+imm];
+			break;
+		}
+		for(i=0; i<mipsRAMSetCount; i++){
+			if(CalcAddr  > mipsRAM[i].Addr && mipsRAM[i].Size + mipsRAM[i].Addr > CalcAddr){
+				regs[getRT(word)] = Read32(mipsRAM[i].Data, CalcAddr -mipsRAM[i].Addr );
+				break;
+			}
 		}
 		break;
 	case MIPS_OP_TYPE_R:
@@ -102,6 +139,14 @@ void mips_EvalWord(unsigned int * words, int pos)
 			break;
 		case MIPS_ROP_SRA:
 			regs[getRD(word)] = regs[getRT(word)] >> getSA(word);
+			break;
+		case MIPS_ROP_ADDU:
+			regs[getRD(word)] = regs[getRT(word)] + regs[getRS(word)];
+			break;
+		case MIPS_ROP_JR:
+			if(getRS(word) == mips_ra){
+				goto clearregs;
+			}
 			break;
 		}
 	}
@@ -119,6 +164,38 @@ void mips_EvalWords(unsigned int * words, int count)
 		mips_EvalWord(words, pos);
 		regs[0] = 0;
 	}
+}
+
+/*
+ Set a region of memory for load operations
+*/
+void mips_SetMap(unsigned char * Data, int Size, unsigned int Address)
+{
+	mipsRAM[mipsRAMSetCount].Addr = Address;
+	mipsRAM[mipsRAMSetCount].Data = Data;
+	mipsRAM[mipsRAMSetCount].Size = Size;
+	mipsRAMSetCount ++;
+}
+
+void mips_ResetMap()
+{
+	mipsRAMSetCount = 0;
+}
+
+/*
+When opcode & Op == Op
+opcode.dest_val = ValueToSet
+*/
+void mips_SetSpecialOp(unsigned int Op, int ValueToSet)
+{
+	SpecialOps[SpecialOpCount].Op = Op;
+	SpecialOps[SpecialOpCount].Value = ValueToSet;
+	SpecialOpCount++;
+}
+
+void mips_ResetSpecialOps()
+{
+	SpecialOpCount = 0;
 }
 
 void mips_SetFuncWatch(unsigned int target)
@@ -152,7 +229,8 @@ int mips_ReportFunc(unsigned int target)
 		for(i=0;i<4;i++){
 			seg = regs[i+MIPS_REG_A0] >> 24;
 			if((seg == 6 || seg == 4) && !(regs[i+MIPS_REG_A0] & 0x00F00003) ){
-				dbgprintf(0, MSK_COLORTYPE_WARNING, "Unwatched function %08X has suspicious argument #%i: %08X", target, i, regs[i+MIPS_REG_A0]);
+				dbgprintf(0, MSK_COLORTYPE_WARNING, "Unwatched function %08X has suspicious argument #%i: %08X",
+				target, i, regs[i+MIPS_REG_A0]);
 			}
 		}
 		return -1;
@@ -189,10 +267,13 @@ void mips_ResetResults()
 
 void mips_ResetWatch()
 {
-	if(funcs_watching != NULL)
+	if(funcs_watching != NULL){
 		free(funcs_watching);
+		funcs_watching = NULL;
+	}
 	funcs_watching_count = 0;
 }
+
 
 /*
  returns a pointer because the potential value is anything

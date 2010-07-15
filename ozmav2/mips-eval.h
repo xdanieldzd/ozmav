@@ -1,6 +1,4 @@
 
-
-
 #ifndef _MIPS_EVAL_H_
 #define _MIPS_EVAL_H_
 #include "r3400i.h"
@@ -10,7 +8,7 @@
 #define MIPS_OP_ORI	13
 #define MIPS_OP_LUI	15
 #define MIPS_OP_SW	43
-#define MIPS_OP_LW	23
+#define MIPS_OP_LW	35
 #define MIPS_OP_TYPE_R	0
 
 #define MIPS_ROP_SLL	0x0
@@ -89,6 +87,10 @@ extern int mips_ReportFunc(unsigned int target);
 extern void mips_ResetResults();
 extern void mips_ResetWatch();
 extern void * mips_GetFuncArg(unsigned int target, int argc, int nonzero);
+extern void mips_SetSpecialOp(unsigned int Op, int ValueToSet);
+extern void mips_ResetSpecialOps();
+extern void mips_SetMap(unsigned char * Data, int Size, unsigned int Address);
+extern void mips_ResetMap();
 
 
 #endif /* _MIPS_EVAL_H_ */

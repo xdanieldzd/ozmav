@@ -36,6 +36,7 @@ enum { true = 1, false = 0 };
 #include "camera.h"
 #include "dump.h"
 #include "mips-eval.h"
+#include "mips.h"
 #include "zactors.h"
 
 // ----------------------------------------

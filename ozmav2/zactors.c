@@ -1,4 +1,5 @@
 #include "globals.h"
+#include "mips.h"
 
 /*
 	zactors.c - all code related to actor and object loading and processing
@@ -19,6 +20,7 @@ void zl_SetMipsWatchers()
 	mips_SetFuncWatch(0x800A46F8);// u32 a2 = bones
 	mips_SetFuncWatch(0x800A51A0);// u32 a1 = animation
 	mips_SetFuncWatch(0x800A46F8);// u32 a2 = bones
+	mips_SetFuncWatch(0x800A2000);// a0 = animation
 
 	return;
 }
@@ -205,18 +207,49 @@ void zl_GetMapActors(int SceneNumber, int MapNumber)
 }
 
 /*
+	zl_GetActSections - get actor overlay sections
+*/
+struct zActorSections zl_GetActSections(unsigned char * Data, size_t Size, unsigned long VStart)
+{
+	struct zActorSections ret;
+	int indent, sections_addr;
+	
+	/* get section header */
+	indent = Read32(Data, Size-4);
+	sections_addr = Size - indent;
+	
+	/* set values of structure */
+	ret.text	= Data;
+	ret.text_va	= VStart;
+	ret.text_s	= Read32(Data, sections_addr+0x0);
+	
+	ret.data	= ret.text + ret.text_s;
+	ret.data_va	= ret.text_va + ret.text_s;
+	ret.data_s	= Read32(Data, sections_addr+0x4);
+	
+	ret.rodata	= ret.data + ret.data_s;
+	ret.rodata_va	= ret.data_va + ret.data_s;
+	ret.rodata_s	= Read32(Data, sections_addr+0x8);
+	
+	ret.bss		= ret.rodata + ret.rodata_s;
+	ret.bss_va	= ret.rodata_va + ret.rodata_s;
+	ret.bss_s	= Read32(Data, sections_addr+0xC);
+	
+	return ret;
+}
+
+/*
 	zl_ProcessActor - do all actions necessary for loading, processing and rendering each actor
 */
 void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 {
 	dbgprintf(3, MSK_COLORTYPE_OKAY, "[DEBUG] %s(%i, %i, %i);\n", __FUNCTION__, MapNumber, CurrActor, Type);
 
-	unsigned short ActorNumber = 0;
+	unsigned short ActorNumber = 0, Var = 0;
 	short X = 0, Y = 0, Z = 0, RX = 0, RY = 0, RZ = 0;
-	int DL = 0, /*i,*/ DLCount = 0;
+	int DL = 0, DLCount = 0;
 	GLuint DLBase = 0;
 
-	// see what actor type we're dealing with, and set some things up depending on that (actor number, position/rotation, OpenGL display lists, etc.)
 	switch(Type) {
 		case Z_ACTOR_MAP:	{
 			//map actors
@@ -227,6 +260,7 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 			RX = zMapActor[MapNumber][CurrActor].RX;
 			RY = zMapActor[MapNumber][CurrActor].RY;
 			RZ = zMapActor[MapNumber][CurrActor].RZ;
+			Var = zMapActor[MapNumber][CurrActor].Var;
 
 			//drawing stuff
 			zGfx.ActorDLCount[MapNumber][CurrActor] = 1;
@@ -244,6 +278,7 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 			RX = 0;
 			RY = zDoor[CurrActor].RY;
 			RZ = 0;
+			Var = zDoor[CurrActor].Var;
 
 			//drawing stuff
 			zGfx.DoorDLCount[CurrActor] = 1;
@@ -311,6 +346,9 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 			// check if the actor's requested object has been loaded before
 			if(zObject[zActor[ActorNumber].Object].IsSet == true) {
 				unsigned char TargetSeg = 0x06;
+				float * scale = NULL;
+				int *dlist = NULL, *bones = NULL, *anim = NULL, *alt_objn = NULL;
+				struct zActorSections Sections;
 
 				if(zActor[ActorNumber].Object == 0x0001) {
 					TargetSeg = 0x04;
@@ -323,19 +361,33 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 				RAM[TargetSeg].Data = zObject[zActor[ActorNumber].Object].Data;
 				RAM[TargetSeg].Size = zObject[zActor[ActorNumber].Object].EndOffset - zObject[zActor[ActorNumber].Object].StartOffset;
 				RAM[TargetSeg].IsSet = true;
-
-				int indent = Read32(zActor[ActorNumber].Data, zActor[ActorNumber].Size-4);
-
-				int sections_addr = zActor[ActorNumber].Size - indent;
-
-				int text_size = Read32(zActor[ActorNumber].Data, sections_addr );
-				dbgprintf(1, MSK_COLORTYPE_INFO, " - .text size is 0x%08X; evaluating ASM...", text_size);
-
-				float * scale = NULL;
-				int *dlist = NULL, *bones = NULL, *anim = NULL, *alt_objn = NULL;
-
+				// Set Watch for variables
+				mips_ResetSpecialOps();
+				mips_SetSpecialOp(MIPS_LH(mips_r0, 0x1C, mips_a0), Var);
+				mips_SetSpecialOp(MIPS_LH(mips_r0, 0x1C, mips_s0), Var);
+				
+				/* get actor sections */
+				Sections = zl_GetActSections(zActor[ActorNumber].Data, zActor[ActorNumber].Size, zActor[ActorNumber].VStart);
+				
+				/* clear previous ram map */
+				mips_ResetMap();
+				
+				/* set sections */
+				if(Sections.data_s)
+					mips_SetMap(Sections.data,	Sections.data_s,	Sections.data_va);
+				if(Sections.rodata_s)
+					mips_SetMap(Sections.rodata,	Sections.rodata_s,	Sections.rodata_va);
+				if(Sections.bss_s)
+					mips_SetMap(Sections.bss,	Sections.bss_s,		Sections.bss_va);
+				
+				/* clear pevious evaluation */
 				mips_ResetResults();
-				mips_EvalWords((unsigned int *)zActor[ActorNumber].Data, text_size / 4);
+				
+				dbgprintf(1, MSK_COLORTYPE_INFO, " - Sections: .text=0x%X; .data=0x%X; .rodata=0x%X; .bss=0x%X; Evaluating ASM...",
+					Sections.text_va, Sections.data_va, Sections.rodata_va, Sections.bss_va);
+				
+				/* interpret words */
+				mips_EvalWords((unsigned int *)Sections.text, Sections.text_s / 4);
 
 				if(zGame.ActorTableOffset == 0x0F9440)
 				{
@@ -351,6 +403,9 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 					anim	= mips_GetFuncArg(0x800A457C,3,true);
 					if(anim == NULL || !*anim){
 						anim = mips_GetFuncArg(0x800A51A0,1,true);
+						if(anim == NULL){
+							anim = mips_GetFuncArg(0x800A2000,0,true);
+						}
 					}
 					alt_objn = mips_GetFuncArg(0x8009812C,1,true);
 					if(dlist == NULL || *dlist > 0x80000000){
