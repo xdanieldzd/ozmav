@@ -117,9 +117,9 @@ struct __zOptions {
 };
 
 struct __zROM {
-	bool IsROMLoaded;
 	char FilePath[MAX_PATH];
 	char Filename[MAX_PATH];
+	bool IsROMLoaded;
 	unsigned int Size;
 	char Title[20];
 	char _Pad1;

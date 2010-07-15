@@ -7,6 +7,7 @@ typedef struct {
 
 extern bool zl_Init(char * Filename);
 extern int zl_LoadROM();
+extern void zl_ShowROMInformation();
 extern void zl_InitCombiner();
 extern int zl_GetGameVersion();
 extern int zl_LoadScene(int SceneNo);

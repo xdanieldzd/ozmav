@@ -18,14 +18,7 @@ bool zl_Init(char * Filename)
 
 		GetFileName(Filename, zROM.Filename);
 
-		dbgprintf(0, MSK_COLORTYPE_INFO, " - Filename:      %s\n", zROM.Filename);
-		dbgprintf(0, MSK_COLORTYPE_INFO, " - Size:          %iMB (%i Mbit)\n", (zROM.Size / 0x100000), (zROM.Size / 0x20000));
-		dbgprintf(0, MSK_COLORTYPE_INFO, " - Title:         %s\n", zROM.Title);
-		dbgprintf(0, MSK_COLORTYPE_INFO, " - Game ID:       %s\n", zROM.GameID);
-		dbgprintf(0, MSK_COLORTYPE_INFO, " - Version:       1.%X\n", zROM.Version);
-		dbgprintf(0, MSK_COLORTYPE_INFO, " - CRC1:          0x%08X\n", zROM.CRC1);
-		dbgprintf(0, MSK_COLORTYPE_INFO, " - CRC2:          0x%08X\n", zROM.CRC2);
-		dbgprintf(0, MSK_COLORTYPE_INFO, "\n");
+		zl_ShowROMInformation();
 
 		if(zl_GetGameVersion()) return EXIT_FAILURE;
 		if(zl_GetDMATable()) return EXIT_FAILURE;
@@ -37,12 +30,6 @@ bool zl_Init(char * Filename)
 		if(zl_LoadScene(zOptions.SceneNo)) return EXIT_FAILURE;
 	} else {
 		return zROM.IsROMLoaded;
-	}
-
-	if(RetVal) {
-		MSK_ConsolePrint(MSK_COLORTYPE_OKAY, "- ROM has been loaded!\n");
-	} else {
-		free(zROM.Data);
 	}
 
 	return RetVal;
@@ -77,6 +64,17 @@ int zl_LoadROM(char * Filename)
 	zROM.CRC2 = Read32(zROM.Data, 20);
 
 	return EXIT_SUCCESS;
+}
+
+void zl_ShowROMInformation()
+{
+	dbgprintf(0, MSK_COLORTYPE_INFO, " - Filename:      %s\n", zROM.Filename);
+	dbgprintf(0, MSK_COLORTYPE_INFO, " - Size:          %iMB (%i Mbit)\n", (zROM.Size / 0x100000), (zROM.Size / 0x20000));
+	dbgprintf(0, MSK_COLORTYPE_INFO, " - Title:         %s\n", zROM.Title);
+	dbgprintf(0, MSK_COLORTYPE_INFO, " - Game ID:       %s\n", zROM.GameID);
+	dbgprintf(0, MSK_COLORTYPE_INFO, " - Version:       1.%X\n", zROM.Version);
+	dbgprintf(0, MSK_COLORTYPE_INFO, " - CRC1:          0x%08X\n", zROM.CRC1);
+	dbgprintf(0, MSK_COLORTYPE_INFO, " - CRC2:          0x%08X\n", zROM.CRC2);
 }
 
 void zl_InitCombiner()
@@ -141,9 +139,9 @@ int zl_GetGameVersion()
 	}
 
 	if(CheckOkay) {
-		dbgprintf(0, MSK_COLORTYPE_OKAY, "ROM has been recognized as '%s'.\n\n", zGame.TitleText);
+		dbgprintf(0, MSK_COLORTYPE_OKAY, "\nROM has been recognized as '%s'.\n\n", zGame.TitleText);
 	} else {
-		dbgprintf(0, MSK_COLORTYPE_ERROR,"- Error: ROM could not be recognized!\n");
+		dbgprintf(0, MSK_COLORTYPE_ERROR,"\n- Error: ROM could not be recognized!\n");
 		return EXIT_FAILURE;
 	}
 

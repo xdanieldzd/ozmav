@@ -15,11 +15,11 @@ void cn_Cmd_LoadROM(unsigned char * Ptr)
 
 void cn_Cmd_LoadScene(unsigned char * Ptr)
 {
-/*	if(!zROM.IsROMLoaded) {
+	if(!zROM.IsROMLoaded) {
 		dbgprintf(0, MSK_COLORTYPE_ERROR, "Error: No ROM loaded!\n");
 		return;
 	}
-*/
+
 	if(Ptr == NULL) {
 		char * SceneSelParam = (char*)malloc(sizeof(char) * 256);
 		sprintf(SceneSelParam, "Scene ID|%i|1", zGame.SceneCount + 1);
@@ -176,8 +176,7 @@ void cn_Cmd_ExtractFiles(unsigned char * Ptr)
 
 	CurrentFile = zl_DMAGetFile(FileNo);
 
-	//while((CurrentFile.VEnd != 0x00) || (CurrentFile.PStart != 0xFFFFFFFF)) {
-	while(FileNo < 30) {
+	while((CurrentFile.VEnd != 0x00) || (CurrentFile.PStart != 0xFFFFFFFF)) {
 		if(CurrentFile.VStart == CurrentFile.VEnd) break;
 
 		CurrentFile = zl_DMAVirtualToPhysical(CurrentFile.VStart);
@@ -268,4 +267,14 @@ void cn_Cmd_ListFiles(unsigned char * Ptr)
 	}
 
 	dbgprintf(0, MSK_COLORTYPE_OKAY, "Done!\n");
+}
+
+void cn_Cmd_ShowROMInfo(unsigned char * Ptr)
+{
+	if(!zROM.IsROMLoaded) {
+		dbgprintf(0, MSK_COLORTYPE_ERROR, "Error: No ROM loaded!\n");
+		return;
+	}
+
+	zl_ShowROMInformation();
 }
