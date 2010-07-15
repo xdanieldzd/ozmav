@@ -164,8 +164,6 @@ int zl_LoadScene(int SceneNo)
 	RDP_InitParser(F3DEX2);
 	zl_InitCombiner();
 
-	md_InitModelDumping(SceneNo);
-
 	// default to rendering the first map of the scene
 	zOptions.MapToRender = 0;
 
@@ -222,12 +220,8 @@ int zl_LoadScene(int SceneNo)
 
 		ca_Reset();
 
-		md_StopModelDumping();
-
 		dbgprintf(1, MSK_COLORTYPE_OKAY, "\nScene #%i has been loaded.\n", zOptions.SceneNo);
 	} else {
-		md_StopModelDumping();
-
 		dbgprintf(1, MSK_COLORTYPE_ERROR, "- Error: Could not load Scene #%i.\n", zOptions.SceneNo);
 	}
 	return EXIT_SUCCESS;

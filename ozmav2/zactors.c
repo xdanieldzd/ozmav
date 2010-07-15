@@ -580,7 +580,7 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 		// mark actor as processed
 		zActor[ActorNumber].IsSet = true;
 
-		dbgprintf(0, MSK_COLORTYPE_INFO, "  -Scale %.3f DL %08X, Bones %08X, Ani %08X %s, Obj %i",
+		dbgprintf(0, MSK_COLORTYPE_INFO, "  - Scale %.3f, DL %08X, Bones %08X, Ani %08X\n     %s, Obj %04X\n",
 			zActor[ActorNumber].Scale, zActor[ActorNumber].DisplayList,
 			zActor[ActorNumber].BoneSetup, zActor[ActorNumber].Animation,
 			zActor[ActorNumber].Name, zActor[ActorNumber].Object);

@@ -34,7 +34,6 @@ enum { true = 1, false = 0 };
 #include "draw.h"
 #include "zelda.h"
 #include "camera.h"
-#include "dump.h"
 #include "mips-eval.h"
 #include "mips.h"
 #include "zactors.h"
@@ -93,11 +92,6 @@ struct __zProgram {
 	int MousePosX, MousePosY;
 	int MouseCenterX, MouseCenterY;
 	bool MouseButtonDown;
-
-	unsigned int WavefrontObjVertCount;
-	unsigned int WavefrontObjMaterialCnt;
-	FILE * FileWavefrontObj;
-	FILE * FileWavefrontMtl;
 
 	char Title[256];
 	char AppPath[MAX_PATH];

@@ -1,12 +1,12 @@
 #define MAX_SEGMENTS		16
 
-struct __RAM {
+typedef struct {
 	bool IsSet;
 	unsigned int Size;
 	unsigned char * Data;
-};
+} __RAM;
 
-extern struct __RAM RAM[MAX_SEGMENTS];
+extern __RAM RAM[MAX_SEGMENTS];
 
 extern enum { F3D, F3DEX, F3DEX2 } UcodeIDs;
 
@@ -21,3 +21,5 @@ extern void RDP_ClearTextures();
 extern void RDP_ClearStructures(bool Full);
 extern void RDP_ParseDisplayList(unsigned int Address, bool ResetStack);
 extern void RDP_CreateCombinerProgram(unsigned int Cmb0, unsigned int Cmb1);
+extern void RDP_Dump_InitModelDumping(char Path[MAX_PATH], char ObjFilename[MAX_PATH], char MtlFilename[MAX_PATH]);
+extern void RDP_Dump_StopModelDumping();

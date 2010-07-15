@@ -130,10 +130,6 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="draw.h" />
-		<Unit filename="dump.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="dump.h" />
 		<Unit filename="globals.h" />
 		<Unit filename="main.c">
 			<Option compilerVar="CC" />
