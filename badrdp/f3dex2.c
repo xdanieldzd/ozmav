@@ -37,6 +37,8 @@ void RDP_F3DEX2_Init()
 
 void RDP_F3DEX2_VTX()
 {
+	if(((wn0 >> 24) == F3DEX2_CULLDL) || ((wn0 >> 24) == F3DEX2_MTX)) return;
+
 	if(!RDP_CheckAddressValidity(w1)) return;
 
 	unsigned char TempSegment = w1 >> 24;
@@ -175,17 +177,14 @@ void RDP_F3DEX2_GEOMETRYMODE()
 
 void RDP_F3DEX2_MTX()
 {
+	if(!(w0 & 0x00FFFFFF)) return;
+
 	unsigned char Segment = w1 >> 24;
 	unsigned int Offset = (w1 & 0x00FFFFFF);
 
-	switch(Segment) {
-		case 0x01:
-		case 0x0C:
-		case 0x0D:
-			return;
-		case 0x80:
-			glPopMatrix();
-			return;
+	if(Segment == 0x80) {
+		glPopMatrix();
+		return;
 	}
 
 	if(!RDP_CheckAddressValidity(w1)) return;
@@ -203,9 +202,12 @@ void RDP_F3DEX2_MTX()
 			Offset += 2;
 		}
 	}
+
+	glPushMatrix();
+	glMultMatrixf(*TempMatrix);
 /*
 	// below does not yet work right
-	unsigned char MtxCommand = (_SHIFTR(w0, 0, 8) ^ G_MTX_PUSH);
+	unsigned char MtxCommand = (_SHIFTR(w0, 0, 8) | G_MTX_PUSH);
 
 	if(MtxCommand & G_MTX_PROJECTION) {
 		if(MtxCommand & G_MTX_LOAD) {
@@ -223,10 +225,7 @@ void RDP_F3DEX2_MTX()
 		} else {
 			RDP_Matrix_ModelviewMul(TempMatrix);
 		}
-	}
-*/
-	glPushMatrix();
-	glMultMatrixf(*TempMatrix);
+	}*/
 }
 
 void RDP_F3DEX2_MOVEWORD()

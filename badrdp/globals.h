@@ -146,6 +146,9 @@ struct __Texture {
 	unsigned int CMT, CMS;
 	float ScaleT, ScaleS;
 	float ShiftScaleT, ShiftScaleS;
+
+	float WidthRatio;
+	float HeightRatio;
 };
 
 struct __RGBA {

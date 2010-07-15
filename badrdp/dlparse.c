@@ -468,14 +468,14 @@ void RDP_DrawTriangle(int Vtxs[])
 
 	int i = 0;
 	for(i = 0; i < 3; i++) {
-		float TempS0 = _FIXED2FLOAT(Vertex[Vtxs[i]].S, 16) * (Texture[0].ScaleS * Texture[0].ShiftScaleS) / 32.0f / _FIXED2FLOAT(Texture[0].RealWidth, 16);
-		float TempT0 = _FIXED2FLOAT(Vertex[Vtxs[i]].T, 16) * (Texture[0].ScaleT * Texture[0].ShiftScaleT) / 32.0f / _FIXED2FLOAT(Texture[0].RealHeight, 16);
+		float TempS0 = _FIXED2FLOAT(Vertex[Vtxs[i]].S, 16) * Texture[0].WidthRatio;
+		float TempT0 = _FIXED2FLOAT(Vertex[Vtxs[i]].T, 16) * Texture[0].HeightRatio;
 
 		if(OpenGL.Ext_MultiTexture) {
 			glMultiTexCoord2fARB(GL_TEXTURE0_ARB, TempS0, TempT0);
 			if(Gfx.IsMultiTexture) {
-				float TempS1 = _FIXED2FLOAT(Vertex[Vtxs[i]].S, 16) * (Texture[1].ScaleS * Texture[1].ShiftScaleS) / 32.0f / _FIXED2FLOAT(Texture[1].RealWidth, 16);
-				float TempT1 = _FIXED2FLOAT(Vertex[Vtxs[i]].T, 16) * (Texture[1].ScaleT * Texture[1].ShiftScaleT) / 32.0f / _FIXED2FLOAT(Texture[1].RealHeight, 16);
+				float TempS1 = _FIXED2FLOAT(Vertex[Vtxs[i]].S, 16) * Texture[1].WidthRatio;
+				float TempT1 = _FIXED2FLOAT(Vertex[Vtxs[i]].T, 16) * Texture[1].HeightRatio;
 				glMultiTexCoord2fARB(GL_TEXTURE1_ARB, TempS1, TempT1);
 			}
 		} else {
@@ -515,8 +515,6 @@ void RDP_CheckFragmentCache()
 			}
 		}
 	}
-
-	glEnable(GL_FRAGMENT_PROGRAM_ARB);
 
 	if(NewProg) {
 		RDP_CreateCombinerProgram(Gfx.Combiner0, Gfx.Combiner1);
@@ -1057,6 +1055,9 @@ void RDP_CalcTextureSize(int TextureID)
 	} else if(Texture[TextureID].ShiftT > 0) {
 		Texture[TextureID].ShiftScaleT /= (1 << Texture[TextureID].ShiftT);
 	}
+
+	Texture[TextureID].WidthRatio = ((Texture[TextureID].ScaleS * Texture[TextureID].ShiftScaleS) / 32.0f / _FIXED2FLOAT(Texture[TextureID].RealWidth, 16));
+	Texture[TextureID].HeightRatio = ((Texture[TextureID].ScaleT * Texture[TextureID].ShiftScaleT) / 32.0f / _FIXED2FLOAT(Texture[TextureID].RealHeight, 16));
 }
 
 inline unsigned long RDP_Pow2(unsigned long dim)
