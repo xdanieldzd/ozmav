@@ -301,7 +301,7 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 			Var = zDoor[CurrActor].Var;
 
 			//drawing stuff
-			zGfx.DoorDLCount[CurrActor] = 2;
+			zGfx.DoorDLCount[CurrActor] = 1;
 			zGfx.DoorGLListCount[CurrActor] = glGenLists(zGfx.DoorDLCount[CurrActor]);
 			glListBase(zGfx.DoorGLListCount[CurrActor]);
 			DLCount = zGfx.DoorDLCount[CurrActor];
