@@ -59,4 +59,4 @@ all: $(PIECES)
 
 # Cleanup
 clean:
-	rm -vf $(TARGET) *.o
+	rm -vrf $(TARGET) *.o dump extr log.txt
