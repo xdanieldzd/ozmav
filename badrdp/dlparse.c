@@ -46,15 +46,15 @@ PFNGLPROGRAMSTRINGARBPROC			glProgramStringARB = NULL;
 PFNGLPROGRAMENVPARAMETER4FARBPROC	glProgramEnvParameter4fARB = NULL;
 PFNGLPROGRAMLOCALPARAMETER4FARBPROC	glProgramLocalParameter4fARB = NULL;
 
-struct __System System;
-struct __Matrix Matrix;
-struct __Gfx Gfx;
-struct __Palette Palette[256];
-struct __Vertex Vertex[32];
-struct __Texture Texture[2];
-struct __FragmentCache FragmentCache[CACHE_FRAGMENT];
-struct __TextureCache TextureCache[CACHE_TEXTURES];
-struct __OpenGL OpenGL;
+__System System;
+__Matrix Matrix;
+__Gfx Gfx;
+__Palette Palette[256];
+__Vertex Vertex[32];
+__Texture Texture[2];
+__FragmentCache FragmentCache[CACHE_FRAGMENT];
+__TextureCache TextureCache[CACHE_TEXTURES];
+__OpenGL OpenGL;
 
 // ----------------------------------------
 
@@ -394,27 +394,27 @@ void RDP_ClearStructures(bool Full)
 {
 	int i = 0;
 
-	static const struct __Vertex Vertex_Empty = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+	static const __Vertex Vertex_Empty = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.0f, 0.0f, 0.0f, 0.0f };
 	for(i = 0; i < ArraySize(Vertex); i++) Vertex[i] = Vertex_Empty;
 
-	static const struct __Palette Palette_Empty = { 0, 0, 0, 0 };
+	static const __Palette Palette_Empty = { 0, 0, 0, 0 };
 	for(i = 0; i < ArraySize(Palette); i++) Palette[i] = Palette_Empty;
 
-	static const struct __Texture Texture_Empty = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.0f, 0.0f, 0.0f, 0.0f };
+	static const __Texture Texture_Empty = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.0f, 0.0f, 0.0f, 0.0f };
 	Texture[0] = Texture_Empty;
 	Texture[1] = Texture_Empty;
 
-	static const struct __TextureCache TextureCache_Empty = { 0, 0, 0, -1 };
+	static const __TextureCache TextureCache_Empty = { 0, 0, 0, -1 };
 	for(i = 0; i < ArraySize(TextureCache); i++) TextureCache[i] = TextureCache_Empty;
 	System.TextureCachePosition = 0;
 
-	static const struct __RGBA RGBA_Empty = { 0.0f, 0.0f, 0.0f, 0.0f };
+	static const __RGBA RGBA_Empty = { 0.0f, 0.0f, 0.0f, 0.0f };
 	Gfx.BlendColor = RGBA_Empty;
 	Gfx.EnvColor = RGBA_Empty;
 	Gfx.FogColor = RGBA_Empty;
-	static const struct __FillColor FillColor_Empty = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+	static const __FillColor FillColor_Empty = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
 	Gfx.FillColor = FillColor_Empty;
-	static const struct __PrimColor PrimColor_Empty = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0 };
+	static const __PrimColor PrimColor_Empty = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0 };
 	Gfx.PrimColor = PrimColor_Empty;
 
 	Gfx.DLStackPos = 0;
@@ -427,7 +427,7 @@ void RDP_ClearStructures(bool Full)
 	Gfx.Combiner0 = 0; Gfx.Combiner1 = 0;
 
 	if(Full) {
-		static const struct __FragmentCache FragmentCache_Empty = { 0, 0, -1 };
+		static const __FragmentCache FragmentCache_Empty = { 0, 0, -1 };
 		for(i = 0; i < ArraySize(FragmentCache); i++) FragmentCache[i] = FragmentCache_Empty;
 		System.FragCachePosition = 0;
 	}
@@ -468,24 +468,26 @@ void RDP_DrawTriangle(int Vtxs[])
 
 	int i = 0;
 	for(i = 0; i < 3; i++) {
-		float TempS0 = _FIXED2FLOAT(Vertex[Vtxs[i]].S, 16) * (Texture[0].ScaleS * Texture[0].ShiftScaleS) / 32.0f / _FIXED2FLOAT(Texture[0].RealWidth, 16);
-		float TempT0 = _FIXED2FLOAT(Vertex[Vtxs[i]].T, 16) * (Texture[0].ScaleT * Texture[0].ShiftScaleT) / 32.0f / _FIXED2FLOAT(Texture[0].RealHeight, 16);
+		Vertex[Vtxs[i]].RealS0 = _FIXED2FLOAT(Vertex[Vtxs[i]].S, 16) * (Texture[0].ScaleS * Texture[0].ShiftScaleS) / 32.0f / _FIXED2FLOAT(Texture[0].RealWidth, 16);
+		Vertex[Vtxs[i]].RealT0 = _FIXED2FLOAT(Vertex[Vtxs[i]].T, 16) * (Texture[0].ScaleT * Texture[0].ShiftScaleT) / 32.0f / _FIXED2FLOAT(Texture[0].RealHeight, 16);
 
 		if(OpenGL.Ext_MultiTexture) {
-			glMultiTexCoord2fARB(GL_TEXTURE0_ARB, TempS0, TempT0);
+			glMultiTexCoord2fARB(GL_TEXTURE0_ARB, Vertex[Vtxs[i]].RealS0, Vertex[Vtxs[i]].RealT0);
 			if(Gfx.IsMultiTexture) {
-				float TempS1 = _FIXED2FLOAT(Vertex[Vtxs[i]].S, 16) * (Texture[1].ScaleS * Texture[1].ShiftScaleS) / 32.0f / _FIXED2FLOAT(Texture[1].RealWidth, 16);
-				float TempT1 = _FIXED2FLOAT(Vertex[Vtxs[i]].T, 16) * (Texture[1].ScaleT * Texture[1].ShiftScaleT) / 32.0f / _FIXED2FLOAT(Texture[1].RealHeight, 16);
-				glMultiTexCoord2fARB(GL_TEXTURE1_ARB, TempS1, TempT1);
+				Vertex[Vtxs[i]].RealS1 = _FIXED2FLOAT(Vertex[Vtxs[i]].S, 16) * (Texture[1].ScaleS * Texture[1].ShiftScaleS) / 32.0f / _FIXED2FLOAT(Texture[1].RealWidth, 16);
+				Vertex[Vtxs[i]].RealT1 = _FIXED2FLOAT(Vertex[Vtxs[i]].T, 16) * (Texture[1].ScaleT * Texture[1].ShiftScaleT) / 32.0f / _FIXED2FLOAT(Texture[1].RealHeight, 16);
+				glMultiTexCoord2fARB(GL_TEXTURE1_ARB, Vertex[Vtxs[i]].RealS1, Vertex[Vtxs[i]].RealT1);
 			}
 		} else {
-			glTexCoord2f(TempS0, TempT0);
+			glTexCoord2f(Vertex[Vtxs[i]].RealS0, Vertex[Vtxs[i]].RealT0);
 		}
 
 		glNormal3b(Vertex[Vtxs[i]].R, Vertex[Vtxs[i]].G, Vertex[Vtxs[i]].B);
 		if(!(Gfx.GeometryMode & G_LIGHTING)) glColor4ub(Vertex[Vtxs[i]].R, Vertex[Vtxs[i]].G, Vertex[Vtxs[i]].B, Vertex[Vtxs[i]].A);
 
 		glVertex3d(Vertex[Vtxs[i]].X, Vertex[Vtxs[i]].Y, Vertex[Vtxs[i]].Z);
+
+		RDP_Dump_DumpTriangle(&Vertex[Vtxs[i]]);
 	}
 
 	glEnd();
@@ -526,7 +528,7 @@ void RDP_CheckFragmentCache()
 
 	if(System.FragCachePosition > CACHE_FRAGMENT) {
 		int i = 0;
-		static const struct __FragmentCache FragmentCache_Empty;
+		static const __FragmentCache FragmentCache_Empty;
 		for(i = 0; i < CACHE_FRAGMENT; i++) FragmentCache[i] = FragmentCache_Empty;
 		System.FragCachePosition = 0;
 	}
@@ -1141,7 +1143,7 @@ GLuint RDP_CheckTextureCache(unsigned int TexID)
 
 	if(System.TextureCachePosition > CACHE_TEXTURES) {
 		int i = 0;
-		static const struct __TextureCache TextureCache_Empty;
+		static const __TextureCache TextureCache_Empty;
 		for(i = 0; i < CACHE_TEXTURES; i++) TextureCache[i] = TextureCache_Empty;
 		System.TextureCachePosition = 0;
 	}
@@ -1458,6 +1460,8 @@ GLuint RDP_LoadTexture(int TextureID)
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	if(TextureID == 0) RDP_Dump_CreateMaterial(TextureData, Texture[0].Format, Texture[0].Offset, Texture[0].RealWidth, Texture[0].RealHeight);
 
 	free(TextureData);
 

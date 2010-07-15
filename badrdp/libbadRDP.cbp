@@ -17,6 +17,8 @@
 				<Compiler>
 					<Add option="-Wall" />
 					<Add option="-g" />
+					<Add directory="D:\zlib-1.2.3-lib\include" />
+					<Add directory="D:\libpng-1.2.37-lib\include" />
 				</Compiler>
 				<Linker>
 					<Add library="opengl32" />
@@ -25,6 +27,8 @@
 					<Add library="kernel32" />
 					<Add library="user32" />
 					<Add library="gdi32" />
+					<Add library="D:\libpng-1.2.37-lib\lib\libpng12.dll.a" />
+					<Add library="D:\zlib-1.2.3-lib\lib\libz.a" />
 				</Linker>
 			</Target>
 			<Target title="Release - Win32">
@@ -38,6 +42,8 @@
 				<Compiler>
 					<Add option="-Wall" />
 					<Add option="-O2" />
+					<Add directory="D:\zlib-1.2.3-lib\include" />
+					<Add directory="D:\libpng-1.2.37-lib\include" />
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
@@ -47,6 +53,8 @@
 					<Add library="kernel32" />
 					<Add library="user32" />
 					<Add library="gdi32" />
+					<Add library="D:\libpng-1.2.37-lib\lib\libpng12.dll.a" />
+					<Add library="D:\zlib-1.2.3-lib\lib\libz.a" />
 				</Linker>
 			</Target>
 			<Target title="Debug - Linux">
@@ -84,6 +92,10 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="dlparse.h" />
+		<Unit filename="dump.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="dump.h" />
 		<Unit filename="f3d.c">
 			<Option compilerVar="CC" />
 		</Unit>

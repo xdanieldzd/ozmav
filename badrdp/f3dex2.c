@@ -140,7 +140,7 @@ void RDP_F3DEX2_DMA_IO()
 
 void RDP_F3DEX2_TEXTURE()
 {
-	static const struct __Texture Texture_Empty = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.0f, 0.0f, 0.0f, 0.0f };
+	static const __Texture Texture_Empty = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.0f, 0.0f, 0.0f, 0.0f };
 	Texture[0] = Texture_Empty;
 	Texture[1] = Texture_Empty;
 

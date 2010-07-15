@@ -13,6 +13,8 @@
 #include <X11/X.h>
 #endif
 
+#include <png.h>
+
 // ----------------------------------------
 
 typedef unsigned char bool;
@@ -96,20 +98,26 @@ PFNGLPROGRAMLOCALPARAMETER4FARBPROC	glProgramLocalParameter4fARB;
 
 // ----------------------------------------
 
-struct __System {
+typedef struct {
 	unsigned int FragCachePosition;
 	unsigned int TextureCachePosition;
-};
 
-struct __Matrix {
+	char WavefrontObjPath[MAX_PATH];
+	FILE * FileWavefrontObj;
+	FILE * FileWavefrontMtl;
+	unsigned int WavefrontObjVertCount;
+	unsigned int WavefrontObjMaterialCnt;
+} __System;
+
+typedef struct {
 	float Model[4][4];
 	float Proj[4][4];
 	float ModelStack[32][4][4];
 	int ModelStackSize;
 	int ModelIndex;
-};
+} __Matrix;
 
-struct __Vertex {
+typedef struct {
 	short X;
 	short Y;
 	short Z;
@@ -119,16 +127,21 @@ struct __Vertex {
 	unsigned char G;
 	unsigned char B;
 	unsigned char A;
-};
 
-struct __Palette {
+	float RealS0;
+	float RealT0;
+	float RealS1;
+	float RealT1;
+} __Vertex;
+
+typedef struct {
 	unsigned char R;
 	unsigned char G;
 	unsigned char B;
 	unsigned char A;
-};
+} __Palette;
 
-struct __Texture {
+typedef struct {
 	unsigned int Offset;
 	unsigned int PalOffset;
 
@@ -146,47 +159,47 @@ struct __Texture {
 	unsigned int CMT, CMS;
 	float ScaleT, ScaleS;
 	float ShiftScaleT, ShiftScaleS;
-};
+} __Texture;
 
-struct __RGBA {
+typedef struct {
 	float R;
 	float G;
 	float B;
 	float A;
-};
+} __RGBA;
 
-struct __FillColor {
+typedef struct {
 	float R;
 	float G;
 	float B;
 	float A;
 	float Z;
 	float DZ;
-};
+} __FillColor;
 
-struct __PrimColor {
+typedef struct {
 	float R;
 	float G;
 	float B;
 	float A;
 	float L;
 	unsigned short M;
-};
+} __PrimColor;
 
-struct __FragmentCache {
+typedef struct {
 	unsigned int zCombiner0;
 	unsigned int zCombiner1;
 	GLuint ProgramID;
-};
+} __FragmentCache;
 
-struct __TextureCache {
+typedef struct {
 	unsigned int Offset;
 	unsigned int RealWidth;
 	unsigned int RealHeight;
 	GLuint TextureID;
-};
+} __TextureCache;
 
-struct __Gfx {
+typedef struct {
 	int DLStack[16];
 	int DLStackPos;
 
@@ -201,20 +214,20 @@ struct __Gfx {
 	unsigned int Store_RDPHalf1, Store_RDPHalf2;
 	unsigned int Combiner0, Combiner1;
 
-	struct __RGBA BlendColor;
-	struct __RGBA EnvColor;
-	struct __RGBA FogColor;
-	struct __FillColor FillColor;
-	struct __PrimColor PrimColor;
+	__RGBA BlendColor;
+	__RGBA EnvColor;
+	__RGBA FogColor;
+	__FillColor FillColor;
+	__PrimColor PrimColor;
 
 	bool IsMultiTexture;
 	int CurrentTexture;
 
 	GLuint GLTextureID[CACHE_TEXTURES];
 	int GLTextureCount;
-};
+} __Gfx;
 
-struct __OpenGL {
+typedef struct {
 	char * ExtensionList;
 	char ExtSupported[256];
 	char ExtUnsupported[256];
@@ -222,14 +235,18 @@ struct __OpenGL {
 	bool Ext_MultiTexture;
 	bool Ext_TexMirroredRepeat;
 	bool Ext_FragmentProgram;
-};
+} __OpenGL;
 
-extern struct __System System;
-extern struct __Matrix Matrix;
-extern struct __Gfx Gfx;
-extern struct __Palette Palette[256];
-extern struct __Vertex Vertex[32];
-extern struct __Texture Texture[2];
-extern struct __FragmentCache FragmentCache[CACHE_FRAGMENT];
-extern struct __TextureCache TextureCache[CACHE_TEXTURES];
-extern struct __OpenGL OpenGL;
+extern __System System;
+extern __Matrix Matrix;
+extern __Gfx Gfx;
+extern __Palette Palette[256];
+extern __Vertex Vertex[32];
+extern __Texture Texture[2];
+extern __FragmentCache FragmentCache[CACHE_FRAGMENT];
+extern __TextureCache TextureCache[CACHE_TEXTURES];
+extern __OpenGL OpenGL;
+
+// ----------------------------------------
+
+#include "dump.h"
