@@ -476,6 +476,10 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 				if(ActorNumber == 0x14E) {
 					zActor[ActorNumber].Scale = 0.1;
 				}
+				// deku tree stuff
+				else if(zActor[ActorNumber].Object == 0x36) {
+					zActor[ActorNumber].Scale = 0.1;
+				}
 				// windmill spinning thingy
 				if((zActor[ActorNumber].Object == 0x6C) && (ActorNumber == 0x123)) {
 					zActor[ActorNumber].Scale = 0.1;
@@ -545,6 +549,10 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 					} else if(ActorNumber == 0x3E) {
 						zActor[ActorNumber].DisplayList = 0x060009D0;
 						zActor[ActorNumber].Scale = 1.0;
+					
+					//spider webs
+					} else if(ActorNumber == 0xF) {
+						zActor[ActorNumber].DisplayList = 0x060061B0;
 
 					// everything else, atm disabled if not gi
 					} else if(zActor[ActorNumber].Object > 0x3 && 0){//!strncmp(zObject[zActor[ActorNumber].Object].Name, "object_gi_", 10)) {
