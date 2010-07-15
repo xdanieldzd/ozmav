@@ -549,13 +549,13 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 					} else if(ActorNumber == 0x3E) {
 						zActor[ActorNumber].DisplayList = 0x060009D0;
 						zActor[ActorNumber].Scale = 1.0;
-					
+
 					//spider webs
 					} else if(ActorNumber == 0xF) {
 						zActor[ActorNumber].DisplayList = 0x060061B0;
 
 					// everything else, atm disabled
-					} else if(zActor[ActorNumber].Object > 0x3 && 0){ {
+					} else if(zActor[ActorNumber].Object > 0x3 && 0){
 						int i = 0;
 						for(i = 0; i < RAM[0x06].Size; i+=8) {
 							unsigned int w0 = Read32(RAM[0x06].Data, i);
