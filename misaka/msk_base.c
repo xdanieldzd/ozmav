@@ -43,7 +43,7 @@ int MSK_Init(char * Apptitle)
 	wbkgd(Console.WindowCommand, COLOR_PAIR(4));
 
 	// init log
-	Console.WindowPad = newpad(131072, COLS - 1);
+	Console.WindowPad = newpad(16384, COLS - 1);
 	wbkgd(Console.WindowPad, COLOR_PAIR(0));
 
 	// init main window / title bar

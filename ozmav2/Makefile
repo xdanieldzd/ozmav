@@ -7,7 +7,7 @@ CC = gcc
 CFLAGS = -Wall -U_FORTIFY_SOURCE
 
 # Application pieces
-PIECES	= camera.o confunc.o zelda.o main.o mips-eval.o oz.o draw.o dump.o zactors.o 
+PIECES	= camera.o confunc.o zelda.o main.o mips-eval.o oz.o draw.o zactors.o 
 
 # In regards to backslashes
 # (http://www.netbsd.org/docs/pkgsrc/makefile.html#makefile.variables)
@@ -47,10 +47,10 @@ endif
 #Debug? 
 ifeq ($(DBG),1)
   CFLAGS += -DDEBUG -g
-  LDFLAGS += ../misaka/libMISAKA_debug.a ../badrdp/libbadrdp_debug.a
+  LDFLAGS += ../misaka/libMISAKA_debug.a ../badrdp/libbadRDP_debug.a
 else
   CFLAGS += -O2
-  LDFLAGS += ../misaka/libMISAKA.a ../badrdp/libbadrdp.a
+  LDFLAGS += ../misaka/libMISAKA.a ../badrdp/libbadRDP.a
 endif
 
 # Make

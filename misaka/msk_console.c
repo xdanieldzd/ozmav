@@ -63,7 +63,7 @@ void MSK_ConsolePrint(int Color, char * Format, ...)
 	wrefresh(Console.WindowPad);
 
 	if(Console.Log != NULL){
-		fprintf(Console.Log, Text);
+		fprintf(Console.Log, "%s", Text);
 		fflush(Console.Log);
 	}
 

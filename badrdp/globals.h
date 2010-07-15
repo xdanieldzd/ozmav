@@ -11,6 +11,8 @@
 #else
 #include <GL/glx.h>
 #include <X11/X.h>
+#include <limits.h>
+#define MAX_PATH	PATH_MAX
 #endif
 
 #include <png.h>
@@ -22,13 +24,6 @@ enum { true = 1, false = 0 };
 
 // ----------------------------------------
 
-#include "badrdp.h"
-
-#include "dlparse.h"
-#include "rdp.h"
-#include "f3d.h"
-#include "f3dex.h"
-#include "f3dex2.h"
 
 // ----------------------------------------
 
@@ -249,4 +244,11 @@ extern __OpenGL OpenGL;
 
 // ----------------------------------------
 
+#include "badrdp.h"
+
+#include "dlparse.h"
+#include "rdp.h"
+#include "f3d.h"
+#include "f3dex.h"
+#include "f3dex2.h"
 #include "dump.h"

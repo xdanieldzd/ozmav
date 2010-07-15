@@ -64,6 +64,10 @@ extern void RDP_Matrix_ModelviewPop(int);
 extern void RDP_Matrix_ProjectionLoad(float [4][4]);
 extern void RDP_Matrix_ProjectionMul(float [4][4]);
 
+//-----------------------------------------
+
+void (*glXGetProcAddressARB(const GLubyte *procName))();
+
 // ----------------------------------------
 
 #define CHANGED_GEOMETRYMODE	0x01
