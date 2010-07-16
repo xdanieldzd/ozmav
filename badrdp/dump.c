@@ -20,10 +20,10 @@ void RDP_Dump_InitModelDumping(char Path[MAX_PATH], char ObjFilename[MAX_PATH], 
 
 	if(!System.FileWavefrontObj || !System.FileWavefrontMtl) return;
 
-	fprintf(System.FileWavefrontObj, "# dumped via libbadRDP\n");
-	fprintf(System.FileWavefrontObj, "mtllib %s\n", MtlFilename);
+	fprintf(System.FileWavefrontObj, "# dumped via libbadRDP\n\n");
+	fprintf(System.FileWavefrontObj, "mtllib %s\n\n", MtlFilename);
 
-	fprintf(System.FileWavefrontMtl, "# dumped via libbadRDP\n");
+	fprintf(System.FileWavefrontMtl, "# dumped via libbadRDP\n\n");
 
 	System.WavefrontObjVertCount = 1;
 	System.WavefrontObjMaterialCnt = 1;
@@ -35,9 +35,9 @@ void RDP_Dump_StopModelDumping()
 	if(System.FileWavefrontMtl) fclose(System.FileWavefrontMtl);
 }
 
-void RDP_Dump_CreateMaterial(unsigned char * TextureData, unsigned char TexFormat, unsigned int TexOffset, int Width, int Height)
+int RDP_Dump_CreateMaterial(unsigned char * TextureData, unsigned char TexFormat, unsigned int TexOffset, int Width, int Height)
 {
-	if(!System.FileWavefrontObj || !System.FileWavefrontMtl) return;
+	if(!System.FileWavefrontObj || !System.FileWavefrontMtl) return EXIT_FAILURE;
 
 	char TextureFilename[MAX_PATH];
 	sprintf(TextureFilename, "texture_fmt0x%02X_0x%08X.png", TexFormat, TexOffset);
@@ -50,23 +50,29 @@ void RDP_Dump_CreateMaterial(unsigned char * TextureData, unsigned char TexForma
 	fprintf(System.FileWavefrontMtl, "newmtl material_%d\n", System.WavefrontObjMaterialCnt);
 	fprintf(System.FileWavefrontMtl, "Kd 0.0000 0.0000 0.0000\n");
 	fprintf(System.FileWavefrontMtl, "illum 1\n");
-	fprintf(System.FileWavefrontMtl, "map_Ka %s\n", TextureFilename);
-	fprintf(System.FileWavefrontMtl, "map_Kd %s\n\n", TextureFilename);
-
-	fprintf(System.FileWavefrontObj, "usemtl material_%d\n", System.WavefrontObjMaterialCnt);
+	fprintf(System.FileWavefrontMtl, "map_Ka %s\n\n", TextureFilename);
 
 	System.WavefrontObjMaterialCnt++;
+
+	return System.WavefrontObjMaterialCnt - 1;
 }
 
-void RDP_Dump_DumpTriangle(__Vertex Vtx[])
+void RDP_Dump_SelectMaterial(int MatID)
+{
+	if(!System.FileWavefrontObj || !System.FileWavefrontMtl) return;
+
+	fprintf(System.FileWavefrontObj, "usemtl material_%d\n", MatID);
+}
+
+void RDP_Dump_DumpTriangle(__Vertex Vtx[], int VtxID[])
 {
 	if(!System.FileWavefrontObj || !System.FileWavefrontMtl) return;
 
 	int i = 0;
 	for(i = 0; i < 3; i++) {
-		fprintf(System.FileWavefrontObj, "v %4.8f %4.8f %4.8f\n", (float)Vtx[i].X / 32.0f, (float)Vtx[i].Y / 32.0f, (float)Vtx[i].Z / 32.0f);
-//		fprintf(System.FileWavefrontObj, "vt %4.8f %4.8f\n", Vtx[i].RealS0, -Vtx[i].RealT0);
-		fprintf(System.FileWavefrontObj, "vn %4.8f %4.8f %4.8f\n", (float)Vtx[i].R, (float)Vtx[i].G, (float)Vtx[i].B);
+		fprintf(System.FileWavefrontObj, "v %4.8f %4.8f %4.8f\n", (float)Vtx[VtxID[i]].X / 32.0f, (float)Vtx[VtxID[i]].Y / 32.0f, (float)Vtx[VtxID[i]].Z / 32.0f);
+		fprintf(System.FileWavefrontObj, "vt %4.8f %4.8f\n", (isnan(Vtx[VtxID[i]].RealS0) ? 0.0f : Vtx[VtxID[i]].RealS0), (isnan(-Vtx[VtxID[i]].RealT0) ? 0.0f : -Vtx[VtxID[i]].RealT0));
+		fprintf(System.FileWavefrontObj, "vn %4.8f %4.8f %4.8f\n", (float)Vtx[VtxID[i]].R, (float)Vtx[VtxID[i]].G, (float)Vtx[VtxID[i]].B);
 	}
 
 	fprintf(System.FileWavefrontObj, "f %d/%d/%d %d/%d/%d %d/%d/%d\n\n",

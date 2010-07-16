@@ -91,6 +91,10 @@ PFNGLPROGRAMLOCALPARAMETER4FARBPROC	glProgramLocalParameter4fARB;
 
 #define ArraySize(x)	(sizeof((x)) / sizeof((x)[0]))
 
+#ifndef isnan
+#define isnan(x) ((x) != (x))
+#endif
+
 // ----------------------------------------
 
 typedef struct {
@@ -192,6 +196,8 @@ typedef struct {
 	unsigned int RealWidth;
 	unsigned int RealHeight;
 	GLuint TextureID;
+
+	int MaterialID;
 } __TextureCache;
 
 typedef struct {

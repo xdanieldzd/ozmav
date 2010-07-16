@@ -486,9 +486,9 @@ void RDP_DrawTriangle(int Vtxs[])
 		if(!(Gfx.GeometryMode & G_LIGHTING)) glColor4ub(Vertex[Vtxs[i]].R, Vertex[Vtxs[i]].G, Vertex[Vtxs[i]].B, Vertex[Vtxs[i]].A);
 
 		glVertex3d(Vertex[Vtxs[i]].X, Vertex[Vtxs[i]].Y, Vertex[Vtxs[i]].Z);
-
-		RDP_Dump_DumpTriangle(&Vertex[Vtxs[i]]);
 	}
+
+	RDP_Dump_DumpTriangle(Vertex, Vtxs);
 
 	glEnd();
 }
@@ -1132,6 +1132,7 @@ GLuint RDP_CheckTextureCache(unsigned int TexID)
 
 	if(NewTexture) {
 		GLID = RDP_LoadTexture(TexID);
+		RDP_Dump_SelectMaterial(TextureCache[System.TextureCachePosition].MaterialID);
 		TextureCache[System.TextureCachePosition].Offset = Texture[TexID].Offset;
 		TextureCache[System.TextureCachePosition].RealWidth = Texture[TexID].RealWidth;
 		TextureCache[System.TextureCachePosition].RealHeight = Texture[TexID].RealHeight;
@@ -1139,6 +1140,7 @@ GLuint RDP_CheckTextureCache(unsigned int TexID)
 		System.TextureCachePosition++;
 	} else {
 		GLID = TextureCache[CacheCheck].TextureID;
+		RDP_Dump_SelectMaterial(TextureCache[CacheCheck].MaterialID);
 	}
 
 	if(System.TextureCachePosition > CACHE_TEXTURES) {
@@ -1461,7 +1463,7 @@ GLuint RDP_LoadTexture(int TextureID)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-	if(TextureID == 0) RDP_Dump_CreateMaterial(TextureData, Texture[0].Format, Texture[0].Offset, Texture[0].RealWidth, Texture[0].RealHeight);
+	if(TextureID == 0) TextureCache[System.TextureCachePosition].MaterialID = RDP_Dump_CreateMaterial(TextureData, Texture[TextureID].Format, Texture[TextureID].Offset, Texture[TextureID].RealWidth, Texture[TextureID].RealHeight);
 
 	free(TextureData);
 
