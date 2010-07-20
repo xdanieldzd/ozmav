@@ -10,3 +10,4 @@ extern void cn_Cmd_About(unsigned char *);
 extern void cn_Cmd_ExtractFiles(unsigned char *);
 extern void cn_Cmd_ListFiles(unsigned char *);
 extern void cn_Cmd_ShowROMInfo(unsigned char *);
+extern void cn_Cmd_ModifyActor(unsigned char *);

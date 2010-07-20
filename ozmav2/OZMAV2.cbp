@@ -154,6 +154,7 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="zelda.h" />
+		<Unit filename="zelda_cmb.h" />
 		<Unit filename="zelda_ver.h" />
 		<Extensions>
 			<code_completion />

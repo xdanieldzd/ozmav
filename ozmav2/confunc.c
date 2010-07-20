@@ -22,7 +22,7 @@ void cn_Cmd_LoadScene(unsigned char * Ptr)
 
 	if(Ptr == NULL) {
 		char * SceneSelParam = (char*)malloc(sizeof(char) * 256);
-		sprintf(SceneSelParam, "Scene ID|%i|1", zGame.SceneCount + 1);
+		sprintf(SceneSelParam, "Scene ID|%i|1|0", zGame.SceneCount + 1);
 
 		__MSK_UI_Dialog DlgLoadScene =
 		{
@@ -277,4 +277,51 @@ void cn_Cmd_ShowROMInfo(unsigned char * Ptr)
 	}
 
 	zl_ShowROMInformation();
+}
+
+void cn_Cmd_ModifyActor(unsigned char * Ptr)
+{
+	if(!zROM.IsROMLoaded) {
+		dbgprintf(0, MSK_COLORTYPE_ERROR, "Error: No ROM loaded!\n");
+		return;
+	}
+
+	if(Ptr == NULL) {
+		dbgprintf(0, MSK_COLORTYPE_ERROR, "> Error: No parameter specified!\n");
+	} else {
+		int ActorNo = 0;
+		sscanf((char *)Ptr + 1, "%d", &ActorNo);
+
+		if((ActorNo > zMHeader[0][zOptions.MapToRender].ActorCount) || (ActorNo < 0)) {
+			dbgprintf(0, MSK_COLORTYPE_ERROR, "> Error: Invalid Actor specified!\n");
+			return;
+		}
+
+		zOptions.SelectedActor = ActorNo;
+
+		char * DlgTitle = (char*)malloc(sizeof(char) * 256);
+		sprintf(DlgTitle, "Map Actor #%i", zOptions.SelectedActor);
+
+		__MSK_UI_Dialog DlgModifyActor =
+		{
+			DlgTitle, 18, 40,
+			{
+				{ MSK_UI_DLGOBJ_NUMBERSEL, 1,  1,  0,  "Number|65536|1|1", (int*)&zMapActor[zOptions.MapToRender][zOptions.SelectedActor].Number },
+				{ MSK_UI_DLGOBJ_NUMBERSEL, 1,  21, 1,  "Var|65536|1|1",    (int*)&zMapActor[zOptions.MapToRender][zOptions.SelectedActor].Var },
+				{ MSK_UI_DLGOBJ_LINE,      3,  1,  -1, "-1",               NULL },
+				{ MSK_UI_DLGOBJ_LABEL,     5,  10, -1, "Position:",        NULL },
+				{ MSK_UI_DLGOBJ_LABEL,     5,  28, -1, "Rotation:",        NULL },
+				{ MSK_UI_DLGOBJ_NUMBERSEL, 7,  1,  2,  "X     |65536|1|0", (int*)&zMapActor[zOptions.MapToRender][zOptions.SelectedActor].X },
+				{ MSK_UI_DLGOBJ_NUMBERSEL, 9,  1,  3,  "Y     |65536|1|0", (int*)&zMapActor[zOptions.MapToRender][zOptions.SelectedActor].Y },
+				{ MSK_UI_DLGOBJ_NUMBERSEL, 11, 1,  4,  "Z     |65536|1|0", (int*)&zMapActor[zOptions.MapToRender][zOptions.SelectedActor].Z },
+				{ MSK_UI_DLGOBJ_NUMBERSEL, 7,  25, 5,  "|65536|1|0",       (int*)&zMapActor[zOptions.MapToRender][zOptions.SelectedActor].RX },
+				{ MSK_UI_DLGOBJ_NUMBERSEL, 9,  25, 6,  "|65536|1|0",       (int*)&zMapActor[zOptions.MapToRender][zOptions.SelectedActor].RY },
+				{ MSK_UI_DLGOBJ_NUMBERSEL, 11, 25, 7,  "|65536|1|0",       (int*)&zMapActor[zOptions.MapToRender][zOptions.SelectedActor].RZ },
+				{ MSK_UI_DLGOBJ_LINE,      13, 1,  -1, "-1",               NULL },
+				{ MSK_UI_DLGOBJ_BUTTON,    -1, -1, 8,  "OK|1",             NULL }
+			}
+		};
+
+		zProgram.HandleModifyActor = MSK_Dialog(&DlgModifyActor);
+	}
 }

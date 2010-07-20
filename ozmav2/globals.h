@@ -98,6 +98,7 @@ struct __zProgram {
 	int HandleOptions;
 	int HandleAbout;
 	int HandleLoadScene;
+	int HandleModifyActor;
 };
 
 struct __zOptions {
@@ -108,6 +109,7 @@ struct __zOptions {
 	int DumpModel;
 	int EnableTextures;
 	int EnableCombiner;
+	int SelectedActor;
 };
 
 struct __zROM {
@@ -190,12 +192,7 @@ struct __zCamera {
 struct __zGfx {
 	unsigned int DLOffset[256][512];
 	int DLCount[256];
-	GLuint GLListCount[256];
-
-	int ActorDLCount[256][1024];
-	GLuint ActorGLListCount[256][1024];
-	int DoorDLCount[256];
-	GLuint DoorGLListCount[256];
+	GLuint GLLists[256];
 };
 
 struct __zObject {
@@ -228,13 +225,23 @@ struct __zActor {
 
 struct __zMapActor {
 	unsigned short Number;
+	short Dummy1;
 	short X;
+	short Dummy2;
 	short Y;
+	short Dummy3;
 	short Z;
+	short Dummy4;
 	short RX;
+	short Dummy5;
 	short RY;
+	short Dummy6;
 	short RZ;
+	short Dummy7;
 	unsigned short Var;
+	short Dummy8;
+
+	GLuint GLDList;
 };
 
 struct __zDoor {
@@ -248,6 +255,8 @@ struct __zDoor {
 	short Z;
 	short RY;
 	unsigned short Var;
+
+	GLuint GLDList;
 };
 
 // ----------------------------------------

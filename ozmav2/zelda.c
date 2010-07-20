@@ -1,6 +1,7 @@
 #include "globals.h"
 
 #include "zelda_ver.h"
+#include "zelda_cmb.h"
 
 bool zl_Init(char * Filename)
 {
@@ -79,40 +80,10 @@ void zl_ShowROMInformation()
 
 void zl_InitCombiner()
 {
-	RDP_CreateCombinerProgram(0x0011FFFF, 0xFFFFFC38);
-	RDP_CreateCombinerProgram(0x00127E03, 0xFFFFFDF8);
-	RDP_CreateCombinerProgram(0x00127E03, 0xFFFFF3F8);
-	RDP_CreateCombinerProgram(0x00127E03, 0xFFFFF7F8);
-	RDP_CreateCombinerProgram(0x00121603, 0xFF5BFFF8);
-	RDP_CreateCombinerProgram(0x00267E04, 0x1F0CFDFF);
-	RDP_CreateCombinerProgram(0x0041FFFF, 0xFFFFFC38);
-	RDP_CreateCombinerProgram(0x00127E0C, 0xFFFFFDF8);
-	RDP_CreateCombinerProgram(0x00267E04, 0x1FFCFDF8);
-	RDP_CreateCombinerProgram(0x00262A04, 0x1F0C93FF);
-	RDP_CreateCombinerProgram(0x00121803, 0xFF5BFFF8);
-	RDP_CreateCombinerProgram(0x00121803, 0xFF0FFFFF);
-	RDP_CreateCombinerProgram(0x0041FFFF, 0xFFFFF638);
-	RDP_CreateCombinerProgram(0x0011FFFF, 0xFFFFF238);
-	RDP_CreateCombinerProgram(0x0041C7FF, 0xFFFFFE38);
-	RDP_CreateCombinerProgram(0x0041FFFF, 0xFFFFF838);
-
-	RDP_CreateCombinerProgram(0x00127E60, 0xFFFFF3F8);
-	RDP_CreateCombinerProgram(0x00272C04, 0x1F0C93FF);
-	RDP_CreateCombinerProgram(0x0020AC04, 0xFF0F93FF);
-	RDP_CreateCombinerProgram(0x0026A004, 0x1FFC93F8);
-	RDP_CreateCombinerProgram(0x00277E04, 0x1F0CF7FF);
-	RDP_CreateCombinerProgram(0x0020FE04, 0xFF0FF7FF);
-	RDP_CreateCombinerProgram(0x00272E04, 0x1F0C93FF);
-	RDP_CreateCombinerProgram(0x00272C04, 0x1F1093FF);
-	RDP_CreateCombinerProgram(0x0020A203, 0xFF13FFFF);
-	RDP_CreateCombinerProgram(0x0011FE04, 0xFFFFF7F8);
-	RDP_CreateCombinerProgram(0x0020AC03, 0xFF0F93FF);
-	RDP_CreateCombinerProgram(0x00272C03, 0x1F0C93FF);
-	RDP_CreateCombinerProgram(0x0011FE04, 0xFF0FF3FF);
-	RDP_CreateCombinerProgram(0x00119C04, 0xFFFFFFF8);
-	RDP_CreateCombinerProgram(0x00271204, 0x1F0CFFFF);
-	RDP_CreateCombinerProgram(0x0011FE04, 0xFFFFF3F8);
-	RDP_CreateCombinerProgram(0x00272C80, 0x350CF37F);
+	int i = 0;
+	for(i = 0; i < ArraySize(CombinerDefs); i++) {
+		RDP_CreateCombinerProgram(CombinerDefs[i][0], CombinerDefs[i][1]);
+	}
 }
 
 int zl_GetGameVersion()
@@ -643,12 +614,12 @@ void zl_ExecuteDisplayLists(int MapNumber)
 
 	int DL = 0;
 
-	zGfx.GLListCount[MapNumber] = glGenLists(zGfx.DLCount[MapNumber]);
-	glListBase(zGfx.GLListCount[MapNumber]);
+	zGfx.GLLists[MapNumber] = glGenLists(zGfx.DLCount[MapNumber]);
+	glListBase(zGfx.GLLists[MapNumber]);
 
 	while(DL < zGfx.DLCount[MapNumber]) {
 		if(RDP_CheckAddressValidity(zGfx.DLOffset[MapNumber][DL])) {
-			glNewList(zGfx.GLListCount[MapNumber] + DL, GL_COMPILE);
+			glNewList(zGfx.GLLists[MapNumber] + DL, GL_COMPILE);
 				RDP_ParseDisplayList(zGfx.DLOffset[MapNumber][DL], true);
 			glEndList();
 		}

@@ -75,6 +75,7 @@ int main(int argc, char * argv[])
 	MSK_AddCommand("loadrom", "Load ROM file to use", cn_Cmd_LoadROM);
 	MSK_AddCommand("rominfo", "Show ROM information", cn_Cmd_ShowROMInfo);
 	MSK_AddCommand("loadscene", "Load specific Scene (0-x)", cn_Cmd_LoadScene);
+	MSK_AddCommand("modifyactor", "Modify specific Actor (0-x)", cn_Cmd_ModifyActor);
 	MSK_AddCommand("dumpobj", "Dump Scene to .obj file", cn_Cmd_DumpObj);
 	MSK_AddCommand("settexture", "Disable/enable texturing (0-1)", cn_Cmd_SetTexture);
 	MSK_AddCommand("setcombiner", "Disable/enable combiner (0-1)", cn_Cmd_SetCombiner);
@@ -186,6 +187,18 @@ int main(int argc, char * argv[])
 					if(ReturnVal.s8 == 1) {
 						if(zl_LoadScene(zOptions.SceneNo)) {
 							dbgprintf(0, MSK_COLORTYPE_ERROR, "> Error: Failed to load Scene #%i!\n", zOptions.SceneNo);
+						}
+					}
+				}
+
+				// handling Modify Actor dialog
+				if(ReturnVal.Handle == zProgram.HandleModifyActor) {
+					// -> button "OK"
+					if(ReturnVal.s8 == 8) {
+						if((!zGame.IsCompressed) && (!zGame.GameType)) {
+							zActor[zMapActor[zOptions.MapToRender][zOptions.SelectedActor].Number].IsSet = false;
+							if(glIsList(zMapActor[zOptions.MapToRender][zOptions.SelectedActor].GLDList)) glDeleteLists(zMapActor[zOptions.MapToRender][zOptions.SelectedActor].GLDList, 1);
+							zl_ProcessActor(zOptions.MapToRender, zOptions.SelectedActor, 0);
 						}
 					}
 				}

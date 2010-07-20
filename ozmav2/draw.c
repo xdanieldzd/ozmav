@@ -84,20 +84,16 @@ void gl_DrawScene()
 
 	for(Maps = StartMap; Maps < EndMap; Maps++) {
 		for(DL = 0; DL < zGfx.DLCount[Maps]; DL++) {
-			glCallList(zGfx.GLListCount[Maps] + DL);
+			glCallList(zGfx.GLLists[Maps] + DL);
 		}
 
 		for(Actor = 0; Actor < zMHeader[0][Maps].ActorCount; Actor++) {
-			for(DL = 0; DL < zGfx.ActorDLCount[Maps][Actor]; DL++) {
-				glCallList(zGfx.ActorGLListCount[Maps][Actor] + DL);
-			}
+			glCallList(zMapActor[Maps][Actor].GLDList);
 		}
 	}
 
 	for(Door = 0; Door < zSHeader[0].DoorCount; Door++) {
-		for(DL = 0; DL < zGfx.DoorDLCount[Door]; DL++) {
-			glCallList(zGfx.DoorGLListCount[Door] + DL);
-		}
+		glCallList(zDoor[Door].GLDList);
 	}
 }
 
@@ -106,17 +102,15 @@ void gl_ClearDisplayLists()
 	int i = 0, j = 0;
 	for(i = 0; i < 256; i++) {
 		// maps
-		if(glIsList(zGfx.GLListCount[i])) glDeleteLists(zGfx.GLListCount[i], zGfx.DLCount[i]);
+		if(glIsList(zGfx.GLLists[i])) glDeleteLists(zGfx.GLLists[i], zGfx.DLCount[i]);
 		zGfx.DLCount[i] = 0;
 
 		// doors
-		if(glIsList(zGfx.DoorGLListCount[i])) glDeleteLists(zGfx.DoorGLListCount[i], zGfx.DoorDLCount[i]);
-		zGfx.DoorDLCount[i] = 0;
+		if(glIsList(zDoor[i].GLDList)) glDeleteLists(zDoor[i].GLDList, 1);
 
 		// actors
 		for(j = 0; j < 1024; j++) {
-			if(glIsList(zGfx.ActorGLListCount[i][j])) glDeleteLists(zGfx.ActorGLListCount[i][j], zGfx.ActorDLCount[i][j]);
-			zGfx.ActorDLCount[i][j] = 0;
+			if(glIsList(zMapActor[i][j].GLDList)) glDeleteLists(zMapActor[i][j].GLDList, 1);
 		}
 	}
 }

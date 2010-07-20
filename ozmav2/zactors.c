@@ -241,6 +241,7 @@ struct zActorSections zl_GetActSections(unsigned char * Data, size_t Size, unsig
 
 	return ret;
 }
+
 unsigned collectables[0x20] = {
 	 0x04042440, 0x04042440, 0x04042440, /* rupees 0-2 */
 	 0x0403BCD8, /* recovery heart (3) */
@@ -267,7 +268,6 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 
 	unsigned short ActorNumber = 0, Var = 0;
 	short X = 0, Y = 0, Z = 0, RX = 0, RY = 0, RZ = 0;
-	int DL = 0, DLCount = 0;
 	GLuint DLBase = 0;
 
 	switch(Type) {
@@ -283,11 +283,9 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 			Var = zMapActor[MapNumber][CurrActor].Var;
 
 			//drawing stuff
-			zGfx.ActorDLCount[MapNumber][CurrActor] = 1;
-			zGfx.ActorGLListCount[MapNumber][CurrActor] = glGenLists(zGfx.ActorDLCount[MapNumber][CurrActor]);
-			glListBase(zGfx.ActorGLListCount[MapNumber][CurrActor]);
-			DLCount = zGfx.ActorDLCount[MapNumber][CurrActor];
-			DLBase = zGfx.ActorGLListCount[MapNumber][CurrActor];
+			zMapActor[MapNumber][CurrActor].GLDList = glGenLists(1);
+			glListBase(zMapActor[MapNumber][CurrActor].GLDList);
+			DLBase = zMapActor[MapNumber][CurrActor].GLDList;
 			break; }
 		case Z_ACTOR_DOOR: {
 			//doors
@@ -301,19 +299,15 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 			Var = zDoor[CurrActor].Var;
 
 			//drawing stuff
-			zGfx.DoorDLCount[CurrActor] = 1;
-			zGfx.DoorGLListCount[CurrActor] = glGenLists(zGfx.DoorDLCount[CurrActor]);
-			glListBase(zGfx.DoorGLListCount[CurrActor]);
-			DLCount = zGfx.DoorDLCount[CurrActor];
-			DLBase = zGfx.DoorGLListCount[CurrActor];
+			zDoor[CurrActor].GLDList = glGenLists(1);
+			glListBase(zDoor[CurrActor].GLDList);
+			DLBase = zDoor[CurrActor].GLDList;
 			break; }
 	}
 
 	// if the actor hasn't been processed yet, do so
 	if(zActor[ActorNumber].IsSet == false) {
 		dbgprintf(1, MSK_COLORTYPE_INFO, "- Evaluating actor 0x%04X...", ActorNumber);
-
-
 
 		// get the base offset for reading from the actor table
 		unsigned int BaseOffset = zGame.ActorTableOffset + (ActorNumber * 0x20);
@@ -623,31 +617,28 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 		}
 		//Display list
 		else if(zActor[ActorNumber].DisplayList) {
-			while(DL < DLCount) {
-				dbgprintf(0, MSK_COLORTYPE_OKAY, " - Trying to execute DList (%08X) for object 0x%04X...",zActor[ActorNumber].DisplayList, zActor[ActorNumber].Object);
+			dbgprintf(0, MSK_COLORTYPE_OKAY, " - Trying to execute DList (%08X) for object 0x%04X...",zActor[ActorNumber].DisplayList, zActor[ActorNumber].Object);
 
-				if(RDP_CheckAddressValidity(zActor[ActorNumber].DisplayList)) {
-					dbgprintf(0, MSK_COLORTYPE_OKAY, " - DList Address 0x%08X is valid!", zActor[ActorNumber].DisplayList);
-					glNewList(DLBase + DL, GL_COMPILE);
-						glPushMatrix();
+			if(RDP_CheckAddressValidity(zActor[ActorNumber].DisplayList)) {
+				dbgprintf(0, MSK_COLORTYPE_OKAY, " - DList Address 0x%08X is valid!", zActor[ActorNumber].DisplayList);
+				glNewList(DLBase, GL_COMPILE);
+					glPushMatrix();
 
-						glTranslated(X, Y, Z);
-						glRotated(RX / 182.0444444, 1, 0, 0);
-						glRotated(RY / 182.0444444, 0, 1, 0);
-						glRotated(RZ / 182.0444444, 0, 0, 1);
-						glScalef(zActor[ActorNumber].Scale, zActor[ActorNumber].Scale, zActor[ActorNumber].Scale);
+					glTranslated(X, Y, Z);
+					glRotated(RX / 182.0444444, 1, 0, 0);
+					glRotated(RY / 182.0444444, 0, 1, 0);
+					glRotated(RZ / 182.0444444, 0, 0, 1);
+					glScalef(zActor[ActorNumber].Scale, zActor[ActorNumber].Scale, zActor[ActorNumber].Scale);
 
-						RDP_ClearStructures(false);
+					RDP_ClearStructures(false);
 
-						RDP_ParseDisplayList(zActor[ActorNumber].DisplayList, true);
+					RDP_ParseDisplayList(zActor[ActorNumber].DisplayList, true);
 
-						glPopMatrix();
-					glEndList();
-				}
-
-				DL++;
+					glPopMatrix();
+				glEndList();
 			}
 		}
+
 		RAM[TargetSeg].Data = NULL;
 		RAM[TargetSeg].Size = 0;
 		RAM[TargetSeg].IsSet = false;
@@ -757,9 +748,8 @@ void zl_DrawBone(z_bone Bones[], int CurrentBone)
 
 void zl_DrawBones(unsigned int BoneOffset, unsigned int AnimationOffset, float Scale, short X, short Y, short Z, short RX, short RY, short RZ, GLuint DLBase)
 {
-	dbgprintf(2, MSK_COLORTYPE_INFO, "%s(0x%x, 0x%x, %.3f, %i, %i, %i, %i, %i, %i, %i);",__FUNCTION__, BoneOffset, AnimationOffset, Scale, X, Y, Z, RX, RY, RZ, DLBase);
+	dbgprintf(2, MSK_COLORTYPE_INFO, "%s(0x%x, 0x%x, %.3f,\n  %i, %i, %i, %i, %i, %i, %i);\n",__FUNCTION__, BoneOffset, AnimationOffset, Scale, X, Y, Z, RX, RY, RZ, DLBase);
 	int BoneCount, BoneListListOffset, Seg, _Seg, i, AniSeg=0, RotIndexOffset=0, RotValOffset=0;
-	z_bone Bones[128];
 
 	if(!RDP_CheckAddressValidity(BoneOffset)){
 		return;
@@ -769,7 +759,6 @@ void zl_DrawBones(unsigned int BoneOffset, unsigned int AnimationOffset, float S
 	}
 	Seg = (BoneOffset >> 24) & 0xFF;
 	BoneOffset &= 0xFFFFFF;
-	memset(Bones, 0, sizeof(z_bone) * 128);
 
 	//parse bones
 	BoneCount = RAM[Seg].Data[(BoneOffset) + 4];
@@ -777,6 +766,10 @@ void zl_DrawBones(unsigned int BoneOffset, unsigned int AnimationOffset, float S
 	if(!RDP_CheckAddressValidity(BoneListListOffset)){
 		return;
 	}
+
+	z_bone * Bones = malloc(sizeof(z_bone) * BoneCount);
+	memset(Bones, 0, sizeof(z_bone) * BoneCount);
+
 	if(RDP_CheckAddressValidity(AnimationOffset)){
 		AniSeg = AnimationOffset >> 24;
 		AnimationOffset &= 0xFFFFFF;
@@ -833,6 +826,6 @@ void zl_DrawBones(unsigned int BoneOffset, unsigned int AnimationOffset, float S
 
 		glPopMatrix();
 	glEndList();
-	# if 0
-	#endif
+
+	free(Bones);
 }
