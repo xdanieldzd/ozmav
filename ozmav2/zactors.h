@@ -32,3 +32,4 @@ extern struct zActorSections zl_GetActSections(unsigned char * Data, size_t Siz,
 extern void zl_ProcessActor(int MapNumber, int CurrActor, int Type);
 extern void zl_DrawBone(z_bone * Bones, int CurrentBone);
 extern void zl_DrawBones(unsigned int BoneOffset, unsigned int AnimationOffset, float Scale, short X, short Y, short Z, short RX, short RY, short RZ, GLuint DLBase);
+extern void zl_SaveMapActors(int SceneNumber, int MapNumber);

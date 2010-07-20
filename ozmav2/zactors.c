@@ -829,3 +829,35 @@ void zl_DrawBones(unsigned int BoneOffset, unsigned int AnimationOffset, float S
 
 	free(Bones);
 }
+
+void zl_SaveMapActors(int SceneNumber, int MapNumber)
+{
+	dbgprintf(3, MSK_COLORTYPE_OKAY, "[DEBUG] %s(%i, %i);\n", __FUNCTION__, SceneNumber, MapNumber);
+
+	int CurrActor = 0;
+
+	if(zMHeader[SceneNumber][MapNumber].ActorCount) {
+		unsigned char Segment = zMHeader[SceneNumber][MapNumber].ActorOffset >> 24;
+		unsigned int Offset = (zMHeader[SceneNumber][MapNumber].ActorOffset & 0x00FFFFFF);
+
+		while(CurrActor < zMHeader[SceneNumber][MapNumber].ActorCount) {
+			dbgprintf(0, MSK_COLORTYPE_WARNING, "-writing actor %i...\n", CurrActor);
+			dbgprintf(0, MSK_COLORTYPE_WARNING, " -old X is %i...\n", Read16(RAM[Segment].Data, (Offset + (CurrActor * 0x10) + 2)));
+			Write16(RAM[Segment].Data, (Offset + (CurrActor * 0x10)), zMapActor[MapNumber][CurrActor].Number);
+			Write16(RAM[Segment].Data, (Offset + (CurrActor * 0x10) + 2), zMapActor[MapNumber][CurrActor].X);
+			Write16(RAM[Segment].Data, (Offset + (CurrActor * 0x10) + 4), zMapActor[MapNumber][CurrActor].Y);
+			Write16(RAM[Segment].Data, (Offset + (CurrActor * 0x10) + 6), zMapActor[MapNumber][CurrActor].Z);
+			Write16(RAM[Segment].Data, (Offset + (CurrActor * 0x10) + 8), zMapActor[MapNumber][CurrActor].RX);
+			Write16(RAM[Segment].Data, (Offset + (CurrActor * 0x10) + 10), zMapActor[MapNumber][CurrActor].RY);
+			Write16(RAM[Segment].Data, (Offset + (CurrActor * 0x10) + 12), zMapActor[MapNumber][CurrActor].RZ);
+			Write16(RAM[Segment].Data, (Offset + (CurrActor * 0x10) + 14), zMapActor[MapNumber][CurrActor].Var);
+			dbgprintf(0, MSK_COLORTYPE_WARNING, " -NEW X is %i...\n", Read16(RAM[Segment].Data, (Offset + (CurrActor * 0x10) + 2)));
+
+			CurrActor++;
+		}
+
+		RDP_SaveSegment(Segment, zROM.Data);
+	}
+
+	return;
+}

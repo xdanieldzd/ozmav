@@ -46,6 +46,10 @@ enum { true = 1, false = 0 };
 #define Read32(Buffer, Offset) \
 	(Buffer[Offset] << 24) | (Buffer[(Offset) + 1] << 16) | (Buffer[(Offset) + 2] << 8) | Buffer[(Offset) + 3]
 
+#define Write16(Buffer, Offset, Value) \
+	Buffer[Offset] = (Value & 0xFF00) >> 8; \
+	Buffer[Offset + 1] = (Value & 0x00FF);
+
 #define Write32(Buffer, Offset, Value) \
 	Buffer[Offset] = (Value & 0xFF000000) >> 24; \
 	Buffer[Offset + 1] = (Value & 0x00FF0000) >> 16; \
@@ -99,6 +103,8 @@ struct __zProgram {
 	int HandleAbout;
 	int HandleLoadScene;
 	int HandleModifyActor;
+
+	GLuint AxisMarker;
 };
 
 struct __zOptions {
@@ -110,6 +116,7 @@ struct __zOptions {
 	int EnableTextures;
 	int EnableCombiner;
 	int SelectedActor;
+	int SelectedActorMap;
 };
 
 struct __zROM {
@@ -152,35 +159,28 @@ struct __zGame {
 struct __zHeader {
 	unsigned char ActorCount;
 	unsigned int ActorOffset;
-
 	unsigned char LinkCount;
 	unsigned int LinkOffset;
-
 	unsigned int ColDataOffset;
-
 	unsigned char MapCount;
 	unsigned int MapOffset;
-
 	unsigned int MeshHeaderOffset;
-
 	unsigned char ObjCount;
 	unsigned int ObjOffset;
-
 	unsigned char DoorCount;
 	unsigned int DoorOffset;
-
 	unsigned char EnvSetCount;
 	unsigned int EnvSetOffset;
-
 	unsigned int MapTime;
 	unsigned char TimeFlow;
-
 	unsigned char Skybox;
 	unsigned char TimeOfDay;
-
 	unsigned char EchoLevel;
-
 	unsigned char GameplayObj;
+
+	unsigned int FileStart;
+	unsigned int FileEnd;
+	unsigned int FileSize;
 };
 
 struct __zCamera {

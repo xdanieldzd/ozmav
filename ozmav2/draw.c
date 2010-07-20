@@ -75,6 +75,9 @@ void gl_DrawScene()
 	glScalef(0.005, 0.005, 0.005);
 
 	int Maps = 0, DL = 0, Door = 0, Actor = 0;
+	GLfloat ActorAmbientHighlight[] = { 1.0, -1.0, -1.0, 1.0 };
+	GLfloat AmbientDefault[3];
+	glGetLightfv(GL_LIGHT0, GL_AMBIENT, AmbientDefault);
 
 	int StartMap = 0; int EndMap = zSHeader[0].MapCount;
 	if(zOptions.MapToRender != -1) {
@@ -88,7 +91,24 @@ void gl_DrawScene()
 		}
 
 		for(Actor = 0; Actor < zMHeader[0][Maps].ActorCount; Actor++) {
-			glCallList(zMapActor[Maps][Actor].GLDList);
+			if((Maps == zOptions.SelectedActorMap) && (Actor == zOptions.SelectedActor) &&
+				(zOptions.SelectedActorMap > -1) && (zOptions.SelectedActor > -1)) {
+					// setup GL lighting to do the red highlighting
+					glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ActorAmbientHighlight);
+					// call the actor's GL display list
+					glCallList(zMapActor[Maps][Actor].GLDList);
+					// pop the matrix and translate to the actor's position
+					glPushMatrix();
+					glTranslated(zMapActor[Maps][Actor].X, zMapActor[Maps][Actor].Y, zMapActor[Maps][Actor].Z);
+					// ...so that we can call our axis marker display list
+					glCallList(zProgram.AxisMarker);
+					glPopMatrix();
+					// and reset the lighting
+					glLightModelfv(GL_LIGHT_MODEL_AMBIENT, AmbientDefault);
+				} else {
+					glLightModelfv(GL_LIGHT_MODEL_AMBIENT, AmbientDefault);
+					glCallList(zMapActor[Maps][Actor].GLDList);
+				}
 		}
 	}
 
@@ -113,6 +133,43 @@ void gl_ClearDisplayLists()
 			if(glIsList(zMapActor[i][j].GLDList)) glDeleteLists(zMapActor[i][j].GLDList, 1);
 		}
 	}
+}
+
+void gl_CreateViewerDLists()
+{
+	zProgram.AxisMarker = glGenLists(1);
+	glNewList(zProgram.AxisMarker, GL_COMPILE);
+		glDisable(GL_TEXTURE_2D);
+		glDisable(GL_LIGHTING);
+		glDisable(GL_NORMALIZE);
+		glDisable(GL_DEPTH_TEST);
+		if(RDP_OpenGL_ExtFragmentProgram()) glDisable(GL_FRAGMENT_PROGRAM_ARB);
+		glLineWidth(2);
+
+		glBegin(GL_LINES);
+			glColor3f(0.0f, 0.0f, 1.0f);
+			glVertex3f(420.0f, 0.1f, 0.1f);
+			glVertex3f(-420.0f, 0.1f, 0.1f);
+		glEnd();
+		glBegin(GL_LINES);
+			glColor3f(1.0f, 0.0f, 0.0f);
+			glVertex3f(0.1f, 420.0f, 0.1f);
+			glVertex3f(0.1f, -420.0f, 0.1f);
+		glEnd();
+		glBegin(GL_LINES);
+			glColor3f(0.0f, 1.0f, 0.0f);
+			glVertex3f(0.1f, 0.1f, 420.0f);
+			glVertex3f(0.1f, 0.1f, -420.0f);
+			glVertex3f(0.1f, 0.1f, 420.0f);
+		glEnd();
+
+		glEnable(GL_TEXTURE_2D);
+		glEnable(GL_LIGHTING);
+		glEnable(GL_NORMALIZE);
+		glEnable(GL_DEPTH_TEST);
+		if(RDP_OpenGL_ExtFragmentProgram()) glEnable(GL_FRAGMENT_PROGRAM_ARB);
+		glLineWidth(1);
+	glEndList();
 }
 
 int gl_FinishScene()

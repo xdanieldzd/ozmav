@@ -73,9 +73,11 @@ int main(int argc, char * argv[])
 	MSK_InitLogging(Temp);
 	MSK_SetValidCharacters("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789.,:\\/\"-()[]_!");
 	MSK_AddCommand("loadrom", "Load ROM file to use", cn_Cmd_LoadROM);
+	MSK_AddCommand("saverom", "Save eventual changes to current ROM", cn_Cmd_SaveROM);
 	MSK_AddCommand("rominfo", "Show ROM information", cn_Cmd_ShowROMInfo);
 	MSK_AddCommand("loadscene", "Load specific Scene (0-x)", cn_Cmd_LoadScene);
 	MSK_AddCommand("modifyactor", "Modify specific Actor (0-x)", cn_Cmd_ModifyActor);
+	MSK_AddCommand("saveactors", "Save the current Map's Actors", cn_Cmd_SaveActors);
 	MSK_AddCommand("dumpobj", "Dump Scene to .obj file", cn_Cmd_DumpObj);
 	MSK_AddCommand("settexture", "Disable/enable texturing (0-1)", cn_Cmd_SetTexture);
 	MSK_AddCommand("setcombiner", "Disable/enable combiner (0-1)", cn_Cmd_SetCombiner);
@@ -108,6 +110,7 @@ int main(int argc, char * argv[])
 	RDP_SetupOpenGL();
 
 	gl_ResizeScene(WINDOW_WIDTH, WINDOW_HEIGHT);
+	gl_CreateViewerDLists();
 
 	// used to delay ROM loading until after reading eventual scene number and debug level arguments
 	bool LoadNow = false;

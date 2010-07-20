@@ -8,9 +8,9 @@ static __MSK_UI_Dialog DlgOptions =
 	"Options", 16, 40,
 	{
 		{ MSK_UI_DLGOBJ_LABEL,     1,  1,  -1, "Following options can be changed:", NULL },
-		{ MSK_UI_DLGOBJ_NUMBERSEL, 7,  1,  2,  "Debug Level|4|0",                   &zOptions.DebugLevel },
-		{ MSK_UI_DLGOBJ_CHECKBOX,  3,  1,  0,  "Enable Textures",                   &zOptions.EnableTextures },
-		{ MSK_UI_DLGOBJ_CHECKBOX,  5,  1,  1,  "Enable Combiner",                   &zOptions.EnableCombiner },
+		{ MSK_UI_DLGOBJ_NUMBERSEL, 7,  1,  2,  "Debug Level|4|0|0|0",               (short*)&zOptions.DebugLevel },
+		{ MSK_UI_DLGOBJ_CHECKBOX,  3,  1,  0,  "Enable Textures",                   (short*)&zOptions.EnableTextures },
+		{ MSK_UI_DLGOBJ_CHECKBOX,  5,  1,  1,  "Enable Combiner",                   (short*)&zOptions.EnableCombiner },
 		{ MSK_UI_DLGOBJ_BUTTON,    9,  1,  3,  "Dump Scene to .obj|0",              NULL },
 		{ MSK_UI_DLGOBJ_LINE,      11, 1,  -1, "-1",                                NULL },
 		{ MSK_UI_DLGOBJ_BUTTON,    -1, -1, 4,  "OK|1",                              NULL }

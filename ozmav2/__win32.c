@@ -72,13 +72,30 @@ int WinAPIMain()
 
 		if(zProgram.Key[VK_F3] && zOptions.MapToRender > -1) {
 			zOptions.MapToRender--;
+			zOptions.SelectedActor = -1;
+			zOptions.SelectedActorMap = zOptions.MapToRender;
 			zProgram.Key[VK_F3] = false;
 		}
 
 		if(zProgram.Key[VK_F4] && zOptions.MapToRender < zSHeader[0].MapCount - 1) {
 			zOptions.MapToRender++;
+			zOptions.SelectedActor = -1;
+			zOptions.SelectedActorMap = zOptions.MapToRender;
 			zProgram.Key[VK_F4] = false;
 		}
+
+		if(zProgram.Key[VK_SUBTRACT] && zOptions.SelectedActor > -1) {
+			zOptions.SelectedActor--;
+			zProgram.Key[VK_SUBTRACT] = false;
+		}
+
+		if(zProgram.Key[VK_ADD] && zOptions.SelectedActor < zMHeader[0][zOptions.MapToRender].ActorCount - 1) {
+			zOptions.SelectedActor++;
+			zProgram.Key[VK_ADD] = false;
+		}
+
+		zOptions.SelectedActorMap = zOptions.MapToRender;
+
 
 		return EXIT_SUCCESS;
 	}

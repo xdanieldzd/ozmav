@@ -137,6 +137,8 @@ int zl_LoadScene(int SceneNo)
 
 	// default to rendering the first map of the scene
 	zOptions.MapToRender = 0;
+	zOptions.SelectedActor = -1;
+	zOptions.SelectedActorMap = -1;
 
 	unsigned int BaseOffset = zGame.SceneTableOffset + (SceneNo * (zGame.GameType ? 0x10 : 0x14));	// OoT = 0x14 bytes, MM = 0x10 bytes
 
@@ -152,7 +154,11 @@ int zl_LoadScene(int SceneNo)
 		if(zGame.HasFilenames) dbgprintf(1, MSK_COLORTYPE_INFO, " - Filename: %s\n", Scene.Filename);
 		dbgprintf(1, MSK_COLORTYPE_INFO, " - Location in ROM: 0x%08X to 0x%08X (0x%04X bytes)\n\n", Scene.PStart, Scene.PEnd, SceneSize);
 
-		RDP_LoadToSegment(0x02, zROM.Data, Scene.PStart, SceneSize);
+		zSHeader[0].FileStart = Scene.PStart;
+		zSHeader[0].FileEnd = Scene.PEnd;
+		zSHeader[0].FileSize = SceneSize;
+
+		RDP_LoadToSegment(0x02, zROM.Data, zSHeader[0].FileStart, zSHeader[0].FileSize);
 		if(zl_ExecuteHeader(0x02, 0x00, 0, -1)) return EXIT_FAILURE;
 
 		unsigned char Segment = zSHeader[0].MapOffset >> 24;
@@ -179,7 +185,11 @@ int zl_LoadScene(int SceneNo)
 			if(zGame.HasFilenames) dbgprintf(1, MSK_COLORTYPE_INFO, " - Filename: %s\n", Map.Filename);
 			dbgprintf(1, MSK_COLORTYPE_INFO, " - Location in ROM: 0x%08X to 0x%08X (0x%04X bytes)\n\n", Map.PStart, Map.PEnd, MapSize);
 
-			RDP_LoadToSegment(0x03, zROM.Data, Map.PStart, MapSize);
+			zMHeader[0][i].FileStart = Map.PStart;
+			zMHeader[0][i].FileEnd = Map.PEnd;
+			zMHeader[0][i].FileSize = MapSize;
+
+			RDP_LoadToSegment(0x03, zROM.Data, zMHeader[0][i].FileStart, zMHeader[0][i].FileSize);
 			if(zl_ExecuteHeader(0x03, 0x00, 0, i)) break;
 
 			zl_GetMapObjects(0, i);
