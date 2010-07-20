@@ -3,7 +3,8 @@
 #include "msk_console.h"
 #include "msk_ui.h"
 
-int ObjectValue[512];
+short ObjectValue[512];
+bool ObjectValueSet[512];
 
 int MSK_MessageBox(char * Title, char * Text, int Type)
 {
@@ -133,7 +134,10 @@ int MSK_MessageBox(char * Title, char * Text, int Type)
 	memcpy(&Dialog[i], &Temp, sizeof(__MSK_UI_Dialog_Data));
 	Dialog_Active = Dialog[i];
 
-	for(i = 0; i < ArraySize(ObjectValue); i++) ObjectValue[i] = -1;
+	for(i = 0; i < ArraySize(ObjectValue); i++) {
+		ObjectValue[i] = 0;
+		ObjectValueSet[i] = 0;
+	}
 
 //	MSK_ConsolePrint(MSK_COLORTYPE_WARNING, "box %i compiled, setting mainfunc to dlg doevents\n", Dialog[i].Win);
 	MSK_SetMainFunction(MSK_DoEvents_Dialog);
@@ -182,7 +186,10 @@ int MSK_Dialog(__MSK_UI_Dialog * Dlg)
 	memcpy(&Dialog[FreeDlgH], &Temp, sizeof(__MSK_UI_Dialog_Data));
 	Dialog_Active = Dialog[FreeDlgH];
 
-	for(i = 0; i < ArraySize(ObjectValue); i++) ObjectValue[i] = -1;
+	for(i = 0; i < ArraySize(ObjectValue); i++) {
+		ObjectValue[i] = 0;
+		ObjectValueSet[i] = 0;
+	}
 
 	MSK_SetMainFunction(MSK_DoEvents_Dialog);
 
@@ -228,8 +235,17 @@ void MSK_DoEvents_Dialog()
 		case KEY_LEFT:
 			if(Object[OnObject].Type == MSK_UI_DLGOBJ_NUMBERSEL) {
 				// select prev option in object
-				if(ObjectValue[OnObject] == -1) ObjectValue[OnObject] = *Object[OnObject].Value;
-				if(ObjectValue[OnObject] > 0) ObjectValue[OnObject]--;
+				// see if negative vals allowed
+				bool AllowNegative = MSK_UI_Dialog_ObjNumSelect_GetAllowNegativeFlag(&Object[OnObject]);
+				// if not neg allowed AND value is neg, reset to org value
+				if((!AllowNegative) && (ObjectValue[OnObject] < 0)) ObjectValue[OnObject] = *Object[OnObject].Value;
+				// get max value
+				int Total = MSK_UI_Dialog_ObjNumSelect_GetCount(&Object[OnObject]) - 1;
+				// set min value
+				int MinValue = 0;
+				// if neg allowed, set min value to (total / 2) - total
+				if(AllowNegative) MinValue = (Total / 2) - Total;
+				if(ObjectValue[OnObject] > MinValue) ObjectValue[OnObject]--;
 
 			// select prev object
 			} else if((Object[OnObject].Type == MSK_UI_DLGOBJ_BUTTON) || (Object[OnObject].Type == MSK_UI_DLGOBJ_CHECKBOX)) {
@@ -244,9 +260,12 @@ void MSK_DoEvents_Dialog()
 		case KEY_RIGHT:
 			// select next option in object
 			if(Object[OnObject].Type == MSK_UI_DLGOBJ_NUMBERSEL) {
+				bool AllowNegative = MSK_UI_Dialog_ObjNumSelect_GetAllowNegativeFlag(&Object[OnObject]);
+				if((!AllowNegative) && (ObjectValue[OnObject] < 0)) ObjectValue[OnObject] = *Object[OnObject].Value;
 				int Total = MSK_UI_Dialog_ObjNumSelect_GetCount(&Object[OnObject]) - 1;
-				if(ObjectValue[OnObject] == -1) ObjectValue[OnObject] = *Object[OnObject].Value;
-				if(ObjectValue[OnObject] < Total) ObjectValue[OnObject]++;
+				int MaxValue = 0;
+				if(AllowNegative) MaxValue = (Total / 2);
+				if(ObjectValue[OnObject] < MaxValue) ObjectValue[OnObject]++;
 
 			// select next object
 			} else if((Object[OnObject].Type == MSK_UI_DLGOBJ_BUTTON) || (Object[OnObject].Type == MSK_UI_DLGOBJ_CHECKBOX)) {
@@ -262,7 +281,10 @@ void MSK_DoEvents_Dialog()
 		case ' ':
 			// toggle checkbox state
 			if(Object[OnObject].Type == MSK_UI_DLGOBJ_CHECKBOX) {
-				if(ObjectValue[OnObject] == -1) ObjectValue[OnObject] = *Object[OnObject].Value;
+				if(ObjectValueSet[OnObject] == 0) {
+					ObjectValue[OnObject] = *Object[OnObject].Value;
+					ObjectValueSet[OnObject] = 1;
+				}
 				ObjectValue[OnObject] = !ObjectValue[OnObject];
 			}
 			break;
@@ -289,7 +311,7 @@ void MSK_DoEvents_Dialog()
 
 		int i = 0;
 		while(i < ArraySize(Object)) {
-			if(IsOkay && (ObjectValue[i] != -1) && (!(Object[i].Value == NULL))) {
+			if(IsOkay && (!(Object[i].Value == NULL)) && ObjectValueSet[i]) {
 				*Object[i].Value = ObjectValue[i];
 			}
 
@@ -365,7 +387,10 @@ void MSK_UI_Dialog_Draw(__MSK_UI_Dialog_Data * Dlg)
 				case MSK_UI_DLGOBJ_CHECKBOX:
 					if(Dlg->ObjSelected[1] == Object[i].Order) wattron(Dlg->Win, COLOR_PAIR(Dlg->HLColor));
 					wmove(Dlg->Win, Object[i].y + 1, Object[i].x + 1);
-					if(ObjectValue[i] == -1) ObjectValue[i] = *Object[i].Value;
+					if(ObjectValueSet[i] == 0) {
+						ObjectValue[i] = *Object[i].Value;
+						ObjectValueSet[i] = 1;
+					}
 					wprintw(Dlg->Win, "[%s]", ObjectValue[i] ? "X" : " ");
 					if(Dlg->ObjSelected[1] == Object[i].Order) wattroff(Dlg->Win, COLOR_PAIR(Dlg->HLColor));
 					wprintw(Dlg->Win, " %s", Object[i].ObjParameters);
@@ -384,7 +409,10 @@ void MSK_UI_Dialog_Draw(__MSK_UI_Dialog_Data * Dlg)
 					wprintw(Dlg->Win, "%s : ", Text);
 
 					if(MSK_UI_Dialog_ObjNumSelect_GetDisplayType(&Object[i]) == 1) {
-						if(ObjectValue[i] == -1) ObjectValue[i] = *Object[i].Value;
+						if(ObjectValueSet[i] == 0) {
+							ObjectValue[i] = *Object[i].Value;
+							ObjectValueSet[i] = 1;
+						}
 						if(Dlg->ObjSelected[1] == Object[i].Order) wattron(Dlg->Win, COLOR_PAIR(Dlg->HLColor));
 						char Format[64];
 						sprintf(Format, "%5i", ObjectValue[i]);
@@ -393,7 +421,10 @@ void MSK_UI_Dialog_Draw(__MSK_UI_Dialog_Data * Dlg)
 						if(Dlg->ObjSelected[1] == Object[i].Order) wattroff(Dlg->Win, COLOR_PAIR(Dlg->HLColor));
 					} else {
 						for(Current = 0; Current < Amount; Current++) {
-							if(ObjectValue[i] == -1) ObjectValue[i] = *Object[i].Value;
+							if(ObjectValueSet[i] == 0) {
+								ObjectValue[i] = *Object[i].Value;
+								ObjectValueSet[i] = 1;
+							}
 							if(ObjectValue[i] == Current) {
 								if(Dlg->ObjSelected[1] == Object[i].Order) wattron(Dlg->Win, COLOR_PAIR(Dlg->HLColor));
 								wprintw(Dlg->Win, "[ %i ]", Current);
@@ -470,6 +501,19 @@ int MSK_UI_Dialog_ObjNumSelect_GetStringFormat(__MSK_UI_Object_Data * Obj)
 	int Ret = 0;
 
 	char * Ptr = strchr(Obj->ObjParameters, '|');
+	Ptr = strchr(Ptr+1, '|');
+	Ptr = strchr(Ptr+1, '|');
+	sscanf(Ptr+1, "%i", &Ret);
+
+	return Ret;
+}
+
+int MSK_UI_Dialog_ObjNumSelect_GetAllowNegativeFlag(__MSK_UI_Object_Data * Obj)
+{
+	int Ret = 0;
+
+	char * Ptr = strchr(Obj->ObjParameters, '|');
+	Ptr = strchr(Ptr+1, '|');
 	Ptr = strchr(Ptr+1, '|');
 	Ptr = strchr(Ptr+1, '|');
 	sscanf(Ptr+1, "%i", &Ret);

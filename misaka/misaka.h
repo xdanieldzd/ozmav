@@ -17,7 +17,7 @@ typedef struct {
 	int Order;
 
 	void * ObjParameters;
-	int * Value;
+	short * Value;
 } __MSK_UI_Object;
 
 typedef struct {
