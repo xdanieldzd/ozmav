@@ -386,7 +386,10 @@ void MSK_UI_Dialog_Draw(__MSK_UI_Dialog_Data * Dlg)
 					if(MSK_UI_Dialog_ObjNumSelect_GetDisplayType(&Object[i]) == 1) {
 						if(ObjectValue[i] == -1) ObjectValue[i] = *Object[i].Value;
 						if(Dlg->ObjSelected[1] == Object[i].Order) wattron(Dlg->Win, COLOR_PAIR(Dlg->HLColor));
-						wprintw(Dlg->Win, "< %3i >", ObjectValue[i]);
+						char Format[64];
+						sprintf(Format, "%5i", ObjectValue[i]);
+						if(MSK_UI_Dialog_ObjNumSelect_GetStringFormat(&Object[i]) == 1) sprintf(Format, "0x%04X", ObjectValue[i]);
+						wprintw(Dlg->Win, "< %s >", Format);
 						if(Dlg->ObjSelected[1] == Object[i].Order) wattroff(Dlg->Win, COLOR_PAIR(Dlg->HLColor));
 					} else {
 						for(Current = 0; Current < Amount; Current++) {
@@ -456,6 +459,18 @@ int MSK_UI_Dialog_ObjNumSelect_GetDisplayType(__MSK_UI_Object_Data * Obj)
 	int Ret = 0;
 
 	char * Ptr = strchr(Obj->ObjParameters, '|');
+	Ptr = strchr(Ptr+1, '|');
+	sscanf(Ptr+1, "%i", &Ret);
+
+	return Ret;
+}
+
+int MSK_UI_Dialog_ObjNumSelect_GetStringFormat(__MSK_UI_Object_Data * Obj)
+{
+	int Ret = 0;
+
+	char * Ptr = strchr(Obj->ObjParameters, '|');
+	Ptr = strchr(Ptr+1, '|');
 	Ptr = strchr(Ptr+1, '|');
 	sscanf(Ptr+1, "%i", &Ret);
 

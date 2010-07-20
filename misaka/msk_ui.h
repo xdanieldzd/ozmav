@@ -31,6 +31,7 @@ void MSK_UI_Dialog_Draw(__MSK_UI_Dialog_Data * Dlg);
 void MSK_UI_Dialog_CalculateObjCount(__MSK_UI_Dialog_Data * Dlg);
 int MSK_UI_Dialog_ObjNumSelect_GetCount(__MSK_UI_Object_Data * Obj);
 int MSK_UI_Dialog_ObjNumSelect_GetDisplayType(__MSK_UI_Object_Data * Obj);
+int MSK_UI_Dialog_ObjNumSelect_GetStringFormat(__MSK_UI_Object_Data * Obj);
 bool MSK_UI_Dialog_ObjButton_IsOkay(__MSK_UI_Object_Data * Obj);
 void MSK_UI_Dialog_SyncSelection(__MSK_UI_Dialog_Data * Dlg);
 int MSK_UI_Dialog_GetFreeDlgHandle();
