@@ -219,12 +219,17 @@ void RDP_LoadToSegment(unsigned char Segment, unsigned char * Buffer, unsigned i
 {
 	if(Segment >= MAX_SEGMENTS) return;
 
+	RAM[Segment].SourceOffset = Offset;
+	RAM[Segment].SourceCompType = 0;
+
 	RAM[Segment].Data = (unsigned char*) malloc (sizeof(char) * Size);
 
 	unsigned int ID = Read32(Buffer, Offset);
 	if(ID == 0x59617A30) {
+		RAM[Segment].SourceCompType = 1;
 		RDP_Yaz0Decode(&Buffer[Offset], RAM[Segment].Data, Size);
 	} else if(ID == 0x4D494F30) {
+		RAM[Segment].SourceCompType = 2;
 		RDP_MIO0Decode(&Buffer[Offset], RAM[Segment].Data, Size);
 	} else {
 		memcpy(RAM[Segment].Data, &Buffer[Offset], Size);
@@ -232,6 +237,20 @@ void RDP_LoadToSegment(unsigned char Segment, unsigned char * Buffer, unsigned i
 
 	RAM[Segment].IsSet = true;
 	RAM[Segment].Size = Size;
+}
+
+bool RDP_SaveSegment(unsigned char Segment, unsigned char * Buffer)
+{
+	// check if the segment is invalid
+	if((Segment >= MAX_SEGMENTS) || (RAM[Segment].IsSet == false)) return false;
+
+	// check if the segment's source was compressed
+	if(RAM[Segment].SourceCompType > 0) return false;
+
+	// store the segment's data back in the source buffer
+	memcpy(&Buffer[RAM[Segment].SourceOffset], RAM[Segment].Data, RAM[Segment].Size);
+
+	return true;
 }
 
 // Yaz0 decompression code from yaz0dec by thakis - http://www.amnoid.de/gc/
@@ -1644,4 +1663,9 @@ void RDP_Matrix_ProjectionMul(float Mat[4][4])
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadMatrixf(*Matrix.Proj);
+}
+
+bool RDP_OpenGL_ExtFragmentProgram()
+{
+	return OpenGL.Ext_FragmentProgram;
 }
