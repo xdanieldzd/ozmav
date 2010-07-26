@@ -106,6 +106,8 @@ typedef struct {
 	FILE * FileWavefrontMtl;
 	unsigned int WavefrontObjVertCount;
 	unsigned int WavefrontObjMaterialCnt;
+
+	unsigned char Options;
 } __System;
 
 typedef struct {

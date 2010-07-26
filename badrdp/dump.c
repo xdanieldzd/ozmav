@@ -40,7 +40,7 @@ int RDP_Dump_CreateMaterial(unsigned char * TextureData, unsigned char TexFormat
 	if(!System.FileWavefrontObj || !System.FileWavefrontMtl) return EXIT_FAILURE;
 
 	char TextureFilename[MAX_PATH];
-	sprintf(TextureFilename, "texture_fmt0x%02X_0x%08X.png", TexFormat, TexOffset);
+	sprintf(TextureFilename, "texture_0x%08X_fmt0x%02X.png", TexOffset, TexFormat);
 
 	char TexturePath[MAX_PATH];
 	sprintf(TexturePath, "%s//%s", System.WavefrontObjPath, TextureFilename);

@@ -12,6 +12,12 @@ extern __RAM RAM[MAX_SEGMENTS];
 
 extern enum { F3D, F3DEX, F3DEX2 } UcodeIDs;
 
+extern enum {
+	BRDP_WIREFRAME	= 1,
+	BRDP_TEXTURES	= 1 << 1,
+	BRDP_COMBINER	= 1 << 2
+} RenderOpts;
+
 extern void RDP_SetupOpenGL();
 extern void RDP_InitParser(int UcodeID);
 extern void RDP_LoadToSegment(unsigned char Segment, unsigned char * Buffer, unsigned int Offset, unsigned int Size);
@@ -27,3 +33,5 @@ extern void RDP_CreateCombinerProgram(unsigned int Cmb0, unsigned int Cmb1);
 extern void RDP_Dump_InitModelDumping(char Path[MAX_PATH], char ObjFilename[MAX_PATH], char MtlFilename[MAX_PATH]);
 extern void RDP_Dump_StopModelDumping();
 extern bool RDP_OpenGL_ExtFragmentProgram();
+extern void RDP_SetRendererOptions(unsigned char Options);
+extern unsigned char RDP_GetRendererOptions();

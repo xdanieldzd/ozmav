@@ -162,7 +162,7 @@ void RDP_G_SETBLENDCOLOR(void)
 	Gfx.BlendColor.B = _SHIFTR(w1, 8, 8) * 0.0039215689f;
 	Gfx.BlendColor.A = _SHIFTR(w1, 0, 8) * 0.0039215689f;
 
-	if(OpenGL.Ext_FragmentProgram) {
+	if(OpenGL.Ext_FragmentProgram && (System.Options & BRDP_COMBINER)) {
 		glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 2, Gfx.BlendColor.R, Gfx.BlendColor.G, Gfx.BlendColor.B, Gfx.BlendColor.A);
 	}
 }
@@ -177,7 +177,7 @@ void RDP_G_SETPRIMCOLOR(void)
 	Gfx.PrimColor.M = _SHIFTL(w0, 8, 8);
 	Gfx.PrimColor.L = _SHIFTL(w0, 0, 8) * 0.0039215689f;
 
-	if(OpenGL.Ext_FragmentProgram) {
+	if(OpenGL.Ext_FragmentProgram && (System.Options & BRDP_COMBINER)) {
 		glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 1, Gfx.PrimColor.R, Gfx.PrimColor.G, Gfx.PrimColor.B, Gfx.PrimColor.A);
 		glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 3, Gfx.PrimColor.L, Gfx.PrimColor.L, Gfx.PrimColor.L, Gfx.PrimColor.L);
 	}
@@ -190,7 +190,7 @@ void RDP_G_SETENVCOLOR(void)
 	Gfx.EnvColor.B = _SHIFTR(w1, 8, 8) * 0.0039215689f;
 	Gfx.EnvColor.A = _SHIFTR(w1, 0, 8) * 0.0039215689f;
 
-	if(OpenGL.Ext_FragmentProgram) {
+	if(OpenGL.Ext_FragmentProgram && (System.Options & BRDP_COMBINER)) {
 		glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 0, Gfx.EnvColor.R, Gfx.EnvColor.G, Gfx.EnvColor.B, Gfx.EnvColor.A);
 	}
 }

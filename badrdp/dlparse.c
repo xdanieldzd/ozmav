@@ -99,7 +99,7 @@ void RDP_SetupOpenGL()
 
 	RDP_InitGLExtensions();
 
-	if(OpenGL.Ext_FragmentProgram) {
+	if(OpenGL.Ext_FragmentProgram && (System.Options & BRDP_COMBINER)) {
 		glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 0, Gfx.EnvColor.R, Gfx.EnvColor.G, Gfx.EnvColor.B, Gfx.EnvColor.A);
 		glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 1, Gfx.PrimColor.R, Gfx.PrimColor.G, Gfx.PrimColor.B, Gfx.PrimColor.A);
 		glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 2, Gfx.BlendColor.R, Gfx.BlendColor.G, Gfx.BlendColor.B, Gfx.BlendColor.A);
@@ -461,6 +461,8 @@ void RDP_ParseDisplayList(unsigned int Address, bool ResetStack)
 	RDP_SetRenderMode(0, 0);
 
 	if(ResetStack) Gfx.DLStackPos = 0;
+
+	glPolygonMode(GL_FRONT_AND_BACK, (System.Options & BRDP_WIREFRAME) ? GL_LINE : GL_FILL);
 
 	while(Gfx.DLStackPos >= 0) {
 		Segment = DListAddress >> 24;
@@ -1104,6 +1106,10 @@ inline unsigned long RDP_PowOf(unsigned long dim)
 
 void RDP_InitLoadTexture()
 {
+	if(OpenGL.Ext_FragmentProgram && ((System.Options & BRDP_COMBINER) == 0)) {
+		glDisable(GL_FRAGMENT_PROGRAM_ARB);
+	}
+
 	if(OpenGL.Ext_MultiTexture) {
 		if(Texture[0].Offset != 0x00) {
 			glEnable(GL_TEXTURE_2D);
@@ -1177,8 +1183,6 @@ GLuint RDP_LoadTexture(int TextureID)
 	unsigned char TexSegment = Texture[TextureID].Offset >> 24;
 	unsigned int TexOffset = (Texture[TextureID].Offset & 0x00FFFFFF);
 
-//	if((wn0 == 0x03000000) || (wn0 == 0xE1000000)) return EXIT_SUCCESS;
-
 	int i = 0, j = 0;
 
 	unsigned int BytesPerPixel = 0x08;
@@ -1207,6 +1211,8 @@ GLuint RDP_LoadTexture(int TextureID)
 
 	if(!RDP_CheckAddressValidity(Texture[TextureID].Offset)) {
 		while(i < BufferSize) { TextureData[i++] = 0xFF; TextureData[i++] = 0x00; TextureData[i++] = 0x00; TextureData[i++] = 0xFF; }
+	} else if((System.Options & BRDP_TEXTURES) == 0) {
+		memset(TextureData, 0xFF, BufferSize);
 	} else {
 /*		char Log_PalOffset[256];
 		sprintf(Log_PalOffset, "- CI palette offset: 0x%08X\n", (unsigned int)Texture[TextureID].PalOffset);
@@ -1668,4 +1674,14 @@ void RDP_Matrix_ProjectionMul(float Mat[4][4])
 bool RDP_OpenGL_ExtFragmentProgram()
 {
 	return OpenGL.Ext_FragmentProgram;
+}
+
+void RDP_SetRendererOptions(unsigned char Options)
+{
+	System.Options = Options;
+}
+
+unsigned char RDP_GetRendererOptions()
+{
+	return System.Options;
 }
