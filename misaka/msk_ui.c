@@ -263,7 +263,7 @@ void MSK_DoEvents_Dialog()
 				bool AllowNegative = MSK_UI_Dialog_ObjNumSelect_GetAllowNegativeFlag(&Object[OnObject]);
 				if((!AllowNegative) && (ObjectValue[OnObject] < 0)) ObjectValue[OnObject] = *Object[OnObject].Value;
 				int Total = MSK_UI_Dialog_ObjNumSelect_GetCount(&Object[OnObject]) - 1;
-				int MaxValue = 0;
+				int MaxValue = Total;
 				if(AllowNegative) MaxValue = (Total / 2);
 				if(ObjectValue[OnObject] < MaxValue) ObjectValue[OnObject]++;
 
@@ -414,9 +414,11 @@ void MSK_UI_Dialog_Draw(__MSK_UI_Dialog_Data * Dlg)
 							ObjectValueSet[i] = 1;
 						}
 						if(Dlg->ObjSelected[1] == Object[i].Order) wattron(Dlg->Win, COLOR_PAIR(Dlg->HLColor));
-						char Format[64];
-						sprintf(Format, "%5i", ObjectValue[i]);
-						if(MSK_UI_Dialog_ObjNumSelect_GetStringFormat(&Object[i]) == 1) sprintf(Format, "0x%04X", ObjectValue[i]);
+						char Format[64]; int NumbCnt = 2; int OldAmount = Amount;
+						while(Amount /= 10) NumbCnt++;
+						Amount = OldAmount;
+						sprintf(Format, "%*i", NumbCnt, ObjectValue[i]);
+						if(MSK_UI_Dialog_ObjNumSelect_GetStringFormat(&Object[i]) == 1) sprintf(Format, "0x%04X", (unsigned short)ObjectValue[i]);
 						wprintw(Dlg->Win, "< %s >", Format);
 						if(Dlg->ObjSelected[1] == Object[i].Order) wattroff(Dlg->Win, COLOR_PAIR(Dlg->HLColor));
 					} else {
