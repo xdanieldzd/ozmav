@@ -632,7 +632,7 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 
 					RDP_ClearStructures(false);
 
-					RDP_ParseDisplayList(zActor[ActorNumber].DisplayList, true);
+					if(!zOptions.DumpModel) RDP_ParseDisplayList(zActor[ActorNumber].DisplayList, true);
 
 					glPopMatrix();
 				glEndList();
@@ -646,47 +646,49 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 	} else { // draw a cube
 		dbgprintf(0, MSK_COLORTYPE_INFO, " - Drawing a cube :(");
 
-		glNewList(DLBase, GL_COMPILE);
-			glPushMatrix();
-			glTranslated(X, Y, Z);
-			glRotated(RX / 182.0444444, 1, 0, 0);
-			glRotated(RY / 182.0444444, 0, 1, 0);
-			glRotated(RZ / 182.0444444, 0, 0, 1);
-			glScalef(10.0, 10.0, 10.0);
-			glBegin(GL_QUADS);
-				// Front Face
-				glVertex3f(-1.0f, -1.0f,  1.0f);
-				glVertex3f( 1.0f, -1.0f,  1.0f);
-				glVertex3f( 1.0f,  1.0f,  1.0f);
-				glVertex3f(-1.0f,  1.0f,  1.0f);
-				// Back Face
-				glVertex3f(-1.0f, -1.0f, -1.0f);
-				glVertex3f(-1.0f,  1.0f, -1.0f);
-				glVertex3f( 1.0f,  1.0f, -1.0f);
-				glVertex3f( 1.0f, -1.0f, -1.0f);
-				// Top Face
-				glVertex3f(-1.0f,  1.0f, -1.0f);
-				glVertex3f(-1.0f,  1.0f,  1.0f);
-				glVertex3f( 1.0f,  1.0f,  1.0f);
-				glVertex3f( 1.0f,  1.0f, -1.0f);
-				// Bottom Face
-				glVertex3f(-1.0f, -1.0f, -1.0f);
-				glVertex3f( 1.0f, -1.0f, -1.0f);
-				glVertex3f( 1.0f, -1.0f,  1.0f);
-				glVertex3f(-1.0f, -1.0f,  1.0f);
-				// Right Face
-				glVertex3f( 1.0f, -1.0f, -1.0f);
-				glVertex3f( 1.0f,  1.0f, -1.0f);
-				glVertex3f( 1.0f,  1.0f,  1.0f);
-				glVertex3f( 1.0f, -1.0f,  1.0f);
-				// Left Face
-				glVertex3f(-1.0f, -1.0f, -1.0f);
-				glVertex3f(-1.0f, -1.0f,  1.0f);
-				glVertex3f(-1.0f,  1.0f,  1.0f);
-				glVertex3f(-1.0f,  1.0f, -1.0f);
-			glEnd();
-			glPopMatrix();
-		glEndList();
+		if(!zOptions.DumpModel) {
+			glNewList(DLBase, GL_COMPILE);
+				glPushMatrix();
+				glTranslated(X, Y, Z);
+				glRotated(RX / 182.0444444, 1, 0, 0);
+				glRotated(RY / 182.0444444, 0, 1, 0);
+				glRotated(RZ / 182.0444444, 0, 0, 1);
+				glScalef(10.0, 10.0, 10.0);
+				glBegin(GL_QUADS);
+					// Front Face
+					glVertex3f(-1.0f, -1.0f,  1.0f);
+					glVertex3f( 1.0f, -1.0f,  1.0f);
+					glVertex3f( 1.0f,  1.0f,  1.0f);
+					glVertex3f(-1.0f,  1.0f,  1.0f);
+					// Back Face
+					glVertex3f(-1.0f, -1.0f, -1.0f);
+					glVertex3f(-1.0f,  1.0f, -1.0f);
+					glVertex3f( 1.0f,  1.0f, -1.0f);
+					glVertex3f( 1.0f, -1.0f, -1.0f);
+					// Top Face
+					glVertex3f(-1.0f,  1.0f, -1.0f);
+					glVertex3f(-1.0f,  1.0f,  1.0f);
+					glVertex3f( 1.0f,  1.0f,  1.0f);
+					glVertex3f( 1.0f,  1.0f, -1.0f);
+					// Bottom Face
+					glVertex3f(-1.0f, -1.0f, -1.0f);
+					glVertex3f( 1.0f, -1.0f, -1.0f);
+					glVertex3f( 1.0f, -1.0f,  1.0f);
+					glVertex3f(-1.0f, -1.0f,  1.0f);
+					// Right Face
+					glVertex3f( 1.0f, -1.0f, -1.0f);
+					glVertex3f( 1.0f,  1.0f, -1.0f);
+					glVertex3f( 1.0f,  1.0f,  1.0f);
+					glVertex3f( 1.0f, -1.0f,  1.0f);
+					// Left Face
+					glVertex3f(-1.0f, -1.0f, -1.0f);
+					glVertex3f(-1.0f, -1.0f,  1.0f);
+					glVertex3f(-1.0f,  1.0f,  1.0f);
+					glVertex3f(-1.0f,  1.0f, -1.0f);
+				glEnd();
+				glPopMatrix();
+			glEndList();
+		}
 	}
 }
 
@@ -730,7 +732,7 @@ void zl_DrawBone(z_bone Bones[], int CurrentBone)
 	//Draw display list
 	if(Bones[CurrentBone].DList && RDP_CheckAddressValidity(Bones[CurrentBone].DList)){
 		RDP_ClearStructures(false);
-		RDP_ParseDisplayList(Bones[CurrentBone].DList, true);
+		if(!zOptions.DumpModel) RDP_ParseDisplayList(Bones[CurrentBone].DList, true);
 	}
 
 	//Draw child 1
@@ -841,8 +843,8 @@ void zl_SaveMapActors(int SceneNumber, int MapNumber)
 		unsigned int Offset = (zMHeader[SceneNumber][MapNumber].ActorOffset & 0x00FFFFFF);
 
 		while(CurrActor < zMHeader[SceneNumber][MapNumber].ActorCount) {
-			dbgprintf(0, MSK_COLORTYPE_WARNING, "-writing actor %i...\n", CurrActor);
-			dbgprintf(0, MSK_COLORTYPE_WARNING, " -old X is %i...\n", Read16(RAM[Segment].Data, (Offset + (CurrActor * 0x10) + 2)));
+//			dbgprintf(0, MSK_COLORTYPE_WARNING, "-writing actor %i...\n", CurrActor);
+//			dbgprintf(0, MSK_COLORTYPE_WARNING, " -old X is %i...\n", Read16(RAM[Segment].Data, (Offset + (CurrActor * 0x10) + 2)));
 			Write16(RAM[Segment].Data, (Offset + (CurrActor * 0x10)), zMapActor[MapNumber][CurrActor].Number);
 			Write16(RAM[Segment].Data, (Offset + (CurrActor * 0x10) + 2), zMapActor[MapNumber][CurrActor].X);
 			Write16(RAM[Segment].Data, (Offset + (CurrActor * 0x10) + 4), zMapActor[MapNumber][CurrActor].Y);
@@ -851,7 +853,7 @@ void zl_SaveMapActors(int SceneNumber, int MapNumber)
 			Write16(RAM[Segment].Data, (Offset + (CurrActor * 0x10) + 10), zMapActor[MapNumber][CurrActor].RY);
 			Write16(RAM[Segment].Data, (Offset + (CurrActor * 0x10) + 12), zMapActor[MapNumber][CurrActor].RZ);
 			Write16(RAM[Segment].Data, (Offset + (CurrActor * 0x10) + 14), zMapActor[MapNumber][CurrActor].Var);
-			dbgprintf(0, MSK_COLORTYPE_WARNING, " -NEW X is %i...\n", Read16(RAM[Segment].Data, (Offset + (CurrActor * 0x10) + 2)));
+//			dbgprintf(0, MSK_COLORTYPE_WARNING, " -NEW X is %i...\n", Read16(RAM[Segment].Data, (Offset + (CurrActor * 0x10) + 2)));
 
 			CurrActor++;
 		}

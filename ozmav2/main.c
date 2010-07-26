@@ -108,6 +108,7 @@ int main(int argc, char * argv[])
 
 	// init OpenGL & renderer
 	RDP_SetupOpenGL();
+	RDP_SetRendererOptions(BRDP_TEXTURES | BRDP_COMBINER/* | BRDP_WIREFRAME*/);
 
 	gl_ResizeScene(WINDOW_WIDTH, WINDOW_HEIGHT);
 	gl_CreateViewerDLists();
@@ -174,6 +175,11 @@ int main(int argc, char * argv[])
 
 					// -> button "OK"
 					if(ReturnVal.s8 == 4) {
+						unsigned char Options = 0;
+						if(zOptions.EnableTextures) Options |= BRDP_TEXTURES;
+						if(zOptions.EnableCombiner) Options |= BRDP_COMBINER;
+						RDP_SetRendererOptions(Options);
+
 						int LastDbg = zOptions.DebugLevel;
 						zOptions.DebugLevel = 0;
 						struct __zCamera TempCam = zCamera;

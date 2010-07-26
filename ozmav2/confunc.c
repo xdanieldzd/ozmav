@@ -54,19 +54,39 @@ void cn_Cmd_DumpObj(unsigned char * Ptr)
 	}
 
 	int LastDbg = zOptions.DebugLevel;
-	bool LastDump = zOptions.DumpModel;
 
 	zOptions.DebugLevel = 0;
 	struct __zCamera TempCam = zCamera;
+
+	// tell OZMAV2 that we're dumping the level model
 	zOptions.DumpModel = true;
 
+	// create folders
+	char Temp[MAX_PATH];
+	sprintf(Temp, "%s//dump//%s", zProgram.AppPath, zGame.TitleText);
+	oz_CreateFolder(Temp);
+	sprintf(Temp, "%s//dump//%s//scene_%i", zProgram.AppPath, zGame.TitleText, zOptions.SceneNo);
+	oz_CreateFolder(Temp);
+
+	// initialize dumper
+	RDP_Dump_InitModelDumping(Temp, "model.obj", "material.mtl");
+	// reload the scene - without rendering the actors! - to dump the map(s)
+	if(zl_LoadScene(zOptions.SceneNo)) {
+		dbgprintf(0, MSK_COLORTYPE_ERROR, "> Error: Fatal error!\n");
+	}
+	// stop the dumper
+	RDP_Dump_StopModelDumping();
+
+	// reset the dumping option
+	zOptions.DumpModel = false;
+
+	// reload the scene again, this time also rendering the actors again
 	if(zl_LoadScene(zOptions.SceneNo)) {
 		dbgprintf(0, MSK_COLORTYPE_ERROR, "> Error: Fatal error!\n");
 	} else {
 		dbgprintf(0, MSK_COLORTYPE_OKAY, "> Model has been dumped.\n");
 	}
 
-	zOptions.DumpModel = LastDump;
 	zOptions.DebugLevel = LastDbg;
 	zCamera = TempCam;
 }
@@ -308,8 +328,8 @@ void cn_Cmd_ModifyActor(unsigned char * Ptr)
 	{
 		DlgTitle, 18, 40,
 		{
-			{ MSK_UI_DLGOBJ_NUMBERSEL, 1,  1,  0,  "Number|65536|1|1|0", (short*)&zMapActor[zOptions.MapToRender][zOptions.SelectedActor].Number },
-			{ MSK_UI_DLGOBJ_NUMBERSEL, 1,  21, 1,  "Var|65536|1|1|0",    (short*)&zMapActor[zOptions.MapToRender][zOptions.SelectedActor].Var },
+			{ MSK_UI_DLGOBJ_NUMBERSEL, 1,  1,  0,  "Number|65536|1|1|1", (short*)&zMapActor[zOptions.MapToRender][zOptions.SelectedActor].Number },
+			{ MSK_UI_DLGOBJ_NUMBERSEL, 1,  21, 1,  "Var|65536|1|1|1",    (short*)&zMapActor[zOptions.MapToRender][zOptions.SelectedActor].Var },
 			{ MSK_UI_DLGOBJ_LINE,      3,  1,  -1, "-1",                 NULL },
 			{ MSK_UI_DLGOBJ_LABEL,     5,  10, -1, "Position:",          NULL },
 			{ MSK_UI_DLGOBJ_LABEL,     5,  28, -1, "Rotation:",          NULL },
