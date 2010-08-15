@@ -213,3 +213,6 @@ struct __RAMSegment {
 	unsigned int Length;
 };
 extern struct __RAMSegment RAMSegment[SEG_COUNT];
+
+/* Collision fixing function */
+void FixCollision(unsigned char * data, int vertOff, int TriOff, int TriCount);

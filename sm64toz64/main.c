@@ -75,7 +75,6 @@ int ZTriOffset		= 0;
 int ZWaterCount		= 0;
 int ZWaterOffset	= 0;
 bool collision_read	= false;
-bool fix_collision	= false;
 
 int ZActorCount	= 0;
 int ZDoorCount	= 0; //unused
@@ -157,10 +156,8 @@ int CreateCollision(int Offset) //
         if (!ColVtxCount)
         {
         	printf("WARNING: No collision to build! Unknown results ahead...\n");
-        	fix_collision = false;
         	return 0;
         }
-        fix_collision = true;
         // empty collision type
 	Write64(ZSceneBuffer, Offset, 0x00000000, 0x00000000);
 	// copy triangles
@@ -192,10 +189,8 @@ int CreateCollision(int Offset) //
 	Write64(ZSceneBuffer, CollisionHeaderOffset+0x20, 0x00000000, ZWaterCount << 16);
 	Write64(ZSceneBuffer, CollisionHeaderOffset+0x28, (0x02000000|WaterOff), 0x00000000);
 
-	//Collision fixer stuff
-	FILE * cini=fopen("collision_fixer.ini","w");
-	fprintf(cini, "'6-byte\n%X\n%X\n'16-byte\n%X\n%X", VtxOff, VtxOff+VtxSize, TriOff, TriOff+TriSize);
-	fclose(cini);
+	//Fix collision
+	FixCollision(ZSceneBuffer, VtxOff, TriOff, ColTriCount);
 
 	free(ColTriBuffer);
 	free(ColVtxBuffer);
@@ -429,25 +424,6 @@ int main(int argc, char * argv[])
 	fwrite(ScenePadding, 1, GetPaddingSize(ZSceneFilesize, Z_PADDING), file);
 	int zSceneSize = ftell(file);
 	fclose(file);
-
-	//Fix collision
-	if (fix_collision)
-	{
-		msg(3, "Fixing collision...\n");
-
-		FILE * rini=fopen("romname.ini","w");
-		fprintf(rini, "'Rom you want to edit\n%s\n'Unmodified rom needed for collision fixer\n%s", ZSceneFilename, ZSceneFilename);
-		fclose(rini);
-
-		#ifdef WIN32
-		system("collision_fixer.exe");
-		#else
-		system("wine collision_fixer.exe");
-		#endif
-		
-		remove("romname.ini");
-		remove("collision_fixer.ini");
-	}
 	
 	/* Write to ROM? */
 	if (SceneNumber >= 0){

@@ -18,6 +18,7 @@ CC = gcc
 
 # Utils flags
 CFLAGS = -O3 -U_FORTIFY_SOURCE
+LDFLAGS = -lm
 
 ifeq ($(DBG),1)
   CFLAGS += -DDEBUG
@@ -29,11 +30,11 @@ ifeq ($(WIN32), 1)
 endif
 
 # Application pieces
-PIECES	= main.o actors.o script.o dlist.o
+PIECES	= main.o actors.o script.o dlist.o collision.o
 
 # Make
 all: $(PIECES)
-	$(CC) $(CFLAGS) -o $(TARGET) $(PIECES)
+	$(CC) $(CFLAGS) -o $(TARGET) $(PIECES) $(LDFLAGS)
 
 # Cleanup
 clean:
