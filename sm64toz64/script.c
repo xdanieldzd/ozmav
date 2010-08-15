@@ -1,5 +1,7 @@
 #include "globals.h"
 
+int ExecuteCollisionScript(unsigned int ColScriptSeg, unsigned int ColScriptPos);
+
 int InitLevelScriptInterpreter() /* From MariOZMAV */
 {
 	int i = 0;
@@ -57,8 +59,6 @@ int ExecuteLevelScript()
 
 	unsigned int ObjGeoOffset[256];
 	memset(ObjGeoOffset, 0x00, sizeof(ObjGeoOffset));
-	
-	int IDXORBEHAVIOR[32];
 
 	bool EndOfScript = false;
 	ColVtxBuffer = (unsigned char *) malloc (sizeof(char) * 0x8000);
@@ -67,8 +67,7 @@ int ExecuteLevelScript()
 	memset(ColTriBuffer, 0x10000, 0x0);
 	memset(ZWaterBuffer, 0x400, 0x0);
 	ZWaterOffset = 0;
-	int i;
-	
+
 	while (!(EndOfScript) && (TempScriptPos < ROMFilesize)) {
 		CurrentCmd = Read16(RAMSegment[TempScriptSegment].Data, TempScriptPos);
 		CurrentCmdLength = RAMSegment[TempScriptSegment].Data[TempScriptPos + 1];
@@ -166,7 +165,7 @@ int ExecuteLevelScript()
 				memset(ZMapBuffer, 0x00, ZMapFilesize);
 
 				msg(3, " - Copying main data and external texture data...\n");
-				
+
 				memcpy(&ZMapBuffer[ZMAP_HEADERGAP], RAMSegment[0x07].Data, RAMSegment[0x07].Length);
 				memcpy(&ZMapBuffer[ZMapFilesize - TextureSize], RAMSegment[0x09].Data, TextureSize);
 
@@ -195,10 +194,10 @@ int ExecuteLevelScript()
 
 				unsigned int ColScriptSeg = RAMSegment[TempScriptSegment].Data[TempScriptPos + 4];
 				unsigned int ColScriptPos = Read24(RAMSegment[TempScriptSegment].Data, TempScriptPos + 5);
-				
+
 				if (RAMSegment[ColScriptSeg].IsSet == true)
 					ExecuteCollisionScript(ColScriptSeg, ColScriptPos);
-				
+
 				break;
 			}
 			case 0x2208: {
@@ -222,9 +221,10 @@ int ExecuteLevelScript()
 
 				bool EndOfObjects = false;
 				while(!EndOfObjects) {
-					unsigned int Preset = Read16(RAMSegment[MacroSeg].Data, MacroPos) & 0x01FF;
+					unsigned int Preset = Read16(RAMSegment[MacroSeg].Data, MacroPos);
+					Preset &= 0x01FF;
 					unsigned int Behav = Read32(ROMBuffer, MacroPreset_Offset + ((Preset - 0x01F) << 3));
-					
+
 					if((Preset == 0x01E) || (Preset == 0x000)) {
 						EndOfObjects = true;
 					} else {
@@ -251,7 +251,7 @@ int ExecuteLevelScript()
 	return 0;
 }
 
-int ExecuteCollisionScript(ColScriptSeg, ColScriptPos)
+int ExecuteCollisionScript(unsigned int ColScriptSeg, unsigned int ColScriptPos)
 {
 	/* SM64 Collision format
 	[command][...data...][command][...data...][command][...data...] etc
@@ -282,7 +282,7 @@ int ExecuteCollisionScript(ColScriptSeg, ColScriptPos)
 
 	unsigned short WaterCount;
 	signed short x1, x2, y, z1, z2;
-	
+
 	int i;
 
 	while (!(EndOfColScript))
@@ -411,9 +411,9 @@ int ExecuteCollisionScript(ColScriptSeg, ColScriptPos)
 					for(i = 0; i < TriCount; i++)
 					{
 
-						p1 = ColVtxCount + Read16(RAMSegment[ColScriptSeg].Data, ColScriptPos);
-						p2 = ColVtxCount + Read16(RAMSegment[ColScriptSeg].Data, ColScriptPos + 2);
-						p3 = ColVtxCount + Read16(RAMSegment[ColScriptSeg].Data, ColScriptPos + 4);
+						p1 = ColVtxCount + (Read16(RAMSegment[ColScriptSeg].Data, ColScriptPos));
+						p2 = ColVtxCount + (Read16(RAMSegment[ColScriptSeg].Data, ColScriptPos + 2));
+						p3 = ColVtxCount + (Read16(RAMSegment[ColScriptSeg].Data, ColScriptPos + 4));
 						if((p1>ColVtxCount+_ColVtxCount)||(p2>ColVtxCount+_ColVtxCount)||(p3>ColVtxCount+_ColVtxCount))
 						{
 							msg(1, "WARNING: Collision vertex overflow!!!: %04i/%04i/%04i;max %04i", p1, p2, p3, ColVtxCount+_ColVtxCount);
@@ -454,7 +454,7 @@ int ExecuteGeoScript(bool IsObject)
 	bool EndOfGeoScript = false;
 	JumpInGeoScript = false;
 	unsigned int CurrentGeoCmd = 0, CurrentGeoCmdLength = 0;
-	
+
 	//emulate a stack for jumps
 	unsigned int TempGeoScriptSegment_Backup[4] = {0, 0, 0, 0};
 	unsigned int TempGeoScriptPos_Backup[4] = {0, 0, 0, 0};
@@ -475,18 +475,18 @@ int ExecuteGeoScript(bool IsObject)
 				// jump
 				TargetSeg = RAMSegment[TempGeoScriptSegment].Data[TempGeoScriptPos + 4];
 				TargetPos = Read24(RAMSegment[TempGeoScriptSegment].Data, TempGeoScriptPos + 5);
-				
+
 				if(!RAMSegment[TargetSeg].IsSet)
 					break;
-				
-				//Backup old seg/pos					
+
+				//Backup old seg/pos
 				TempGeoScriptPos_Backup[StackCount] = TempGeoScriptPos + 8;
 				TempGeoScriptSegment_Backup[StackCount] = TempGeoScriptSegment;
-				
+
 				//Set new seg/pos
 				TempGeoScriptPos = TargetPos;
 				TempGeoScriptSegment = TargetSeg;
-				
+
 				JumpInGeoScript = true;
 				StackCount++;
 				break;
