@@ -8,6 +8,8 @@
 
 enum { true = 1, false = 0 };
 
+union { unsigned long ul; float f; } u;
+
 // ----------------------------------------
 
 #ifdef WIN32
@@ -32,6 +34,7 @@ enum { true = 1, false = 0 };
 
 #include "oz.h"
 #include "draw.h"
+#include "hud.h"
 #include "zelda.h"
 #include "camera.h"
 #include "mips-eval.h"
@@ -55,6 +58,16 @@ enum { true = 1, false = 0 };
 	Buffer[Offset + 1] = (Value & 0x00FF0000) >> 16; \
 	Buffer[Offset + 2] = (Value & 0x0000FF00) >> 8; \
 	Buffer[Offset + 3] = (Value & 0x000000FF);
+
+#define Write64(Buffer, Offset, Value1, Value2) \
+	Buffer[Offset] = (Value1 & 0xFF000000) >> 24; \
+	Buffer[Offset + 1] = (Value1 & 0x00FF0000) >> 16; \
+	Buffer[Offset + 2] = (Value1 & 0x0000FF00) >> 8; \
+	Buffer[Offset + 3] = (Value1 & 0x000000FF); \
+	Buffer[Offset + 4] = (Value2 & 0xFF000000) >> 24; \
+	Buffer[Offset + 5] = (Value2 & 0x00FF0000) >> 16; \
+	Buffer[Offset + 6] = (Value2 & 0x0000FF00) >> 8; \
+	Buffer[Offset + 7] = (Value2 & 0x000000FF);
 
 #define _SHIFTL( v, s, w )	\
     (((unsigned long)v & ((0x01 << w) - 1)) << s)
@@ -92,6 +105,8 @@ enum { true = 1, false = 0 };
 struct __zProgram {
 	bool IsRunning;
 	bool Key[256];
+
+	int WindowWidth, WindowHeight;
 
 	int MousePosX, MousePosY;
 	int MouseCenterX, MouseCenterY;

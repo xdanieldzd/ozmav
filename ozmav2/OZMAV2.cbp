@@ -12,7 +12,7 @@
 				<Option object_output="obj\DebugW32\" />
 				<Option type="1" />
 				<Option compiler="gcc" />
-				<Option parameters="-r ..\zmq_debug_test.z64 -s 108 -d 2" />
+				<Option parameters="-r ..\zmq_debug_test.z64 -s 108 -d 1" />
 				<Compiler>
 					<Add option="-Wall" />
 					<Add option="-g" />
@@ -22,7 +22,7 @@
 					<Add directory="C:\Programme\PDCurses-SO\win32" />
 				</Compiler>
 				<Linker>
-					<Add library="..\..\libbadRDP\libbadRDP_debug.a" />
+					<Add library="..\libbadRDP_debug.a" />
 					<Add library="opengl32" />
 					<Add library="glu32" />
 					<Add library="glaux" />
@@ -52,7 +52,7 @@
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
-					<Add library="..\..\libbadRDP\libbadRDP.a" />
+					<Add library="..\libbadRDP.a" />
 					<Add library="opengl32" />
 					<Add library="glu32" />
 					<Add library="glaux" />
@@ -133,6 +133,10 @@
 		</Unit>
 		<Unit filename="draw.h" />
 		<Unit filename="globals.h" />
+		<Unit filename="hud.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="hud.h" />
 		<Unit filename="main.c">
 			<Option compilerVar="CC" />
 		</Unit>

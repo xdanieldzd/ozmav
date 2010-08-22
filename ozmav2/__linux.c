@@ -99,7 +99,9 @@ int XMain()
 				break; }
 
 			case ConfigureNotify: {
-				gl_ResizeScene(event.xconfigure.width, event.xconfigure.height);
+				zProgram.WindowWidth = event.xconfigure.width;
+				zProgram.WindowHeight = event.xconfigure.height;
+				gl_SetupScene3D(zProgram.WindowWidth, zProgram.WindowHeight);
 				break; }
 		}
 	}

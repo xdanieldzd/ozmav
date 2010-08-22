@@ -27,6 +27,9 @@ struct __zDoor zDoor[256];
 
 struct __zCamera zCamera;
 
+struct __Font Font;
+struct __HUD HUD[256];
+
 // ----------------------------------------
 
 __RAM RAM[MAX_SEGMENTS];
@@ -98,6 +101,12 @@ int main(int argc, char * argv[])
 	// init API via OZ wrapper
 	if(oz_InitProgram(APPTITLE, WINDOW_WIDTH, WINDOW_HEIGHT)) die(EXIT_FAILURE);
 
+	sprintf(Temp, "%s//data//font.bmp", zProgram.AppPath);
+	if(hud_Init(Temp)) {
+		dbgprintf(0, MSK_COLORTYPE_ERROR, "- Error: Failed to initialize HUD system!\n");
+		die(EXIT_FAILURE);
+	}
+
 	// create folder for .obj & texture dumps
 	sprintf(Temp, "%s//dump", zProgram.AppPath);
 	oz_CreateFolder(Temp);
@@ -110,7 +119,10 @@ int main(int argc, char * argv[])
 	RDP_SetupOpenGL();
 	RDP_SetRendererOptions(BRDP_TEXTURES | BRDP_COMBINER/* | BRDP_WIREFRAME*/);
 
-	gl_ResizeScene(WINDOW_WIDTH, WINDOW_HEIGHT);
+	zProgram.WindowWidth = WINDOW_WIDTH;
+	zProgram.WindowHeight = WINDOW_HEIGHT;
+	gl_SetupScene3D(zProgram.WindowWidth, zProgram.WindowHeight);
+
 	gl_CreateViewerDLists();
 
 	// used to delay ROM loading until after reading eventual scene number and debug level arguments

@@ -104,6 +104,10 @@ void cn_Cmd_SetTexture(unsigned char * Ptr)
 		int Var = 0;
 		sscanf((char*)Ptr+1, "%d", &Var);
 		zOptions.EnableTextures = Var;
+		unsigned char Options = 0;
+		if(zOptions.EnableTextures) Options |= BRDP_TEXTURES;
+		if(zOptions.EnableCombiner) Options |= BRDP_COMBINER;
+		RDP_SetRendererOptions(Options);
 		dbgprintf(0, MSK_COLORTYPE_OKAY, "> Texturing has been %s.\n", (Var ? "enabled" : "disabled"));
 
 		int LastDbg = zOptions.DebugLevel;
@@ -130,6 +134,10 @@ void cn_Cmd_SetCombiner(unsigned char * Ptr)
 		int Var = 0;
 		sscanf((char*)Ptr+1, "%d", &Var);
 		zOptions.EnableCombiner = Var;
+		unsigned char Options = 0;
+		if(zOptions.EnableTextures) Options |= BRDP_TEXTURES;
+		if(zOptions.EnableCombiner) Options |= BRDP_COMBINER;
+		RDP_SetRendererOptions(Options);
 		dbgprintf(0, MSK_COLORTYPE_OKAY, "> Combiner emulation has been %s.\n", (Var ? "enabled" : "disabled"));
 
 		int LastDbg = zOptions.DebugLevel;

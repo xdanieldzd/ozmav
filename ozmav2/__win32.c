@@ -131,7 +131,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		case WM_SIZE: {
 			RECT rcClient;
 			GetClientRect(hwnd, &rcClient);
-			gl_ResizeScene(rcClient.right, rcClient.bottom);
+			zProgram.WindowWidth = rcClient.right;
+			zProgram.WindowHeight = rcClient.bottom;
+			gl_SetupScene3D(zProgram.WindowWidth, zProgram.WindowHeight);
 			break; }
 
 		case WM_KEYDOWN:

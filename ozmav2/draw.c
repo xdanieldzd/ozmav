@@ -52,24 +52,49 @@ void gl_LookAt(const GLdouble p_EyeX, const GLdouble p_EyeY, const GLdouble p_Ey
 	glTranslated(-p_EyeX, -p_EyeY, -p_EyeZ);
 }
 
-void gl_ResizeScene(int Width, int Height)
+void gl_SetupScene3D(int Width, int Height)
 {
+	float TempMatrix[4][4];
+
 	glViewport(0, 0, Width, Height);
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	gl_Perspective(60.0f, (GLfloat)Width / (GLfloat)Height, 0.1f, 100.0f);
+	glGetFloatv(GL_PROJECTION_MATRIX, *TempMatrix);
+	RDP_Matrix_ProjectionLoad(TempMatrix);
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
+	glGetFloatv(GL_MODELVIEW_MATRIX, *TempMatrix);
+	RDP_Matrix_ModelviewLoad(TempMatrix);
+
+	glEnable(GL_DEPTH_TEST);
+	if(RDP_OpenGL_ExtFragmentProgram()) glEnable(GL_FRAGMENT_PROGRAM_ARB);
+}
+
+void gl_SetupScene2D(int Width, int Height)
+{
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glViewport(0, 0, Width, Height);
+	glOrtho(0, Width, Height, 0, -1.0, 1.0);
+
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	glDisable(GL_DEPTH_TEST);
+	if(RDP_OpenGL_ExtFragmentProgram()) glDisable(GL_FRAGMENT_PROGRAM_ARB);
 }
 
 void gl_DrawScene()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	glLoadIdentity();
-
+	gl_SetupScene3D(zProgram.WindowWidth, zProgram.WindowHeight);
 	gl_LookAt(zCamera.X, zCamera.Y, zCamera.Z, zCamera.X + zCamera.LX, zCamera.Y + zCamera.LY, zCamera.Z + zCamera.LZ);
 
 	glScalef(0.005, 0.005, 0.005);
@@ -114,6 +139,15 @@ void gl_DrawScene()
 
 	for(Door = 0; Door < zSHeader[0].DoorCount; Door++) {
 		glCallList(zDoor[Door].GLDList);
+	}
+
+	gl_SetupScene2D(zProgram.WindowWidth, zProgram.WindowHeight);
+
+//	hud_Print(hud_GetFreeObjectIndex(), 50, 50, -1, -1, Font.BGC, Font.FGC, "test!");
+
+	int i;
+	for(i = 0; i < ArraySize(HUD); i++) {
+		if((HUD[i].IsUsed) && !(HUD[i].IsHidden)) glCallList(HUD[i].DL);
 	}
 }
 

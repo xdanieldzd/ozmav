@@ -629,7 +629,7 @@ void zl_ExecuteDisplayLists(int MapNumber)
 
 	while(DL < zGfx.DLCount[MapNumber]) {
 		if(RDP_CheckAddressValidity(zGfx.DLOffset[MapNumber][DL])) {
-			glNewList(zGfx.GLLists[MapNumber] + DL, GL_COMPILE);
+			glNewList(zGfx.GLLists[MapNumber] + DL, GL_COMPILE_AND_EXECUTE);
 				RDP_ParseDisplayList(zGfx.DLOffset[MapNumber][DL], true);
 			glEndList();
 		}
