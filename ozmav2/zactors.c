@@ -642,10 +642,10 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 				}
 
 				if(!RDP_CheckAddressValidity(zActor[ActorNumber].Animation)) {
-//					zActor[ActorNumber].Animation = zl_ScanForAnims(TargetSeg, 0);
+					zActor[ActorNumber].Animation = zl_ScanForAnims(TargetSeg, 0);
 				}
 				if(zActor[ActorNumber].BoneSetup != 0 && !RDP_CheckAddressValidity(zActor[ActorNumber].BoneSetup)) {
-//					zActor[ActorNumber].BoneSetup = zl_ScanForBones(TargetSeg, 0);
+					zActor[ActorNumber].BoneSetup = zl_ScanForBones(TargetSeg, 0);
 				}
 				// end hack
 			}
