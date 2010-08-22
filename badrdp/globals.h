@@ -22,6 +22,8 @@
 typedef unsigned char bool;
 enum { true = 1, false = 0 };
 
+union { unsigned long ul; float f; } u;
+
 // ----------------------------------------
 
 
@@ -111,6 +113,7 @@ typedef struct {
 } __System;
 
 typedef struct {
+	float Comb[4][4];
 	float Model[4][4];
 	float Proj[4][4];
 	float ModelStack[32][4][4];
@@ -128,7 +131,10 @@ typedef struct {
 	unsigned char G;
 	unsigned char B;
 	unsigned char A;
+} __VtxRaw;
 
+typedef struct {
+	__VtxRaw Vtx;
 	float RealS0;
 	float RealT0;
 	float RealS1;
@@ -144,7 +150,6 @@ typedef struct {
 
 typedef struct {
 	unsigned int Offset;
-	unsigned int PalOffset;
 
 	unsigned int Format;
 	unsigned int Tile;
@@ -206,7 +211,7 @@ typedef struct {
 	int DLStack[16];
 	int DLStackPos;
 
-	unsigned int ChangedModes;
+	unsigned int Update;
 	unsigned int GeometryMode;
 	unsigned int OtherModeL;
 	unsigned int OtherModeH;
@@ -255,7 +260,12 @@ extern __OpenGL OpenGL;
 #include "badrdp.h"
 
 #include "dlparse.h"
+#include "gbi.h"
+#include "gdp.h"
+#include "gsp.h"
 #include "rdp.h"
+#include "matrix.h"
+#include "macro.h"
 #include "f3d.h"
 #include "f3dex.h"
 #include "f3dex2.h"

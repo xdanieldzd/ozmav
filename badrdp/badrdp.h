@@ -35,3 +35,6 @@ extern void RDP_Dump_StopModelDumping();
 extern bool RDP_OpenGL_ExtFragmentProgram();
 extern void RDP_SetRendererOptions(unsigned char Options);
 extern unsigned char RDP_GetRendererOptions();
+extern void RDP_Matrix_ModelviewLoad(float [4][4]);
+extern void RDP_Matrix_ProjectionLoad(float [4][4]);
+extern void RDP_Matrix_ModelviewPush();

@@ -56,13 +56,6 @@ extern void RDP_InitLoadTexture();
 extern GLuint RDP_CheckTextureCache(unsigned int TexID);
 extern GLuint RDP_LoadTexture(int TextureID);
 extern void RDP_UpdateGLStates();
-extern void RDP_Matrix_MulMatrices(float [4][4], float [4][4], float [4][4]);
-extern void RDP_Matrix_ModelviewLoad(float [4][4]);
-extern void RDP_Matrix_ModelviewMul(float [4][4]);
-extern void RDP_Matrix_ModelviewPush();
-extern void RDP_Matrix_ModelviewPop(int);
-extern void RDP_Matrix_ProjectionLoad(float [4][4]);
-extern void RDP_Matrix_ProjectionMul(float [4][4]);
 
 //-----------------------------------------
 
@@ -73,3 +66,4 @@ void (*glXGetProcAddressARB(const GLubyte *procName))();
 #define CHANGED_GEOMETRYMODE	0x01
 #define CHANGED_RENDERMODE		0x02
 #define CHANGED_ALPHACOMPARE	0x04
+#define CHANGED_MULT_MAT		0x08

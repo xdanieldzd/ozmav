@@ -70,9 +70,9 @@ void RDP_Dump_DumpTriangle(__Vertex Vtx[], int VtxID[])
 
 	int i = 0;
 	for(i = 0; i < 3; i++) {
-		fprintf(System.FileWavefrontObj, "v %4.8f %4.8f %4.8f\n", (float)Vtx[VtxID[i]].X / 32.0f, (float)Vtx[VtxID[i]].Y / 32.0f, (float)Vtx[VtxID[i]].Z / 32.0f);
+		fprintf(System.FileWavefrontObj, "v %4.8f %4.8f %4.8f\n", (int)Vtx[VtxID[i]].Vtx.X / 32.0f, (int)Vtx[VtxID[i]].Vtx.Y / 32.0f, (int)Vtx[VtxID[i]].Vtx.Z / 32.0f);
 		fprintf(System.FileWavefrontObj, "vt %4.8f %4.8f\n", (isnan(Vtx[VtxID[i]].RealS0) ? 0.0f : Vtx[VtxID[i]].RealS0), (isnan(-Vtx[VtxID[i]].RealT0) ? 0.0f : -Vtx[VtxID[i]].RealT0));
-		fprintf(System.FileWavefrontObj, "vn %4.8f %4.8f %4.8f\n", (float)Vtx[VtxID[i]].R, (float)Vtx[VtxID[i]].G, (float)Vtx[VtxID[i]].B);
+		fprintf(System.FileWavefrontObj, "vn %4.8f %4.8f %4.8f\n", (float)Vtx[VtxID[i]].Vtx.R, (float)Vtx[VtxID[i]].Vtx.G, (float)Vtx[VtxID[i]].Vtx.B);
 	}
 
 	fprintf(System.FileWavefrontObj, "f %d/%d/%d %d/%d/%d %d/%d/%d\n\n",

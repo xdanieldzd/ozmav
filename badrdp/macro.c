@@ -1,0 +1,66 @@
+#include "globals.h"
+
+#include "macro_def.h"
+
+unsigned char Segment; unsigned int Offset;
+unsigned char NextCmds[32];
+unsigned int nw0[32], nw1[32];
+
+bool RDP_Macro_DetectMacro(unsigned int * Address)
+{
+	bool Found = false;
+
+	int i, j;
+	int Addr = *Address;
+
+	if(!RDP_CheckAddressValidity(Addr)) return Found;
+
+	Segment = Addr >> 24;
+	Offset = (Addr & 0x00FFFFFF);
+
+	for(i = 0; i < 32; i++) NextCmds[i] = RAM[Segment].Data[Offset + (i * 8)];
+
+	for(i = 0; i < ArraySize(GfxMacros); i++) {
+		if(!memcmp(GfxMacros[i].Cmd, NextCmds, GfxMacros[i].Len)) {
+			for(j = 0; j < GfxMacros[i].Len + 1; j++) {
+				nw0[j] = Read32(RAM[Segment].Data, Offset);
+				nw1[j] = Read32(RAM[Segment].Data, Offset + 4);
+				Offset += 8;
+			}
+			GfxMacros[i].Func();
+
+			Addr += GfxMacros[i].Len * 8;
+			Found = true;
+			break;
+		}
+	}
+
+	*Address = Addr;
+
+	return Found;
+}
+
+void RDP_Macro_LoadTextureBlock()
+{
+	Gfx.CurrentTexture = ((nw0[1] & 0x0F00) ? 1 : 0);
+	Gfx.IsMultiTexture = Gfx.CurrentTexture;
+
+	gDP_SetTImg(nw0[0], nw1[0]);
+	gDP_SetTile(nw0[5], nw1[5]);
+	gDP_SetTileSize(nw0[6], nw1[6]);
+
+	// texture is CI and palette will be loaded after this!
+	if((Texture[Gfx.CurrentTexture].Format == 0x40) || (Texture[Gfx.CurrentTexture].Format == 0x48) || (Texture[Gfx.CurrentTexture].Format == 0x50)) {
+		if((nw0[7] >> 24) == G_SETTIMG) return;
+	}
+
+	RDP_InitLoadTexture();
+}
+
+void RDP_Macro_LoadTLUT()
+{
+	gDP_SetTImg(nw0[0], nw1[0]);
+	gDP_LoadTLUT(nw0[4], nw1[4]);
+
+	RDP_InitLoadTexture();
+}

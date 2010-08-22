@@ -40,7 +40,7 @@ void RDP_F3DEX_BRANCH_Z()
 	int Vtx = _SHIFTR(w0, 1, 11);
 	int ZVal = (int)w1;
 
-	if(Vertex[Vtx].Z < ZVal) {
+	if(Vertex[Vtx].Vtx.Z < ZVal) {
 		Gfx.DLStack[Gfx.DLStackPos] = DListAddress;
 		Gfx.DLStackPos++;
 
@@ -50,12 +50,12 @@ void RDP_F3DEX_BRANCH_Z()
 
 void RDP_F3DEX_TRI2()
 {
-	if(Gfx.ChangedModes) RDP_UpdateGLStates();
+	if(Gfx.Update) RDP_UpdateGLStates();
 
 	int Vtxs1[] = { _SHIFTR( w0, 17, 7 ), _SHIFTR( w0, 9, 7 ), _SHIFTR( w0, 1, 7 ) };
 	RDP_DrawTriangle(Vtxs1);
 
-	if(Gfx.ChangedModes) RDP_UpdateGLStates();
+	if(Gfx.Update) RDP_UpdateGLStates();
 
 	int Vtxs2[] = { _SHIFTR( w1, 17, 7 ), _SHIFTR( w1, 9, 7 ), _SHIFTR( w1, 1, 7 ) };
 	RDP_DrawTriangle(Vtxs2);

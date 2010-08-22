@@ -37,39 +37,37 @@ void RDP_F3DEX2_Init()
 
 void RDP_F3DEX2_VTX()
 {
-	if(((wn0 >> 24) == F3DEX2_CULLDL) || ((wn0 >> 24) == F3DEX2_MTX)) return;
-
-	if(!RDP_CheckAddressValidity(w1)) return;
-
-	unsigned char TempSegment = w1 >> 24;
-	unsigned int TempOffset = (w1 & 0x00FFFFFF);
-
 	unsigned int N = ((w0 >> 12) & 0xFF);
-	unsigned int V = ((w0 >> 1) & 0x7F) - N;
 
-	if((N > 32) || (V > 32)) return;
-
-	int i = 0;
-	for(i = 0; i < (N << 4); i += 16) {
-		Vertex[V].X = ((RAM[TempSegment].Data[TempOffset + i] << 8) | RAM[TempSegment].Data[TempOffset + i + 1]);
-		Vertex[V].Y = ((RAM[TempSegment].Data[TempOffset + i + 2] << 8) | RAM[TempSegment].Data[TempOffset + i + 3]);
-		Vertex[V].Z = ((RAM[TempSegment].Data[TempOffset + i + 4] << 8) | RAM[TempSegment].Data[TempOffset + i + 5]);
-		Vertex[V].S = ((RAM[TempSegment].Data[TempOffset + i + 8] << 8) | RAM[TempSegment].Data[TempOffset + i + 9]);
-		Vertex[V].T = ((RAM[TempSegment].Data[TempOffset + i + 10] << 8) | RAM[TempSegment].Data[TempOffset + i + 11]);
-		Vertex[V].R = RAM[TempSegment].Data[TempOffset + i + 12];
-		Vertex[V].G = RAM[TempSegment].Data[TempOffset + i + 13];
-		Vertex[V].B = RAM[TempSegment].Data[TempOffset + i + 14];
-		Vertex[V].A = RAM[TempSegment].Data[TempOffset + i + 15];
-
-		V++;
+	// crude hack to remove "bad" polygons on actors in zelda, due to crappy matrix support
+	if(((wn0 >> 24) == F3DEX2_CULLDL) || ((wn0 >> 24) == F3DEX2_MTX)) {
+/*		unsigned int Search, Mtx;
+		// go back up to 10 cmds to find MTX cmd
+		for(Search = DListAddress; Search > DListAddress - 0x50; Search -= 8) {
+			// is current search offset valid?
+			if(RDP_CheckAddressValidity(Search)) {
+				// get cmd from offset and check if its MTX w/ load from seg 0x0D
+				Mtx = Read32(RAM[Search >> 24].Data, (Search & 0x00FFFFFF));
+				if(Mtx == 0xDA380003) {
+					// get offset up to MTX w1
+					Search += 4;
+					// read MTX offset from its w1
+					Mtx = Read32(RAM[Search >> 24].Data, (Search & 0x00FFFFFF));
+					// call VTX/MTX combo function
+					gSP_VertexMtxHack(w1, N, (((w0 >> 1) & 0x7F) - N), Mtx);
+					DListAddress += 8;
+					return;
+				}
+			}
+		}*/
+	} else {
+		gSP_Vertex(w1, N, (((w0 >> 1) & 0x7F) - N));
 	}
-
-	RDP_InitLoadTexture();
 }
 
 void RDP_F3DEX2_MODIFYVTX()
 {
-	//
+	gSP_ModifyVertex(_SHIFTR(w0, 1, 15), _SHIFTR(w0, 16, 8), w1);
 }
 
 void RDP_F3DEX2_CULLDL()
@@ -84,7 +82,7 @@ void RDP_F3DEX2_BRANCH_Z()
 	int Vtx = _SHIFTR(w0, 1, 11);
 	short ZVal = (short)w1;
 
-	if(Vertex[Vtx].Z < ZVal) {
+	if(Vertex[Vtx].Vtx.Z < ZVal) {
 		Gfx.DLStack[Gfx.DLStackPos] = DListAddress;
 		Gfx.DLStackPos++;
 
@@ -94,7 +92,7 @@ void RDP_F3DEX2_BRANCH_Z()
 
 void RDP_F3DEX2_TRI1()
 {
-	if(Gfx.ChangedModes) RDP_UpdateGLStates();
+	if(Gfx.Update) RDP_UpdateGLStates();
 
 	int Vtxs[] = { ((w0 & 0x00FF0000) >> 16) / 2, ((w0 & 0x0000FF00) >> 8) / 2, (w0 & 0x000000FF) / 2 };
 	RDP_DrawTriangle(Vtxs);
@@ -102,12 +100,12 @@ void RDP_F3DEX2_TRI1()
 
 void RDP_F3DEX2_TRI2()
 {
-	if(Gfx.ChangedModes) RDP_UpdateGLStates();
+	if(Gfx.Update) RDP_UpdateGLStates();
 
 	int Vtxs1[] = { ((w0 & 0x00FF0000) >> 16) / 2, ((w0 & 0x0000FF00) >> 8) / 2, (w0 & 0x000000FF) / 2 };
 	RDP_DrawTriangle(Vtxs1);
 
-	if(Gfx.ChangedModes) RDP_UpdateGLStates();
+	if(Gfx.Update) RDP_UpdateGLStates();
 
 	int Vtxs2[] = { ((w1 & 0x00FF0000) >> 16) / 2, ((w1 & 0x0000FF00) >> 8) / 2, (w1 & 0x000000FF) / 2 };
 	RDP_DrawTriangle(Vtxs2);
@@ -115,7 +113,15 @@ void RDP_F3DEX2_TRI2()
 
 void RDP_F3DEX2_QUAD()
 {
-	//
+	if(Gfx.Update) RDP_UpdateGLStates();
+
+	int Vtxs1[] = { ((w1 & 0xFF000000) >> 24) / 2, ((w1 & 0x00FF0000) >> 16) / 2, ((w1 & 0x0000FF00) >> 8) / 2 };
+	RDP_DrawTriangle(Vtxs1);
+
+	if(Gfx.Update) RDP_UpdateGLStates();
+
+	int Vtxs2[] = { ((w1 & 0xFF000000) >> 24) / 2, ((w1 & 0x0000FF00) >> 8) / 2, (w1 & 0x000000FF) / 2 };
+	RDP_DrawTriangle(Vtxs2);
 }
 
 void RDP_F3DEX2_SPECIAL_3()
@@ -140,7 +146,7 @@ void RDP_F3DEX2_DMA_IO()
 
 void RDP_F3DEX2_TEXTURE()
 {
-	static const __Texture Texture_Empty = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.0f, 0.0f, 0.0f, 0.0f };
+	static const __Texture Texture_Empty = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.0f, 0.0f, 0.0f, 0.0f };
 	Texture[0] = Texture_Empty;
 	Texture[1] = Texture_Empty;
 
@@ -170,13 +176,16 @@ void RDP_F3DEX2_POPMTX()
 void RDP_F3DEX2_GEOMETRYMODE()
 {
 	Gfx.GeometryMode &= (w0 & 0x00FFFFFF);
-	Gfx.GeometryMode |= (w1 & 0x00FFFFFF);
+	Gfx.GeometryMode |= w1;
 
-	Gfx.ChangedModes |= CHANGED_GEOMETRYMODE;
+	Gfx.Update |= CHANGED_GEOMETRYMODE;
 }
 
 void RDP_F3DEX2_MTX()
 {
+//	gSP_Matrix(w1, _SHIFTR(w0, 0, 8) ^ G_MTX_PUSH);
+//	return;
+
 	if(!(w0 & 0x00FFFFFF)) return;
 
 	unsigned char Segment = w1 >> 24;
@@ -184,6 +193,8 @@ void RDP_F3DEX2_MTX()
 
 	if(Segment == 0x80) {
 		glPopMatrix();
+		return;
+	} else if(Segment == 0x0D) {
 		return;
 	}
 
@@ -194,6 +205,8 @@ void RDP_F3DEX2_MTX()
 
 	float TempMatrix[4][4];
 
+//	dbgprintf(0, 2, "RDP_F3DEX2_MTX -> Matrix %08X:", w1);
+
 	for(x = 0; x < 4; x++) {
 		for(y = 0; y < 4; y++) {
 			MtxTemp1 = Read16(RAM[Segment].Data, Offset);
@@ -201,6 +214,7 @@ void RDP_F3DEX2_MTX()
 			TempMatrix[x][y] = ((MtxTemp1 << 16) | MtxTemp2) * (1.0f / 65536.0f);
 			Offset += 2;
 		}
+//		dbgprintf(0, 0, "[% 6.0f] [% 6.0f] [% 6.0f] [% 6.0f]", TempMatrix[x][0], TempMatrix[x][1], TempMatrix[x][2], TempMatrix[x][3]);
 	}
 
 	glPushMatrix();
@@ -283,7 +297,7 @@ void RDP_F3DEX2_SETOTHERMODE_L()
 			Gfx.OtherModeL &= ~mask;
 			Gfx.OtherModeL |= w1 & mask;
 
-			Gfx.ChangedModes |= CHANGED_RENDERMODE | CHANGED_ALPHACOMPARE;
+			Gfx.Update |= CHANGED_RENDERMODE | CHANGED_ALPHACOMPARE;
 			break;
 		}
 	}

@@ -87,32 +87,7 @@ void RDP_F3D_MOVEMEM()
 
 void RDP_F3D_VTX()
 {
-	if(!RDP_CheckAddressValidity(w1)) return;
-
-	unsigned char TempSegment = w1 >> 24;
-	unsigned int TempOffset = (w1 & 0x00FFFFFF);
-
-	unsigned int V = _SHIFTR( w0, 17, 7 );
-	unsigned int N = _SHIFTR( w0, 10, 6 );
-
-	if((N > 32) || (V > 32)) return;
-
-	int i = 0;
-	for(i = 0; i < (N << 4); i += 16) {
-		Vertex[V].X = ((RAM[TempSegment].Data[TempOffset + i] << 8) | RAM[TempSegment].Data[TempOffset + i + 1]);
-		Vertex[V].Y = ((RAM[TempSegment].Data[TempOffset + i + 2] << 8) | RAM[TempSegment].Data[TempOffset + i + 3]);
-		Vertex[V].Z = ((RAM[TempSegment].Data[TempOffset + i + 4] << 8) | RAM[TempSegment].Data[TempOffset + i + 5]);
-		Vertex[V].S = ((RAM[TempSegment].Data[TempOffset + i + 8] << 8) | RAM[TempSegment].Data[TempOffset + i + 9]);
-		Vertex[V].T = ((RAM[TempSegment].Data[TempOffset + i + 10] << 8) | RAM[TempSegment].Data[TempOffset + i + 11]);
-		Vertex[V].R = RAM[TempSegment].Data[TempOffset + i + 12];
-		Vertex[V].G = RAM[TempSegment].Data[TempOffset + i + 13];
-		Vertex[V].B = RAM[TempSegment].Data[TempOffset + i + 14];
-		Vertex[V].A = RAM[TempSegment].Data[TempOffset + i + 15];
-
-		V++;
-	}
-
-	RDP_InitLoadTexture();
+	gSP_Vertex(w1, _SHIFTR(w0, 20, 4) + 1, _SHIFTR(w0, 16, 4));
 }
 
 void RDP_F3D_RESERVED1()
@@ -174,14 +149,14 @@ void RDP_F3D_CLEARGEOMETRYMODE()
 {
 	Gfx.GeometryMode &= ~w1;
 
-	Gfx.ChangedModes |= CHANGED_GEOMETRYMODE;
+	Gfx.Update |= CHANGED_GEOMETRYMODE;
 }
 
 void RDP_F3D_SETGEOMETRYMODE()
 {
 	Gfx.GeometryMode |= w1;
 
-	Gfx.ChangedModes |= CHANGED_GEOMETRYMODE;
+	Gfx.Update |= CHANGED_GEOMETRYMODE;
 }
 
 void RDP_F3D_ENDDL()
@@ -204,7 +179,7 @@ void RDP_F3D_SETOTHERMODE_L()
 			Gfx.OtherModeL &= ~mask;
 			Gfx.OtherModeL |= w1 & mask;
 
-			Gfx.ChangedModes |= CHANGED_RENDERMODE | CHANGED_ALPHACOMPARE;
+			Gfx.Update |= CHANGED_RENDERMODE | CHANGED_ALPHACOMPARE;
 			break;
 		}
 	}
@@ -256,7 +231,7 @@ void RDP_F3D_CULLDL()
 
 void RDP_F3D_TRI1()
 {
-	if(Gfx.ChangedModes) RDP_UpdateGLStates();
+	if(Gfx.Update) RDP_UpdateGLStates();
 
 	int Vtxs[] = { _SHIFTR( w1, 17, 7 ), _SHIFTR( w1, 9, 7 ), _SHIFTR( w1, 1, 7 ) };
 	RDP_DrawTriangle(Vtxs);

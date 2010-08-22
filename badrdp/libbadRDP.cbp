@@ -8,7 +8,7 @@
 		<Build>
 			<Target title="Debug - Win32">
 				<Option platforms="Windows;" />
-				<Option output="..\libbadRDP_debug" prefix_auto="1" extension_auto="1" />
+				<Option output="..\..\OZMAV2\libbadRDP_debug" prefix_auto="1" extension_auto="1" />
 				<Option working_dir="" />
 				<Option object_output="obj\DebugW32\" />
 				<Option type="2" />
@@ -33,7 +33,7 @@
 			</Target>
 			<Target title="Release - Win32">
 				<Option platforms="Windows;" />
-				<Option output="..\libbadRDP" prefix_auto="1" extension_auto="1" />
+				<Option output="..\..\OZMAV2\libbadRDP" prefix_auto="1" extension_auto="1" />
 				<Option working_dir="" />
 				<Option object_output="obj\ReleaseW32\" />
 				<Option type="2" />
@@ -108,7 +108,25 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="f3dex2.h" />
+		<Unit filename="gbi.h" />
+		<Unit filename="gdp.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="gdp.h" />
 		<Unit filename="globals.h" />
+		<Unit filename="gsp.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="gsp.h" />
+		<Unit filename="macro.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="macro.h" />
+		<Unit filename="macro_def.h" />
+		<Unit filename="matrix.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="matrix.h" />
 		<Unit filename="rdp.c">
 			<Option compilerVar="CC" />
 		</Unit>
