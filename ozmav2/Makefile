@@ -7,7 +7,7 @@ CC = gcc
 CFLAGS = -Wall -U_FORTIFY_SOURCE
 
 # Application pieces
-PIECES	= camera.o confunc.o zelda.o main.o mips-eval.o oz.o draw.o zactors.o 
+PIECES	= camera.o confunc.o draw.o main.o mips-eval.o mouse.o oz.o zactors.o zelda.o
 
 # In regards to backslashes
 # (http://www.netbsd.org/docs/pkgsrc/makefile.html#makefile.variables)

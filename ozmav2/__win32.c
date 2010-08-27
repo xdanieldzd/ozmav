@@ -145,19 +145,38 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 		case WM_LBUTTONDOWN: {
 			SetFocus(hwnd);
-			zProgram.MouseButtonDown = true;
+			zProgram.MouseButtonLDown = true;
 			zProgram.MouseCenterX = (signed int)LOWORD(lParam);
 			zProgram.MouseCenterY = (signed int)HIWORD(lParam);
 			break; }
 		case WM_LBUTTONUP: {
-			zProgram.MouseButtonDown = false;
+			zProgram.MouseButtonLDown = false;
 			break; }
+		case WM_RBUTTONDOWN: {
+			SetFocus(hwnd);
+			int YOffset = GetSystemMetrics(SM_CYSIZE) + GetSystemMetrics(SM_CYBORDER) + GetSystemMetrics(SM_CYSIZEFRAME) + 10;
+			zProgram.MouseButtonRDown = true;
+			zProgram.MouseCenterX = (signed int)LOWORD(lParam);
+			zProgram.MouseCenterY = (signed int)HIWORD(lParam) + YOffset;
+			zProgram.SceneCoords = ms_GetSceneCoords(zProgram.MouseCenterX, zProgram.MouseCenterY);
+			zOptions.SelectedActor = ms_SelectedMapActor();
+//			MSK_ConsolePrint(MSK_COLORTYPE_WARNING, "MOUSE COORDS: X:%i, Y:%i (OFS:%i)\nHIT COORDS: X:%i, Y:%i, Z:%i\n", zProgram.MouseCenterX, zProgram.MouseCenterY, YOffset, zProgram.SceneCoords.X, zProgram.SceneCoords.Y, zProgram.SceneCoords.Z);
+			break; }
+		case WM_RBUTTONUP: {
+			zProgram.MouseButtonRDown = false;
+			break; }
+
 		case WM_MOUSEMOVE: {
-			if(zProgram.MouseButtonDown) {
+			if(zProgram.MouseButtonLDown) {
 				zProgram.MousePosX = (signed int)LOWORD(lParam);
 				zProgram.MousePosY = (signed int)HIWORD(lParam);
 				ca_MouseMove(zProgram.MousePosX, zProgram.MousePosY);
 				ca_Orientation(zCamera.AngleX, zCamera.AngleY);
+			} else if(zProgram.MouseButtonRDown) {
+				int YOffset = GetSystemMetrics(SM_CYSIZE) + GetSystemMetrics(SM_CYBORDER) + GetSystemMetrics(SM_CYSIZEFRAME) + 10;
+				zProgram.MousePosX = (signed int)LOWORD(lParam);
+				zProgram.MousePosY = (signed int)HIWORD(lParam) + YOffset;
+				zProgram.SceneCoords = ms_GetSceneCoords(zProgram.MousePosX, zProgram.MousePosY);
 			}
 			break; }
 

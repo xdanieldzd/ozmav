@@ -86,6 +86,11 @@ int XMain()
 						zProgram.MouseCenterX = event.xbutton.x;
 						zProgram.MouseCenterY = event.xbutton.y;
 						break;
+					case 2:
+						zProgram.MouseCenterX = event.xbutton.x;
+						zProgram.MouseCenterY = event.xbutton.y;
+						zProgram.SceneCoords = ms_GetSceneCoords(zProgram.MouseCenterX, zProgram.MouseCenterY);
+						zOptions.SelectedActor = ms_SelectedMapActor();
 				}
 				break; }
 
@@ -95,6 +100,10 @@ int XMain()
 					zProgram.MousePosY = event.xbutton.y;
 					ca_MouseMove(zProgram.MousePosX, zProgram.MousePosY);
 					ca_Orientation(zCamera.AngleX, zCamera.AngleY);
+				} else if(event.xmotion.state & Button2Mask) {
+					zProgram.MousePosX = event.xbutton.x;
+					zProgram.MousePosY = event.xbutton.y;
+					zProgram.SceneCoords = ms_GetSceneCoords(zProgram.MousePosX, zProgram.MousePosY);
 				}
 				break; }
 

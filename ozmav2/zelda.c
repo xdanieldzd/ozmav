@@ -16,6 +16,7 @@ bool zl_Init(char * Filename)
 	if(!zl_LoadROM(Filename)) {
 		zOptions.EnableTextures = true;
 		zOptions.EnableCombiner = true;
+		zOptions.EnableActors = true;
 
 		GetFileName(Filename, zROM.Filename);
 

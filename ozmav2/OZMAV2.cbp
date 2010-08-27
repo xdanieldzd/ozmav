@@ -133,10 +133,6 @@
 		</Unit>
 		<Unit filename="draw.h" />
 		<Unit filename="globals.h" />
-		<Unit filename="hud.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="hud.h" />
 		<Unit filename="main.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -145,6 +141,10 @@
 		</Unit>
 		<Unit filename="mips-eval.h" />
 		<Unit filename="misaka.h" />
+		<Unit filename="mouse.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="mouse.h" />
 		<Unit filename="oz.c">
 			<Option compilerVar="CC" />
 		</Unit>

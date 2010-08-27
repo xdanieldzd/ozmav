@@ -129,12 +129,12 @@ void zl_GetMapActors(int SceneNumber, int MapNumber)
 
 			while(CurrActor < zSHeader[SceneNumber].LinkCount) {
 				zLink[CurrActor].Number = Read16(RAM[Segment].Data, Offset + (CurrActor * 0x10));
-				zLink[CurrActor].X = Read16(RAM[Segment].Data, Offset + (CurrActor * 0x10) + 2);
-				zLink[CurrActor].Y = Read16(RAM[Segment].Data, Offset + (CurrActor * 0x10) + 4);
-				zLink[CurrActor].Z = Read16(RAM[Segment].Data, Offset + (CurrActor * 0x10) + 6);
-				zLink[CurrActor].RX = Read16(RAM[Segment].Data, Offset + (CurrActor * 0x10) + 8);
-				zLink[CurrActor].RY = Read16(RAM[Segment].Data, Offset + (CurrActor * 0x10) + 10);
-				zLink[CurrActor].RZ = Read16(RAM[Segment].Data, Offset + (CurrActor * 0x10) + 12);
+				zLink[CurrActor].Pos.X = Read16(RAM[Segment].Data, Offset + (CurrActor * 0x10) + 2);
+				zLink[CurrActor].Pos.Y = Read16(RAM[Segment].Data, Offset + (CurrActor * 0x10) + 4);
+				zLink[CurrActor].Pos.Z = Read16(RAM[Segment].Data, Offset + (CurrActor * 0x10) + 6);
+				zLink[CurrActor].Rot.X = Read16(RAM[Segment].Data, Offset + (CurrActor * 0x10) + 8);
+				zLink[CurrActor].Rot.Y = Read16(RAM[Segment].Data, Offset + (CurrActor * 0x10) + 10);
+				zLink[CurrActor].Rot.Z = Read16(RAM[Segment].Data, Offset + (CurrActor * 0x10) + 12);
 				zLink[CurrActor].Var = Read16(RAM[Segment].Data, Offset + (CurrActor * 0x10) + 14);
 
 				CurrActor++;
@@ -156,10 +156,10 @@ void zl_GetMapActors(int SceneNumber, int MapNumber)
 				zDoor[CurrActor].RoomRear = RAM[Segment].Data[Offset + (CurrActor * 0x10) + 2];
 				zDoor[CurrActor].FadeRear = RAM[Segment].Data[Offset + (CurrActor * 0x10) + 3];
 				zDoor[CurrActor].Number = Read16(RAM[Segment].Data, Offset + (CurrActor * 0x10) + 4);
-				zDoor[CurrActor].X = Read16(RAM[Segment].Data, Offset + (CurrActor * 0x10) + 6);
-				zDoor[CurrActor].Y = Read16(RAM[Segment].Data, Offset + (CurrActor * 0x10) + 8);
-				zDoor[CurrActor].Z = Read16(RAM[Segment].Data, Offset + (CurrActor * 0x10) + 10);
-				zDoor[CurrActor].RY = Read16(RAM[Segment].Data, Offset + (CurrActor * 0x10) + 12);
+				zDoor[CurrActor].Pos.X = Read16(RAM[Segment].Data, Offset + (CurrActor * 0x10) + 6);
+				zDoor[CurrActor].Pos.Y = Read16(RAM[Segment].Data, Offset + (CurrActor * 0x10) + 8);
+				zDoor[CurrActor].Pos.Z = Read16(RAM[Segment].Data, Offset + (CurrActor * 0x10) + 10);
+				zDoor[CurrActor].Rot.Y = Read16(RAM[Segment].Data, Offset + (CurrActor * 0x10) + 12);
 				zDoor[CurrActor].Var = Read16(RAM[Segment].Data, Offset + (CurrActor * 0x10) + 14);
 
 				if((!zGame.IsCompressed) && (!zGame.GameType)) zl_ProcessActor(MapNumber, CurrActor, 1);
@@ -180,12 +180,12 @@ void zl_GetMapActors(int SceneNumber, int MapNumber)
 
 			while(CurrActor < zMHeader[SceneNumber][MapNumber].ActorCount) {
 				zMapActor[MapNumber][CurrActor].Number = Read16(RAM[Segment].Data, Offset + (CurrActor * 0x10));
-				zMapActor[MapNumber][CurrActor].X = Read16(RAM[Segment].Data, Offset + (CurrActor * 0x10) + 2);
-				zMapActor[MapNumber][CurrActor].Y = Read16(RAM[Segment].Data, Offset + (CurrActor * 0x10) + 4);
-				zMapActor[MapNumber][CurrActor].Z = Read16(RAM[Segment].Data, Offset + (CurrActor * 0x10) + 6);
-				zMapActor[MapNumber][CurrActor].RX = Read16(RAM[Segment].Data, Offset + (CurrActor * 0x10) + 8);
-				zMapActor[MapNumber][CurrActor].RY = Read16(RAM[Segment].Data, Offset + (CurrActor * 0x10) + 10);
-				zMapActor[MapNumber][CurrActor].RZ = Read16(RAM[Segment].Data, Offset + (CurrActor * 0x10) + 12);
+				zMapActor[MapNumber][CurrActor].Pos.X = Read16(RAM[Segment].Data, Offset + (CurrActor * 0x10) + 2);
+				zMapActor[MapNumber][CurrActor].Pos.Y = Read16(RAM[Segment].Data, Offset + (CurrActor * 0x10) + 4);
+				zMapActor[MapNumber][CurrActor].Pos.Z = Read16(RAM[Segment].Data, Offset + (CurrActor * 0x10) + 6);
+				zMapActor[MapNumber][CurrActor].Rot.X = Read16(RAM[Segment].Data, Offset + (CurrActor * 0x10) + 8);
+				zMapActor[MapNumber][CurrActor].Rot.Y = Read16(RAM[Segment].Data, Offset + (CurrActor * 0x10) + 10);
+				zMapActor[MapNumber][CurrActor].Rot.Z = Read16(RAM[Segment].Data, Offset + (CurrActor * 0x10) + 12);
 				zMapActor[MapNumber][CurrActor].Var = Read16(RAM[Segment].Data, Offset + (CurrActor * 0x10) + 14);
 
 				// go to actor processing (actor table, etc)
@@ -349,12 +349,12 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 		case Z_ACTOR_MAP:	{
 			//map actors
 			ActorNumber = zMapActor[MapNumber][CurrActor].Number;
-			X = zMapActor[MapNumber][CurrActor].X;
-			Y = zMapActor[MapNumber][CurrActor].Y;
-			Z = zMapActor[MapNumber][CurrActor].Z;
-			RX = zMapActor[MapNumber][CurrActor].RX;
-			RY = zMapActor[MapNumber][CurrActor].RY;
-			RZ = zMapActor[MapNumber][CurrActor].RZ;
+			X = zMapActor[MapNumber][CurrActor].Pos.X;
+			Y = zMapActor[MapNumber][CurrActor].Pos.Y;
+			Z = zMapActor[MapNumber][CurrActor].Pos.Z;
+			RX = zMapActor[MapNumber][CurrActor].Rot.X;
+			RY = zMapActor[MapNumber][CurrActor].Rot.Y;
+			RZ = zMapActor[MapNumber][CurrActor].Rot.Z;
 			Var = zMapActor[MapNumber][CurrActor].Var;
 
 			//drawing stuff
@@ -365,11 +365,11 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 		case Z_ACTOR_DOOR: {
 			//doors
 			ActorNumber = zDoor[CurrActor].Number;
-			X = zDoor[CurrActor].X;
-			Y = zDoor[CurrActor].Y;
-			Z = zDoor[CurrActor].Z;
+			X = zDoor[CurrActor].Pos.X;
+			Y = zDoor[CurrActor].Pos.Y;
+			Z = zDoor[CurrActor].Pos.Z;
 			RX = 0;
-			RY = zDoor[CurrActor].RY;
+			RY = zDoor[CurrActor].Rot.Y;
 			RZ = 0;
 			Var = zDoor[CurrActor].Var;
 
@@ -674,7 +674,7 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 		zActor[ActorNumber].Object = 1;
 	}
 
-	if(zActor[ActorNumber].BoneSetup || zActor[ActorNumber].DisplayList){
+	if((zActor[ActorNumber].BoneSetup || zActor[ActorNumber].DisplayList) && (zOptions.EnableActors)) {
 		/* set up object */
 		unsigned char TargetSeg = 0x06;
 
@@ -736,38 +736,7 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 				glRotated(RY / 182.0444444, 0, 1, 0);
 				glRotated(RZ / 182.0444444, 0, 0, 1);
 				glScalef(10.0, 10.0, 10.0);
-				glBegin(GL_QUADS);
-					// Front Face
-					glVertex3f(-1.0f, -1.0f,  1.0f);
-					glVertex3f( 1.0f, -1.0f,  1.0f);
-					glVertex3f( 1.0f,  1.0f,  1.0f);
-					glVertex3f(-1.0f,  1.0f,  1.0f);
-					// Back Face
-					glVertex3f(-1.0f, -1.0f, -1.0f);
-					glVertex3f(-1.0f,  1.0f, -1.0f);
-					glVertex3f( 1.0f,  1.0f, -1.0f);
-					glVertex3f( 1.0f, -1.0f, -1.0f);
-					// Top Face
-					glVertex3f(-1.0f,  1.0f, -1.0f);
-					glVertex3f(-1.0f,  1.0f,  1.0f);
-					glVertex3f( 1.0f,  1.0f,  1.0f);
-					glVertex3f( 1.0f,  1.0f, -1.0f);
-					// Bottom Face
-					glVertex3f(-1.0f, -1.0f, -1.0f);
-					glVertex3f( 1.0f, -1.0f, -1.0f);
-					glVertex3f( 1.0f, -1.0f,  1.0f);
-					glVertex3f(-1.0f, -1.0f,  1.0f);
-					// Right Face
-					glVertex3f( 1.0f, -1.0f, -1.0f);
-					glVertex3f( 1.0f,  1.0f, -1.0f);
-					glVertex3f( 1.0f,  1.0f,  1.0f);
-					glVertex3f( 1.0f, -1.0f,  1.0f);
-					// Left Face
-					glVertex3f(-1.0f, -1.0f, -1.0f);
-					glVertex3f(-1.0f, -1.0f,  1.0f);
-					glVertex3f(-1.0f,  1.0f,  1.0f);
-					glVertex3f(-1.0f,  1.0f, -1.0f);
-				glEnd();
+				glCallList(zProgram.CubeDL);
 				glPopMatrix();
 			glEndList();
 		}
@@ -961,18 +930,28 @@ void zl_DrawBones(unsigned int BoneOffset, unsigned int AnimationOffset, float S
 	RAM[0x0D].IsSet = true;
 	memset(RAM[0x0D].Data, 0x00, RAM[0x0D].Size);
 */
+
 	//render
-	glNewList(DLBase, GL_COMPILE_AND_EXECUTE);
+	glNewList(DLBase, GL_COMPILE);
 		glPushMatrix();
+			glTranslated(X, Y, Z);
+			glRotated(RX / 182.0444444, 1, 0, 0);
+			glRotated(RY / 182.0444444, 0, 1, 0);
+			glRotated(RZ / 182.0444444, 0, 0, 1);
+			glPushMatrix();
+				glScalef(Scale, Scale, Scale);
+				zl_DrawBone(Bones, 0, -1);
+			glPopMatrix();
 
-		glTranslated(X, Y, Z);
-		glRotated(RX / 182.0444444, 1, 0, 0);
-		glRotated(RY / 182.0444444, 0, 1, 0);
-		glRotated(RZ / 182.0444444, 0, 0, 1);
-		glScalef(Scale, Scale, Scale);
-
-		zl_DrawBone(Bones, 0, -1);
-
+			glPushMatrix();
+				glScalef(10.0, 10.0, 10.0);
+				//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+				glDisable(GL_LIGHTING);
+				glColor4f(1.0f, 0.2f, 0.0f, 1.0f);
+				glCallList(zProgram.CubeDL);
+				glEnable(GL_LIGHTING);
+				//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+			glPopMatrix();
 		glPopMatrix();
 	glEndList();
 /*
@@ -988,20 +967,28 @@ void zl_SaveMapActors(int SceneNumber, int MapNumber)
 
 	int CurrActor = 0;
 
+	int X, Y, Z, RX, RY, RZ;
+
 	if(zMHeader[SceneNumber][MapNumber].ActorCount) {
 		unsigned char Segment = zMHeader[SceneNumber][MapNumber].ActorOffset >> 24;
 		unsigned int Offset = (zMHeader[SceneNumber][MapNumber].ActorOffset & 0x00FFFFFF);
 
 		while(CurrActor < zMHeader[SceneNumber][MapNumber].ActorCount) {
+			X = zMapActor[MapNumber][CurrActor].Pos.X;
+			Y = zMapActor[MapNumber][CurrActor].Pos.Y;
+			Z = zMapActor[MapNumber][CurrActor].Pos.Z;
+			RX = zMapActor[MapNumber][CurrActor].Rot.X;
+			RY = zMapActor[MapNumber][CurrActor].Rot.Y;
+			RZ = zMapActor[MapNumber][CurrActor].Rot.Z;
 //			dbgprintf(0, MSK_COLORTYPE_WARNING, "-writing actor %i...\n", CurrActor);
 //			dbgprintf(0, MSK_COLORTYPE_WARNING, " -old X is %i...\n", Read16(RAM[Segment].Data, (Offset + (CurrActor * 0x10) + 2)));
 			Write16(RAM[Segment].Data, (Offset + (CurrActor * 0x10)), zMapActor[MapNumber][CurrActor].Number);
-			Write16(RAM[Segment].Data, (Offset + (CurrActor * 0x10) + 2), zMapActor[MapNumber][CurrActor].X);
-			Write16(RAM[Segment].Data, (Offset + (CurrActor * 0x10) + 4), zMapActor[MapNumber][CurrActor].Y);
-			Write16(RAM[Segment].Data, (Offset + (CurrActor * 0x10) + 6), zMapActor[MapNumber][CurrActor].Z);
-			Write16(RAM[Segment].Data, (Offset + (CurrActor * 0x10) + 8), zMapActor[MapNumber][CurrActor].RX);
-			Write16(RAM[Segment].Data, (Offset + (CurrActor * 0x10) + 10), zMapActor[MapNumber][CurrActor].RY);
-			Write16(RAM[Segment].Data, (Offset + (CurrActor * 0x10) + 12), zMapActor[MapNumber][CurrActor].RZ);
+			Write16(RAM[Segment].Data, (Offset + (CurrActor * 0x10) + 2), X);
+			Write16(RAM[Segment].Data, (Offset + (CurrActor * 0x10) + 4), Y);
+			Write16(RAM[Segment].Data, (Offset + (CurrActor * 0x10) + 6), Z);
+			Write16(RAM[Segment].Data, (Offset + (CurrActor * 0x10) + 8), RX);
+			Write16(RAM[Segment].Data, (Offset + (CurrActor * 0x10) + 10), RY);
+			Write16(RAM[Segment].Data, (Offset + (CurrActor * 0x10) + 12), RZ);
 			Write16(RAM[Segment].Data, (Offset + (CurrActor * 0x10) + 14), zMapActor[MapNumber][CurrActor].Var);
 //			dbgprintf(0, MSK_COLORTYPE_WARNING, " -NEW X is %i...\n", Read16(RAM[Segment].Data, (Offset + (CurrActor * 0x10) + 2)));
 

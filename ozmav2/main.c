@@ -27,9 +27,6 @@ struct __zDoor zDoor[256];
 
 struct __zCamera zCamera;
 
-struct __Font Font;
-struct __HUD HUD[256];
-
 // ----------------------------------------
 
 __RAM RAM[MAX_SEGMENTS];
@@ -84,6 +81,7 @@ int main(int argc, char * argv[])
 	MSK_AddCommand("dumpobj", "Dump Scene to .obj file", cn_Cmd_DumpObj);
 	MSK_AddCommand("settexture", "Disable/enable texturing (0-1)", cn_Cmd_SetTexture);
 	MSK_AddCommand("setcombiner", "Disable/enable combiner (0-1)", cn_Cmd_SetCombiner);
+	MSK_AddCommand("setactor", "Disable/enable Actor rendering (0-1)", cn_Cmd_SetActorRendering);
 	MSK_AddCommand("resetcam", "Reset camera to initial position", cn_Cmd_ResetCam);
 	MSK_AddCommand("setdebug", "Set debug level (0-3)", cn_Cmd_SetDebug);
 	MSK_AddCommand("list", "List all files in ROM", cn_Cmd_ListFiles);
@@ -100,12 +98,6 @@ int main(int argc, char * argv[])
 
 	// init API via OZ wrapper
 	if(oz_InitProgram(APPTITLE, WINDOW_WIDTH, WINDOW_HEIGHT)) die(EXIT_FAILURE);
-
-	sprintf(Temp, "%s//data//font.bmp", zProgram.AppPath);
-	if(hud_Init(Temp)) {
-		dbgprintf(0, MSK_COLORTYPE_ERROR, "- Error: Failed to initialize HUD system!\n");
-		die(EXIT_FAILURE);
-	}
 
 	// create folder for .obj & texture dumps
 	sprintf(Temp, "%s//dump", zProgram.AppPath);

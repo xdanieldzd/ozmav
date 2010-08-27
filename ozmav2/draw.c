@@ -73,23 +73,6 @@ void gl_SetupScene3D(int Width, int Height)
 	if(RDP_OpenGL_ExtFragmentProgram()) glEnable(GL_FRAGMENT_PROGRAM_ARB);
 }
 
-void gl_SetupScene2D(int Width, int Height)
-{
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	glViewport(0, 0, Width, Height);
-	glOrtho(0, Width, Height, 0, -1.0, 1.0);
-
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	glDisable(GL_DEPTH_TEST);
-	if(RDP_OpenGL_ExtFragmentProgram()) glDisable(GL_FRAGMENT_PROGRAM_ARB);
-}
-
 void gl_DrawScene()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -124,7 +107,7 @@ void gl_DrawScene()
 					glCallList(zMapActor[Maps][Actor].GLDList);
 					// pop the matrix and translate to the actor's position
 					glPushMatrix();
-					glTranslated(zMapActor[Maps][Actor].X, zMapActor[Maps][Actor].Y, zMapActor[Maps][Actor].Z);
+					glTranslated(zMapActor[Maps][Actor].Pos.X, zMapActor[Maps][Actor].Pos.Y, zMapActor[Maps][Actor].Pos.Z);
 					// ...so that we can call our axis marker display list
 					glCallList(zProgram.AxisMarker);
 					glPopMatrix();
@@ -139,15 +122,6 @@ void gl_DrawScene()
 
 	for(Door = 0; Door < zSHeader[0].DoorCount; Door++) {
 		glCallList(zDoor[Door].GLDList);
-	}
-
-	gl_SetupScene2D(zProgram.WindowWidth, zProgram.WindowHeight);
-
-//	hud_Print(hud_GetFreeObjectIndex(), 50, 50, -1, -1, Font.BGC, Font.FGC, "test!");
-
-	int i;
-	for(i = 0; i < ArraySize(HUD); i++) {
-		if((HUD[i].IsUsed) && !(HUD[i].IsHidden)) glCallList(HUD[i].DL);
 	}
 }
 
@@ -172,6 +146,8 @@ void gl_ClearDisplayLists()
 void gl_CreateViewerDLists()
 {
 	zProgram.AxisMarker = glGenLists(1);
+	zProgram.CubeDL = glGenLists(1);
+
 	glNewList(zProgram.AxisMarker, GL_COMPILE);
 		glDisable(GL_TEXTURE_2D);
 		glDisable(GL_LIGHTING);
@@ -203,6 +179,45 @@ void gl_CreateViewerDLists()
 		glEnable(GL_DEPTH_TEST);
 		if(RDP_OpenGL_ExtFragmentProgram()) glEnable(GL_FRAGMENT_PROGRAM_ARB);
 		glLineWidth(1);
+	glEndList();
+
+	glNewList(zProgram.CubeDL, GL_COMPILE);
+		glDisable(GL_TEXTURE_2D);
+		if(RDP_OpenGL_ExtFragmentProgram()) glDisable(GL_FRAGMENT_PROGRAM_ARB);
+		glBegin(GL_QUADS);
+			// Front Face
+			glVertex3f(-1.0f, -1.0f,  1.0f);
+			glVertex3f( 1.0f, -1.0f,  1.0f);
+			glVertex3f( 1.0f,  1.0f,  1.0f);
+			glVertex3f(-1.0f,  1.0f,  1.0f);
+			// Back Face
+			glVertex3f(-1.0f, -1.0f, -1.0f);
+			glVertex3f(-1.0f,  1.0f, -1.0f);
+			glVertex3f( 1.0f,  1.0f, -1.0f);
+			glVertex3f( 1.0f, -1.0f, -1.0f);
+			// Top Face
+			glVertex3f(-1.0f,  1.0f, -1.0f);
+			glVertex3f(-1.0f,  1.0f,  1.0f);
+			glVertex3f( 1.0f,  1.0f,  1.0f);
+			glVertex3f( 1.0f,  1.0f, -1.0f);
+			// Bottom Face
+			glVertex3f(-1.0f, -1.0f, -1.0f);
+			glVertex3f( 1.0f, -1.0f, -1.0f);
+			glVertex3f( 1.0f, -1.0f,  1.0f);
+			glVertex3f(-1.0f, -1.0f,  1.0f);
+			// Right Face
+			glVertex3f( 1.0f, -1.0f, -1.0f);
+			glVertex3f( 1.0f,  1.0f, -1.0f);
+			glVertex3f( 1.0f,  1.0f,  1.0f);
+			glVertex3f( 1.0f, -1.0f,  1.0f);
+			// Left Face
+			glVertex3f(-1.0f, -1.0f, -1.0f);
+			glVertex3f(-1.0f, -1.0f,  1.0f);
+			glVertex3f(-1.0f,  1.0f,  1.0f);
+			glVertex3f(-1.0f,  1.0f, -1.0f);
+		glEnd();
+		glEnable(GL_TEXTURE_2D);
+		if(RDP_OpenGL_ExtFragmentProgram()) glEnable(GL_FRAGMENT_PROGRAM_ARB);
 	glEndList();
 }
 

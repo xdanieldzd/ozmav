@@ -8,7 +8,7 @@
 
 enum { true = 1, false = 0 };
 
-union { unsigned long ul; float f; } u;
+//union { unsigned long ul; float f; } u;
 
 // ----------------------------------------
 
@@ -34,7 +34,7 @@ union { unsigned long ul; float f; } u;
 
 #include "oz.h"
 #include "draw.h"
-#include "hud.h"
+#include "mouse.h"
 #include "zelda.h"
 #include "camera.h"
 #include "mips-eval.h"
@@ -110,7 +110,9 @@ struct __zProgram {
 
 	int MousePosX, MousePosY;
 	int MouseCenterX, MouseCenterY;
-	bool MouseButtonDown;
+	bool MouseButtonLDown, MouseButtonRDown;
+
+	__Vect3D SceneCoords;
 
 	char Title[256];
 	char AppPath[MAX_PATH];
@@ -120,6 +122,7 @@ struct __zProgram {
 	int HandleModifyActor;
 
 	GLuint AxisMarker;
+	GLuint CubeDL;
 };
 
 struct __zOptions {
@@ -130,6 +133,7 @@ struct __zOptions {
 	int DumpModel;
 	int EnableTextures;
 	int EnableCombiner;
+	int EnableActors;
 	int SelectedActor;
 	int SelectedActorMap;
 };
@@ -241,21 +245,9 @@ struct __zActor {
 
 struct __zMapActor {
 	unsigned short Number;
-	short Dummy1;
-	short X;
-	short Dummy2;
-	short Y;
-	short Dummy3;
-	short Z;
-	short Dummy4;
-	short RX;
-	short Dummy5;
-	short RY;
-	short Dummy6;
-	short RZ;
-	short Dummy7;
+	__Vect3D Pos;
+	__Vect3D Rot;
 	unsigned short Var;
-	short Dummy8;
 
 	GLuint GLDList;
 };
@@ -266,10 +258,8 @@ struct __zDoor {
 	unsigned char RoomRear;
 	unsigned char FadeRear;
 	unsigned short Number;
-	short X;
-	short Y;
-	short Z;
-	short RY;
+	__Vect3D Pos;
+	__Vect3D Rot;
 	unsigned short Var;
 
 	GLuint GLDList;

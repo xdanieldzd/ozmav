@@ -150,7 +150,7 @@ void hud_KillFont()
 	if(glIsList(Font.BaseDL)) glDeleteLists(Font.BaseDL, 256);
 }
 
-void hud_Print(int Index, GLint X, GLint Y, int W, int H, float BGColor[4], float FGColor[4], char * String)
+void hud_Print(int Index, GLint X, GLint Y, GLint Z, int W, int H, float BGColor[4], float FGColor[4], char * String)
 {
 	// NOTES:
 	//  - if X or Y == -1, text appears at (window width/height - text width/height)
@@ -200,13 +200,20 @@ void hud_Print(int Index, GLint X, GLint Y, int W, int H, float BGColor[4], floa
 
 	glNewList(HUD[Index].DL, GL_COMPILE);
 		glPushMatrix();
-		glLoadIdentity();
-		glTranslated(X, Y, 0);
+		//glLoadIdentity();
+
+		glTranslatef((float)X-r[0]-u[0], (float)Y-r[1]-u[1], (float)Z-r[2]-u[2]);
+
+		glDisable(GL_LIGHTING);
+
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 		glColor4f(BGColor[0], BGColor[1], BGColor[2], BGColor[3]);
 		glRectf(0, 0, RectWidth, RectHeight);
 
 		// text
+		glPushMatrix();
 		glTranslated(3, 3, 0);
 		glEnable(GL_TEXTURE_2D);
 		glBindTexture(GL_TEXTURE_2D, Font.TexID);
@@ -253,8 +260,13 @@ void hud_Print(int Index, GLint X, GLint Y, int W, int H, float BGColor[4], floa
 			glCallLists(strlen(LineText[i]), GL_BYTE, LineText[i]);
 			glPopMatrix();
 		}
+		glPopMatrix();
 
 		glDisable(GL_TEXTURE_2D);
+
+		glDisable(GL_BLEND);
+
+		glEnable(GL_LIGHTING);
 
 		glPopMatrix();
 	glEndList();
@@ -285,4 +297,50 @@ void hud_ClearAllObjects()
 {
 	int i;
 	for(i = 0; i < ArraySize(HUD); i++) hud_ClearObject(i);
+}
+
+// This routine returns up to 3 camera directions: which way is "right", "up" and which way is the camera pointing ("look")
+// in OpenGL coordinates.  In other words, this is which way the user's SCREEN is pointing in OpenGL "local" coordinates.
+// (If the user is facing true north at the origin and is not rolled, these functiosn would be trivially easy because
+// right would be 1,0,0, up would be 0,1,0 and look would be 0,0,1.  (NOTE: the look vector points TO the user, not
+// FROM the user.)
+//
+// To draw a billboard centered at C, you would use these coordinates:
+//
+// c-rgt+up---c+rgt+up
+// |                 |
+// |        C        |
+// c-rgt-up---c+rgt-up
+//
+void camera_directions(
+						float * out_rgt,		// Any can be NULL
+						float * out_up ,
+						float * out_look)
+{
+	float m[16];
+	glGetFloatv(GL_MODELVIEW_MATRIX, m);
+
+	// Roughly speaking, a modelview matrix is made up more or less like this:
+	// [ EyeX_x EyeX_y EyeX_z    a
+	//   EyeY_x EyeY_y EyeY_z    b
+	//   EyeZ_x EyeZ_y EyeZ_z    c
+	//   um don't look down here ]
+	// where a, b, c are translations in _eye_ space.  (For this reason, a,b,c is not
+	// the camera location - sorry!)
+
+	if(out_rgt) {
+		out_rgt[0] = m[0];
+		out_rgt[1] = m[4];
+		out_rgt[2] = m[8];
+	}
+	if(out_up) {
+		out_up[0] = m[1];
+		out_up[1] = m[5];
+		out_up[2] = m[9];
+	}
+	if(out_look) {
+		out_up[0] = m[2];
+		out_up[1] = m[6];
+		out_up[2] = m[10];
+	}
 }
