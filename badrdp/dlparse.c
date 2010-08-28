@@ -467,7 +467,9 @@ void RDP_ParseDisplayList(unsigned int Address, bool ResetStack)
 	glPolygonMode(GL_FRONT_AND_BACK, (System.Options & BRDP_WIREFRAME) ? GL_LINE : GL_FILL);
 
 	while(Gfx.DLStackPos >= 0) {
-		if(!RDP_Macro_DetectMacro(&DListAddress)) {
+		unsigned int OldAddr = DListAddress;
+		DListAddress = RDP_Macro_DetectMacro(DListAddress);
+		if(OldAddr == DListAddress) {
 			Segment = DListAddress >> 24;
 			Offset = (DListAddress & 0x00FFFFFF);
 

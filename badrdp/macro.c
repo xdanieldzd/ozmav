@@ -6,19 +6,18 @@ unsigned char Segment; unsigned int Offset;
 unsigned char NextCmds[32];
 unsigned int nw0[32], nw1[32];
 
-bool RDP_Macro_DetectMacro(unsigned int * Address)
+unsigned int RDP_Macro_DetectMacro(unsigned int Addr)
 {
-	bool Found = false;
+	int i, j, MaxMacroLen = 0;
 
-	int i, j;
-	int Addr = *Address;
+	for(i = 0; i < ArraySize(GfxMacros); i++) if(GfxMacros[i].Len > MaxMacroLen) MaxMacroLen = GfxMacros[i].Len;
 
-	if(!RDP_CheckAddressValidity(Addr)) return Found;
+	if(!RDP_CheckAddressValidity(Addr + (MaxMacroLen * 8))) return Addr;
 
 	Segment = Addr >> 24;
 	Offset = (Addr & 0x00FFFFFF);
 
-	for(i = 0; i < 32; i++) NextCmds[i] = RAM[Segment].Data[Offset + (i * 8)];
+	for(i = 0; i < MaxMacroLen; i++) NextCmds[i] = RAM[Segment].Data[Offset + (i * 8)];
 
 	for(i = 0; i < ArraySize(GfxMacros); i++) {
 		if(!memcmp(GfxMacros[i].Cmd, NextCmds, GfxMacros[i].Len)) {
@@ -30,14 +29,11 @@ bool RDP_Macro_DetectMacro(unsigned int * Address)
 			GfxMacros[i].Func();
 
 			Addr += GfxMacros[i].Len * 8;
-			Found = true;
 			break;
 		}
 	}
 
-	*Address = Addr;
-
-	return Found;
+	return Addr;
 }
 
 void RDP_Macro_LoadTextureBlock()
