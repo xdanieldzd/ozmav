@@ -50,6 +50,9 @@ void gl_LookAt(const GLdouble p_EyeX, const GLdouble p_EyeY, const GLdouble p_Ey
 
 	glRotated(l_rY, 0, 1, 0);
 	glTranslated(-p_EyeX, -p_EyeY, -p_EyeZ);
+
+	zCamera.RotX = l_rX;
+	zCamera.RotY = l_rY;
 }
 
 void gl_SetupScene3D(int Width, int Height)
@@ -60,7 +63,7 @@ void gl_SetupScene3D(int Width, int Height)
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	gl_Perspective(60.0f, (GLfloat)Width / (GLfloat)Height, 0.1f, 100.0f);
+	gl_Perspective(60.0f, (GLfloat)Width / (GLfloat)Height, 0.001f, 10000.0f);
 	glGetFloatv(GL_PROJECTION_MATRIX, *TempMatrix);
 	RDP_Matrix_ProjectionLoad(TempMatrix);
 
@@ -99,30 +102,77 @@ void gl_DrawScene()
 		}
 
 		for(Actor = 0; Actor < zMHeader[0][Maps].ActorCount; Actor++) {
+			glPushMatrix();
+
+			// pop the matrix and translate/rotate to the actor's position
+			glTranslated(zMapActor[Maps][Actor].Pos.X, zMapActor[Maps][Actor].Pos.Y, zMapActor[Maps][Actor].Pos.Z);
+			glRotated(zMapActor[Maps][Actor].Rot.X / 182.0444444, 1, 0, 0);
+			glRotated(zMapActor[Maps][Actor].Rot.Y / 182.0444444, 0, 1, 0);
+			glRotated(zMapActor[Maps][Actor].Rot.Z / 182.0444444, 0, 0, 1);
+
 			if((Maps == zOptions.SelectedActorMap) && (Actor == zOptions.SelectedActor) &&
 				(zOptions.SelectedActorMap > -1) && (zOptions.SelectedActor > -1)) {
 					// setup GL lighting to do the red highlighting
 					glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ActorAmbientHighlight);
 					// call the actor's GL display list
 					glCallList(zMapActor[Maps][Actor].GLDList);
-					// pop the matrix and translate to the actor's position
-					glPushMatrix();
-					glTranslated(zMapActor[Maps][Actor].Pos.X, zMapActor[Maps][Actor].Pos.Y, zMapActor[Maps][Actor].Pos.Z);
-					// ...so that we can call our axis marker display list
+
+					// ...so that we can call our axis marker display list...
+					if(RDP_OpenGL_ExtFragmentProgram()) glDisable(GL_FRAGMENT_PROGRAM_ARB);
 					glCallList(zProgram.AxisMarker);
-					glPopMatrix();
+					if(RDP_OpenGL_ExtFragmentProgram()) glEnable(GL_FRAGMENT_PROGRAM_ARB);
+
 					// and reset the lighting
 					glLightModelfv(GL_LIGHT_MODEL_AMBIENT, AmbientDefault);
+
+					gl_DrawActorCube(true);
 				} else {
 					glLightModelfv(GL_LIGHT_MODEL_AMBIENT, AmbientDefault);
 					glCallList(zMapActor[Maps][Actor].GLDList);
+					gl_DrawActorCube(false);
 				}
+
+			glPopMatrix();
 		}
 	}
 
 	for(Door = 0; Door < zSHeader[0].DoorCount; Door++) {
 		glCallList(zDoor[Door].GLDList);
 	}
+}
+
+void gl_DrawActorCube(bool Selected)
+{
+	glPushMatrix();
+
+	//overall settings...
+	glScalef(10.0, 10.0, 10.0);
+	glDisable(GL_LIGHTING);
+	glEnable(GL_CULL_FACE);
+	if(RDP_OpenGL_ExtFragmentProgram()) glDisable(GL_FRAGMENT_PROGRAM_ARB);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	//solid inner cube...
+	if(Selected) {
+		glColor4f(1.0f, 0.0f, 0.0f, 0.7f);
+	} else {
+		glColor4f(1.0f, 0.7f, 0.0f, 0.7f);
+	}
+	glCallList(zProgram.CubeDL);
+	//wireframe outer cube...
+	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+	glLineWidth(2);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	glCallList(zProgram.CubeDL);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	//reset settings...
+	glLineWidth(1);
+	glDisable(GL_BLEND);
+	if(RDP_OpenGL_ExtFragmentProgram()) glEnable(GL_FRAGMENT_PROGRAM_ARB);
+	glDisable(GL_CULL_FACE);
+	glEnable(GL_LIGHTING);
+
+	glPopMatrix();
 }
 
 void gl_ClearDisplayLists()
@@ -152,8 +202,6 @@ void gl_CreateViewerDLists()
 		glDisable(GL_TEXTURE_2D);
 		glDisable(GL_LIGHTING);
 		glDisable(GL_NORMALIZE);
-		glDisable(GL_DEPTH_TEST);
-		if(RDP_OpenGL_ExtFragmentProgram()) glDisable(GL_FRAGMENT_PROGRAM_ARB);
 		glLineWidth(2);
 
 		glBegin(GL_LINES);
@@ -176,14 +224,11 @@ void gl_CreateViewerDLists()
 		glEnable(GL_TEXTURE_2D);
 		glEnable(GL_LIGHTING);
 		glEnable(GL_NORMALIZE);
-		glEnable(GL_DEPTH_TEST);
-		if(RDP_OpenGL_ExtFragmentProgram()) glEnable(GL_FRAGMENT_PROGRAM_ARB);
 		glLineWidth(1);
 	glEndList();
 
 	glNewList(zProgram.CubeDL, GL_COMPILE);
 		glDisable(GL_TEXTURE_2D);
-		if(RDP_OpenGL_ExtFragmentProgram()) glDisable(GL_FRAGMENT_PROGRAM_ARB);
 		glBegin(GL_QUADS);
 			// Front Face
 			glVertex3f(-1.0f, -1.0f,  1.0f);
@@ -217,7 +262,6 @@ void gl_CreateViewerDLists()
 			glVertex3f(-1.0f,  1.0f, -1.0f);
 		glEnd();
 		glEnable(GL_TEXTURE_2D);
-		if(RDP_OpenGL_ExtFragmentProgram()) glEnable(GL_FRAGMENT_PROGRAM_ARB);
 	glEndList();
 }
 

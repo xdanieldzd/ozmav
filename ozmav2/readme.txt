@@ -13,7 +13,7 @@ Prototype:
 
 Options:
  -r PATH        Path to Ocarina of Time or Majora's Mask ROM to load
- -s SCENE       Initial scene number to load, in decimal (optional, defaults to 0).
+ -s SCENE       Initial Scene number to load, in decimal (optional, defaults to 0).
  -d LEVEL       Level of debugging messages shown, between 0 and 3 (optional, defaults to 0).
 
 Possible debug levels:
@@ -26,6 +26,19 @@ Example: 'OZMAV2 -r "Legend of Zelda, The - Ocarina of Time (U) (V1.0) [!].z64" 
  The above loads the Ocarina of Time ROM named "Legend of Zelda, The - Ocarina of Time (U) (V1.0)
  [!].z64", loading Scene #85 initially, Kokiri Forest, and sets the debug level to 1, thus showing
  errors, warnings and general information about ex. the ROM.
+
+Viewer controls:
+ W/A/S/D        Move camera
+ T/F/G/H        Move camera (slower)
+ F1/F2          Select Scene number
+
+ F3/F4          Select Map to render
+  - Pressing F3 when rendering the first Map of a Scene makes the program render all maps at once.
+    Note that in this mode, selection of Map actors is disabled.
+
+ F5             Switch mouse mode
+  - This switches between camera movement and five actor selection modes. The current mode is
+    displayed in the viewer's title bar; the program defaults to camera movement mode.
 
 ----------------------------------------------------------------------------------------------------
 

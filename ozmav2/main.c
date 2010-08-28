@@ -156,10 +156,13 @@ int main(int argc, char * argv[])
 	if(LoadNow) zROM.IsROMLoaded = zl_Init(Temp);
 	if(!zROM.IsROMLoaded) dbgprintf(0, MSK_COLORTYPE_WARNING, "- No ROM loaded!\n\n");
 
-	char WndTitle[256];
-	sprintf(WndTitle, "%s - %s", APPTITLE, zGame.TitleText);
-	oz_SetWindowTitle(WndTitle);
+	zProgram.MouseMode = 0;
 
+	// set the window title
+	sprintf(zProgram.WndTitle, "%s - %s - %s Mode", APPTITLE, zGame.TitleText, (zProgram.MouseMode == 0 ? "Camera" : "Actor"));
+	oz_SetWindowTitle(zProgram.WndTitle);
+
+	// get the program to run
 	zProgram.IsRunning = true;
 
 	while(zProgram.IsRunning) {

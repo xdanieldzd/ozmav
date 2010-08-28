@@ -108,6 +108,7 @@ struct __zProgram {
 
 	int WindowWidth, WindowHeight;
 
+	int MouseMode;
 	int MousePosX, MousePosY;
 	int MouseCenterX, MouseCenterY;
 	bool MouseButtonLDown, MouseButtonRDown;
@@ -115,6 +116,7 @@ struct __zProgram {
 	__Vect3D SceneCoords;
 
 	char Title[256];
+	char WndTitle[256];
 	char AppPath[MAX_PATH];
 	int HandleOptions;
 	int HandleAbout;
@@ -207,6 +209,7 @@ struct __zCamera {
 	float AngleX, AngleY;
 	float X, Y, Z;
 	float LX, LY, LZ;
+	float RotX, RotY;
 };
 
 struct __zGfx {

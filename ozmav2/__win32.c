@@ -71,9 +71,13 @@ int WinAPIMain()
 		}
 
 		if(zProgram.Key[VK_F3] && zOptions.MapToRender > -1) {
-			zOptions.MapToRender--;
-			zOptions.SelectedActor = -1;
-			zOptions.SelectedActorMap = zOptions.MapToRender;
+			if(zSHeader[0].MapCount > 1) {
+				zOptions.MapToRender--;
+				zOptions.SelectedActor = -1;
+				zOptions.SelectedActorMap = zOptions.MapToRender;
+			} else {
+				zOptions.MapToRender = 0;
+			}
 			zProgram.Key[VK_F3] = false;
 		}
 
@@ -82,6 +86,22 @@ int WinAPIMain()
 			zOptions.SelectedActor = -1;
 			zOptions.SelectedActorMap = zOptions.MapToRender;
 			zProgram.Key[VK_F4] = false;
+		}
+
+		if(zProgram.Key[VK_F5]) {
+			zProgram.MouseMode++;
+			if(zProgram.MouseMode == 6) zProgram.MouseMode = 0;
+			sprintf(zProgram.WndTitle, "%s - %s - ", APPTITLE, zGame.TitleText);
+			switch(zProgram.MouseMode) {
+				case 0: sprintf(zProgram.WndTitle, "%sCamera Mode", zProgram.WndTitle); break;
+				case 1: sprintf(zProgram.WndTitle, "%sActor Mode (X/Y)", zProgram.WndTitle); break;
+				case 2: sprintf(zProgram.WndTitle, "%sActor Mode (X/Z)", zProgram.WndTitle); break;
+				case 3: sprintf(zProgram.WndTitle, "%sActor Mode (X)", zProgram.WndTitle); break;
+				case 4: sprintf(zProgram.WndTitle, "%sActor Mode (Y)", zProgram.WndTitle); break;
+				case 5: sprintf(zProgram.WndTitle, "%sActor Mode (Z)", zProgram.WndTitle); break;
+			}
+			oz_SetWindowTitle(zProgram.WndTitle);
+			zProgram.Key[VK_F5] = false;
 		}
 
 		if(zProgram.Key[VK_SUBTRACT] && zOptions.SelectedActor > -1) {
@@ -95,7 +115,6 @@ int WinAPIMain()
 		}
 
 		zOptions.SelectedActorMap = zOptions.MapToRender;
-
 
 		return EXIT_SUCCESS;
 	}
@@ -154,29 +173,68 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			break; }
 		case WM_RBUTTONDOWN: {
 			SetFocus(hwnd);
-			int YOffset = GetSystemMetrics(SM_CYSIZE) + GetSystemMetrics(SM_CYBORDER) + GetSystemMetrics(SM_CYSIZEFRAME) + 10;
 			zProgram.MouseButtonRDown = true;
-			zProgram.MouseCenterX = (signed int)LOWORD(lParam);
-			zProgram.MouseCenterY = (signed int)HIWORD(lParam) + YOffset;
-			zProgram.SceneCoords = ms_GetSceneCoords(zProgram.MouseCenterX, zProgram.MouseCenterY);
-			zOptions.SelectedActor = ms_SelectedMapActor();
-//			MSK_ConsolePrint(MSK_COLORTYPE_WARNING, "MOUSE COORDS: X:%i, Y:%i (OFS:%i)\nHIT COORDS: X:%i, Y:%i, Z:%i\n", zProgram.MouseCenterX, zProgram.MouseCenterY, YOffset, zProgram.SceneCoords.X, zProgram.SceneCoords.Y, zProgram.SceneCoords.Z);
+			if(zProgram.MouseMode >= 1) {
+				int YOffset = GetSystemMetrics(SM_CYSIZE) + GetSystemMetrics(SM_CYBORDER) + GetSystemMetrics(SM_CYSIZEFRAME) + 10;
+				zProgram.MouseCenterX = (signed int)LOWORD(lParam);
+				zProgram.MouseCenterY = (signed int)HIWORD(lParam) + YOffset;
+				zProgram.SceneCoords = ms_GetSceneCoords(zProgram.MouseCenterX, zProgram.MouseCenterY);
+				zOptions.SelectedActor = ms_SelectedMapActor();
+				//MSK_ConsolePrint(MSK_COLORTYPE_WARNING, "MOUSE COORDS: X:%i, Y:%i (OFS:%i)\nHIT COORDS: X:%i, Y:%i, Z:%i\n", zProgram.MouseCenterX, zProgram.MouseCenterY, YOffset, zProgram.SceneCoords.X, zProgram.SceneCoords.Y, zProgram.SceneCoords.Z);
+			}
 			break; }
 		case WM_RBUTTONUP: {
 			zProgram.MouseButtonRDown = false;
 			break; }
 
 		case WM_MOUSEMOVE: {
-			if(zProgram.MouseButtonLDown) {
-				zProgram.MousePosX = (signed int)LOWORD(lParam);
-				zProgram.MousePosY = (signed int)HIWORD(lParam);
-				ca_MouseMove(zProgram.MousePosX, zProgram.MousePosY);
-				ca_Orientation(zCamera.AngleX, zCamera.AngleY);
-			} else if(zProgram.MouseButtonRDown) {
-				int YOffset = GetSystemMetrics(SM_CYSIZE) + GetSystemMetrics(SM_CYBORDER) + GetSystemMetrics(SM_CYSIZEFRAME) + 10;
-				zProgram.MousePosX = (signed int)LOWORD(lParam);
-				zProgram.MousePosY = (signed int)HIWORD(lParam) + YOffset;
-				zProgram.SceneCoords = ms_GetSceneCoords(zProgram.MousePosX, zProgram.MousePosY);
+			switch(zProgram.MouseMode) {
+				// camera mode
+				case 0: {
+					if(zProgram.MouseButtonLDown) {
+						zProgram.MousePosX = (signed int)LOWORD(lParam);
+						zProgram.MousePosY = (signed int)HIWORD(lParam);
+						ca_MouseMove(zProgram.MousePosX, zProgram.MousePosY);
+						ca_Orientation(zCamera.AngleX, zCamera.AngleY);
+					}
+					break; }
+				// actor mode
+				case 1:
+				case 2:
+				case 3:
+				case 4:
+				case 5: {
+					int YOffset = GetSystemMetrics(SM_CYSIZE) + GetSystemMetrics(SM_CYBORDER) + GetSystemMetrics(SM_CYSIZEFRAME) + 10;
+					int OldMouseX = zProgram.MousePosX;
+					int OldMouseY = zProgram.MousePosY;
+					zProgram.MousePosX = (signed int)LOWORD(lParam);
+					zProgram.MousePosY = (signed int)HIWORD(lParam) + YOffset;
+					if(zProgram.MouseButtonLDown) {
+						if(zOptions.SelectedActor >= 0) {
+							int DX = (zProgram.MousePosX - OldMouseX) * sin(zCamera.RotX + 1);
+							int DY = (zProgram.MousePosY - OldMouseY) * cos(zCamera.RotY + 1);
+							// actor mode, subdivision
+							switch(zProgram.MouseMode) {
+								// X/Y
+								case 1: {
+									zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Pos.X += DX;
+									zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Pos.Y += -DY;
+									break; }
+								// X/Z
+								case 2: {
+									zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Pos.X += DX;
+									zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Pos.Z += -DY;
+									break; }
+								// X
+								case 3: zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Pos.X += DX; break;
+								// Y
+								case 4: zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Pos.Y += -DY; break;
+								// Z
+								case 5: zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Pos.Z += -DY; break;
+							}
+						}
+					}
+					break; }
 			}
 			break; }
 

@@ -3,7 +3,7 @@
 __Vect3D ms_GetSceneCoords(int MousePosX, int MousePosY)
 {
 	__Vect3D RetVect;
-	float Depth[1];
+	float X, Y, Z;
 	GLdouble ModelM[16], ProjM[16], Pos[3];
 	int Viewp[4];
 
@@ -11,8 +11,10 @@ __Vect3D ms_GetSceneCoords(int MousePosX, int MousePosY)
 	glGetDoublev(GL_PROJECTION_MATRIX, ProjM);
 	glGetIntegerv(GL_VIEWPORT, (GLint*)Viewp);
 
-	glReadPixels(MousePosX, (Viewp[3] - MousePosY), 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, Depth);
-	gluUnProject(MousePosX, (Viewp[3] - MousePosY), Depth[0], ModelM, ProjM, (GLint*)Viewp, &Pos[0], &Pos[1], &Pos[2]);
+	X = (float)MousePosX;
+	Y = (float)Viewp[3] - (float)MousePosY;
+	glReadPixels(MousePosX, (int)Y, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &Z);
+	gluUnProject((GLdouble)X, (GLdouble)Y, (GLdouble)Z, ModelM, ProjM, (GLint*)Viewp, &Pos[0], &Pos[1], &Pos[2]);
 
 	RetVect.X = (signed int)Pos[0];
 	RetVect.Y = (signed int)Pos[1];
@@ -23,11 +25,14 @@ __Vect3D ms_GetSceneCoords(int MousePosX, int MousePosY)
 
 int ms_SelectedMapActor()
 {
-	if((zOptions.MapToRender == -1) || (zOptions.EnableActors)) return -1;
+	if((zOptions.MapToRender == -1)/* || (zOptions.EnableActors)*/) {
+		dbgprintf(0, MSK_COLORTYPE_WARNING, "Warning: Cannot select Actors in current mode!");
+		return -1;
+	}
 
 	int SX = zProgram.SceneCoords.X, SY = zProgram.SceneCoords.Y, SZ = zProgram.SceneCoords.Z;
 
-	int i, HitRadius = 10;
+	int i, HitRadius = 20;
 
 	for(i = 0; i < zMHeader[0][zOptions.MapToRender].ActorCount; i++) {
 		int X = zMapActor[zOptions.MapToRender][i].Pos.X, Y = zMapActor[zOptions.MapToRender][i].Pos.Y, Z = zMapActor[zOptions.MapToRender][i].Pos.Z;
@@ -38,7 +43,7 @@ int ms_SelectedMapActor()
 			}
 	}
 
-	return -1;
+	return zOptions.SelectedActor;
 }
 
 static void __gluMultMatricesd(const GLdouble a[16], const GLdouble b[16],
