@@ -29,8 +29,8 @@ union { unsigned long ul; float f; } u;
 
 // ----------------------------------------
 
-#define CACHE_TEXTURES		2048
-#define CACHE_FRAGMENT		512
+#define CACHE_TEXTURES		4096
+#define CACHE_FRAGMENT		1024
 
 // ----------------------------------------
 
@@ -103,6 +103,7 @@ typedef struct {
 	unsigned int FragCachePosition;
 	unsigned int TextureCachePosition;
 
+	bool ObjDumpingEnabled;
 	char WavefrontObjPath[MAX_PATH];
 	FILE * FileWavefrontObj;
 	FILE * FileWavefrontMtl;
@@ -193,8 +194,8 @@ typedef struct {
 } __PrimColor;
 
 typedef struct {
-	unsigned int zCombiner0;
-	unsigned int zCombiner1;
+	unsigned int Combiner0;
+	unsigned int Combiner1;
 	GLuint ProgramID;
 } __FragmentCache;
 

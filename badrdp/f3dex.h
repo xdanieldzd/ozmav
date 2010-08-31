@@ -2,10 +2,13 @@ extern void RDP_F3DEX_Init();
 
 // ----------------------------------------
 
+extern void RDP_F3DEX_VTX();
 extern void RDP_F3DEX_LOAD_UCODE();
 extern void RDP_F3DEX_BRANCH_Z();
 extern void RDP_F3DEX_TRI2();
 extern void RDP_F3DEX_MODIFYVTX();
+extern void RDP_F3DEX_CULLDL();
+extern void RDP_F3DEX_TRI1();
 
 // ----------------------------------------
 

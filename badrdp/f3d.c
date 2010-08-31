@@ -202,7 +202,12 @@ void RDP_F3D_SETOTHERMODE_H()
 
 void RDP_F3D_TEXTURE()
 {
-	memset(Texture, 0x00, sizeof(Texture));
+	static const __Texture Texture_Empty = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.0f, 0.0f, 0.0f, 0.0f };
+	Texture[0] = Texture_Empty;
+	Texture[1] = Texture_Empty;
+
+	Gfx.CurrentTexture = 0;
+	Gfx.IsMultiTexture = false;
 
 	Texture[0].ScaleS = _FIXED2FLOAT(_SHIFTR(w1, 16, 16), 16);
 	Texture[0].ScaleT = _FIXED2FLOAT(_SHIFTR(w1, 0, 16), 16);

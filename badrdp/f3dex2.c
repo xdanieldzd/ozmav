@@ -150,6 +150,9 @@ void RDP_F3DEX2_TEXTURE()
 	Texture[0] = Texture_Empty;
 	Texture[1] = Texture_Empty;
 
+	Gfx.CurrentTexture = 0;
+	Gfx.IsMultiTexture = false;
+
 	if(_SHIFTR(w1, 16, 16) < 0xFFFF) {
 		Texture[0].ScaleS = _FIXED2FLOAT(_SHIFTR(w1, 16, 16), 16);
 	} else {

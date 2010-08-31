@@ -125,7 +125,7 @@ void gDP_SetCombine(unsigned int w0, unsigned int w1)
 	Gfx.Combiner0 = (w0 & 0x00FFFFFF);
 	Gfx.Combiner1 = w1;
 
-	if(OpenGL.Ext_FragmentProgram) RDP_CheckFragmentCache();
+	if(OpenGL.Ext_FragmentProgram && (System.Options & BRDP_COMBINER)) RDP_CheckFragmentCache();
 }
 
 void gDP_SetTImg(unsigned int w0, unsigned int w1)

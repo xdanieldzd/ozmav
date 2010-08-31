@@ -8,7 +8,7 @@ void RDP_F3DEX_Init()
 
 	RDP_UcodeCmd[F3D_MTX]               = RDP_F3D_MTX;
 	RDP_UcodeCmd[F3D_MOVEMEM]           = RDP_F3D_MOVEMEM;
-	RDP_UcodeCmd[F3D_VTX]               = RDP_F3D_VTX;
+	RDP_UcodeCmd[F3D_VTX]               = RDP_F3DEX_VTX;
 	RDP_UcodeCmd[F3D_DL]                = RDP_F3D_DL;
 	RDP_UcodeCmd[F3DEX_LOAD_UCODE]      = RDP_F3DEX_LOAD_UCODE;
 	RDP_UcodeCmd[F3DEX_BRANCH_Z]        = RDP_F3DEX_BRANCH_Z;
@@ -24,8 +24,13 @@ void RDP_F3DEX_Init()
 	RDP_UcodeCmd[F3D_TEXTURE]           = RDP_F3D_TEXTURE;
 	RDP_UcodeCmd[F3D_MOVEWORD]          = RDP_F3D_MOVEWORD;
 	RDP_UcodeCmd[F3D_POPMTX]            = RDP_F3D_POPMTX;
-	RDP_UcodeCmd[F3D_CULLDL]            = RDP_F3D_CULLDL;
-	RDP_UcodeCmd[F3D_TRI1]              = RDP_F3D_TRI1;
+	RDP_UcodeCmd[F3D_CULLDL]            = RDP_F3DEX_CULLDL;
+	RDP_UcodeCmd[F3D_TRI1]              = RDP_F3DEX_TRI1;
+}
+
+void RDP_F3DEX_VTX()
+{
+	gSP_Vertex(w1, _SHIFTR(w0, 10, 6), _SHIFTR(w0, 17, 7));
 }
 
 void RDP_F3DEX_LOAD_UCODE()
@@ -64,4 +69,17 @@ void RDP_F3DEX_TRI2()
 void RDP_F3DEX_MODIFYVTX()
 {
 	//
+}
+
+void RDP_F3DEX_CULLDL()
+{
+	//
+}
+
+void RDP_F3DEX_TRI1()
+{
+	if(Gfx.Update) RDP_UpdateGLStates();
+
+	int Vtxs[] = { _SHIFTR( w1, 17, 7 ), _SHIFTR( w1, 9, 7 ), _SHIFTR( w1, 1, 7 ) };
+	RDP_DrawTriangle(Vtxs);
 }

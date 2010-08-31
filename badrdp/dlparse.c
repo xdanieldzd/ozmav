@@ -447,6 +447,19 @@ void RDP_ClearStructures(bool Full)
 	Gfx.Store_RDPHalf1 = 0; Gfx.Store_RDPHalf2 = 0;
 	Gfx.Combiner0 = 0; Gfx.Combiner1 = 0;
 
+	Gfx.CurrentTexture = 0;
+	Gfx.IsMultiTexture = false;
+
+	Texture[0].ScaleS = 1.0f;
+	Texture[0].ScaleT = 1.0f;
+	Texture[1].ScaleS = 1.0f;
+	Texture[1].ScaleT = 1.0f;
+
+	Texture[0].ShiftScaleS = 1.0f;
+	Texture[0].ShiftScaleT = 1.0f;
+	Texture[1].ShiftScaleS = 1.0f;
+	Texture[1].ShiftScaleT = 1.0f;
+
 	if(Full) {
 		static const __FragmentCache FragmentCache_Empty = { 0, 0, -1 };
 		for(i = 0; i < ArraySize(FragmentCache); i++) FragmentCache[i] = FragmentCache_Empty;
@@ -532,7 +545,7 @@ void RDP_CheckFragmentCache()
 {
 	int CacheCheck = 0; bool SearchingCache = true; bool NewProg = false;
 	while(SearchingCache) {
-		if((FragmentCache[CacheCheck].zCombiner0 == Gfx.Combiner0) && (FragmentCache[CacheCheck].zCombiner1 == Gfx.Combiner1)) {
+		if((FragmentCache[CacheCheck].Combiner0 == Gfx.Combiner0) && (FragmentCache[CacheCheck].Combiner1 == Gfx.Combiner1)) {
 			SearchingCache = false;
 			NewProg = false;
 		} else {
@@ -960,8 +973,8 @@ void RDP_CreateCombinerProgram(unsigned int Cmb0, unsigned int Cmb1)
 	glBindProgramARB(GL_FRAGMENT_PROGRAM_ARB, FragmentCache[System.FragCachePosition].ProgramID);
 	glProgramStringARB(GL_FRAGMENT_PROGRAM_ARB, GL_PROGRAM_FORMAT_ASCII_ARB, strlen(ProgramString), ProgramString);
 
-	FragmentCache[System.FragCachePosition].zCombiner0 = Cmb0;
-	FragmentCache[System.FragCachePosition].zCombiner1 = Cmb1;
+	FragmentCache[System.FragCachePosition].Combiner0 = Cmb0;
+	FragmentCache[System.FragCachePosition].Combiner1  = Cmb1;
 	System.FragCachePosition++;
 }
 
@@ -1451,7 +1464,7 @@ GLuint RDP_LoadTexture(int TextureID)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-	if(TextureID == 0) TextureCache[System.TextureCachePosition].MaterialID = RDP_Dump_CreateMaterial(TextureData, Texture[TextureID].Format, Texture[TextureID].Offset, Texture[TextureID].RealWidth, Texture[TextureID].RealHeight);
+	if(TextureID == 0) TextureCache[System.TextureCachePosition].MaterialID = RDP_Dump_CreateMaterial(TextureData, Texture[TextureID].Format, Texture[TextureID].Offset, Texture[TextureID].RealWidth, Texture[TextureID].RealHeight, (Texture[TextureID].CMS & G_TX_MIRROR), (Texture[TextureID].CMT & G_TX_MIRROR));
 
 	free(TextureData);
 
