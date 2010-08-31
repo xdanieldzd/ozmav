@@ -1,5 +1,7 @@
 #include "globals.h"
 
+#undef Z_ACTORS_LINUX
+
 #ifndef WIN32
 static int snglBuf[] = {GLX_RGBA, GLX_DEPTH_SIZE, 16, None};
 static int dblBuf[] = {GLX_RGBA, GLX_DEPTH_SIZE, 16, GLX_DOUBLEBUFFER, None};
@@ -81,10 +83,13 @@ int XMain()
 				break; }
 
 			case ButtonPress: {
+			#ifdef Z_ACTORS_LINUX
 				switch(event.xbutton.button) {
 					case 1:
+			#endif
 						zProgram.MouseCenterX = event.xbutton.x;
 						zProgram.MouseCenterY = event.xbutton.y;
+			#ifdef Z_ACTORS_LINUX
 						break;
 					case 2:
 						zProgram.MouseCenterX = event.xbutton.x;
@@ -92,6 +97,7 @@ int XMain()
 						zProgram.SceneCoords = ms_GetSceneCoords(zProgram.MouseCenterX, zProgram.MouseCenterY);
 						zOptions.SelectedActor = ms_SelectedMapActor();
 				}
+			#endif
 				break; }
 
 			case MotionNotify: {
@@ -100,13 +106,17 @@ int XMain()
 					zProgram.MousePosY = event.xbutton.y;
 					ca_MouseMove(zProgram.MousePosX, zProgram.MousePosY);
 					ca_Orientation(zCamera.AngleX, zCamera.AngleY);
-				} else if(event.xmotion.state & Button2Mask) {
+				}
+			#ifdef Z_ACTORS_LINUX
+				else if(event.xmotion.state & Button2Mask) {
 					zProgram.MousePosX = event.xbutton.x;
 					zProgram.MousePosY = event.xbutton.y;
 					zProgram.SceneCoords = ms_GetSceneCoords(zProgram.MousePosX, zProgram.MousePosY);
 				}
-				break; }
+			#endif
 
+				break; }
+			
 			case ConfigureNotify: {
 				zProgram.WindowWidth = event.xconfigure.width;
 				zProgram.WindowHeight = event.xconfigure.height;

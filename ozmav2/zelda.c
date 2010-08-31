@@ -147,7 +147,7 @@ int zl_LoadScene(int SceneNo)
 	unsigned int SceneEnd = Read32(zGame.CodeBuffer, BaseOffset + 4);
 	unsigned int SceneSize = SceneEnd - SceneStart;
 
-	DMA Scene = zl_DMAVirtualToPhysical(SceneStart);
+	DMA Scene = zl_DMAVirtualToPhysical(SceneStart, SceneEnd);
 	dbgprintf(2, MSK_COLORTYPE_OKAY, "[DEBUG] Physical offsets: PStart 0x%08X, PEnd 0x%08X\n", Scene.PStart, Scene.PEnd);
 
 	if((Scene.PStart != 0x00) && (Scene.PEnd != 0x00)) {
@@ -179,7 +179,7 @@ int zl_LoadScene(int SceneNo)
 			unsigned int MapEnd = Read32(RAM[Segment].Data, Offset + 4 + (i * 0x08));
 			unsigned int MapSize = MapEnd - MapStart;
 
-			DMA Map = zl_DMAVirtualToPhysical(MapStart);
+			DMA Map = zl_DMAVirtualToPhysical(MapStart, MapEnd);
 			dbgprintf(2, MSK_COLORTYPE_OKAY, "[DEBUG] Physical offsets: PStart 0x%08X, PEnd 0x%08X\n", Map.PStart, Map.PEnd);
 
 			dbgprintf(1, MSK_COLORTYPE_INFO, "\nLoading Map #%i:\n", i);
@@ -243,7 +243,7 @@ void zl_DMAGetFilename(char * Name, int DMAFileNo)
 	}
 }
 
-DMA zl_DMAVirtualToPhysical(unsigned int VStart)
+DMA zl_DMAVirtualToPhysical(unsigned int VStart, unsigned int VEnd)
 {
 	dbgprintf(2, MSK_COLORTYPE_OKAY, "[DEBUG] %s(0x%08X);\n", __FUNCTION__, VStart);
 
@@ -266,12 +266,22 @@ DMA zl_DMAVirtualToPhysical(unsigned int VStart)
 				File.PEnd = File.PStart + (File.VEnd - File.VStart);
 			}
 
-			break;
+			goto found;
 		}
 		Offset+=16;
 		File.ID++;
 	}
-
+	
+	/* Hack for MQ Debug to load maps/scenes not in DMA table - (im)ports */
+	if(zGame.SceneTableOffset == 0x10CBB0) {
+	    File.VStart = VStart;
+	    File.VEnd = VEnd;
+	    File.PStart = VStart;
+	    File.PEnd = VEnd;
+	    strcpy(File.Filename, "UNDOCUMENTED");
+	    return File;
+	}
+found:
 	dbgprintf(2, MSK_COLORTYPE_OKAY, "| VStart 0x%08X -> PStart 0x%08X, PEnd 0x%08X\n", VStart, File.PStart, File.PEnd);
 
 	zl_DMAGetFilename(File.Filename, File.ID);

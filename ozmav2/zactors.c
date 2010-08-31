@@ -451,6 +451,8 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 				RAM[TargetSeg].Data = zObject[zActor[ActorNumber].Object].Data;
 				RAM[TargetSeg].Size = zObject[zActor[ActorNumber].Object].EndOffset - zObject[zActor[ActorNumber].Object].StartOffset;
 				RAM[TargetSeg].IsSet = true;
+				
+				
 				// Set Watch for variables
 				mips_ResetSpecialOps();
 				mips_SetSpecialOp(MIPS_LH(mips_r0, 0x1C, mips_a0), Var);
@@ -511,6 +513,11 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 				zActor[ActorNumber].BoneSetup = (bones != NULL) ? *bones : 0;
 				zActor[ActorNumber].Scale = (scale != NULL) ? *scale : 0.01f;
 				zActor[ActorNumber].DisplayList = (dlist != NULL) ? *dlist : 0;
+				
+				/* scaling estimates */
+				if(zActor[ActorNumber].Scale == 0.01f && (!strncmp(zActor[ActorNumber].Name, "Bg_", 3) || !strncmp(zActor[ActorNumber].Name, "Obj_", 4))){
+					zActor[ActorNumber].Scale = 0.1f;
+				}
 
 				if(spawnact!=NULL)
 					dbgprintf(2, MSK_COLORTYPE_INFO, "  - Note: Spawns actor 0x%04X (not spawning)", *spawnact);
@@ -526,17 +533,17 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 				// -------- CODE BELOW IS UGLY HACK --------
 				if(zActor[ActorNumber].Object == 0x61){	//warp pad scale
 					zActor[ActorNumber].Scale = 1.0;
-				}
+				}/*
 				if(zActor[ActorNumber].Object == 0x170){ //crate scale
 					zActor[ActorNumber].Scale = 0.1f;
-				}
+				}*/
 				if(zActor[ActorNumber].Scale < 0.001 && !zActor[ActorNumber].BoneSetup){
 					zActor[ActorNumber].Scale = 0.1f;
-				}
+				}/*
 				// bombable boulder
 				if(zActor[ActorNumber].Object == 0x163) {
 					zActor[ActorNumber].Scale = 0.1;
-				}
+				}*/
 				// greenery
 				if((zActor[ActorNumber].Object == 0x7C) && (ActorNumber == 0x77)) {
 					zActor[ActorNumber].Scale = 1.0;

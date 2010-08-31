@@ -13,7 +13,7 @@ extern int zl_GetGameVersion();
 extern int zl_LoadScene(int SceneNo);
 extern DMA zl_DMAGetFile(int DMAFileNo);
 extern void zl_DMAGetFilename(char * Name, int DMAFileNo);
-extern DMA zl_DMAVirtualToPhysical(unsigned int VStart);
+extern DMA zl_DMAVirtualToPhysical(unsigned int VStart, unsigned int VEnd);
 extern int zl_GetFilenameTable();
 extern int zl_GetDMATable();
 extern int zl_GetSceneTable();

@@ -7,7 +7,7 @@ CC = gcc
 CFLAGS = -Wall -U_FORTIFY_SOURCE
 
 # Application pieces
-PIECES	= camera.o confunc.o draw.o main.o mips-eval.o mouse.o oz.o zactors.o zelda.o
+PIECES	= camera.o draw.o __linux.o mips-eval.o __win32.o zelda.o confunc.o main.o oz.o zactors.o #hud.o
 
 # In regards to backslashes
 # (http://www.netbsd.org/docs/pkgsrc/makefile.html#makefile.variables)
@@ -27,12 +27,14 @@ PIECES	= camera.o confunc.o draw.o main.o mips-eval.o mouse.o oz.o zactors.o zel
 # gedit (actually, gtk viewsource) does not seem to handle Makefile
 # backslashes properly.
 
+LDFLAGS = -Xlinker -zmuldefs
+
 #Platfor specific options
 ifeq ($(WIN32), 1)
   CFLAGS += -DWIN32
   TARGET = $(PROJECT).exe
   #Holy shit. Are these all really needed? - ...nope.
-  LDFLAGS = -lopengl32 -lglu32 -lglaux -lkernel32 -luser32 -lgdi32	\
+  LDFLAGS += -lopengl32 -lglu32 -lglaux -lkernel32 -luser32 -lgdi32	\
            D:\libpng-1.2.37-lib\lib\libpng12.dll.a				\
            D:\zlib-1.2.3-lib\lib\libz.a						\
            C:\Programme\PDCurses-SO\win32\panel.a				\
@@ -40,7 +42,7 @@ ifeq ($(WIN32), 1)
   PIECES += __win32.o
 else
   TARGET = $(PROJECT)
-  LDFLAGS = -lGL -lpng -lcurses -lX11
+  LDFLAGS += -lGL -lpng -lcurses -lX11
   PIECES += __linux.o
 endif
 
