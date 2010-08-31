@@ -233,7 +233,7 @@ void cn_Cmd_ExtractFiles(unsigned char * Ptr)
 	while((CurrentFile.VEnd != 0x00) || (CurrentFile.PStart != 0xFFFFFFFF)) {
 		if(CurrentFile.VStart == CurrentFile.VEnd) break;
 
-		CurrentFile = zl_DMAVirtualToPhysical(CurrentFile.VStart);
+		CurrentFile = zl_DMAVirtualToPhysical(CurrentFile.VStart, CurrentFile.VEnd);
 
 		if(zGame.HasFilenames) {
 			zl_DMAGetFilename(CurrentFile.Filename, FileNo);
@@ -306,7 +306,7 @@ void cn_Cmd_ListFiles(unsigned char * Ptr)
 	while((CurrentFile.VEnd != 0x00) || (CurrentFile.PStart != 0xFFFFFFFF)) {
 		if(CurrentFile.VStart == CurrentFile.VEnd) break;
 
-		CurrentFile = zl_DMAVirtualToPhysical(CurrentFile.VStart);
+		CurrentFile = zl_DMAVirtualToPhysical(CurrentFile.VStart,CurrentFile.VEnd);
 
 		if(zGame.HasFilenames) zl_DMAGetFilename(CurrentFile.Filename, FileNo);
 

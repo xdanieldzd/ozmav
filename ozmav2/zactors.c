@@ -80,7 +80,7 @@ void zl_LoadObject(unsigned short ObjNumber)
 	unsigned int TempEnd = Read32(zGame.CodeBuffer, zGame.ObjectTableOffset + (0x8 * ObjNumber) + 4);
 
 	// translate those offsets into physical offsets, if necessary
-	DMA Object = zl_DMAVirtualToPhysical(TempStart);
+	DMA Object = zl_DMAVirtualToPhysical(TempStart, TempEnd);
 
 	// if the offsets aren't all zero, assume we've got a valid object
 	if((TempStart != 0) && (TempEnd != 0)) {
@@ -409,7 +409,7 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 		}
 
 		// get the actor's physical offsets via the DMA table
-		DMA Actor = zl_DMAVirtualToPhysical(zActor[ActorNumber].PStart);
+		DMA Actor = zl_DMAVirtualToPhysical(zActor[ActorNumber].PStart, zActor[ActorNumber].PEnd);
 		// if the physical offset are not zero, continue with the processing
 		if((Actor.PStart != 0) && (Actor.PEnd != 0))
 		{
