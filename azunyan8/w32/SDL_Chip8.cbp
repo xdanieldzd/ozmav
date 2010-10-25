@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="SDL_Chip8" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="Debug">
+				<Option output="Azunyan8_debug" prefix_auto="1" extension_auto="1" />
+				<Option working_dir="" />
+				<Option object_output="obj\DebugW32\" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Option parameters="_roms\BRIX" />
+				<Compiler>
+					<Add option="-g" />
+				</Compiler>
+			</Target>
+			<Target title="Release">
+				<Option output="Azunyan8" prefix_auto="1" extension_auto="1" />
+				<Option working_dir="" />
+				<Option object_output="obj\ReleaseW32\" />
+				<Option type="0" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-O2" />
+					<Add option="-Wmain" />
+					<Add option="-W" />
+				</Compiler>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+			<Add directory="D:\SDL-1.2.9\include" />
+			<Add directory="D:\SDL_gfx-2.0.22" />
+		</Compiler>
+		<Linker>
+			<Add library="mingw32" />
+			<Add library="SDLmain" />
+			<Add library="SDL_ttf" />
+			<Add library="SDL.dll" />
+			<Add library="user32" />
+			<Add library="gdi32" />
+			<Add library="winmm" />
+			<Add library="dxguid" />
+			<Add library="D:\SDL_gfx-2.0.22\libSDL_gfx.a" />
+			<Add directory="D:\SDL-1.2.9\lib" />
+			<Add directory="D:\SDL_gfx-2.0.22" />
+		</Linker>
+		<Unit filename="..\src\audio.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="..\src\audio.h" />
+		<Unit filename="..\src\chip8.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="..\src\chip8.h" />
+		<Unit filename="..\src\disasm.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="..\src\disasm.h" />
+		<Unit filename="..\src\draw.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="..\src\draw.h" />
+		<Unit filename="..\src\filebrowse.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="..\src\filebrowse.h" />
+		<Unit filename="..\src\globals.h" />
+		<Unit filename="..\src\gui.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="..\src\gui.h" />
+		<Unit filename="..\src\main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="..\src\memview.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="..\src\memview.h" />
+		<Unit filename="..\src\program.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="..\src\program.h" />
+		<Unit filename="..\src\shared.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="..\src\shared.h" />
+		<Extensions>
+			<code_completion />
+			<envvars />
+			<debugger />
+			<lib_finder disable_auto="1" />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>

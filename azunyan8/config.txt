@@ -1,0 +1,13 @@
+# Azunyan-8 config file
+[Main]
+ZoomFactor=2
+NumOpsDefault=840
+PauseWhenInactive=1
+ColorMode=0
+EnableSound=0
+StartIntoDisasm=0
+DisasmOpsToRun=25
+# below values will override above setting
+[NumOps]
+0x689F=480	# BRIX
+0xE103=1080	# INVADERS
