@@ -7,19 +7,19 @@
 		<Option compiler="gcc" />
 		<Build>
 			<Target title="Debug">
-				<Option output="Azunyan8_debug" prefix_auto="1" extension_auto="1" />
-				<Option working_dir="" />
+				<Option output="..\Azunyan8_debug" prefix_auto="1" extension_auto="1" />
+				<Option working_dir=".." />
 				<Option object_output="obj\DebugW32\" />
 				<Option type="1" />
 				<Option compiler="gcc" />
-				<Option parameters="_roms\BRIX" />
+				<Option parameters="..\_roms\BRIX" />
 				<Compiler>
 					<Add option="-g" />
 				</Compiler>
 			</Target>
 			<Target title="Release">
-				<Option output="Azunyan8" prefix_auto="1" extension_auto="1" />
-				<Option working_dir="" />
+				<Option output="..\Azunyan8" prefix_auto="1" extension_auto="1" />
+				<Option working_dir=".." />
 				<Option object_output="obj\ReleaseW32\" />
 				<Option type="0" />
 				<Option compiler="gcc" />
