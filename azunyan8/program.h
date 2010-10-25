@@ -1,0 +1,11 @@
+int initProgram();
+int loadConfig(char * path);
+int loadROM(char * path);
+void initInterpreter();
+int doSDLEvents();
+void doMainKeydown(SDL_KeyboardEvent * ev);
+void doMainKeyup(SDL_KeyboardEvent * ev);
+void setWindowTitle();
+void doMainDrawing();
+void endDrawing();
+void exitProgram(int code);
