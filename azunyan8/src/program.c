@@ -441,7 +441,7 @@ void doMainKeydown(SDL_KeyboardEvent * ev)
 
 		// increase zoom factor
 		if(ev->keysym.sym == SDLK_KP_PLUS) {
-			if(program.zoomFactor < 14) program.zoomFactor++;
+			if(program.zoomFactor < ZOOMMAX) program.zoomFactor++;
 			resizeScreen();
 		}
 		// decrease zoom factor
@@ -504,7 +504,7 @@ void doMainKeyup(SDL_KeyboardEvent * ev)
 
 void setWindowTitle()
 {
-	sprintf(program.title, APP_TITLE " " APP_VERSION " - %s", getFilename(program.filename));
+	sprintf(program.title, APP_TITLE " " APP_VERSION " (" APP_OS ") - %s", getFilename(program.filename));
 	SDL_WM_SetCaption(program.title, program.title);
 }
 
@@ -512,6 +512,12 @@ void doMainDrawing()
 {
 	drawScreen();
 	drawStatMessages();
+
+	#ifdef HW_RVL
+	boxRGBA(program.screen, 0, 0, (program.scrWidth * program.zoomFactor), FONTHEIGHT + 4, 0, 0, 0, 192);
+	fontPrint(2, 1, 0, program.colWhite, program.title);
+	hlineRGBA(program.screen, 0, (program.scrWidth * program.zoomFactor), FONTHEIGHT + 4, 0, 128, 0, 128);
+	#endif
 }
 
 void endDrawing()

@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-	<app version="1">
+	<app version="0.3">
 		<name>Azunyan-8</name>
 		<coder>xdaniel</coder>
-		<version>3</version>
+		<version>0.3</version>
 		<release_date>25 October 2010</release_date>
 		<short_description>Chip-8 interpreter</short_description>
-		<long_description>SDL-based Chip-8 interpreter.</long_description>
+		<long_description>SDL-based Chip-8 interpreter. USB keyboard currently required!</long_description>
 	</app>

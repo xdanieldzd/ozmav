@@ -14,11 +14,11 @@ int i;
 int main(int argc, char** argv)
 {
 	#ifdef HW_RVL
-	// init libfat and set application path
+	// Wii: init libfat and set application path
 	fatInitDefault();
 	strcpy(program.apppath, "sd:/apps/wii_azunyan8");
 	#else
-	// get application path
+	// others: get application path
 	getcwd(program.apppath, MAX_PATH);
 	#endif
 	
@@ -30,6 +30,11 @@ int main(int argc, char** argv)
 	if(loadConfig(parseFormat("%s%cconfig.txt", program.apppath, FILESEP))) {
 		addStatMessage("Could not load configuration!");
 	}
+
+	// force Wii to use its max zoom factor
+	#ifdef HW_RVL
+	program.zoomFactor = ZOOMMAX;
+	#endif
 
 	// initialize program
 	if(initProgram()) return EXIT_FAILURE;

@@ -30,6 +30,10 @@ void mixAudio(void * unused, unsigned char * stream, int len)
 
 int initAudio()
 {
+	#ifdef HW_RVL
+	return EXIT_SUCCESS;	//temporary disable audio for Wii, to get rid of constant noise
+	#endif
+
 	SDL_AudioSpec fmt;
 
 	fmt.freq = SOUND_FREQUENCY;

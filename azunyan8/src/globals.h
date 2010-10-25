@@ -1,6 +1,16 @@
 #define APP_TITLE 			"Azunyan-8"
 #define APP_VERSION			"v3"
 
+#ifdef HW_RVL
+ #define APP_OS				"Wii"
+#else
+ #ifdef WIN32
+  #define APP_OS			"Win32"
+ #else
+  #define APP_OS			"Unknown"
+ #endif
+#endif
+
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
@@ -45,10 +55,12 @@
 #define FILESEP '/'
 #define FONTHEIGHT 10 //18
 #define FONTWIDTH 6 //11
+#define ZOOMMAX 10
 #else
 #define FILESEP '\\'
 #define FONTHEIGHT 10
 #define FONTWIDTH 6
+#define ZOOMMAX 14
 #endif
 
 #define getX(op)	(op & 0x0F00) >> 8
