@@ -23,7 +23,7 @@
 
 #ifdef HW_RVL
 #include <gccore.h>
-#include <wiiuse/wpad.h> 
+#include <wiiuse/wpad.h>
 #include <fat.h>
 
 #include <SDL/SDL.h>
@@ -39,6 +39,7 @@
 
 #include "shared.h"
 #include "program.h"
+#include "rvl.h"
 #include "chip8.h"
 #include "draw.h"
 #include "audio.h"
@@ -49,18 +50,20 @@
 
 #define TARGET_FPS			60
 #define STATMSG_MAXMSG		12
-#define STATMSG_DURATION	2500
+#define STATMSG_DURATION	2000
+#define MAX_ZOOMFACTOR		10
+
+#define FONTHEIGHT_SMALL	10
+#define FONTWIDTH_SMALL		6
+#define FONTHEIGHT_BIG		18
+#define FONTWIDTH_BIG		11
 
 #ifdef HW_RVL
 #define FILESEP '/'
-#define FONTHEIGHT 10 //18
-#define FONTWIDTH 6 //11
-#define ZOOMMAX 10
+#define SCREEN_OVERSCAN		32
 #else
 #define FILESEP '\\'
-#define FONTHEIGHT 10
-#define FONTWIDTH 6
-#define ZOOMMAX 14
+#define SCREEN_OVERSCAN		0
 #endif
 
 #define getX(op)	(op & 0x0F00) >> 8
@@ -85,6 +88,7 @@ typedef struct {
 typedef struct {
 	SDL_Surface* screen;
 	TTF_Font* ttff;
+	TTF_Font* ttff_big;
 	SDL_Color colWhite, colGreen, colRed;
 
 	int scrWidth, scrHeight;

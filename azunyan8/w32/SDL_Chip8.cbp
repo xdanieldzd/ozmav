@@ -12,7 +12,7 @@
 				<Option object_output="obj\DebugW32\" />
 				<Option type="1" />
 				<Option compiler="gcc" />
-				<Option parameters="..\_roms\BRIX" />
+				<Option parameters="..\_roms\INVADERS" />
 				<Compiler>
 					<Add option="-g" />
 				</Compiler>
@@ -84,6 +84,10 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="..\src\program.h" />
+		<Unit filename="..\src\rvl.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="..\src\rvl.h" />
 		<Unit filename="..\src\shared.c">
 			<Option compilerVar="CC" />
 		</Unit>

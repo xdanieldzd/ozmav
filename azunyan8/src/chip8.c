@@ -200,8 +200,8 @@ void cpuOpDXYN(unsigned short op)
 		int xpixel = 0;
 		for(xpixel = 0; xpixel < 8; xpixel++, data<<=1) {
 			if(data & 0x80) {
-				int x = ((cx + xpixel) % program.scrWidth);
-				int y = ((cy + yline) % program.scrHeight);
+				int x = ((cx + xpixel) % 64);
+				int y = ((cy + yline) % 32);
 				if(interpreter.screen[x][y] == 1) interpreter.regs[0xF] = 1;
 				interpreter.screen[x][y] ^= 1;
 			}

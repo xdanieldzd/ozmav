@@ -1,7 +1,7 @@
 #define MB_OKAY		0
 #define MB_YESNO	1
 
-int fontPrint(int x, int y, int hasBg, SDL_Color color, char * fmt, ...);
+int fontPrint(int x, int y, int hasBg, SDL_Color color, TTF_Font * font, char * fmt, ...);
 void addStatMessage(char * text);
 void deleteStatMessage(int id);
 void deleteAllStatMessages();

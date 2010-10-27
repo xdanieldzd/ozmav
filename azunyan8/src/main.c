@@ -15,13 +15,12 @@ int main(int argc, char** argv)
 {
 	#ifdef HW_RVL
 	// Wii: init libfat and set application path
-	fatInitDefault();
-	strcpy(program.apppath, "sd:/apps/wii_azunyan8");
+	rvlInitFat();
 	#else
 	// others: get application path
 	getcwd(program.apppath, MAX_PATH);
 	#endif
-	
+
 	// set filebrowser's last path to application path
 	strcpy(program.lastpath, program.apppath);
 	strcat(program.lastpath, parseFormat("%c", FILESEP));
@@ -33,7 +32,7 @@ int main(int argc, char** argv)
 
 	// force Wii to use its max zoom factor
 	#ifdef HW_RVL
-	program.zoomFactor = ZOOMMAX;
+	program.zoomFactor = MAX_ZOOMFACTOR;
 	#endif
 
 	// initialize program

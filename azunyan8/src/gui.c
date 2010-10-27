@@ -13,7 +13,7 @@ typedef struct {
 } __msgBoxButton;
 __msgBoxButton msgButton[2];
 
-int fontPrint(int x, int y, int hasBg, SDL_Color color, char * text, ...)
+int fontPrint(int x, int y, int hasBg, SDL_Color color, TTF_Font * font, char * text, ...)
 {
 	SDL_Rect dstrect;
 	dstrect.x = x;
@@ -22,7 +22,7 @@ int fontPrint(int x, int y, int hasBg, SDL_Color color, char * text, ...)
 	SDL_Color bgcolor = { 0, 0, 0, 0 };
 	SDL_Surface * textsf;
 
-	if(!(textsf = hasBg ? TTF_RenderText_Shaded(program.ttff, text, color, bgcolor) : TTF_RenderText_Blended(program.ttff, text, color))) {
+	if(!(textsf = hasBg ? TTF_RenderText_Shaded(font, text, color, bgcolor) : TTF_RenderText_Blended(font, text, color))) {
 		printf("Error while printing text (%s)", TTF_GetError());
 		return EXIT_FAILURE;
 	}
@@ -65,15 +65,15 @@ void drawStatMessages()
 		if(program.statmsg[i].timer > 0) pos++;
 	}
 	if(pos) {
-		boxRGBA(program.screen, 0, (program.scrHeight * program.zoomFactor) - ((FONTHEIGHT+3) * pos), (program.scrWidth * program.zoomFactor), (program.scrHeight * program.zoomFactor), 0, 0, 0, 192);
-		hlineRGBA(program.screen, 0, (program.scrWidth * program.zoomFactor), (program.scrHeight * program.zoomFactor) - ((FONTHEIGHT+3) * pos), 0, 128, 0, 128);
+		boxRGBA(program.screen, 0, (program.scrHeight) - ((FONTHEIGHT_BIG+3) * pos) - SCREEN_OVERSCAN, (program.scrWidth), (program.scrHeight), 0, 0, 0, 192);
+		hlineRGBA(program.screen, 0, (program.scrWidth), (program.scrHeight) - ((FONTHEIGHT_BIG+3) * pos) - SCREEN_OVERSCAN, 0, 128, 0, 128);
 	}
 
 	pos = 1;
 	for(i = 0; i < STATMSG_MAXMSG; i++) {
 		if(program.statmsg[i].timer > 0) {
-			fontPrint(0, (program.scrHeight * program.zoomFactor) - ((FONTHEIGHT+3) * pos), 0, program.colWhite, parseFormat("%s", program.statmsg[i].text));
-			program.statmsg[i].timer -= (program.zoomFactor - 5);
+			fontPrint(0, (program.scrHeight) - ((FONTHEIGHT_BIG+3) * pos) - SCREEN_OVERSCAN, 0, program.colWhite, program.ttff_big, parseFormat("%s", program.statmsg[i].text));
+			program.statmsg[i].timer -= 5;
 			pos++;
 
 			if(program.statmsg[i].timer <= 0) deleteStatMessage(i);
@@ -163,37 +163,37 @@ char lineData[BUFSIZ][BUFSIZ];
 void drawMessageBox()
 {
 	// background
-	boxRGBA(program.screen, boxX, boxY, boxX + boxW, boxY + boxH + 18, 0, 0, 0, 192);
+	boxRGBA(program.screen, boxX, boxY, boxX + boxW, boxY + boxH + (FONTHEIGHT_BIG + 8), 0, 0, 0, 192);
 
 	// contents
 	for(i = 0; i < textLines; i++) {
-		fontPrint(boxX + 4, boxY + 4 + (i * (FONTHEIGHT+2)), 0, program.colWhite, lineData[i]);
+		fontPrint(boxX + 4, boxY + 4 + (i * (FONTHEIGHT_BIG+2)), 0, program.colWhite, program.ttff_big, lineData[i]);
 	}
 	// buttons
 	switch(boxType) {
 		case MB_OKAY: {
-			msgButton[0].bx = (((program.scrWidth * program.zoomFactor) / 2)) - ((strlen(msgBoxButtonNames[0]) * FONTWIDTH) / 2) - 1;
-			msgButton[0].by = boxY + 4 + (textLines * (FONTHEIGHT+2)) + 6;
-			msgButton[0].bx2 = msgButton[0].bx + (strlen(msgBoxButtonNames[0]) * FONTWIDTH);
-			msgButton[0].by2 = msgButton[0].by + (FONTHEIGHT+3);
+			msgButton[0].bx = (((program.scrWidth) / 2)) - ((strlen(msgBoxButtonNames[0]) * FONTWIDTH_BIG) / 2) - 1;
+			msgButton[0].by = boxY + 4 + (textLines * (FONTHEIGHT_BIG+2)) + 6;
+			msgButton[0].bx2 = msgButton[0].bx + (strlen(msgBoxButtonNames[0]) * FONTWIDTH_BIG);
+			msgButton[0].by2 = msgButton[0].by + (FONTHEIGHT_BIG+3);
 
 			if(msgButton[0].over) {
 				boxRGBA(program.screen,
 					msgButton[0].bx, msgButton[0].by, msgButton[0].bx2, msgButton[0].by2,
 					msgButton[0].hr, msgButton[0].hg, msgButton[0].hb, msgButton[0].ha);
 			}
-			fontPrint(msgButton[0].bx, msgButton[0].by, 0, program.colWhite, msgBoxButtonNames[0]);
+			fontPrint(msgButton[0].bx, msgButton[0].by, 0, program.colWhite, program.ttff_big, msgBoxButtonNames[0]);
 			rectangleRGBA(program.screen, msgButton[0].bx, msgButton[0].by, msgButton[0].bx2, msgButton[0].by2, 0, 128, 0, 255);
 			break; }
 		case MB_YESNO: {
 			msgButton[0].bx = boxX + 4;
-			msgButton[0].by = boxY + 4 + (textLines * (FONTHEIGHT+2)) + 6;
-			msgButton[0].bx2 = msgButton[0].bx + (strlen(msgBoxButtonNames[1]) * FONTWIDTH);
-			msgButton[0].by2 = msgButton[0].by + (FONTHEIGHT+3);
-			msgButton[1].bx = (boxX + boxW) - (strlen(msgBoxButtonNames[2]) * FONTWIDTH) - 2;
+			msgButton[0].by = boxY + 4 + (textLines * (FONTHEIGHT_BIG+2)) + 6;
+			msgButton[0].bx2 = msgButton[0].bx + (strlen(msgBoxButtonNames[1]) * FONTWIDTH_BIG);
+			msgButton[0].by2 = msgButton[0].by + (FONTHEIGHT_BIG+3);
+			msgButton[1].bx = (boxX + boxW) - (strlen(msgBoxButtonNames[2]) * FONTWIDTH_BIG) - 4;
 			msgButton[1].by = msgButton[0].by;
-			msgButton[1].bx2 = msgButton[1].bx + (strlen(msgBoxButtonNames[2]) * FONTWIDTH);
-			msgButton[1].by2 = msgButton[1].by + (FONTHEIGHT+3);
+			msgButton[1].bx2 = msgButton[1].bx + (strlen(msgBoxButtonNames[2]) * FONTWIDTH_BIG);
+			msgButton[1].by2 = msgButton[1].by + (FONTHEIGHT_BIG+3);
 
 			if(msgButton[0].over) {
 				boxRGBA(program.screen,
@@ -205,16 +205,16 @@ void drawMessageBox()
 					msgButton[1].bx, msgButton[1].by, msgButton[1].bx2, msgButton[1].by2,
 					msgButton[1].hr, msgButton[1].hg, msgButton[1].hb, msgButton[1].ha);
 			}
-			fontPrint(msgButton[0].bx, msgButton[0].by, 0, program.colWhite, msgBoxButtonNames[1]);
-			fontPrint(msgButton[1].bx, msgButton[1].by, 0, program.colWhite, msgBoxButtonNames[2]);
+			fontPrint(msgButton[0].bx, msgButton[0].by, 0, program.colWhite, program.ttff_big, msgBoxButtonNames[1]);
+			fontPrint(msgButton[1].bx, msgButton[1].by, 0, program.colWhite, program.ttff_big, msgBoxButtonNames[2]);
 			rectangleRGBA(program.screen, msgButton[0].bx, msgButton[0].by, msgButton[0].bx2, msgButton[0].by2, 0, 128, 0, 255);
 			rectangleRGBA(program.screen, msgButton[1].bx, msgButton[1].by, msgButton[1].bx2, msgButton[1].by2, 0, 128, 0, 255);
 			break; }
 	}
-	hlineRGBA(program.screen, boxX, boxX + boxW, (boxY + (textLines * (FONTHEIGHT+2)) + 7), 0, 128, 0, 255);
+	hlineRGBA(program.screen, boxX, boxX + boxW, (boxY + (textLines * (FONTHEIGHT_BIG+2)) + 7), 0, 128, 0, 255);
 
 	// border
-	rectangleRGBA(program.screen, boxX, boxY, boxX + boxW, boxY + boxH + 18, 0, 128, 0, 255);
+	rectangleRGBA(program.screen, boxX, boxY, boxX + boxW, boxY + boxH + (FONTHEIGHT_BIG + 8), 0, 128, 0, 255);
 }
 
 void messageBox(char * text, int type, void * keydown, void * mousedown, void * mousemove, void (*callback)())
@@ -235,11 +235,11 @@ void messageBox(char * text, int type, void * keydown, void * mousedown, void * 
 		if(strlen(lineData[i]) >= maxLineLen) maxLineLen = strlen(lineData[i]);
 	}
 
-	int textlen = ((maxLineLen + 1) * FONTWIDTH) + 1;
+	int textlen = ((maxLineLen + 1) * FONTWIDTH_BIG) + 1;
 	boxW = textlen;
-	boxH = (textLines * (FONTHEIGHT+2)) + 8;
-	boxX = (((program.scrWidth * program.zoomFactor) / 2)) - (textlen / 2) - 1;
-	boxY = (((program.scrHeight * program.zoomFactor) / 2)) - (boxH / 2) - 10;
+	boxH = (textLines * (FONTHEIGHT_BIG+2)) + 8;
+	boxX = (((program.scrWidth) / 2)) - (textlen / 2) - 1;
+	boxY = (((program.scrHeight) / 2)) - (boxH / 2) - 10;
 
 	void * oldkd = program.func_keydown;
 	void * oldmd = program.func_mousedown;

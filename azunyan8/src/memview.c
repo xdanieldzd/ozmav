@@ -113,9 +113,9 @@ void drawMemWindow()
 
 	memCurrentPage = memCurrentSelLine / memPageSize;
 
-	fontPrint(memWndX + 4, memWndY + 4, 0, program.colWhite, parseFormat("Current Address: 0x%04X", (memCurrentSelLine * 16) + memCurrentSelRow));
+	fontPrint(memWndX + 4, memWndY + 4, 0, program.colWhite, program.ttff, parseFormat("Current Address: 0x%04X", (memCurrentSelLine * 16) + memCurrentSelRow));
 	char * PCMsg = "Current PC: 0x%04X";
-	fontPrint(memWndX + memWndW - (strlen(PCMsg) * 6) - 4, memWndY + 4, 0, program.colWhite, parseFormat(PCMsg, interpreter.pc));
+	fontPrint(memWndX + memWndW - (strlen(PCMsg) * 6) - 4, memWndY + 4, 0, program.colWhite, program.ttff, parseFormat(PCMsg, interpreter.pc));
 
 	hlineRGBA(program.screen, memWndX, memWndX + memWndW, memWndY + 19, 0, 128, 0, 255);
 
@@ -130,7 +130,7 @@ void drawMemWindow()
 	if(memMinEntry < 0) memMinEntry = 0;
 
 	for(i = memMinEntry; ((i < MEMVIEW_MAXSEL + 1) && (i < memMaxEntry)); i++) {
-		fontPrint(memWndX + 4, memWndY + 6 + scrpos, 0, ((i == memCurrentSelLine) ? program.colGreen : program.colWhite), parseFormat("0x%04X:", i*16));
+		fontPrint(memWndX + 4, memWndY + 6 + scrpos, 0, ((i == memCurrentSelLine) ? program.colGreen : program.colWhite), program.ttff, parseFormat("0x%04X:", i*16));
 		for(j = 0; j < 16; j++) {
 			unsigned char byte = interpreter.memory[i*16 + j];
 			int thisx = memWndX + 4 + 48;
@@ -142,8 +142,8 @@ void drawMemWindow()
 					thisx + 197 + (j*6), memWndY + 6 + scrpos, thisx + 197 + (j*6) + 6, memWndY + scrpos + 17,
 					64, 128, 64, 128);
 			}
-			fontPrint(thisx + (j*12), memWndY + 6 + scrpos, 0, (((j == memCurrentSelRow) && (i == memCurrentSelLine)) ? program.colGreen : program.colWhite), parseFormat("%02X", byte));
-			fontPrint(thisx + 197 + (j*6), memWndY + 6 + scrpos, 0, (((j == memCurrentSelRow) && (i == memCurrentSelLine)) ? program.colGreen : program.colWhite),
+			fontPrint(thisx + (j*12), memWndY + 6 + scrpos, 0, (((j == memCurrentSelRow) && (i == memCurrentSelLine)) ? program.colGreen : program.colWhite), program.ttff, parseFormat("%02X", byte));
+			fontPrint(thisx + 197 + (j*6), memWndY + 6 + scrpos, 0, (((j == memCurrentSelRow) && (i == memCurrentSelLine)) ? program.colGreen : program.colWhite), program.ttff,
 				(((byte >= 0x20) && (byte <= 0x7F)) ? parseFormat("%c", byte) : "."));
 		}
 		scrpos+=12;
@@ -154,7 +154,7 @@ void drawMemWindow()
 	hlineRGBA(program.screen, memWndX, memWndX + memWndW, memWndY + memWndH - 1, 0, 128, 0, 255);
 
 	char * HelpMsg = "F1:Help";
-	fontPrint(memWndX + memWndW - (strlen(HelpMsg) * 6) - 4, memWndY + memWndH + 3, 0, program.colWhite, HelpMsg);
+	fontPrint(memWndX + memWndW - (strlen(HelpMsg) * 6) - 4, memWndY + memWndH + 3, 0, program.colWhite, program.ttff, HelpMsg);
 
 	rectangleRGBA(program.screen, memWndX, memWndY, memWndX + memWndW, memWndY + memWndH + 18, 0, 128, 0, 255);
 }
@@ -179,8 +179,8 @@ int showMemview()
 	int textlen = (memWidth * 6) + 1;
 	memWndW = textlen;
 	memWndH = (memPageSize * 12) + 39;
-	memWndX = (((program.scrWidth * program.zoomFactor) / 2)) - (textlen / 2);
-	memWndY = (((program.scrHeight * program.zoomFactor) / 2)) - (memWndH / 2) - 10;
+	memWndX = (((program.scrWidth) / 2)) - (textlen / 2);
+	memWndY = (((program.scrHeight) / 2)) - (memWndH / 2) - 10;
 
 	program.func_draw_gui = drawMemWindow;
 

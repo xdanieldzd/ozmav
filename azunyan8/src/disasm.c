@@ -134,6 +134,7 @@ void getOpcodeText(unsigned short op)
 			switch(op & 0x000F) {
 				case 0x0000: strcpy(opcodeText, "CLS"); break;
 				case 0x000E: strcpy(opcodeText, "RET"); break;
+				default: strcpy(opcodeText, "<invalid opcode>"); break;
 			}
 			break;
 		}
@@ -155,6 +156,7 @@ void getOpcodeText(unsigned short op)
 				case 0x0006: strcpy(opcodeText, parseFormat("SHR V%1X{, V%1X}", getX(op), getY(op))); break;
 				case 0x0007: strcpy(opcodeText, parseFormat("SUBN V%1X, V%1X", getX(op), getY(op))); break;
 				case 0x000E: strcpy(opcodeText, parseFormat("SHL V%1X{, V%1X}", getX(op), getY(op))); break;
+				default: strcpy(opcodeText, "<invalid opcode>"); break;
 			}
 			break;
 		}
@@ -167,6 +169,7 @@ void getOpcodeText(unsigned short op)
 			switch(getKK(op)) {
 				case 0x009E: strcpy(opcodeText, parseFormat("SKP V%1X", getX(op))); break;
 				case 0x00A1: strcpy(opcodeText, parseFormat("SKPN V%1X", getX(op))); break;
+				default: strcpy(opcodeText, "<invalid opcode>"); break;
 			}
 			break;
 		}
@@ -183,10 +186,11 @@ void getOpcodeText(unsigned short op)
 				case 0x0065: strcpy(opcodeText, parseFormat("LD V%1X, [I]", getX(op))); break;
 				case 0x0075: strcpy(opcodeText, parseFormat("LD R, V%1X", getX(op))); break;
 				case 0x0085: strcpy(opcodeText, parseFormat("LD V%1X, R", getX(op))); break;
+				default: strcpy(opcodeText, "<invalid opcode>"); break;
 			}
 			break;
 		}
-		default: break;
+		default: strcpy(opcodeText, "<invalid opcode>"); break;
 	}
 }
 
@@ -215,7 +219,7 @@ void drawDisasmWindow()
 	for(i = 0; i < (int)arraySize(Msgs); i++) {
 		// if msg isn't empty, print it out
 		if(strcmp(*Msgs[i], "")) {
-			fontPrint(disasmWndX + 4 + curx, disasmWndY + 4 + cury, 0, program.colWhite, parseFormat(*Msgs[i], Vals[i]));
+			fontPrint(disasmWndX + 4 + curx, disasmWndY + 4 + cury, 0, program.colWhite, program.ttff, parseFormat(*Msgs[i], Vals[i]));
 			curx += ((strlen(*Msgs[i]) + 3) * 6);
 		// else do "line break"
 		} else {
@@ -225,7 +229,7 @@ void drawDisasmWindow()
 	}
 	//  -> help
 	char * HelpMsg = "F1:Help";
-	fontPrint(disasmWndX + disasmWndW - (strlen(HelpMsg) * 6) - 4, disasmWndY + 15, 0, program.colWhite, HelpMsg);
+	fontPrint(disasmWndX + disasmWndW - (strlen(HelpMsg) * 6) - 4, disasmWndY + 15, 0, program.colWhite, program.ttff, HelpMsg);
 
 	// -> sep line
 	hlineRGBA(program.screen, disasmWndX, disasmWndX + disasmWndW, disasmWndY + scrpos + 3, 0, 128, 0, 255);
@@ -253,7 +257,7 @@ void drawDisasmWindow()
 		}
 
 		fontPrint(disasmWndX + 4, disasmWndY + 6 + scrpos,
-			0, ((i == disasmCurrentSel) ? program.colGreen : program.colWhite),
+			0, ((i == disasmCurrentSel) ? program.colGreen : program.colWhite), program.ttff,
 			(
 				(i == DISASM_MAXSEL && disasmBasePC) ?
 				parseFormat("0x%04X: %02X  %s", disasmBasePC + i*2, op >> 8, opcodeText) :
@@ -270,11 +274,11 @@ void drawDisasmWindow()
 	//  -> sep line
 	hlineRGBA(program.screen, disasmWndX, disasmWndX + disasmWndW, disasmWndY + disasmWndH - 1, 0, 128, 0, 255);
 	//  -> text
-	fontPrint(disasmWndX + 4, disasmWndY + disasmWndH + 3, 0, program.colWhite, parseFormat(
+	fontPrint(disasmWndX + 4, disasmWndY + disasmWndH + 3, 0, program.colWhite, program.ttff, parseFormat(
 		"V0:%02X V1:%02X V2:%02X V3:%02X V4:%02X V5:%02X V6:%02X V7:%02X",
 		interpreter.regs[0], interpreter.regs[1], interpreter.regs[2], interpreter.regs[3], interpreter.regs[4], interpreter.regs[5], interpreter.regs[6], interpreter.regs[7]
 	));
-	fontPrint(disasmWndX + 4, disasmWndY + disasmWndH + 14, 0, program.colWhite, parseFormat(
+	fontPrint(disasmWndX + 4, disasmWndY + disasmWndH + 14, 0, program.colWhite, program.ttff, parseFormat(
 		"V8:%02X V9:%02X VA:%02X VB:%02X VC:%02X VD:%02X VE:%02X VF:%02X",
 		interpreter.regs[8], interpreter.regs[9], interpreter.regs[10], interpreter.regs[11], interpreter.regs[12], interpreter.regs[13], interpreter.regs[14], interpreter.regs[15]
 	));
@@ -303,8 +307,8 @@ int showDisassembly()
 	int textlen = (disasmWidth * 6) + 1;
 	disasmWndW = textlen;
 	disasmWndH = (disasmPageSize * 12) + 39;
-	disasmWndX = (((program.scrWidth * program.zoomFactor) / 2)) - (textlen / 2);
-	disasmWndY = (((program.scrHeight * program.zoomFactor) / 2)) - (disasmWndH / 2) - 16;
+	disasmWndX = (((program.scrWidth) / 2)) - (textlen / 2);
+	disasmWndY = (((program.scrHeight) / 2)) - (disasmWndH / 2) - 16;
 
 	program.func_draw_gui = drawDisasmWindow;
 

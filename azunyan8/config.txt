@@ -1,6 +1,6 @@
 # Azunyan-8 config file
 [Main]
-ZoomFactor=2
+ZoomFactor=4
 NumOpsDefault=840
 PauseWhenInactive=1
 ColorMode=0

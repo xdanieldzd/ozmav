@@ -32,17 +32,21 @@ void resizeScreen()
 {
 	SDL_Event event;
 	event.type = SDL_VIDEORESIZE;
-	event.resize.w = program.scrWidth * program.zoomFactor;
-	event.resize.h = program.scrHeight * program.zoomFactor;
+	event.resize.w = program.scrWidth;
+	event.resize.h = program.scrHeight;
 	SDL_PushEvent(&event);
 }
 
 void drawScreen()
 {
-	int i, j;
-	for(i = 0; i < program.scrHeight; i++) {
-		for(j = 0; j < program.scrWidth; j++) {
-			if(interpreter.screen[j][i]) drawRect(j, i, 1, 1, (program.colorMode ? program.colWhite : program.colGreen));
+	int i, j, xcent, ycent;
+
+	xcent = (program.scrWidth / 2) - ((64 * program.zoomFactor) / 2);
+	ycent = (program.scrHeight / 2) - ((32 * program.zoomFactor) / 2);
+
+	for(i = 0; i < 32; i++) {
+		for(j = 0; j < 64; j++) {
+			if(interpreter.screen[j][i]) drawRect((j * program.zoomFactor) + xcent, (i * program.zoomFactor) + ycent, program.zoomFactor, program.zoomFactor, (program.colorMode ? program.colWhite : program.colGreen));
 		}
 	}
 }
@@ -50,9 +54,9 @@ void drawScreen()
 void drawRect(int x, int y, int w, int h, SDL_Color col)
 {
 	SDL_Rect rect;
-	rect.x = x * program.zoomFactor;
-	rect.y = y * program.zoomFactor;
-	rect.w = w * program.zoomFactor;
-	rect.h = h * program.zoomFactor;
+	rect.x = x;
+	rect.y = y;
+	rect.w = w;
+	rect.h = h;
 	SDL_FillRect(program.screen, &rect, SDL_MapRGB(program.screen->format, col.r, col.g, col.b));
 }

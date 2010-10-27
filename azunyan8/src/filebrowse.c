@@ -4,8 +4,8 @@
 
 #include "globals.h"
 
-#define BASE_PAGESIZE		11
-#define BASE_BROWSERWIDTH	61
+#define BASE_PAGESIZE		16
+#define BASE_BROWSERWIDTH	45
 #define MAX_ENTRIES			1000
 
 typedef struct {
@@ -273,16 +273,16 @@ int fbWndX, fbWndY, fbWndW, fbWndH;
 
 void drawFileBrowser()
 {
-	boxRGBA(program.screen, fbWndX, fbWndY, fbWndX + fbWndW, fbWndY + fbWndH + 18, 0, 0, 0, 192);
-	boxRGBA(program.screen, fbWndX, fbWndY, fbWndX + fbWndW, fbWndY + 19, 0, 64, 0, 224);
+	boxRGBA(program.screen, fbWndX, fbWndY, fbWndX + fbWndW, fbWndY + fbWndH + (FONTHEIGHT_BIG + 9), 0, 0, 0, 192);
+	boxRGBA(program.screen, fbWndX, fbWndY, fbWndX + fbWndW, fbWndY + (FONTHEIGHT_BIG + 10), 0, 64, 0, 224);
 
 	int i = 0, scrpos = 17;
 
 	currentPage = currentSel / pageSize;
 
 	makeAbbrevFilename(tempfn, currentDir, 5);
-	fontPrint(fbWndX + 4, fbWndY + 4, 0, program.colWhite, parseFormat("Dir: %s", tempfn));
-	hlineRGBA(program.screen, fbWndX, fbWndX + fbWndW, fbWndY + 19, 0, 128, 0, 255);
+	fontPrint(fbWndX + 4, fbWndY + 4, 0, program.colWhite, program.ttff_big, parseFormat("Dir: %s", tempfn));
+	hlineRGBA(program.screen, fbWndX, fbWndX + fbWndW, fbWndY + (FONTHEIGHT_BIG + 10), 0, 128, 0, 255);
 
 	minEntry = 0;
 	if(currentSel > (pageSize - 1) / 2) minEntry = currentSel - (pageSize - 1) / 2;
@@ -294,14 +294,14 @@ void drawFileBrowser()
 	}
 	if(minEntry < 0) minEntry = 0;
 
-//	fontPrint(0, 0, 0, program.colWhite, parseFormat("%d %d", minEntry, maxEntry));
+//	fontPrint(0, 0, 0, program.colWhite, program.ttff_big, parseFormat("%d %d", minEntry, maxEntry));
 
 	fileEntrySelect[currentSel].over = 1;
 	for(i = minEntry; ((i < fileEntriesTotal) && (i < maxEntry)); i++) {
-		fileEntrySelect[i].bx = fbWndX + 4;
-		fileEntrySelect[i].by = fbWndY + 6 + scrpos;
-		fileEntrySelect[i].bx2 = fbWndX + fbWndW - 4;
-		fileEntrySelect[i].by2 = fbWndY + scrpos + 17;
+		fileEntrySelect[i].bx = fbWndX + 1;
+		fileEntrySelect[i].by = fbWndY + FONTHEIGHT_BIG + scrpos;
+		fileEntrySelect[i].bx2 = fbWndX + fbWndW - 1;
+		fileEntrySelect[i].by2 = fbWndY + FONTHEIGHT_BIG + scrpos + FONTHEIGHT_BIG + 2;
 		fileEntrySelect[i].hr = 64;
 		fileEntrySelect[i].hg = 128;
 		fileEntrySelect[i].hb = 64;
@@ -314,22 +314,22 @@ void drawFileBrowser()
 		}
 		makeAbbrevFilename(tempfn, fileEntry[i].name, 6);
 		fontPrint(
-			fileEntrySelect[i].bx, fileEntrySelect[i].by, 0, ((i == currentSel) ? program.colGreen : program.colWhite),
+			fileEntrySelect[i].bx+3, fileEntrySelect[i].by, 0, ((i == currentSel) ? program.colGreen : program.colWhite), program.ttff_big,
 			parseFormat("[%s] %s", (fileEntry[i].isDir ? "   " : "DIR"), tempfn)
 		);
-		scrpos+=12;
+		scrpos+=FONTHEIGHT_BIG+3;
 	}
 	lastPage = currentPage;
 
-	boxRGBA(program.screen, fbWndX, fbWndY + fbWndH - 1, fbWndX + fbWndW, fbWndY + fbWndH - 1 + 19, 0, 64, 0, 224);
+	boxRGBA(program.screen, fbWndX, fbWndY + fbWndH - 1, fbWndX + fbWndW, fbWndY + fbWndH - 1 + FONTHEIGHT_BIG + 9, 0, 64, 0, 224);
 	hlineRGBA(program.screen, fbWndX, fbWndX + fbWndW, fbWndY + fbWndH - 1, 0, 128, 0, 255);
 
-	char * Msg1 = "Cursor keys: Select file/page";
+	char * Msg1 = "Cursor: Select";
 	char * Msg2 = "Return: Open directory/file";
-	fontPrint(fbWndX + 4, fbWndY + fbWndH + 3, 0, program.colWhite, Msg1);
-	fontPrint(fbWndX + fbWndW - (strlen(Msg2) * 6) - 4, fbWndY + fbWndH + 3, 0, program.colWhite, Msg2);
+	fontPrint(fbWndX + 4, fbWndY + fbWndH + 3, 0, program.colWhite, program.ttff_big, Msg1);
+	fontPrint(fbWndX + fbWndW - (strlen(Msg2) * FONTWIDTH_BIG) - 4, fbWndY + fbWndH + 3, 0, program.colWhite, program.ttff_big, Msg2);
 
-	rectangleRGBA(program.screen, fbWndX, fbWndY, fbWndX + fbWndW, fbWndY + fbWndH + 18, 0, 128, 0, 255);
+	rectangleRGBA(program.screen, fbWndX, fbWndY, fbWndX + fbWndW, fbWndY + fbWndH + FONTHEIGHT_BIG + 9, 0, 128, 0, 255);
 }
 
 char * fileBrowser(char * initialDir)
@@ -341,14 +341,14 @@ char * fileBrowser(char * initialDir)
 
 	if(cacheDirectory()) return NULL;
 
-	pageSize = (int)(BASE_PAGESIZE + ((program.zoomFactor - 6) + 0.5f) * 2.5f);
-	browserWidth = (int)(BASE_BROWSERWIDTH + ((program.zoomFactor - 6) + 0.5f) * 4.5f);
+	pageSize = BASE_PAGESIZE;
+	browserWidth = BASE_BROWSERWIDTH;
 
-	int textlen = (browserWidth * 6) + 1;
+	int textlen = (browserWidth * FONTWIDTH_BIG) + 1;
 	fbWndW = textlen;
-	fbWndH = (pageSize * 12) + 27;
-	fbWndX = (((program.scrWidth * program.zoomFactor) / 2)) - (textlen / 2);
-	fbWndY = (((program.scrHeight * program.zoomFactor) / 2)) - (fbWndH / 2) - 10;
+	fbWndH = ((pageSize + 5) * FONTHEIGHT_BIG);
+	fbWndX = (((program.scrWidth) / 2)) - (textlen / 2);
+	fbWndY = (((program.scrHeight) / 2)) - (fbWndH / 2) - 10;
 
 	void * oldkd = program.func_keydown;
 	void * oldmd = program.func_mousedown;

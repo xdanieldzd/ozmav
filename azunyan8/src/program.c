@@ -37,8 +37,8 @@ int initProgram()
 	program.colRed.g = 64;
 	program.colRed.b = 0;
 
-	program.scrWidth = 64;
-	program.scrHeight = 32;
+	program.scrWidth = 640;
+	program.scrHeight = 480;
 
 	program.isPaused = 1;
 	program.isChip8Paused = 1;
@@ -59,15 +59,14 @@ int initProgram()
 	#else
 	InitFlags = SDL_INIT_VIDEO | SDL_INIT_AUDIO;
 	#endif
-    if(SDL_Init(InitFlags) < 0) {
+	if(SDL_Init(InitFlags) < 0) {
 		printf("Unable to init SDL: %s\n", SDL_GetError());
 		return EXIT_FAILURE;
-    }
+	}
 	atexit(SDL_Quit);
 
 	program.screen = SDL_SetVideoMode(
-		program.scrWidth * program.zoomFactor,
-		program.scrHeight * program.zoomFactor,
+		program.scrWidth, program.scrHeight,
 		16, SDL_HWSURFACE | SDL_DOUBLEBUF);
 
 	if(!program.screen) {
@@ -79,7 +78,7 @@ int initProgram()
 	SDL_JoystickOpen(0);
 	SDL_ShowCursor(1);
 	#endif
-	
+
 	SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
 
 	if(TTF_Init()) {
@@ -87,8 +86,13 @@ int initProgram()
 		return EXIT_FAILURE;
 	}
 
-	program.ttff = TTF_OpenFont(parseFormat("%s%cVeraMono.ttf", program.apppath, FILESEP), FONTHEIGHT);
+	program.ttff = TTF_OpenFont(parseFormat("%s%cVeraMono.ttf", program.apppath, FILESEP), FONTHEIGHT_SMALL);
 	if(program.ttff == NULL) {
+		printf("Unable to open font (%s)\n", TTF_GetError());
+		return EXIT_FAILURE;
+	}
+	program.ttff_big = TTF_OpenFont(parseFormat("%s%cVeraMono.ttf", program.apppath, FILESEP), FONTHEIGHT_BIG);
+	if(program.ttff_big == NULL) {
 		printf("Unable to open font (%s)\n", TTF_GetError());
 		return EXIT_FAILURE;
 	}
@@ -115,7 +119,7 @@ void setOpsPerFrame(int quiet)
 void setDefaultConfig()
 {
 	// default zoom factor
-	program.zoomFactor = 8;
+	program.zoomFactor = 10;
 
 	// pause execution when inactive
 	program.pauseWhenInactive = 1;
@@ -179,6 +183,7 @@ int loadConfig(char * path)
 				} else if(strcmp(var, "ZoomFactor") == 0) {
 					sscanf(val, "%i", &program.zoomFactor);
 					program.zoomFactor += 6;
+					if(program.zoomFactor > MAX_ZOOMFACTOR) program.zoomFactor = MAX_ZOOMFACTOR;
 				} else if(strcmp(var, "PauseWhenInactive") == 0) {
 					sscanf(val, "%i", &program.pauseWhenInactive);
 				} else if(strcmp(var, "ColorMode") == 0) {
@@ -281,7 +286,7 @@ int doSDLEvents()
 	#ifdef HW_RVL
 	int JoyButton;
 	#endif
-	
+
 	while(SDL_PollEvent(&event)) {
 		switch(event.type) {
 			case SDL_QUIT: {
@@ -344,8 +349,7 @@ int doSDLEvents()
 
 			case SDL_VIDEORESIZE: {
 				program.screen = SDL_SetVideoMode(
-					program.scrWidth * program.zoomFactor,
-					program.scrHeight * program.zoomFactor,
+					program.scrWidth, program.scrHeight,
 					16, SDL_HWSURFACE | SDL_DOUBLEBUF);
 
 				if(!program.screen) {
@@ -441,13 +445,11 @@ void doMainKeydown(SDL_KeyboardEvent * ev)
 
 		// increase zoom factor
 		if(ev->keysym.sym == SDLK_KP_PLUS) {
-			if(program.zoomFactor < ZOOMMAX) program.zoomFactor++;
-			resizeScreen();
+			if(program.zoomFactor < MAX_ZOOMFACTOR) program.zoomFactor++;
 		}
 		// decrease zoom factor
 		if(ev->keysym.sym == SDLK_KP_MINUS) {
 			if(program.zoomFactor > 6) program.zoomFactor--;
-			resizeScreen();
 		}
 
 		// chip-8 input
@@ -514,9 +516,9 @@ void doMainDrawing()
 	drawStatMessages();
 
 	#ifdef HW_RVL
-	boxRGBA(program.screen, 0, 0, (program.scrWidth * program.zoomFactor), FONTHEIGHT + 4, 0, 0, 0, 192);
-	fontPrint(2, 1, 0, program.colWhite, program.title);
-	hlineRGBA(program.screen, 0, (program.scrWidth * program.zoomFactor), FONTHEIGHT + 4, 0, 128, 0, 128);
+	boxRGBA(program.screen, 0, SCREEN_OVERSCAN, program.scrWidth, SCREEN_OVERSCAN + FONTHEIGHT_BIG + 4, 0, 0, 0, 192);
+	fontPrint(2, SCREEN_OVERSCAN + 1, 0, program.colWhite, program.ttff_big, program.title);
+	hlineRGBA(program.screen, SCREEN_OVERSCAN, program.scrWidth, SCREEN_OVERSCAN + FONTHEIGHT_BIG + 4, 0, 128, 0, 128);
 	#endif
 }
 
