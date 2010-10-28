@@ -22,14 +22,17 @@ int WinAPIInit(char * WndTitle, int Width, int Height)
 	wcex.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
 	wcex.lpszMenuName = NULL;
 	wcex.lpszClassName = APPTITLE;
-	wcex.hIconSm = LoadIcon(NULL, IDI_APPLICATION);;
+	wcex.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
 
-	if (!RegisterClassEx(&wcex)) return EXIT_SUCCESS;
+	if(!RegisterClassEx(&wcex)) return EXIT_SUCCESS;
 
 	hwnd = CreateWindowEx(0, APPTITLE, WndTitle, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, Width, Height, NULL, NULL, hInstance, NULL);
 	ShowWindow(hwnd, true);
 
 	EnableOpenGL(hwnd, &hDC, &hRC);
+
+	// resize window for OpenGL area itself to be ex. 640x480, not the actual window
+	WinAPISetWindowSize((Width + GetSystemMetrics(SM_CXSIZEFRAME) + GetSystemMetrics(SM_CXFRAME)), (Height + GetSystemMetrics(SM_CYCAPTION) + GetSystemMetrics(SM_CYSIZEFRAME) + GetSystemMetrics(SM_CYFRAME)));
 
 	return EXIT_SUCCESS;
 }
@@ -134,6 +137,13 @@ int WinAPIExit()
 int WinAPISetWindowTitle(char * WndTitle)
 {
 	return SetWindowText(hwnd, WndTitle);
+}
+
+int WinAPISetWindowSize(int Width, int Height)
+{
+	zProgram.WindowWidth = Width;
+	zProgram.WindowHeight = Height;
+	return SetWindowPos(hwnd, NULL, 0, 0, zProgram.WindowWidth, zProgram.WindowHeight, SWP_NOMOVE);
 }
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)

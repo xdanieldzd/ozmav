@@ -266,7 +266,7 @@ unsigned int zl_ScanForBones(unsigned char RAMSeg, int BonesNo)
 {
 	if(!RAM[RAMSeg].IsSet) return 0;
 
-	dbgprintf(0, MSK_COLORTYPE_OKAY, "Scanning for bones...\n");
+	dbgprintf(1, MSK_COLORTYPE_OKAY, "Scanning for bones...\n");
 
 	int i = 0, j = 0, foundcnt = 0;
 	for(i = 0; i < RAM[RAMSeg].Size; i += 4) {
@@ -282,7 +282,7 @@ unsigned int zl_ScanForBones(unsigned char RAMSeg, int BonesNo)
 					}
 					if (j == i) {
 						i = RAMSeg << 24 | i;
-						dbgprintf(0, MSK_COLORTYPE_OKAY, "Found bones #%i at offset %08X\n", foundcnt, i);
+						dbgprintf(1, MSK_COLORTYPE_OKAY, "Found bones #%i at offset %08X\n", foundcnt, i);
 						if(foundcnt == BonesNo) return i;
 
 						foundcnt++;
@@ -292,7 +292,7 @@ unsigned int zl_ScanForBones(unsigned char RAMSeg, int BonesNo)
 		}
 	}
 
-	if(foundcnt == 0) dbgprintf(0, MSK_COLORTYPE_OKAY, "...no bones found!\n");
+	if(foundcnt == 0) dbgprintf(1, MSK_COLORTYPE_OKAY, "...no bones found!\n");
 
 	return 0;
 }
@@ -304,7 +304,7 @@ unsigned int zl_ScanForAnims(unsigned char RAMSeg, int AnimNo)
 {
 	if(!RAM[RAMSeg].IsSet) return 0;
 
-	dbgprintf(0, MSK_COLORTYPE_OKAY, "Scanning for animations...\n");
+	dbgprintf(1, MSK_COLORTYPE_OKAY, "Scanning for animations...\n");
 
 	int i = 0, foundcnt = 0, offset = 0;
 	for(i = 0; i < RAM[RAMSeg].Size; i += 4) {
@@ -322,14 +322,14 @@ unsigned int zl_ScanForAnims(unsigned char RAMSeg, int AnimNo)
 			)
 			{
 				offset = (RAMSeg << 24) | i;
-				dbgprintf(0, MSK_COLORTYPE_OKAY, "Found animation #%i at offset %08X\n", foundcnt, offset);
+				dbgprintf(1, MSK_COLORTYPE_OKAY, "Found animation #%i at offset %08X\n", foundcnt, offset);
 				if(foundcnt == AnimNo) return offset;
 
 				foundcnt++;
 			}
 	}
 
-	if(foundcnt == 0) dbgprintf(0, MSK_COLORTYPE_OKAY, "...no animations found!\n");
+	if(foundcnt == 0) dbgprintf(1, MSK_COLORTYPE_OKAY, "...no animations found!\n");
 
 	return 0;
 }
@@ -451,8 +451,8 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 				RAM[TargetSeg].Data = zObject[zActor[ActorNumber].Object].Data;
 				RAM[TargetSeg].Size = zObject[zActor[ActorNumber].Object].EndOffset - zObject[zActor[ActorNumber].Object].StartOffset;
 				RAM[TargetSeg].IsSet = true;
-				
-				
+
+
 				// Set Watch for variables
 				mips_ResetSpecialOps();
 				mips_SetSpecialOp(MIPS_LH(mips_r0, 0x1C, mips_a0), Var);
@@ -513,7 +513,7 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 				zActor[ActorNumber].BoneSetup = (bones != NULL) ? *bones : 0;
 				zActor[ActorNumber].Scale = (scale != NULL) ? *scale : 0.01f;
 				zActor[ActorNumber].DisplayList = (dlist != NULL) ? *dlist : 0;
-				
+
 				/* scaling estimates */
 				if(zActor[ActorNumber].Scale == 0.01f && (!strncmp(zActor[ActorNumber].Name, "Bg_", 3) || !strncmp(zActor[ActorNumber].Name, "Obj_", 4))){
 					zActor[ActorNumber].Scale = 0.1f;
@@ -524,7 +524,7 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 
 				if(alt_objn!=NULL && *alt_objn <= zGame.ObjectCount && zActor[ActorNumber].Object < 3 && *alt_objn > 3 && zObject[*alt_objn].IsSet){
 					zActor[ActorNumber].Object = *alt_objn;
-					dbgprintf(0, MSK_COLORTYPE_INFO, "  - Alternate object found for actor %s: 0x%04X", zActor[ActorNumber].Name, *alt_objn);
+					dbgprintf(1, MSK_COLORTYPE_INFO, "  - Alternate object found for actor %s: 0x%04X", zActor[ActorNumber].Name, *alt_objn);
 				}
 				if(!(zActor[ActorNumber].DisplayList >> 24) && zActor[ActorNumber].DisplayList){
 					zActor[ActorNumber].DisplayList = 0;
@@ -663,7 +663,7 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 		// mark actor as processed
 		zActor[ActorNumber].IsSet = true;
 
-		dbgprintf(0, MSK_COLORTYPE_INFO, "  - Scale %.3f, DL %08X, Bones %08X, Ani %08X\n     %s, Obj %04X\n",
+		dbgprintf(1, MSK_COLORTYPE_INFO, "  - Scale %.3f, DL %08X, Bones %08X, Ani %08X\n     %s, Obj %04X\n",
 			zActor[ActorNumber].Scale, zActor[ActorNumber].DisplayList,
 			zActor[ActorNumber].BoneSetup, zActor[ActorNumber].Animation,
 			zActor[ActorNumber].Name, zActor[ActorNumber].Object);
@@ -703,16 +703,16 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 
 		//Bone structure
 		if(zActor[ActorNumber].BoneSetup) {
-			dbgprintf(0, MSK_COLORTYPE_OKAY, " - Drawing bone structure for actor %04X", ActorNumber);
+			dbgprintf(1, MSK_COLORTYPE_OKAY, " - Drawing bone structure for actor %04X", ActorNumber);
 			zl_DrawBones(zActor[ActorNumber].BoneSetup, zActor[ActorNumber].Animation, zActor[ActorNumber].Scale, X, Y, Z, RX, RY, RZ, DLBase);
 		}
 		//Display list
 		else if(zActor[ActorNumber].DisplayList) {
-			dbgprintf(0, MSK_COLORTYPE_OKAY, " - Trying to execute DList (%08X) for object 0x%04X...",zActor[ActorNumber].DisplayList, zActor[ActorNumber].Object);
+			dbgprintf(1, MSK_COLORTYPE_OKAY, " - Trying to execute DList (%08X) for object 0x%04X...",zActor[ActorNumber].DisplayList, zActor[ActorNumber].Object);
 
 			if(RDP_CheckAddressValidity(zActor[ActorNumber].DisplayList)) {
-				dbgprintf(0, MSK_COLORTYPE_OKAY, " - DList Address 0x%08X is valid!", zActor[ActorNumber].DisplayList);
-				glNewList(DLBase, GL_COMPILE);
+				dbgprintf(1, MSK_COLORTYPE_OKAY, " - DList Address 0x%08X is valid!", zActor[ActorNumber].DisplayList);
+				glNewList(DLBase, GL_COMPILE_AND_EXECUTE);
 					glPushMatrix();
 
 /*					glTranslated(X, Y, Z);
@@ -823,8 +823,8 @@ void zl_DrawBone(z_bone Bones[], int CurrentBone, int ParentBone)
 	glRotated(Bones[CurrentBone].RZ / 182.0444444, 0, 0, 1);
 	glRotated(Bones[CurrentBone].RY / 182.0444444, 0, 1, 0);
 	glRotated(Bones[CurrentBone].RX / 182.0444444, 1, 0, 0);
-/*
-	if(CurrentBone > 0) {
+
+/*	if(CurrentBone > 0) {
 		glPushMatrix();
 		glLoadIdentity();
 			glTranslated(Bones[CurrentBone].X, Bones[CurrentBone].Y, Bones[CurrentBone].Z);
@@ -835,12 +835,12 @@ void zl_DrawBone(z_bone Bones[], int CurrentBone, int ParentBone)
 			// get current matrix
 			glGetIntegerv(GL_MODELVIEW_MATRIX, Bones[CurrentBone].Matrix);
 			int i;
-//			zl_MulMatrices(Bones[CurrentBone].Matrix, Bones[ParentBone].Matrix, Bones[CurrentBone].Matrix);
-//			dbgprintf(0, MSK_COLORTYPE_WARNING, "Bone %i matrix, target %08X:", CurrentBone, 0x0D << 24 | CurrentBone*0x40);
-//			for(i = 0; i < 16; i+=4) {
-//				dbgprintf(0, MSK_COLORTYPE_INFO, "[%6i] [%6i] [%6i] [%6i]",
-//					Bones[CurrentBone].Matrix[i], Bones[CurrentBone].Matrix[i + 1], Bones[CurrentBone].Matrix[i + 2], Bones[CurrentBone].Matrix[i + 3]);
-//			}
+			//zl_MulMatrices(Bones[CurrentBone].Matrix, Bones[ParentBone].Matrix, Bones[CurrentBone].Matrix);
+			dbgprintf(0, MSK_COLORTYPE_WARNING, "Bone %i matrix, target %08X:", CurrentBone, 0x0D << 24 | CurrentBone*0x40);
+			for(i = 0; i < 16; i+=4) {
+				dbgprintf(0, MSK_COLORTYPE_INFO, "[%6i] [%6i] [%6i] [%6i]",
+					Bones[CurrentBone].Matrix[i], Bones[CurrentBone].Matrix[i + 1], Bones[CurrentBone].Matrix[i + 2], Bones[CurrentBone].Matrix[i + 3]);
+			}
 
 			// write to RAM
 			int Offset = (CurrentBone-1)* 0x40;
@@ -952,14 +952,14 @@ void zl_DrawBones(unsigned int BoneOffset, unsigned int AnimationOffset, float S
 		}
 		dbgprintf(2, MSK_COLORTYPE_INFO, " Bone %2i (%08X): (%6i %6i %6i) (%2i %2i) %08X", i, BoneOffset, Bones[i].X, Bones[i].Y, Bones[i].Z, Bones[i].Child, Bones[i].Sibling, Bones[i].DList);
 	}
-/*
-	RAM[0x0D].Size = (BoneCount+1)*0x40;
+
+/*	RAM[0x0D].Size = (BoneCount+1)*0x40;
 	RAM[0x0D].Data = (unsigned char*)malloc(sizeof(char)*RAM[0x0D].Size);
 	RAM[0x0D].IsSet = true;
 	memset(RAM[0x0D].Data, 0x00, RAM[0x0D].Size);
 */
 	//render
-	glNewList(DLBase, GL_COMPILE);
+	glNewList(DLBase, GL_COMPILE_AND_EXECUTE);
 		glPushMatrix();
 /*			glTranslated(X, Y, Z);
 			glRotated(RX / 182.0444444, 1, 0, 0);

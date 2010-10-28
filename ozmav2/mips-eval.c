@@ -229,7 +229,7 @@ int mips_ReportFunc(unsigned int target)
 		for(i=0;i<4;i++){
 			seg = regs[i+MIPS_REG_A0] >> 24;
 			if((seg == 6 || seg == 4) && !(regs[i+MIPS_REG_A0] & 0x00F00003) ){
-				dbgprintf(0, MSK_COLORTYPE_WARNING, "Unwatched function %08X has suspicious argument #%i: %08X",
+				dbgprintf(1, MSK_COLORTYPE_WARNING, "Unwatched function %08X has suspicious argument #%i: %08X",
 				target, i, regs[i+MIPS_REG_A0]);
 			}
 		}

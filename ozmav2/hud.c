@@ -21,8 +21,8 @@ const unsigned char FontWidths[] = {
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
 
-float TextBG[] = { 0.1f, 0.1f, 0.1f, 0.7f };
-float TextFG[] = { 1.0, 1.0f, 1.0f, 1.0f };
+float BGColor[4] = { 0.1f, 0.1f, 0.1f, 0.5f };
+float FGColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 
 int hud_Init(unsigned char FontPath[])
 {
@@ -31,22 +31,20 @@ int hud_Init(unsigned char FontPath[])
 		return EXIT_FAILURE;
 	}
 
-	if(glIsTexture(Font.TexID)) glDeleteTextures(1, &Font.TexID);
-	glGenTextures(1, &Font.TexID);
+	if(glIsTexture(zHUD.TexID)) glDeleteTextures(1, &zHUD.TexID);
+	glGenTextures(1, &zHUD.TexID);
 
-	glBindTexture(GL_TEXTURE_2D, Font.TexID);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, Font.Width, Font.Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, Font.Image);
+	glBindTexture(GL_TEXTURE_2D, zHUD.TexID);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, zHUD.Width, zHUD.Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, zHUD.Image);
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
-	memcpy(Font.CharWidths, FontWidths, ArraySize(FontWidths));
-	memcpy(Font.BGC, TextBG, ArraySize(TextBG));
-	memcpy(Font.FGC, TextFG, ArraySize(TextFG));
+	memcpy(zHUD.CharWidths, FontWidths, ArraySize(FontWidths));
 
 	hud_BuildFont();
 
-	if(Font.Image != NULL) free(Font.Image);
+	if(zHUD.Image != NULL) free(zHUD.Image);
 
 	return EXIT_SUCCESS;
 }
@@ -69,19 +67,19 @@ bool hud_LoadFontBMP(unsigned char Path[])
 	}
 
 	fseek(File, 18, SEEK_SET);
-	fread(&Font.Width, 1, sizeof(int), File);
-	fread(&Font.Height, 1, sizeof(int), File);
-	fread(&Font.Plane, 1, sizeof(short), File);
-	fread(&Font.BPP, 1, sizeof(short), File);
+	fread(&zHUD.Width, 1, sizeof(int), File);
+	fread(&zHUD.Height, 1, sizeof(int), File);
+	fread(&zHUD.Plane, 1, sizeof(short), File);
+	fread(&zHUD.BPP, 1, sizeof(short), File);
 
-	if(Font.BPP != 24) {
+	if(zHUD.BPP != 24) {
 		MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "- Error: BMP file is not 24bpp!\n");
 		return false;
 	}
 
-	Font.Image = (unsigned char *)malloc(sizeof(char) * Font.Width * Font.Height * 4);
+	zHUD.Image = (unsigned char *)malloc(sizeof(char) * zHUD.Width * zHUD.Height * 4);
 
-	int Size = Font.Width * Font.Height * (Font.BPP / 8);
+	int Size = zHUD.Width * zHUD.Height * (zHUD.BPP / 8);
 	unsigned char * TempImage = (unsigned char *)malloc(sizeof(char) * Size);
 
 	fseek(File, 24, SEEK_CUR);
@@ -89,27 +87,27 @@ bool hud_LoadFontBMP(unsigned char Path[])
 
 	fclose(File);
 
-	int BytesPx = (Font.BPP / 8);
+	int BytesPx = (zHUD.BPP / 8);
 
 	int X, Y;
 	int SrcOffset = 0;
 
-	for(Y = Font.Height; Y > 0; Y--) {
-		for(X = 0; X < Font.Width * BytesPx; X += BytesPx) {
+	for(Y = zHUD.Height; Y > 0; Y--) {
+		for(X = 0; X < zHUD.Width * BytesPx; X += BytesPx) {
 			// check for transparency color key
-            if(	TempImage[((Y - 1) * Font.Width) * BytesPx + X + 2] == ColorKey[0] &&
-				TempImage[((Y - 1) * Font.Width) * BytesPx + X + 1] == ColorKey[1] &&
-				TempImage[((Y - 1) * Font.Width) * BytesPx + X + 0] == ColorKey[2])
+            if(	TempImage[((Y - 1) * zHUD.Width) * BytesPx + X + 2] == ColorKey[0] &&
+				TempImage[((Y - 1) * zHUD.Width) * BytesPx + X + 1] == ColorKey[1] &&
+				TempImage[((Y - 1) * zHUD.Width) * BytesPx + X + 0] == ColorKey[2])
 			{
-				Font.Image[SrcOffset + 3]	= 0;
+				zHUD.Image[SrcOffset + 3]	= 0;
 			} else {
-				Font.Image[SrcOffset + 3]	= 0xFF;
+				zHUD.Image[SrcOffset + 3]	= 0xFF;
 			}
 
 			// copy image
-			Font.Image[SrcOffset + 2]	= TempImage[((Y - 1) * Font.Width) * BytesPx + X + 0];
-			Font.Image[SrcOffset + 1]	= TempImage[((Y - 1) * Font.Width) * BytesPx + X + 1];
-			Font.Image[SrcOffset + 0]	= TempImage[((Y - 1) * Font.Width) * BytesPx + X + 2];
+			zHUD.Image[SrcOffset + 2]	= TempImage[((Y - 1) * zHUD.Width) * BytesPx + X + 0];
+			zHUD.Image[SrcOffset + 1]	= TempImage[((Y - 1) * zHUD.Width) * BytesPx + X + 1];
+			zHUD.Image[SrcOffset + 0]	= TempImage[((Y - 1) * zHUD.Width) * BytesPx + X + 2];
 			SrcOffset += 4;
 		}
 	}
@@ -122,14 +120,14 @@ void hud_BuildFont()
 	int i;
 	float CharX, CharY;
 
-	Font.BaseDL = glGenLists(128);
-	glBindTexture(GL_TEXTURE_2D, Font.TexID);
+	zHUD.BaseDL = glGenLists(128);
+	glBindTexture(GL_TEXTURE_2D, zHUD.TexID);
 
 	for(i = 0; i < 128; i++) {
 		CharX = ((float)(i % 16)) / 16.0f;
 		CharY = ((float)(i / 16)) / 8.0f;
 
-		glNewList(Font.BaseDL + i, GL_COMPILE);
+		glNewList(zHUD.BaseDL + i, GL_COMPILE);
 			glBegin(GL_QUADS);
 				glTexCoord2f(CharX, CharY);
 				glVertex2i(0, 0);
@@ -140,28 +138,23 @@ void hud_BuildFont()
 				glTexCoord2f(CharX, CharY + 0.125f);
 				glVertex2i(0, 8);
 			glEnd();
-			glTranslated(Font.CharWidths[i], 0, 0);
+			glTranslated(zHUD.CharWidths[i], 0, 0);
 		glEndList();
 	}
 }
 
 void hud_KillFont()
 {
-	if(glIsList(Font.BaseDL)) glDeleteLists(Font.BaseDL, 256);
+	if(glIsList(zHUD.BaseDL)) glDeleteLists(zHUD.BaseDL, 256);
 }
 
-void hud_Print(int Index, GLint X, GLint Y, GLint Z, int W, int H, float BGColor[4], float FGColor[4], char * String)
+void hud_Print(GLint X, GLint Y, int W, int H, char * String)
 {
 	// NOTES:
 	//  - if X or Y == -1, text appears at (window width/height - text width/height)
 	//  - if W or H == -1, text background is sized via text width/height
 
 	int i, j;
-
-	if(HUD[Index].IsUsed) glDeleteLists(HUD[Index].DL, 1);
-	HUD[Index].DL = glGenLists(1);
-
-	HUD[Index].IsUsed = true;
 
 	strcpy(TempString, String);
 	unsigned char LineText[512][MAX_PATH];
@@ -181,7 +174,7 @@ void hud_Print(int Index, GLint X, GLint Y, GLint Z, int W, int H, float BGColor
 	for(i = 0; i < Lines; i++) {
 		for(j = 0; j < strlen(LineText[i]); j++) {
 			if(LineText[i][j] == '\t') LineText[i][j] = 0x7F;
-			LineWidths[i] += Font.CharWidths[LineText[i][j] - 32];
+			LineWidths[i] += zHUD.CharWidths[LineText[i][j] - 32];
 		}
 		if(LineWidths[i] > Width) Width = LineWidths[i];
 	}
@@ -198,30 +191,22 @@ void hud_Print(int Index, GLint X, GLint Y, GLint Z, int W, int H, float BGColor
 	if(X + RectWidth > WINDOW_WIDTH) X -= RectWidth;
 	if(Y + RectHeight > WINDOW_HEIGHT) Y -= RectHeight;
 
-	glNewList(HUD[Index].DL, GL_COMPILE);
+	{
 		glPushMatrix();
-		//glLoadIdentity();
-
-		glTranslatef((float)X-r[0]-u[0], (float)Y-r[1]-u[1], (float)Z-r[2]-u[2]);
-
-		glDisable(GL_LIGHTING);
-
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glLoadIdentity();
+		glTranslated(X, Y, 0);
 
 		glColor4f(BGColor[0], BGColor[1], BGColor[2], BGColor[3]);
 		glRectf(0, 0, RectWidth, RectHeight);
 
 		// text
-		glPushMatrix();
 		glTranslated(3, 3, 0);
 		glEnable(GL_TEXTURE_2D);
-		glBindTexture(GL_TEXTURE_2D, Font.TexID);
-		glListBase(Font.BaseDL - 32);
+		glBindTexture(GL_TEXTURE_2D, zHUD.TexID);
+		glListBase(zHUD.BaseDL - 32);
 
 		for(i = 0; i < Lines; i++) {
 			int HorzCenter = 0;
-			glColor4f(FGColor[0], FGColor[1], FGColor[2], FGColor[3]);
 			switch(LineText[i][0]) {
 				case 0x80: {
 					HorzCenter = (WINDOW_WIDTH / 2) - (LineWidths[i] / 2);
@@ -254,93 +239,19 @@ void hud_Print(int Index, GLint X, GLint Y, GLint Z, int W, int H, float BGColor
 					glColor4f(0.0f, 0.75f, 1.0f, FGColor[3]);
 					break;
 				}
+
+				default: {
+					glColor4f(FGColor[0], FGColor[1], FGColor[2], FGColor[3]);
+					break;
+				}
 			}
 			glPushMatrix();
 			glTranslated(HorzCenter, (i * 10), 0);
 			glCallLists(strlen(LineText[i]), GL_BYTE, LineText[i]);
 			glPopMatrix();
 		}
-		glPopMatrix();
-
 		glDisable(GL_TEXTURE_2D);
 
-		glDisable(GL_BLEND);
-
-		glEnable(GL_LIGHTING);
-
 		glPopMatrix();
-	glEndList();
-}
-
-int hud_GetFreeObjectIndex()
-{
-	int i;
-	for(i = 0; i < ArraySize(HUD); i++) {
-		if(HUD[i].IsUsed == false) return i;
-	}
-
-	return -1;
-}
-
-void hud_ToggleObjectVisibility(int Index)
-{
-	HUD[Index].IsHidden ^= 1;
-}
-
-void hud_ClearObject(int Index)
-{
-	if(HUD[Index].IsUsed) glDeleteLists(HUD[Index].DL, 1);
-	HUD[Index].IsUsed = false;
-}
-
-void hud_ClearAllObjects()
-{
-	int i;
-	for(i = 0; i < ArraySize(HUD); i++) hud_ClearObject(i);
-}
-
-// This routine returns up to 3 camera directions: which way is "right", "up" and which way is the camera pointing ("look")
-// in OpenGL coordinates.  In other words, this is which way the user's SCREEN is pointing in OpenGL "local" coordinates.
-// (If the user is facing true north at the origin and is not rolled, these functiosn would be trivially easy because
-// right would be 1,0,0, up would be 0,1,0 and look would be 0,0,1.  (NOTE: the look vector points TO the user, not
-// FROM the user.)
-//
-// To draw a billboard centered at C, you would use these coordinates:
-//
-// c-rgt+up---c+rgt+up
-// |                 |
-// |        C        |
-// c-rgt-up---c+rgt-up
-//
-void camera_directions(
-						float * out_rgt,		// Any can be NULL
-						float * out_up ,
-						float * out_look)
-{
-	float m[16];
-	glGetFloatv(GL_MODELVIEW_MATRIX, m);
-
-	// Roughly speaking, a modelview matrix is made up more or less like this:
-	// [ EyeX_x EyeX_y EyeX_z    a
-	//   EyeY_x EyeY_y EyeY_z    b
-	//   EyeZ_x EyeZ_y EyeZ_z    c
-	//   um don't look down here ]
-	// where a, b, c are translations in _eye_ space.  (For this reason, a,b,c is not
-	// the camera location - sorry!)
-
-	if(out_rgt) {
-		out_rgt[0] = m[0];
-		out_rgt[1] = m[4];
-		out_rgt[2] = m[8];
-	}
-	if(out_up) {
-		out_up[0] = m[1];
-		out_up[1] = m[5];
-		out_up[2] = m[9];
-	}
-	if(out_look) {
-		out_up[0] = m[2];
-		out_up[1] = m[6];
-		out_up[2] = m[10];
 	}
 }

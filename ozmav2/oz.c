@@ -38,6 +38,15 @@ int oz_SetWindowTitle(char * WndTitle)
 	#endif
 }
 
+int oz_SetWindowSize(int Width, int Height)
+{
+	#ifdef WIN32
+	return WinAPISetWindowSize(Width, Height);
+	#else
+	return oz_Unimplemented(__FUNCTION__);
+	#endif
+}
+
 int oz_CreateFolder(char * Folder)
 {
 	#ifdef WIN32

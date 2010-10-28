@@ -11,6 +11,7 @@ int WinAPIInit(char * WndTitle, int Width, int Height);
 int WinAPIMain();
 int WinAPIExit();
 int WinAPISetWindowTitle(char * WndTitle);
+int WinAPISetWindowSize(int Width, int Height);
 
 LRESULT CALLBACK WindowProc(HWND, UINT, WPARAM, LPARAM);
 void EnableOpenGL(HWND hwnd, HDC*, HGLRC*);

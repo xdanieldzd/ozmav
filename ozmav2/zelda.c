@@ -271,7 +271,7 @@ DMA zl_DMAVirtualToPhysical(unsigned int VStart, unsigned int VEnd)
 		Offset+=16;
 		File.ID++;
 	}
-	
+
 	/* Hack for MQ Debug to load maps/scenes not in DMA table - (im)ports */
 	if(zGame.SceneTableOffset == 0x10CBB0) {
 	    File.VStart = VStart;
@@ -499,6 +499,12 @@ int zl_ExecuteHeader(unsigned char Segment, unsigned int Offset, int SHeaderNumb
 				zSHeader[SHeaderNumber].MapCount = (w0 & 0x00FF0000) >> 16;
 				zSHeader[SHeaderNumber].MapOffset = w1;
 				dbgprintf(1, MSK_COLORTYPE_INFO, " - %i map definition(s) at 0x%08X.\n", zSHeader[SHeaderNumber].MapCount, zSHeader[SHeaderNumber].MapOffset);
+				break;
+			case 0x06:
+				//w1 == pointer to entrance list????
+				// - entrance list, 2bytes/entry??
+				// - determines entrance number <-> link starting point relation??
+				// - no length byte in command, list ends when 2nd byte is non-zero????
 				break;
 			case 0x07:
 				zSHeader[SHeaderNumber].GameplayObj = (w1 & 0x000000FF);

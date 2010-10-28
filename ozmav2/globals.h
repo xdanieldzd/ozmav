@@ -33,6 +33,7 @@ enum { true = 1, false = 0 };
 #include "badrdp.h"
 
 #include "oz.h"
+#include "hud.h"
 #include "draw.h"
 #include "mouse.h"
 #include "zelda.h"

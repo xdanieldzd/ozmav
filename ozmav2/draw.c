@@ -55,6 +55,29 @@ void gl_LookAt(const GLdouble p_EyeX, const GLdouble p_EyeY, const GLdouble p_Ey
 	zCamera.RotY = l_rY;
 }
 
+void gl_SetupScene2D(int Width, int Height)
+{
+	glViewport(0, 0, Width, Height);
+
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glOrtho(0, Width, Height, 0, -1.0f, 1.0f);
+
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+
+	if(RDP_OpenGL_ExtFragmentProgram()) glDisable(GL_FRAGMENT_PROGRAM_ARB);
+
+	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_CULL_FACE);
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	glDisable(GL_LIGHTING);
+	glDisable(GL_NORMALIZE);
+}
+
 void gl_SetupScene3D(int Width, int Height)
 {
 	float TempMatrix[4][4];
@@ -139,6 +162,13 @@ void gl_DrawScene()
 	for(Door = 0; Door < zSHeader[0].DoorCount; Door++) {
 		glCallList(zDoor[Door].GLDList);
 	}
+/*
+	gl_SetupScene2D(zProgram.WindowWidth, zProgram.WindowHeight);
+	hud_Print(0, 0, 0, 0, "");
+	hud_Print(0, 0, -1, -1, "Toaru Kagaku no Railgun!! only my railgun & LEVEL5 ~judgelight~ = <3");
+	hud_Print(0, 16, -1, -1, "SATEN-SAN FTW!!! <3");
+	hud_Print(0, 32, -1, -1, "Eh? This working? Or not?");*/
+	//no useful hud output yet...unless anyone's interested in my favorite character from railgun :P
 }
 
 void gl_DrawActorCube(bool Selected)
