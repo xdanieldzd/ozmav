@@ -43,7 +43,6 @@ extern unsigned int G_MTX_PUSH;
 
 // ----------------------------------------
 
-extern void RDP_InitGLExtensions();
 extern void RDP_DrawTriangle(int Vtxs[]);
 extern void RDP_UpdateGeometryMode();
 extern void RDP_SetRenderMode(unsigned int Mode1, unsigned int Mode2);
@@ -55,7 +54,6 @@ inline unsigned long RDP_PowOf(unsigned long dim);
 extern void RDP_InitLoadTexture();
 extern GLuint RDP_CheckTextureCache(unsigned int TexID);
 extern GLuint RDP_LoadTexture(int TextureID);
-extern void RDP_UpdateGLStates();
 
 //-----------------------------------------
 

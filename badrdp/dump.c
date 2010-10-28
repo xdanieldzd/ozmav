@@ -103,7 +103,7 @@ int RDP_Dump_SavePNG(unsigned char * Buffer, int Width, int Height, char * Filen
 
 	png_structp png_ptr;
 	png_infop info_ptr;
-
+/*
 	// horz/vert mirror
 	if(SMirror && TMirror) {
 		Width *= 2;
@@ -164,7 +164,7 @@ int RDP_Dump_SavePNG(unsigned char * Buffer, int Width, int Height, char * Filen
 			memcpy(&mirrored[y*Width*4], &Buffer[(--y2)*Width*4], Width*4);
 		}
 	}
-
+*/
 	FILE * file;
 	if((file = fopen(Filename, "wb")) == NULL) return EXIT_FAILURE;
 
@@ -181,15 +181,15 @@ int RDP_Dump_SavePNG(unsigned char * Buffer, int Width, int Height, char * Filen
 
 	png_byte ** row_pointers = NULL;
 	row_pointers = (png_byte**) malloc(Height * sizeof(png_byte*));
-
+/*
 	// mirrored texture
 	if(SMirror || TMirror) {
 		for(y = 0; y < Height; y++) row_pointers[y] = mirrored+(y*Width*4);
-
+*/
 	// normal texture
-	} else {
+//	} else {
 		for(y = 0; y < Height; y++) row_pointers[y] = Buffer+(y*Width*4);
-	}
+//	}
 
 	png_set_rows(png_ptr, info_ptr, row_pointers);
 	png_write_image(png_ptr, row_pointers);

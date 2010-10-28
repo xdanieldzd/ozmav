@@ -26,15 +26,23 @@ void gSP_Vertex(unsigned int Vtx, int N, int V0)
 		short X = Read16(RAM[TempSegment].Data, TempOffset + (i * 16));
 		short Y = Read16(RAM[TempSegment].Data, TempOffset + (i * 16) + 2);
 		short Z = Read16(RAM[TempSegment].Data, TempOffset + (i * 16) + 4);
+		short W = Read16(RAM[TempSegment].Data, TempOffset + (i * 16) + 6);
 
 		Vertex[V0 + i].Vtx.X = X;//X * (short)Matrix.Comb[0][0] + Y * (short)Matrix.Comb[1][0] + Z * (short)Matrix.Comb[2][0] + (short)Matrix.Comb[3][0];
 		Vertex[V0 + i].Vtx.Y = Y;//X * (short)Matrix.Comb[0][1] + Y * (short)Matrix.Comb[1][1] + Z * (short)Matrix.Comb[2][1] + (short)Matrix.Comb[3][1];
 		Vertex[V0 + i].Vtx.Z = Z;//X * (short)Matrix.Comb[0][2] + Y * (short)Matrix.Comb[1][2] + Z * (short)Matrix.Comb[2][2] + (short)Matrix.Comb[3][2];
+		Vertex[V0 + i].Vtx.W = W;
+
+		if(Gfx.GeometryMode & G_ZBUFFER) {
+			Vertex[V0 + i].Vtx.Z = -Vertex[V0 + i].Vtx.W;
+		}
 	}
 }
 
 void gSP_VertexMtxHack(unsigned int Vtx, int N, int V0, unsigned int Mtx)
 {
+//	dbgprintf(0, 0, "%s(%08X, %i, %i, %08X)", __FUNCTION__, Vtx, N, V0, Mtx);
+
 	if(!RDP_CheckAddressValidity(Vtx)) return;
 	if(!RDP_CheckAddressValidity(Mtx)) return;
 

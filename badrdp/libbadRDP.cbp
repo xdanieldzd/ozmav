@@ -127,6 +127,10 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="matrix.h" />
+		<Unit filename="opengl.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="opengl.h" />
 		<Unit filename="rdp.c">
 			<Option compilerVar="CC" />
 		</Unit>

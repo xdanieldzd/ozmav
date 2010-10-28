@@ -126,6 +126,7 @@ typedef struct {
 	short X;
 	short Y;
 	short Z;
+	short W;
 	short S;
 	short T;
 	unsigned char R;
@@ -260,6 +261,7 @@ extern __OpenGL OpenGL;
 
 #include "badrdp.h"
 
+#include "opengl.h"
 #include "dlparse.h"
 #include "gbi.h"
 #include "gdp.h"
