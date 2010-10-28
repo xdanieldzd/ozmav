@@ -4,7 +4,7 @@ ZoomFactor=4
 NumOpsDefault=840
 PauseWhenInactive=1
 ColorMode=0
-EnableSound=0
+EnableSound=1
 StartIntoDisasm=0
 DisasmOpsToRun=25
 # below values will override above setting

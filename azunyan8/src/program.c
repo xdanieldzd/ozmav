@@ -360,7 +360,7 @@ int doSDLEvents()
 		}
 	}
 
-	SDL_FillRect(program.screen, 0, SDL_MapRGB(program.screen->format, 0, 0, 0));
+	SDL_FillRect(program.screen, 0, SDL_MapRGB(program.screen->format, 0, 64, 0));
 
 	return 0;
 }
@@ -516,7 +516,7 @@ void doMainDrawing()
 	drawStatMessages();
 
 	#ifdef HW_RVL
-	boxRGBA(program.screen, 0, SCREEN_OVERSCAN, program.scrWidth, SCREEN_OVERSCAN + FONTHEIGHT_BIG + 4, 0, 0, 0, 192);
+	boxRGBA(program.screen, 0, 0, program.scrWidth, SCREEN_OVERSCAN + FONTHEIGHT_BIG + 4, 0, 0, 0, 192);
 	fontPrint(2, SCREEN_OVERSCAN + 1, 0, program.colWhite, program.ttff_big, program.title);
 	hlineRGBA(program.screen, SCREEN_OVERSCAN, program.scrWidth, SCREEN_OVERSCAN + FONTHEIGHT_BIG + 4, 0, 128, 0, 128);
 	#endif

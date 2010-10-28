@@ -60,7 +60,7 @@
 
 #ifdef HW_RVL
 #define FILESEP '/'
-#define SCREEN_OVERSCAN		32
+#define SCREEN_OVERSCAN		20
 #else
 #define FILESEP '\\'
 #define SCREEN_OVERSCAN		0
@@ -73,6 +73,18 @@
 #define getNNN(op)	(op & 0x0FFF)
 
 #define arraySize(x)	(sizeof((x)) / sizeof((x)[0]))
+
+#define read16(Buffer, Offset) \
+	((Buffer[Offset] << 8) | Buffer[(Offset) + 1])
+
+#define read32(Buffer, Offset) \
+	((Buffer[Offset] << 24) | (Buffer[Offset + 1] << 16) | (Buffer[Offset + 2] << 8) | Buffer[Offset + 3])
+
+#define read16s(Buffer, Offset) \
+	((Buffer[Offset + 1] << 8) | Buffer[Offset])
+
+#define read32s(Buffer, Offset) \
+	((Buffer[Offset + 3] << 24) | (Buffer[Offset + 2] << 16) | (Buffer[Offset + 1] << 8) | Buffer[Offset])
 
 #ifndef MAX_PATH
 #define MAX_PATH PATH_MAX
@@ -109,6 +121,8 @@ typedef struct {
 	char title[BUFSIZ];
 
 	char lastpath[MAX_PATH];
+
+	char wavfile[MAX_PATH];
 
 	void (*func_keydown)(SDL_KeyboardEvent *);
 	void (*func_keyup)(SDL_KeyboardEvent *);

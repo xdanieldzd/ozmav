@@ -18,7 +18,7 @@ void cpuReset()
 int soundBeep()
 {
 	int ret = 0;
-	if(program.enableSound) ret = playSound(parseFormat("%s%cbeep.wav", program.apppath, FILESEP));
+	if(program.enableSound) ret = playSound(program.wavfile);
 	return ret;
 }
 
@@ -199,6 +199,7 @@ void cpuOpDXYN(unsigned short op)
 		unsigned char data = interpreter.memory[interpreter.addri + yline];
 		int xpixel = 0;
 		for(xpixel = 0; xpixel < 8; xpixel++, data<<=1) {
+			if(cy + yline >= 32) return;	// BLITZ wraparound hack
 			if(data & 0x80) {
 				int x = ((cx + xpixel) % 64);
 				int y = ((cy + yline) % 32);

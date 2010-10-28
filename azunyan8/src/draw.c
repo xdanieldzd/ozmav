@@ -44,6 +44,13 @@ void drawScreen()
 	xcent = (program.scrWidth / 2) - ((64 * program.zoomFactor) / 2);
 	ycent = (program.scrHeight / 2) - ((32 * program.zoomFactor) / 2);
 
+	SDL_Rect scrrect;
+	scrrect.x = xcent;
+	scrrect.y = ycent;
+	scrrect.w = 64 * program.zoomFactor;
+	scrrect.h = 32 * program.zoomFactor;
+	SDL_FillRect(program.screen, &scrrect, SDL_MapRGB(program.screen->format, 0, 0, 0));
+
 	for(i = 0; i < 32; i++) {
 		for(j = 0; j < 64; j++) {
 			if(interpreter.screen[j][i]) drawRect((j * program.zoomFactor) + xcent, (i * program.zoomFactor) + ycent, program.zoomFactor, program.zoomFactor, (program.colorMode ? program.colWhite : program.colGreen));
