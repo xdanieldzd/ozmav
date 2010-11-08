@@ -147,3 +147,32 @@ void gSP_Matrix(unsigned int Mtx, unsigned char Param)
 		}
 	}
 }
+
+void gSP_GeometryMode(unsigned int Clear, unsigned int Set)
+{
+	Gfx.GeometryMode = (Gfx.GeometryMode & ~Clear) | Set;
+
+	Gfx.Update |= CHANGED_GEOMETRYMODE;
+/*
+	MSK_ConsolePrint( 0, "gSPGeometryMode( %s%s%s%s%s%s%s%s%s%s, %s%s%s%s%s%s%s%s%s%s );",
+		Clear & G_SHADE ? "G_SHADE | " : "",
+		Clear & G_LIGHTING ? "G_LIGHTING | " : "",
+		Clear & G_SHADING_SMOOTH ? "G_SHADING_SMOOTH | " : "",
+		Clear & G_ZBUFFER ? "G_ZBUFFER | " : "",
+		Clear & G_TEXTURE_GEN ? "G_TEXTURE_GEN | " : "",
+		Clear & G_TEXTURE_GEN_LINEAR ? "G_TEXTURE_GEN_LINEAR | " : "",
+		Clear & G_CULL_FRONT ? "G_CULL_FRONT | " : "",
+		Clear & G_CULL_BACK ? "G_CULL_BACK | " : "",
+		Clear & G_FOG ? "G_FOG | " : "",
+		Clear & G_CLIPPING ? "G_CLIPPING" : "",
+		Set & G_SHADE ? "G_SHADE | " : "",
+		Set & G_LIGHTING ? "G_LIGHTING | " : "",
+		Set & G_SHADING_SMOOTH ? "G_SHADING_SMOOTH | " : "",
+		Set & G_ZBUFFER ? "G_ZBUFFER | " : "",
+		Set & G_TEXTURE_GEN ? "G_TEXTURE_GEN | " : "",
+		Set & G_TEXTURE_GEN_LINEAR ? "G_TEXTURE_GEN_LINEAR | " : "",
+		Set & G_CULL_FRONT ? "G_CULL_FRONT | " : "",
+		Set & G_CULL_BACK ? "G_CULL_BACK | " : "",
+		Set & G_FOG ? "G_FOG | " : "",
+		Set & G_CLIPPING ? "G_CLIPPING" : "" );*/
+}

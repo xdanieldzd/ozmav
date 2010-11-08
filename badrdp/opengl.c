@@ -2,6 +2,8 @@
 
 void RDP_SetupOpenGL()
 {
+	RDP_InitGLExtensions();
+
 	glShadeModel(GL_SMOOTH);
 	glEnable(GL_POINT_SMOOTH);
 	glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
@@ -13,6 +15,7 @@ void RDP_SetupOpenGL()
 
 	glDepthFunc(GL_LEQUAL);
 	glEnable(GL_DEPTH_TEST);
+	glDepthMask(GL_TRUE);
 
 	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 
@@ -38,8 +41,6 @@ void RDP_SetupOpenGL()
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	RDP_InitGLExtensions();
 
 	if(OpenGL.Ext_FragmentProgram && (System.Options & BRDP_COMBINER)) {
 		glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 0, Gfx.EnvColor.R, Gfx.EnvColor.G, Gfx.EnvColor.B, Gfx.EnvColor.A);
@@ -134,27 +135,6 @@ void RDP_UpdateGLStates()
 			glDisable(GL_CULL_FACE);
 		}
 
-		if(Gfx.GeometryMode & G_TEXTURE_GEN_LINEAR) {
-			MSK_ConsolePrint(0, "G_TEXTURE_GEN_LINEAR enabled!");
-			float s[] = {0.025f, 0.025f, 0.025f, 0.025f};
-			float t[] = {0.025f, 0.025f, 0.025f, 0.025f};
-			glTexGenf(GL_S, GL_TEXTURE_GEN_MODE, GL_EYE_LINEAR);
-			glTexGenfv(GL_S, GL_EYE_PLANE, s);
-			glTexGenf(GL_T, GL_TEXTURE_GEN_MODE, GL_EYE_LINEAR);
-			glTexGenfv(GL_T, GL_EYE_PLANE, t);
-			glEnable(GL_TEXTURE_GEN_S);
-			glEnable(GL_TEXTURE_GEN_T);
-		} else if(Gfx.GeometryMode & G_TEXTURE_GEN) {
-			MSK_ConsolePrint(0, "G_TEXTURE_GEN enabled!");
-			glTexGenf(GL_S, GL_TEXTURE_GEN_MODE, GL_SPHERE_MAP);
-			glTexGenf(GL_T, GL_TEXTURE_GEN_MODE, GL_SPHERE_MAP);
-			glEnable(GL_TEXTURE_GEN_S);
-			glEnable(GL_TEXTURE_GEN_T);
-		} else {
-			glDisable(GL_TEXTURE_GEN_S);
-			glDisable(GL_TEXTURE_GEN_T);
-		}
-
 		if((Gfx.GeometryMode & G_SHADING_SMOOTH) || !(Gfx.GeometryMode & G_TEXTURE_GEN_LINEAR)) {
 			glShadeModel(GL_SMOOTH);
 		} else {
@@ -171,22 +151,23 @@ void RDP_UpdateGLStates()
 
 		Gfx.Update &= ~CHANGED_GEOMETRYMODE;
 	}
-
+/*
+	if(Gfx.GeometryMode & G_ZBUFFER) {
+		glEnable(GL_DEPTH_TEST);
+	} else {
+		glDisable(GL_DEPTH_TEST);
+	}
+*/
 	if(Gfx.Update & CHANGED_RENDERMODE) {
-/*		if(Gfx.GeometryMode & G_ZBUFFER) {
-			if(Gfx.OtherModeL & Z_CMP) {
-				glDepthFunc(GL_LEQUAL);
-			} else {
-				glDepthFunc(GL_ALWAYS);
-			}
-
-			if(Gfx.OtherModeL & Z_UPD) {
-				glDepthMask(GL_TRUE);
-			} else {
-				glDepthMask(GL_FALSE);
-			}
+/*		if(Gfx.OtherModeL & Z_CMP) {
+			glDepthFunc(GL_LEQUAL);
 		} else {
 			glDepthFunc(GL_ALWAYS);
+		}*/
+/*
+		if(Gfx.OtherModeL & Z_UPD) {
+			glDepthMask(GL_TRUE);
+		} else {
 			glDepthMask(GL_FALSE);
 		}
 */
@@ -205,7 +186,7 @@ void RDP_UpdateGLStates()
 
 		} else if(Gfx.OtherModeL & CVG_X_ALPHA) {
 			glEnable(GL_ALPHA_TEST);
-			glAlphaFunc(GL_GEQUAL, 0.2f);
+			glAlphaFunc(GL_GEQUAL, 0.5f);
 
 		} else
 			glDisable(GL_ALPHA_TEST);

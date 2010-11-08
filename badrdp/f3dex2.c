@@ -178,10 +178,7 @@ void RDP_F3DEX2_POPMTX()
 
 void RDP_F3DEX2_GEOMETRYMODE()
 {
-	Gfx.GeometryMode &= (w0 & 0x00FFFFFF);
-	Gfx.GeometryMode |= w1;
-
-	Gfx.Update |= CHANGED_GEOMETRYMODE;
+	gSP_GeometryMode(~_SHIFTR(w0, 0, 24), w1);
 }
 
 void RDP_F3DEX2_MTX()

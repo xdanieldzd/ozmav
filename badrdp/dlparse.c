@@ -305,10 +305,6 @@ void RDP_ClearStructures(bool Full)
 	Texture[0] = Texture_Empty;
 	Texture[1] = Texture_Empty;
 
-	static const __TextureCache TextureCache_Empty = { 0, 0, 0, -1 };
-	for(i = 0; i < ArraySize(TextureCache); i++) TextureCache[i] = TextureCache_Empty;
-	System.TextureCachePosition = 0;
-
 	static const __RGBA RGBA_Empty = { 0.0f, 0.0f, 0.0f, 0.0f };
 	Gfx.BlendColor = RGBA_Empty;
 	Gfx.EnvColor = RGBA_Empty;
@@ -342,8 +338,15 @@ void RDP_ClearStructures(bool Full)
 
 	if(Full) {
 		static const __FragmentCache FragmentCache_Empty = { 0, 0, -1 };
-		for(i = 0; i < ArraySize(FragmentCache); i++) FragmentCache[i] = FragmentCache_Empty;
+		for(i = 0; i < ArraySize(FragmentCache); i++) {
+			glDeleteProgramsARB(1, &FragmentCache[i].ProgramID);
+			FragmentCache[i] = FragmentCache_Empty;
+		}
 		System.FragCachePosition = 0;
+
+		static const __TextureCache TextureCache_Empty = { 0, 0, 0, -1 };
+		for(i = 0; i < ArraySize(TextureCache); i++) TextureCache[i] = TextureCache_Empty;
+		System.TextureCachePosition = 0;
 	}
 }
 
@@ -393,14 +396,12 @@ void RDP_DrawTriangle(int Vtxs[])
 	for(i = 0; i < 3; i++) {
 		Vertex[Vtxs[i]].RealS0 = _FIXED2FLOAT(Vertex[Vtxs[i]].Vtx.S, 16) * (Texture[0].ScaleS * Texture[0].ShiftScaleS) / 32.0f / _FIXED2FLOAT(Texture[0].RealWidth, 16);
 		Vertex[Vtxs[i]].RealT0 = _FIXED2FLOAT(Vertex[Vtxs[i]].Vtx.T, 16) * (Texture[0].ScaleT * Texture[0].ShiftScaleT) / 32.0f / _FIXED2FLOAT(Texture[0].RealHeight, 16);
+		Vertex[Vtxs[i]].RealS1 = _FIXED2FLOAT(Vertex[Vtxs[i]].Vtx.S, 16) * (Texture[1].ScaleS * Texture[1].ShiftScaleS) / 32.0f / _FIXED2FLOAT(Texture[1].RealWidth, 16);
+		Vertex[Vtxs[i]].RealT1 = _FIXED2FLOAT(Vertex[Vtxs[i]].Vtx.T, 16) * (Texture[1].ScaleT * Texture[1].ShiftScaleT) / 32.0f / _FIXED2FLOAT(Texture[1].RealHeight, 16);
 
 		if(OpenGL.Ext_MultiTexture) {
 			glMultiTexCoord2fARB(GL_TEXTURE0_ARB, Vertex[Vtxs[i]].RealS0, Vertex[Vtxs[i]].RealT0);
-			if(Gfx.IsMultiTexture) {
-				Vertex[Vtxs[i]].RealS1 = _FIXED2FLOAT(Vertex[Vtxs[i]].Vtx.S, 16) * (Texture[1].ScaleS * Texture[1].ShiftScaleS) / 32.0f / _FIXED2FLOAT(Texture[1].RealWidth, 16);
-				Vertex[Vtxs[i]].RealT1 = _FIXED2FLOAT(Vertex[Vtxs[i]].Vtx.T, 16) * (Texture[1].ScaleT * Texture[1].ShiftScaleT) / 32.0f / _FIXED2FLOAT(Texture[1].RealHeight, 16);
-				glMultiTexCoord2fARB(GL_TEXTURE1_ARB, Vertex[Vtxs[i]].RealS1, Vertex[Vtxs[i]].RealT1);
-			}
+			glMultiTexCoord2fARB(GL_TEXTURE1_ARB, Vertex[Vtxs[i]].RealS1, Vertex[Vtxs[i]].RealT1);
 		} else {
 			glTexCoord2f(Vertex[Vtxs[i]].RealS0, Vertex[Vtxs[i]].RealT0);
 		}
@@ -857,7 +858,7 @@ void RDP_CreateCombinerProgram(unsigned int Cmb0, unsigned int Cmb1)
 	glProgramStringARB(GL_FRAGMENT_PROGRAM_ARB, GL_PROGRAM_FORMAT_ASCII_ARB, strlen(ProgramString), ProgramString);
 
 	FragmentCache[System.FragCachePosition].Combiner0 = Cmb0;
-	FragmentCache[System.FragCachePosition].Combiner1  = Cmb1;
+	FragmentCache[System.FragCachePosition].Combiner1 = Cmb1;
 	System.FragCachePosition++;
 }
 

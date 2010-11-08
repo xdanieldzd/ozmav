@@ -2,7 +2,9 @@
 
 void RDP_UnemulatedCmd()
 {
-	//no error message as this shouldn't happen with valid dlists, and because it clutters up the log if it happens
+	// simulate ENDDL to break out of DList
+	Gfx.DLStackPos--;
+	DListAddress = Gfx.DLStack[Gfx.DLStackPos];
 }
 
 void RDP_G_TEXRECT()
