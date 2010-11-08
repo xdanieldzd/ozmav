@@ -1,0 +1,204 @@
+#include "globals.h"
+
+// ----------------------------------------
+
+vProgramStruct vProgram;
+vCameraStruct vCamera;
+vCurrentActorStruct vCurrentActor;
+
+vGameROMStruct vGameROM;
+vZeldaInfoStruct vZeldaInfo;
+vActorStruct vActors[768];
+
+vRGBAStruct vBoneColorFactor;
+
+#include "dialog.h"
+
+// ----------------------------------------
+
+__RAM RAM[MAX_SEGMENTS];
+
+// ----------------------------------------
+
+void aboutProgram(unsigned char * Ptr)
+{
+	vProgram.guiHandleAbout = MSK_Dialog(&dlgAbout);
+}
+
+void programOptions(unsigned char * Ptr)
+{
+	vProgram.guiHandleOptions = MSK_Dialog(&dlgOptions);
+}
+
+void setActorNumber(unsigned char * Ptr)
+{
+	if(Ptr == NULL) {
+		dbgprintf(0, MSK_COLORTYPE_ERROR, "> Error: No parameter specified!\n");
+	} else {
+		int Var = 0;
+		sscanf((char*)Ptr+1, "%d", &Var);
+		vCurrentActor.actorNumber = Var;
+		initActorParsing();
+	}
+}
+
+// ----------------------------------------
+
+int main(int argc, char **argv)
+{
+	if(argc != 2) {
+		printf("Syntax: %s <ROM filename>\n", getFilename(argv[0]));
+		return EXIT_FAILURE;
+	}
+
+	char temp[BUFSIZ];
+
+	getcwd(vProgram.appPath, MAX_PATH);
+
+	sprintf(vProgram.wndTitle, APP_TITLE" "APP_VERSION" (build "__DATE__" "__TIME__")");
+
+	MSK_Init(vProgram.wndTitle);
+	sprintf(temp, "%s%clog.txt", vProgram.appPath, FILESEP);
+	MSK_InitLogging(temp);
+	MSK_SetValidCharacters("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789.,:\\/\"-()[]_!");
+	MSK_AddCommand("actor", "Jump to actor number (0-x)", setActorNumber);
+	MSK_AddCommand("options", "Change program options", programOptions);
+	MSK_AddCommand("about", "About this program", aboutProgram);
+
+	#ifdef WIN32
+	dbgprintf(0, MSK_COLORTYPE_INFO, APP_TITLE" launched, running on 32/64-bit Windows...\n");
+	#else
+	dbgprintf(0, MSK_COLORTYPE_INFO, APP_TITLE" launched, running on non-Windows OS...\n");
+	#endif
+	dbgprintf(0, MSK_COLORTYPE_INFO, "\n");
+
+	vProgram.windowWidth = WINDOW_WIDTH;
+	vProgram.windowHeight = WINDOW_HEIGHT;
+	if(oz_InitProgram(APP_TITLE, vProgram.windowWidth, vProgram.windowHeight)) return EXIT_FAILURE;
+
+	sprintf(temp, "%s%cdata%cfont.bmp", vProgram.appPath, FILESEP, FILESEP);
+	if(hud_Init(temp)) {
+		MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "- Error: Failed to initialize HUD system!\n");
+		die(EXIT_FAILURE);
+	}
+
+	gl_CreateViewerDLists();
+
+	RDP_SetupOpenGL();
+
+	RDP_InitParser(F3DEX2);
+	RDP_SetRendererOptions(BRDP_TEXTURES);
+
+	vProgram.enableTextures = true;
+	vProgram.enableWireframe = false;
+
+	vCurrentActor.actorNumber = 2;//467;
+
+	vProgram.debugLevel = 0;
+
+	sprintf(temp, "%s%c%s", vProgram.appPath, FILESEP, argv[1]);
+	zl_Init(temp);
+
+	initActorParsing();
+
+	ca_Reset();
+
+	vProgram.isRunning = true;
+
+	while(vProgram.isRunning) {
+		// let the API do whatever it needs to
+		switch(oz_APIMain()) {
+			// API's done...
+			case EXIT_SUCCESS: {
+				// all clear, let MISAKA do her stuff
+				vProgram.isRunning = MSK_DoEvents();
+
+				if(ReturnVal.Handle == vProgram.guiHandleOptions) {
+					// -> button "OK"
+					if(ReturnVal.s8 == 5) {
+						unsigned char Options = 0;
+						if(vProgram.enableTextures) Options |= BRDP_TEXTURES;
+						if(vProgram.enableWireframe) Options |= BRDP_WIREFRAME;
+						RDP_SetRendererOptions(Options);
+						RDP_ClearStructures(true);
+						RDP_ClearTextures();
+					}
+				}
+
+				if(vProgram.animPlay) {
+					if(vProgram.animWait++ == vProgram.animDelay) {
+						vCurrentActor.frameCurrent++;
+						vProgram.animWait = 0;
+					}
+					if(vCurrentActor.frameCurrent >= vCurrentActor.frameTotal) vCurrentActor.frameCurrent = 0;
+				}
+
+				// let OpenGL do the rendering
+				gl_DrawScene();
+				if(gl_FinishScene()) die(EXIT_FAILURE);
+
+				break;
+			}
+
+			// API's not done, so do nothing here...
+			case -1: {
+				break; }
+
+			// ouch, something bad happened with the API, terminating now...
+			case EXIT_FAILURE: {
+				die(EXIT_FAILURE); }
+		}
+	}
+
+	// trying to do a clean exit with the API
+	if(oz_ExitProgram()) die(EXIT_FAILURE);
+
+	// now die
+	die(EXIT_SUCCESS);
+
+	return EXIT_FAILURE;
+}
+
+// ----------------------------------------
+
+inline void dbgprintf(int Level, int Type, char * Format, ...)
+{
+	if(vProgram.debugLevel >= Level) {
+		char Text[256];
+		va_list argp;
+
+		if(Format == NULL) return;
+
+		va_start(argp, Format);
+		vsprintf(Text, Format, argp);
+		va_end(argp);
+
+		MSK_ConsolePrint(Type, Text);
+	}
+}
+
+void die(int Code)
+{
+	if(vProgram.tempString != NULL) free(vProgram.tempString);
+
+	hud_KillFont();
+
+	zl_DeInit();
+
+	dbgprintf(0, MSK_COLORTYPE_INFO, "\n");
+
+	if(Code == EXIT_SUCCESS)
+		dbgprintf(0, MSK_COLORTYPE_INFO, "Program terminated normally.\n");
+	else
+		dbgprintf(0, MSK_COLORTYPE_ERROR, "Program terminated abnormally, error code %i.\n", Code);
+
+	dbgprintf(0, MSK_COLORTYPE_INFO, "\n");
+	dbgprintf(0, MSK_COLORTYPE_INFO, "Press any key to continue...\n");
+
+	MSK_DoEvents();
+
+	while(!getch());
+	MSK_Exit();
+
+	exit(Code);
+}

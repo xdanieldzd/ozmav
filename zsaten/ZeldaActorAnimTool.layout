@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_layout_file>
+	<ActiveTarget name="Debug" />
+	<File name="__linux.c" open="0" top="0" tabpos="0">
+		<Cursor position="301" topLine="0" />
+	</File>
+	<File name="__linux.h" open="0" top="0" tabpos="0">
+		<Cursor position="275" topLine="0" />
+	</File>
+	<File name="__win32.c" open="0" top="0" tabpos="2">
+		<Cursor position="3292" topLine="94" />
+	</File>
+	<File name="badrdp.h" open="0" top="0" tabpos="0">
+		<Cursor position="971" topLine="0" />
+	</File>
+	<File name="camera.c" open="0" top="0" tabpos="0">
+		<Cursor position="275" topLine="0" />
+	</File>
+	<File name="camera.h" open="0" top="0" tabpos="0">
+		<Cursor position="142" topLine="0" />
+	</File>
+	<File name="dialog.h" open="0" top="0" tabpos="0">
+		<Cursor position="1903" topLine="0" />
+	</File>
+	<File name="globals.h" open="0" top="0" tabpos="1">
+		<Cursor position="1969" topLine="83" />
+	</File>
+	<File name="hud.c" open="0" top="0" tabpos="0">
+		<Cursor position="2239" topLine="52" />
+	</File>
+	<File name="hud.h" open="0" top="0" tabpos="0">
+		<Cursor position="391" topLine="0" />
+	</File>
+	<File name="main.c" open="0" top="0" tabpos="2">
+		<Cursor position="2413" topLine="69" />
+	</File>
+	<File name="mips-eval.c" open="0" top="0" tabpos="0">
+		<Cursor position="6815" topLine="266" />
+	</File>
+	<File name="mips-eval.h" open="0" top="0" tabpos="0">
+		<Cursor position="2238" topLine="50" />
+	</File>
+	<File name="mips.h" open="0" top="0" tabpos="0">
+		<Cursor position="3215" topLine="67" />
+	</File>
+	<File name="misaka.h" open="0" top="0" tabpos="0">
+		<Cursor position="783" topLine="14" />
+	</File>
+	<File name="oz.c" open="0" top="0" tabpos="0">
+		<Cursor position="428" topLine="7" />
+	</File>
+	<File name="oz.h" open="0" top="0" tabpos="0">
+		<Cursor position="273" topLine="0" />
+	</File>
+	<File name="render.c" open="0" top="0" tabpos="1">
+		<Cursor position="4392" topLine="162" />
+	</File>
+	<File name="render.h" open="0" top="0" tabpos="0">
+		<Cursor position="371" topLine="0" />
+	</File>
+	<File name="shared.c" open="0" top="0" tabpos="0">
+		<Cursor position="600" topLine="0" />
+	</File>
+	<File name="shared.h" open="0" top="0" tabpos="0">
+		<Cursor position="72" topLine="0" />
+	</File>
+	<File name="zactors.c" open="0" top="0" tabpos="1">
+		<Cursor position="5285" topLine="110" />
+	</File>
+	<File name="zactors.h" open="0" top="0" tabpos="0">
+		<Cursor position="457" topLine="0" />
+	</File>
+	<File name="zelda.c" open="0" top="0" tabpos="1">
+		<Cursor position="6003" topLine="135" />
+	</File>
+	<File name="zelda.h" open="0" top="0" tabpos="0">
+		<Cursor position="753" topLine="0" />
+	</File>
+	<File name="zelda_ver.h" open="0" top="0" tabpos="0">
+		<Cursor position="2534" topLine="0" />
+	</File>
+</CodeBlocks_layout_file>

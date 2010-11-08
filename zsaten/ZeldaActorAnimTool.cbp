@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="ZeldaActorAnimTool" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="Debug">
+				<Option output="..\ZSaten_debug" prefix_auto="1" extension_auto="1" />
+				<Option working_dir=".." />
+				<Option object_output="obj\Debug\" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Option use_console_runner="0" />
+				<Compiler>
+					<Add option="-g" />
+				</Compiler>
+				<Linker>
+					<Add library="..\..\OZMAV2\libbadRDP_debug.a" />
+					<Add library="opengl32" />
+					<Add library="glu32" />
+					<Add library="glaux" />
+					<Add library="kernel32" />
+					<Add library="user32" />
+					<Add library="gdi32" />
+					<Add library="D:\libpng-1.2.37-lib\lib\libpng12.dll.a" />
+					<Add library="D:\zlib-1.2.3-lib\lib\libz.a" />
+					<Add library="..\..\libMISAKA\libMISAKA_debug.a" />
+					<Add library="C:\Programme\PDCurses-SO\win32\panel.a" />
+					<Add library="C:\Programme\PDCurses-SO\win32\pdcurses.a" />
+				</Linker>
+			</Target>
+			<Target title="Release">
+				<Option output="..\ZSaten" prefix_auto="1" extension_auto="1" />
+				<Option working_dir=".." />
+				<Option object_output="obj\Release\" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Option use_console_runner="0" />
+				<Compiler>
+					<Add option="-O2" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+					<Add library="..\..\OZMAV2\libbadRDP.a" />
+					<Add library="opengl32" />
+					<Add library="glu32" />
+					<Add library="glaux" />
+					<Add library="kernel32" />
+					<Add library="user32" />
+					<Add library="gdi32" />
+					<Add library="D:\libpng-1.2.37-lib\lib\libpng12.dll.a" />
+					<Add library="D:\zlib-1.2.3-lib\lib\libz.a" />
+					<Add library="..\..\libMISAKA\libMISAKA.a" />
+					<Add library="C:\Programme\PDCurses-SO\win32\panel.a" />
+					<Add library="C:\Programme\PDCurses-SO\win32\pdcurses.a" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+			<Add directory="D:\zlib-1.2.3-lib\include" />
+			<Add directory="D:\libpng-1.2.37-lib\include" />
+			<Add directory="C:\Programme\PDCurses-SO" />
+			<Add directory="C:\Programme\PDCurses-SO\win32" />
+		</Compiler>
+		<Unit filename="__linux.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="__linux.h" />
+		<Unit filename="__win32.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="__win32.h" />
+		<Unit filename="badrdp.h" />
+		<Unit filename="camera.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="camera.h" />
+		<Unit filename="dialog.h" />
+		<Unit filename="globals.h" />
+		<Unit filename="hud.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="hud.h" />
+		<Unit filename="main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="memwatch.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="memwatch.h" />
+		<Unit filename="mips-eval.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="mips-eval.h" />
+		<Unit filename="mips.h" />
+		<Unit filename="misaka.h" />
+		<Unit filename="oz.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="oz.h" />
+		<Unit filename="r3400i.h" />
+		<Unit filename="render.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="render.h" />
+		<Unit filename="shared.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="shared.h" />
+		<Unit filename="zactors.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="zactors.h" />
+		<Unit filename="zelda.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="zelda.h" />
+		<Unit filename="zelda_ver.h" />
+		<Extensions>
+			<code_completion />
+			<envvars />
+			<debugger />
+			<lib_finder disable_auto="1" />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>

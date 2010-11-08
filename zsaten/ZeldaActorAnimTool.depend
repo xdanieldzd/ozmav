@@ -1,0 +1,119 @@
+# depslib dependency file v1.0
+1289177762 source:c:\dokumente und einstellungen\daniel\eigene dateien\programming\zeldaactoranimtool\src\mips-eval.c
+	"globals.h"
+
+1289177779 c:\dokumente und einstellungen\daniel\eigene dateien\programming\zeldaactoranimtool\src\globals.h
+	"__win32.h"
+	"__linux.h"
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+	<math.h>
+	<stdarg.h>
+	<unistd.h>
+	<GL/gl.h>
+	<GL/glext.h>
+	"badrdp.h"
+	"misaka.h"
+	"hud.h"
+	"camera.h"
+	"mips.h"
+	"mips-eval.h"
+	"oz.h"
+	"render.h"
+	"shared.h"
+	"zactors.h"
+	"zelda.h"
+	"memwatch.h"
+
+1289076069 c:\dokumente und einstellungen\daniel\eigene dateien\programming\zeldaactoranimtool\src\render.h
+
+1282235797 c:\dokumente und einstellungen\daniel\eigene dateien\programming\zeldaactoranimtool\src\badrdp.h
+
+1279177556 c:\dokumente und einstellungen\daniel\eigene dateien\programming\zeldaactoranimtool\src\mips.h
+	<stdint.h>
+
+1289177769 c:\dokumente und einstellungen\daniel\eigene dateien\programming\zeldaactoranimtool\src\mips-eval.h
+	"r3400i.h"
+
+1276467769 c:\dokumente und einstellungen\daniel\eigene dateien\programming\zeldaactoranimtool\src\r3400i.h
+
+1289068145 c:\dokumente und einstellungen\daniel\eigene dateien\programming\zeldaactoranimtool\src\shared.h
+
+1289101307 c:\dokumente und einstellungen\daniel\eigene dateien\programming\zeldaactoranimtool\src\zactors.h
+
+1289177759 source:c:\dokumente und einstellungen\daniel\eigene dateien\programming\zeldaactoranimtool\src\render.c
+	"globals.h"
+
+1289068144 source:c:\dokumente und einstellungen\daniel\eigene dateien\programming\zeldaactoranimtool\src\shared.c
+	"globals.h"
+
+1289180016 source:c:\dokumente und einstellungen\daniel\eigene dateien\programming\zeldaactoranimtool\src\zactors.c
+	"globals.h"
+
+1289180285 source:c:\dokumente und einstellungen\daniel\eigene dateien\programming\zeldaactoranimtool\src\main.c
+	"globals.h"
+	"dialog.h"
+
+1289081922 source:c:\dokumente und einstellungen\daniel\eigene dateien\programming\zeldaactoranimtool\src\__linux.c
+	"globals.h"
+
+1283283811 c:\dokumente und einstellungen\daniel\eigene dateien\programming\zeldaactoranimtool\src\__win32.h
+	<windows.h>
+	<conio.h>
+
+1275918169 c:\dokumente und einstellungen\daniel\eigene dateien\programming\zeldaactoranimtool\src\__linux.h
+	<sys/stat.h>
+	<GL/glx.h>
+	<X11/X.h>
+	<X11/keysym.h>
+	<limits.h>
+
+1289097199 source:c:\dokumente und einstellungen\daniel\eigene dateien\programming\zeldaactoranimtool\src\__win32.c
+	"globals.h"
+
+1289079524 source:c:\dokumente und einstellungen\daniel\eigene dateien\programming\zeldaactoranimtool\src\camera.c
+	"globals.h"
+
+1289072015 source:c:\dokumente und einstellungen\daniel\eigene dateien\programming\zeldaactoranimtool\src\oz.c
+	"globals.h"
+
+1289069008 c:\dokumente und einstellungen\daniel\eigene dateien\programming\zeldaactoranimtool\src\camera.h
+
+1289069041 c:\dokumente und einstellungen\daniel\eigene dateien\programming\zeldaactoranimtool\src\oz.h
+
+1279656736 c:\dokumente und einstellungen\daniel\eigene dateien\programming\zeldaactoranimtool\src\misaka.h
+
+1289072188 c:\dokumente und einstellungen\daniel\eigene dateien\programming\zeldaactoranimtool\src\hud.h
+
+1289158601 source:c:\dokumente und einstellungen\daniel\eigene dateien\programming\zeldaactoranimtool\src\hud.c
+	"globals.h"
+
+1289082614 c:\dokumente und einstellungen\daniel\eigene dateien\programming\zeldaactoranimtool\src\dialog.h
+
+1289160848 c:\dokumente und einstellungen\daniel\eigene dateien\programming\zeldaactoranimtool\src\zelda.h
+
+1289175979 source:c:\dokumente und einstellungen\daniel\eigene dateien\programming\zeldaactoranimtool\src\zelda.c
+	"globals.h"
+	"zelda_ver.h"
+
+1289164413 c:\dokumente und einstellungen\daniel\eigene dateien\programming\zeldaactoranimtool\src\zelda_ver.h
+
+1053425052 c:\dokumente und einstellungen\daniel\eigene dateien\programming\zeldaactoranimtool\src\memwatch.h
+	<stdlib.h>
+
+1053425052 source:c:\dokumente und einstellungen\daniel\eigene dateien\programming\zeldaactoranimtool\src\memwatch.c
+	<stdio.h>
+	<stdlib.h>
+	<stdarg.h>
+	<string.h>
+	<signal.h>
+	<setjmp.h>
+	<time.h>
+	<limits.h>
+	"memwatch.h"
+	<ctype.h>
+	<windows.h>
+	<pthread.h>
+	<windows.h>
+
