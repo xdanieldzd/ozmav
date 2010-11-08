@@ -734,41 +734,7 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 		RAM[TargetSeg].Size = 0;
 		RAM[TargetSeg].IsSet = false;
 
-	}/* else { // draw a cube
-		dbgprintf(0, MSK_COLORTYPE_INFO, " - Drawing a cube :(");
-
-		if(!zOptions.DumpModel) {
-			glNewList(DLBase, GL_COMPILE);
-				glPushMatrix();
-					//position...
-					glTranslated(X, Y, Z);
-					glRotated(RX / 182.0444444, 1, 0, 0);
-					glRotated(RY / 182.0444444, 0, 1, 0);
-					glRotated(RZ / 182.0444444, 0, 0, 1);
-
-					//overall settings...
-					glScalef(10.0, 10.0, 10.0);
-					glDisable(GL_LIGHTING);
-					if(RDP_OpenGL_ExtFragmentProgram()) glDisable(GL_FRAGMENT_PROGRAM_ARB);
-					glEnable(GL_BLEND);
-					glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-					//solid inner cube...
-					glColor4f(1.0f, 0.5f, 0.0f, 0.8f);
-					glCallList(zProgram.CubeDL);
-					//wireframe outer cube...
-					glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-					glLineWidth(2);
-					glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-					glCallList(zProgram.CubeDL);
-					glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-					//reset settings...
-					glDisable(GL_BLEND);
-					if(RDP_OpenGL_ExtFragmentProgram()) glEnable(GL_FRAGMENT_PROGRAM_ARB);
-					glEnable(GL_LIGHTING);
-				glPopMatrix();
-			glEndList();
-		}
-	}*/
+	}
 }
 
 #define S1(row, col)	Src1[(col << 2) + row]

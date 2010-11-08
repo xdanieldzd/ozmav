@@ -21,6 +21,7 @@ extern unsigned char * zl_DMAToBuffer(DMA File);
 extern void zl_ClearAllSegments();
 extern void zl_ClearViewerStructures();
 extern int zl_ExecuteHeader(unsigned char Segment, unsigned int Offset, int SceneNumber, int MapNumber);
+extern void zl_GetAltHeaders(int SHeaderNumber, int MHeaderNumber);
 extern void zl_GetDisplayLists(int MapNumber);
 extern void zl_ExecuteDisplayLists(int MapNumber);
 extern void zl_DeInit();

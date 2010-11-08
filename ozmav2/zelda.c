@@ -546,6 +546,16 @@ int zl_ExecuteHeader(unsigned char Segment, unsigned int Offset, int SHeaderNumb
 				zMHeader[SHeaderNumber][MHeaderNumber].EchoLevel = (w0 & 0x000000FF);
 				dbgprintf(1, MSK_COLORTYPE_INFO, " - 'Echo level setting' is %i.\n", zMHeader[SHeaderNumber][MHeaderNumber].EchoLevel);
 				break;
+			case 0x18:
+				if(MHeaderNumber == -1) {
+					zSHeader[SHeaderNumber].AltHeaderOffset = w1;
+					dbgprintf(1, MSK_COLORTYPE_INFO, " - Alternate scene header(s) at 0x%08X.\n", zSHeader[SHeaderNumber].AltHeaderOffset);
+					zl_GetAltHeaders(SHeaderNumber, -1);
+				} else {
+					zMHeader[SHeaderNumber][MHeaderNumber].AltHeaderOffset = w1;
+					dbgprintf(1, MSK_COLORTYPE_INFO, " - Alternate map header(s) at 0x%08X.\n", zMHeader[SHeaderNumber][MHeaderNumber].AltHeaderOffset);
+					zl_GetAltHeaders(0, MHeaderNumber);
+				}
 			default:
 				dbgprintf(1, MSK_COLORTYPE_WARNING, " - Unknown header command 0x%08X 0x%08X.\n", w0, w1);
 				break;
@@ -557,6 +567,60 @@ int zl_ExecuteHeader(unsigned char Segment, unsigned int Offset, int SHeaderNumb
 	dbgprintf(1, MSK_COLORTYPE_INFO, "\n");
 
 	return EXIT_SUCCESS;
+}
+
+void zl_GetAltHeaders(int SHeaderNumber, int MHeaderNumber)
+{
+	int Type = 0;
+	if(MHeaderNumber != -1) {
+		Type = 1;
+	}
+//	MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "alt header type:%i", Type);
+
+	switch(Type) {
+		case 0: {
+			unsigned char Segment = zSHeader[SHeaderNumber].AltHeaderOffset >> 24;
+			unsigned int Offset = (zSHeader[SHeaderNumber].AltHeaderOffset & 0x00FFFFFF);
+
+			unsigned int HeaderOffset = 0x02FFFFFF;		// semi-arbitrary number to not kill off the while loop before it starts
+
+			while(RDP_CheckAddressValidity(HeaderOffset) || ((HeaderOffset >> 24) == Segment)) {
+				HeaderOffset = Read32(RAM[Segment].Data, Offset);
+				if(HeaderOffset == 0x00) HeaderOffset = (Segment << 24);
+
+				zSHeader[SHeaderNumber].AltHeaders[zSHeader[SHeaderNumber].AltHeaderCount] = HeaderOffset;
+				zSHeader[SHeaderNumber].AltHeaderCount++;
+//				MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "%i: 0x%08X", zSHeader[SHeaderNumber].AltHeaderCount-1, zSHeader[SHeaderNumber].AltHeaders[zSHeader[SHeaderNumber].AltHeaderCount-1]);
+
+				Offset += 4;
+			};
+
+			zSHeader[SHeaderNumber].AltHeaderCount--;
+			break; }
+
+		case 1: {
+			unsigned char Segment = zMHeader[SHeaderNumber][MHeaderNumber].AltHeaderOffset >> 24;
+			unsigned int Offset = (zMHeader[SHeaderNumber][MHeaderNumber].AltHeaderOffset & 0x00FFFFFF);
+
+			unsigned int HeaderOffset = 0x03FFFFFF;		// semi-arbitrary number to not kill off the while loop before it starts
+
+			while(RDP_CheckAddressValidity(HeaderOffset) || ((HeaderOffset >> 24) == Segment)) {
+				HeaderOffset = Read32(RAM[Segment].Data, Offset);
+				if(HeaderOffset == 0x00) HeaderOffset = (Segment << 24);
+
+				zMHeader[SHeaderNumber][MHeaderNumber].AltHeaders[zMHeader[SHeaderNumber][MHeaderNumber].AltHeaderCount] = HeaderOffset;
+				zMHeader[SHeaderNumber][MHeaderNumber].AltHeaderCount++;
+//				MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "%i: 0x%08X", zMHeader[SHeaderNumber][MHeaderNumber].AltHeaderCount-1, zMHeader[SHeaderNumber][MHeaderNumber].AltHeaders[zMHeader[SHeaderNumber][MHeaderNumber].AltHeaderCount-1]);
+
+				Offset += 4;
+			}
+
+			zMHeader[SHeaderNumber][MHeaderNumber].AltHeaderCount--;
+			break; }
+
+		default: {
+			break; }
+	}
 }
 
 void zl_GetDisplayLists(int MapNumber)

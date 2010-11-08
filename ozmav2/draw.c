@@ -96,7 +96,7 @@ void gl_SetupScene3D(int Width, int Height)
 	RDP_Matrix_ModelviewLoad(TempMatrix);
 
 	glEnable(GL_DEPTH_TEST);
-	if(RDP_OpenGL_ExtFragmentProgram()) glEnable(GL_FRAGMENT_PROGRAM_ARB);
+//	if(RDP_OpenGL_ExtFragmentProgram()) glEnable(GL_FRAGMENT_PROGRAM_ARB);
 }
 
 void gl_DrawScene()
@@ -143,7 +143,7 @@ void gl_DrawScene()
 					// ...so that we can call our axis marker display list...
 					if(RDP_OpenGL_ExtFragmentProgram()) glDisable(GL_FRAGMENT_PROGRAM_ARB);
 					glCallList(zProgram.AxisMarker);
-					if(RDP_OpenGL_ExtFragmentProgram()) glEnable(GL_FRAGMENT_PROGRAM_ARB);
+//					if(RDP_OpenGL_ExtFragmentProgram()) glEnable(GL_FRAGMENT_PROGRAM_ARB);
 
 					// and reset the lighting
 					glLightModelfv(GL_LIGHT_MODEL_AMBIENT, AmbientDefault);
@@ -160,7 +160,19 @@ void gl_DrawScene()
 	}
 
 	for(Door = 0; Door < zSHeader[0].DoorCount; Door++) {
+		glPushMatrix();
+
+		glTranslated(zDoor[Door].Pos.X, zDoor[Door].Pos.Y, zDoor[Door].Pos.Z);
+		glRotated(zDoor[Door].Rot.X / 182.0444444, 1, 0, 0);
+		glRotated(zDoor[Door].Rot.Y / 182.0444444, 0, 1, 0);
+		glRotated(zDoor[Door].Rot.Z / 182.0444444, 0, 0, 1);
 		glCallList(zDoor[Door].GLDList);
+
+		// simulating door visibility from both sides by drawing it once more, this time rotated by 180 deg
+		glRotated(180, 0, 1, 0);
+		glCallList(zDoor[Door].GLDList);
+
+		glPopMatrix();
 	}
 /*
 	gl_SetupScene2D(zProgram.WindowWidth, zProgram.WindowHeight);
@@ -198,7 +210,7 @@ void gl_DrawActorCube(bool Selected)
 	//reset settings...
 	glLineWidth(1);
 	glDisable(GL_BLEND);
-	if(RDP_OpenGL_ExtFragmentProgram()) glEnable(GL_FRAGMENT_PROGRAM_ARB);
+//	if(RDP_OpenGL_ExtFragmentProgram()) glEnable(GL_FRAGMENT_PROGRAM_ARB);
 	glDisable(GL_CULL_FACE);
 	glEnable(GL_LIGHTING);
 

@@ -200,6 +200,10 @@ struct __zHeader {
 	unsigned char TimeOfDay;
 	unsigned char EchoLevel;
 	unsigned char GameplayObj;
+	unsigned int AltHeaderOffset;
+
+	unsigned int AltHeaders[64];
+	unsigned int AltHeaderCount;
 
 	unsigned int FileStart;
 	unsigned int FileEnd;
