@@ -62,7 +62,7 @@ void MSK_ConsolePrint(int Color, char * Format, ...)
 	wattroff(Console.WindowPad, COLOR_PAIR(Color));
 	wrefresh(Console.WindowPad);
 
-	if(Console.Log != NULL){
+	if((Console.Log != NULL) && (Console.IsLogging)) {
 		fprintf(Console.Log, "%s", Text);
 		fflush(Console.Log);
 	}
@@ -81,6 +81,11 @@ void MSK_SetLogging(int Toggle)
 	Console.IsLogging = Toggle;
 }
 
+float MSK_ScaleRange(float in, float oldMin, float oldMax, float newMin, float newMax)
+{
+	return (in / ((oldMax - oldMin) / (newMax - newMin))) + newMin;
+}
+
 void MSK_Refresh(int Line)
 {
 	// refresh the log, show it from line n
@@ -90,15 +95,15 @@ void MSK_Refresh(int Line)
 
 	prefresh(Console.WindowPad, PadStart, 0, 1, 0, PAD_ROWS, PAD_COLS);
 
-	// draw scrollbar - very shitty calculation, but approximate enough...
-	float Pos = ((float)(LINES - 2) / (float)(Console.TotalConsoleLine+1) * (float)((PadStart+((LINES-2)/2)+2)+1));
-	if((Pos <= 1) || (PadStart == 0)) Pos = 1;
-	if(Console.CurrentConsoleLine == Console.TotalConsoleLine) Pos = (LINES-2);
+	// draw scrollbar
+	int TempNow = Console.CurrentConsoleLine - (LINES - 2);
+	if(TempNow < 0) TempNow = 0;
+	int TempMax = Console.TotalConsoleLine - (LINES - 2);
+	if(TempMax < 0) TempMax = 0;
 
-/*	float Pos = ((float)(LINES - 2) * Console.CurrentConsoleLine) / ((float)(Console.TotalConsoleLine) - 1);
-	if(Pos <= 1) Pos = 1;
-	if(Console.CurrentConsoleLine == Console.TotalConsoleLine) Pos = (LINES-2);
-*/
+	float Pos = MSK_ScaleRange((float)TempNow, 0.0f, (float)TempMax, 1.0f, (float)(LINES - 2));
+	if(isnan(Pos)) Pos = (float)(LINES - 2);
+
 	mvwvline(Console.WindowMain, 1, COLS - 1, ACS_VLINE, LINES - 2);
 	mvwvline(Console.WindowMain, (int)Pos, COLS - 1, ACS_BLOCK, 1);
 }
