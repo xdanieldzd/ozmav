@@ -202,12 +202,19 @@ void gl_DrawScene(void)
 
 	char statMsg[256];
 
-	hud_Print(0, 0, -1, -1, "");
+	hud_Print(0, 0, 0, 0, "");
 
-	sprintf(statMsg, "Actor #%i:\n- Actor name: %s\n- Object name: %s",
-		vCurrentActor.actorNumber,
-		(strcmp(vActors[vCurrentActor.actorNumber].ActorName, "\0") ? vActors[vCurrentActor.actorNumber].ActorName : "unknown"),
-		(strcmp(vActors[vCurrentActor.actorNumber].ObjectName, "\0") ? vActors[vCurrentActor.actorNumber].ObjectName : "unknown"));
+	if(vCurrentActor.useActorOvl) {
+		sprintf(statMsg, "Actor 0x%04X / Object 0x%04X:\n- Actor name: %s\n- Object name: %s",
+			vCurrentActor.actorNumber, vActors[vCurrentActor.actorNumber].ObjectNumber,
+			(strcmp(vActors[vCurrentActor.actorNumber].ActorName, "\0") ? vActors[vCurrentActor.actorNumber].ActorName : "unknown"),
+			(strcmp(vObjects[vActors[vCurrentActor.actorNumber].ObjectNumber].ObjectName, "\0") ? vObjects[vActors[vCurrentActor.actorNumber].ObjectNumber].ObjectName : "unknown"));
+	} else if(vCurrentActor.useExtAnim) {
+		sprintf(statMsg, "Object name: %s\nAnimation file: %s", vCurrentActor.oName, vCurrentActor.eaName);
+	} else {
+		sprintf(statMsg, "Object name: %s", vCurrentActor.oName);
+	}
+
 	hud_Print(0, 0, -1, -1, statMsg);
 
 	if((vCurrentActor.offsetBoneSetup) && (vCurrentActor.animTotal >= 0)) {

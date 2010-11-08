@@ -9,6 +9,7 @@ vCurrentActorStruct vCurrentActor;
 vGameROMStruct vGameROM;
 vZeldaInfoStruct vZeldaInfo;
 vActorStruct vActors[768];
+vObjectStruct vObjects[768];
 
 vRGBAStruct vBoneColorFactor;
 
@@ -38,7 +39,52 @@ void setActorNumber(unsigned char * Ptr)
 		int Var = 0;
 		sscanf((char*)Ptr+1, "%d", &Var);
 		vCurrentActor.actorNumber = Var;
-		initActorParsing();
+		initActorParsing(-1);
+	}
+}
+
+void loadObjectName(unsigned char * Ptr)
+{
+	if(Ptr == NULL) {
+		dbgprintf(0, MSK_COLORTYPE_ERROR, "> Error: No parameter specified!\n");
+	} else {
+		char ObjFilename[MAX_PATH];
+		strcpy(ObjFilename, (char*)Ptr+1);
+
+		DMA ObjFile = zl_DMAGetFileByFilename(ObjFilename);
+		if(ObjFile.ID != -1) {
+			initActorParsing(ObjFile.ID);
+		} else {
+			dbgprintf(0, MSK_COLORTYPE_ERROR, "> Error: Object '%s' not found!\n", ObjFilename);
+		}
+	}
+}
+
+void loadObjectAnim(unsigned char * Ptr)
+{
+	if(Ptr == NULL) {
+		dbgprintf(0, MSK_COLORTYPE_ERROR, "> Error: No parameter specified!\n");
+	} else {
+		char AnimFilename[MAX_PATH];
+		strcpy(AnimFilename, (char*)Ptr+1);
+
+		DMA AnimFile = zl_DMAGetFileByFilename(AnimFilename);
+		if(AnimFile.ID != -1) {
+			if((AnimFile.PStart != 0) && (AnimFile.PEnd != 0)) {
+				strcpy(vCurrentActor.eaName, AnimFile.Filename);
+
+				// arbitrary segment number
+				RDP_ClearSegment(0x01);
+
+				RAM[0x01].Size = AnimFile.PEnd - AnimFile.PStart;
+				RAM[0x01].Data = zl_DMAToBuffer(AnimFile);
+				RAM[0x01].IsSet = true;
+
+				initActorParsing(-2);
+			}
+		} else {
+			dbgprintf(0, MSK_COLORTYPE_ERROR, "> Error: Animation file '%s' not found!\n", AnimFilename);
+		}
 	}
 }
 
@@ -62,6 +108,8 @@ int main(int argc, char **argv)
 	MSK_InitLogging(temp);
 	MSK_SetValidCharacters("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789.,:\\/\"-()[]_!");
 	MSK_AddCommand("actor", "Jump to actor number (0-x)", setActorNumber);
+	MSK_AddCommand("loadobject", "Load object by filename", loadObjectName);
+	MSK_AddCommand("loadanim", "Load animations by filename", loadObjectAnim);
 	MSK_AddCommand("options", "Change program options", programOptions);
 	MSK_AddCommand("about", "About this program", aboutProgram);
 
@@ -99,7 +147,7 @@ int main(int argc, char **argv)
 	sprintf(temp, "%s%c%s", vProgram.appPath, FILESEP, argv[1]);
 	zl_Init(temp);
 
-	initActorParsing();
+	initActorParsing(-1);
 
 	ca_Reset();
 

@@ -108,11 +108,10 @@ int zl_ReadData()
 {
 	dbgprintf(3, MSK_COLORTYPE_OKAY, "[DEBUG] %s();\n", __FUNCTION__);
 
-	dbgprintf(1, MSK_COLORTYPE_OKAY, "Reading actor table...\n");
+	dbgprintf(0, MSK_COLORTYPE_OKAY, "Reading actor table...\n");
 
 	unsigned int BaseOffset = vZeldaInfo.actorTableOffset;
 	int ActorNumber = 0;
-
 	int ValidActorCount = 0;
 
 	while(ActorNumber < vZeldaInfo.actorCount) {
@@ -140,43 +139,57 @@ int zl_ReadData()
 			vActors[ActorNumber].ActorSize = Actor.VEnd - Actor.VStart;
 			vActors[ActorNumber].ObjectNumber = Read16(vActors[ActorNumber].ActorData, (vActors[ActorNumber].ProfileVStart - vActors[ActorNumber].VStart) + 8);
 
-			dbgprintf(2, MSK_COLORTYPE_INFO, "\n- Actor #%i is called '%s', %i bytes\n", ActorNumber, vActors[ActorNumber].ActorName, vActors[ActorNumber].ActorSize);
+			dbgprintf(2, MSK_COLORTYPE_INFO, "\n- Actor 0x%04X is called '%s', %i bytes\n", ActorNumber, vActors[ActorNumber].ActorName, vActors[ActorNumber].ActorSize);
 
 			dbgprintf(2, MSK_COLORTYPE_INFO, "- Actor uses object 0x%04X\n", vActors[ActorNumber].ObjectNumber);
 
-			// get the start/end offsets from the object table
-			unsigned int TempStart = Read32(vZeldaInfo.codeBuffer, vZeldaInfo.objectTableOffset + (0x8 * vActors[ActorNumber].ObjectNumber));
-			unsigned int TempEnd = Read32(vZeldaInfo.codeBuffer, vZeldaInfo.objectTableOffset + (0x8 * vActors[ActorNumber].ObjectNumber) + 4);
-
-			// translate those offsets into physical offsets, if necessary
-			DMA Object = zl_DMAVirtualToPhysical(TempStart, TempEnd);
-
-			// if the offsets aren't all zero, assume we've got a valid object
-			if((TempStart != 0) && (TempEnd != 0)) {
-				vActors[ActorNumber].ObjectData = zl_DMAToBuffer(Object);
-				vActors[ActorNumber].ObjectSize = Object.PEnd - Object.PStart;
-
-				vActors[ActorNumber].ObjectSegment = 0x06;
-				if(vActors[ActorNumber].ObjectNumber == 0x0001) {
-					vActors[ActorNumber].ObjectSegment = 0x04;
-				} else if(vActors[ActorNumber].ObjectNumber == 0x0002 || vActors[ActorNumber].ObjectNumber == 0x0003) {
-					vActors[ActorNumber].ObjectSegment = 0x05;
-				}
-
-				if(Object.Filename != NULL) {
-					strcpy(vActors[ActorNumber].ObjectName, Object.Filename);
-					dbgprintf(2, MSK_COLORTYPE_INFO, "- Object 0x%04X is called '%s', %i bytes\n", vActors[ActorNumber].ObjectNumber, vActors[ActorNumber].ObjectName, vActors[ActorNumber].ObjectSize);
-				}
-
-				ValidActorCount++;
+			vActors[ActorNumber].ObjectSegment = 0x06;
+			if(vActors[ActorNumber].ObjectNumber == 0x0001) {
+				vActors[ActorNumber].ObjectSegment = 0x04;
+			} else if(vActors[ActorNumber].ObjectNumber == 0x0002 || vActors[ActorNumber].ObjectNumber == 0x0003) {
+				vActors[ActorNumber].ObjectSegment = 0x05;
 			}
+
+			ValidActorCount++;
 		}
 
 		BaseOffset += 0x20;
 		ActorNumber++;
 	}
 
-	dbgprintf(1, MSK_COLORTYPE_OKAY, "Found %i valid actor(s).\n", ValidActorCount);
+	dbgprintf(0, MSK_COLORTYPE_OKAY, "Found %i valid actor(s).\n", ValidActorCount);
+
+	dbgprintf(0, MSK_COLORTYPE_OKAY, "Reading object table...\n");
+
+	BaseOffset = vZeldaInfo.objectTableOffset;
+	int ObjectNumber = 0;
+	int ValidObjectCount = 0;
+
+	while(ObjectNumber < vZeldaInfo.objectCount) {
+		vObjects[ObjectNumber].VStart =	Read32(vZeldaInfo.codeBuffer, BaseOffset);
+		vObjects[ObjectNumber].VEnd =	Read32(vZeldaInfo.codeBuffer, BaseOffset + 4);
+
+		DMA Object = zl_DMAVirtualToPhysical(vObjects[ObjectNumber].VStart, vObjects[ObjectNumber].VEnd);
+		vObjects[ObjectNumber].PStart =	Object.PStart;
+		vObjects[ObjectNumber].PEnd =	Object.PEnd;
+
+		if((vObjects[ObjectNumber].PStart != 0) && (vObjects[ObjectNumber].PEnd != 0)) {
+			vObjects[ObjectNumber].ObjectData = zl_DMAToBuffer(Object);
+			vObjects[ObjectNumber].ObjectSize = Object.PEnd - Object.PStart;
+
+			if(Object.Filename != NULL) {
+				strcpy(vObjects[ObjectNumber].ObjectName, Object.Filename);
+				dbgprintf(2, MSK_COLORTYPE_INFO, "- Object 0x%04X is called '%s', %i bytes\n", ObjectNumber, vObjects[ObjectNumber].ObjectName, vObjects[ObjectNumber].ObjectSize);
+			}
+
+			ValidObjectCount++;
+		}
+
+		BaseOffset += 0x08;
+		ObjectNumber++;
+	}
+
+	dbgprintf(0, MSK_COLORTYPE_OKAY, "Found %i valid object(s).", ValidObjectCount);
 
 	return EXIT_SUCCESS;
 }
@@ -220,8 +233,41 @@ DMA zl_DMAGetFileByFilename(char * Name)
 	dbgprintf(2, MSK_COLORTYPE_OKAY, "[DEBUG] %s(%s);\n", __FUNCTION__, Name);
 
 	DMA File = {0, 0, 0, 0, 0, ""};
+	char Filename[MAX_PATH];
 
-	return File;
+	int i;
+
+	// turn entered filename into lower case
+	for(i = 0; Name[i]; i++) Name[i] = tolower(Name[i]);
+
+	// does ROM contain filenames?
+	if(vZeldaInfo.hasFilenames) {
+		int FileNo = 0;
+
+		File = zl_DMAGetFile(FileNo);
+
+		// while we're not at the end of the DMA table...
+		while((File.VEnd != 0x00) || (File.PStart != 0xFFFFFFFF)) {
+			if(File.VStart == File.VEnd) break;
+			File = zl_DMAVirtualToPhysical(File.VStart, File.VEnd);
+
+			// read the filename out and turn it into lower case
+			zl_DMAGetFilename(Filename, FileNo);
+			for(i = 0; Filename[i]; i++) Filename[i] = tolower(Filename[i]);
+
+			// compare found filename with entered one...
+			if(!strcmp(Name, Filename)) {
+				// filename found, return file information
+				return File;
+			}
+
+			FileNo++;
+			File = zl_DMAGetFile(FileNo);
+		}
+	}
+
+	DMA Empty = {-1, 0, 0, 0, 0, ""};
+	return Empty;
 }
 
 DMA zl_DMAVirtualToPhysical(unsigned int VStart, unsigned int VEnd)
@@ -415,7 +461,9 @@ void zl_DeInit()
 	int i = 0;
 	for(i = 0; i < vZeldaInfo.actorCount; i++) {
 		if(vActors[i].ActorData != NULL) free(vActors[i].ActorData);
-		if(vActors[i].ObjectData != NULL) free(vActors[i].ObjectData);
+	}
+	for(i = 0; i < vZeldaInfo.objectCount; i++) {
+		if(vObjects[i].ObjectData != NULL) free(vObjects[i].ObjectData);
 	}
 }
 

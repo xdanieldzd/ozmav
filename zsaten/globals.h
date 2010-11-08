@@ -24,6 +24,7 @@ enum { false, true };
 #include <math.h>
 #include <stdarg.h>
 #include <unistd.h>
+#include <ctype.h>
 
 #include <GL/gl.h>
 #include <GL/glext.h>
@@ -94,6 +95,9 @@ typedef struct {
 } vCameraStruct;
 
 typedef struct {
+	bool useActorOvl;
+	bool useExtAnim;
+
 	unsigned int actorNumber;
 	unsigned short variable;
 
@@ -107,6 +111,9 @@ typedef struct {
 
 	int frameTotal;
 	int frameCurrent;
+
+	char oName[128];
+	char eaName[128];
 } vCurrentActorStruct;
 
 typedef struct {
@@ -119,16 +126,23 @@ typedef struct {
 	unsigned int NameCStart;
 	char ActorName[128];
 
-	unsigned short ObjectNumber;
-	char ObjectName[128];
+	unsigned int ObjectNumber;
+	unsigned char ObjectSegment;
 
 	unsigned char * ActorData;
 	unsigned int ActorSize;
+} vActorStruct;
+
+typedef struct {
+	unsigned int PStart;
+	unsigned int PEnd;
+	unsigned int VStart;
+	unsigned int VEnd;
+	char ObjectName[128];
+
 	unsigned char * ObjectData;
 	unsigned int ObjectSize;
-
-	unsigned char ObjectSegment;
-} vActorStruct;
+} vObjectStruct;
 
 typedef struct {
 	char filePath[MAX_PATH];
@@ -178,6 +192,7 @@ extern vCurrentActorStruct vCurrentActor;
 extern vGameROMStruct vGameROM;
 extern vZeldaInfoStruct vZeldaInfo;
 extern vActorStruct vActors[768];
+extern vObjectStruct vObjects[768];
 
 extern vRGBAStruct vBoneColorFactor;
 

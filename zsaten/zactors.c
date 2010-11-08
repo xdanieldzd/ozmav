@@ -1,33 +1,99 @@
 #include "globals.h"
 
-void initActorParsing()
+void swapRAMSegments(unsigned char Seg1, unsigned char Seg2)
 {
-	RDP_ClearStructures(true);
-	RDP_ClearTextures();
+	unsigned int SegTemp_Size = RAM[Seg1].Size;
+	unsigned char * SegTemp_Data = RAM[Seg1].Data;
+	bool SegTemp_IsSet = RAM[Seg1].IsSet;
 
-	zl_ClearAllSegments();
+	RAM[Seg1].Size = RAM[Seg2].Size;
+	RAM[Seg1].Data = RAM[Seg2].Data;
+	RAM[Seg1].IsSet = RAM[Seg2].IsSet;
 
-	vCurrentActor.offsetBoneSetup = 0;
-	vCurrentActor.actorScale = 0;
-	vCurrentActor.offsetDList = 0;
+	RAM[Seg2].Size = SegTemp_Size;
+	RAM[Seg2].Data = SegTemp_Data;
+	RAM[Seg2].IsSet = SegTemp_IsSet;
 
-	vCurrentActor.variable = 0;
+//	dbgprintf(0,0,"SWAP! Seg 0x%02X size: 0x%04X bytes, Seg 0x%02X size: 0x%04X bytes", Seg1, RAM[Seg1].Size, Seg2, RAM[Seg2].Size);
+}
 
-	memset(vCurrentActor.offsetAnims, 0, arraySize(vCurrentActor.offsetAnims));
-	vCurrentActor.animTotal = 0;
-	vCurrentActor.animCurrent = 0;
+void initActorParsing(int objFileNo)
+{
+	// if func param is -1, use an actor overlay file
+	if(objFileNo == -1) {
+		vCurrentActor.useActorOvl = true;
 
-	vCurrentActor.frameTotal = 0;
-	vCurrentActor.frameCurrent = 0;
+	// if func param is > 0, do not use an actor file
+	} else if(objFileNo >= 0) {
+		vCurrentActor.useActorOvl = false;
 
-	vProgram.animPlay = false;
-	vProgram.animDelay = 2;
+	// if func param is -2, use external anim file
+	} else if(objFileNo == -2) {
+		vCurrentActor.useExtAnim = true;
+	}
 
-	if(vActors[vCurrentActor.actorNumber].ObjectNumber > 0) {
-		RDP_LoadToSegment(vActors[vCurrentActor.actorNumber].ObjectSegment, vActors[vCurrentActor.actorNumber].ObjectData, 0, vActors[vCurrentActor.actorNumber].ObjectSize);
+//	dbgprintf(0,0,"useActorOvl:%i, useExtAnim:%i", vCurrentActor.useActorOvl, vCurrentActor.useExtAnim);
 
-		setMipsWatchers();
-		processActor();
+	if(objFileNo != -2) {
+		RDP_ClearStructures(true);
+		RDP_ClearTextures();
+
+		zl_ClearAllSegments();
+
+		vCurrentActor.offsetBoneSetup = 0;
+		vCurrentActor.actorScale = 0;
+		vCurrentActor.offsetDList = 0;
+
+		vCurrentActor.variable = 0;
+
+		memset(vCurrentActor.offsetAnims, 0, arraySize(vCurrentActor.offsetAnims));
+		vCurrentActor.animTotal = 0;
+		vCurrentActor.animCurrent = 0;
+
+		vCurrentActor.frameTotal = 0;
+		vCurrentActor.frameCurrent = 0;
+
+		memset(vCurrentActor.oName, 0, arraySize(vCurrentActor.oName));
+
+		vCurrentActor.useExtAnim = false;
+
+		vProgram.animPlay = false;
+		vProgram.animDelay = 2;
+	}
+
+	setMipsWatchers();
+
+	if(vCurrentActor.useActorOvl) {
+		// use actor overlay file
+		if(vActors[vCurrentActor.actorNumber].ObjectNumber > 0) {
+			RDP_LoadToSegment(	vActors[vCurrentActor.actorNumber].ObjectSegment,
+								vObjects[vActors[vCurrentActor.actorNumber].ObjectNumber].ObjectData,
+								0,
+								vObjects[vActors[vCurrentActor.actorNumber].ObjectNumber].ObjectSize);
+
+			processActor();
+		}
+
+	} else {
+		if(objFileNo != -2) {
+			// parse object directly
+			DMA FileInfo = zl_DMAGetFile(objFileNo);
+			FileInfo = zl_DMAVirtualToPhysical(FileInfo.VStart, FileInfo.VEnd);
+
+			if((FileInfo.PStart != 0) && (FileInfo.PEnd != 0)) {
+				strcpy(vCurrentActor.oName, FileInfo.Filename);
+
+				RDP_ClearSegment(0x06);
+
+				RAM[0x06].Size = FileInfo.PEnd - FileInfo.PStart;
+				RAM[0x06].Data = zl_DMAToBuffer(FileInfo);
+				RAM[0x06].IsSet = true;
+
+				processActor();
+			}
+		} else {
+			processActor();
+		}
 	}
 
 	mips_ResetWatch();
@@ -87,83 +153,104 @@ struct actorSections getActorSections(unsigned char * Data, size_t Size, unsigne
 
 void processActor()
 {
-	float * scale = NULL;
-	int *anim = NULL, *dlist = NULL, *bones = NULL;
-	struct actorSections Sections;
+	if(vCurrentActor.useActorOvl) {
+		// use actor overlay file
+		float * scale = NULL;
+		int *anim = NULL, *dlist = NULL, *bones = NULL;
+		struct actorSections Sections;
 
-	mips_ResetSpecialOps();
-	mips_SetSpecialOp(MIPS_LH(mips_r0, 0x1C, mips_a0), vCurrentActor.variable);
-	mips_SetSpecialOp(MIPS_LH(mips_r0, 0x1C, mips_s0), vCurrentActor.variable);
+		mips_ResetSpecialOps();
+		mips_SetSpecialOp(MIPS_LH(mips_r0, 0x1C, mips_a0), vCurrentActor.variable);
+		mips_SetSpecialOp(MIPS_LH(mips_r0, 0x1C, mips_s0), vCurrentActor.variable);
 
-	Sections = getActorSections(vActors[vCurrentActor.actorNumber].ActorData, vActors[vCurrentActor.actorNumber].ActorSize, 0);
+		Sections = getActorSections(vActors[vCurrentActor.actorNumber].ActorData, vActors[vCurrentActor.actorNumber].ActorSize, 0);
 
-	mips_ResetMap();
+		mips_ResetMap();
 
-	if(Sections.data_s) mips_SetMap(Sections.data, Sections.data_s, Sections.data_va);
-	if(Sections.rodata_s) mips_SetMap(Sections.rodata, Sections.rodata_s, Sections.rodata_va);
-	if(Sections.bss_s) mips_SetMap(Sections.bss, Sections.bss_s, Sections.bss_va);
+		if(Sections.data_s) mips_SetMap(Sections.data, Sections.data_s, Sections.data_va);
+		if(Sections.rodata_s) mips_SetMap(Sections.rodata, Sections.rodata_s, Sections.rodata_va);
+		if(Sections.bss_s) mips_SetMap(Sections.bss, Sections.bss_s, Sections.bss_va);
 
-	mips_EvalWords((unsigned int *)Sections.text, Sections.text_s / 4);
+		mips_EvalWords((unsigned int *)Sections.text, Sections.text_s / 4);
 
-	scale = mips_GetFuncArg(0x8002D62C, 1, true);
-	if(scale == NULL) {
-		scale = mips_GetFuncArg(0x80077A00, 2, true);
-	}
-	dlist = mips_GetFuncArg(0x80035260, 1, true);
-	if(dlist == NULL || *dlist >= 0x80000000){
-		dlist = mips_GetFuncArg(0x80093D18, 3, true);
-		if(dlist == NULL || *dlist >= 0x80000000){
-			dlist = mips_GetFuncArg(0x800D0984, 0, true);
-			if(dlist == NULL || *dlist >= 0x80000000) {
-				dlist = mips_GetFuncArg(0x80035324, 1, true);
-			}
+		scale = mips_GetFuncArg(0x8002D62C, 1, true);
+		if(scale == NULL) {
+			scale = mips_GetFuncArg(0x80077A00, 2, true);
 		}
-	}
-	bones = mips_GetFuncArg(0x800A457C, 2, true);
-	if(bones == NULL || !*bones){
-		bones = mips_GetFuncArg(0x800A46F8, 2, true);
-	}
-
-	if(vActors[vCurrentActor.actorNumber].ObjectSegment == 0x06) scanAnimations(vActors[vCurrentActor.actorNumber].ObjectSegment);
-
-	if(vCurrentActor.offsetAnims[0] == 0) {
-		anim = mips_GetFuncArg(0x800A457C, 3, true);
-		if(anim == NULL || !*anim){
-			anim = mips_GetFuncArg(0x800A51A0, 1, true);
-			if(anim == NULL || !*anim){
-				anim = mips_GetFuncArg(0x80B4FD00, 1, true);
-				if(anim == NULL || !*anim) {
-					anim = mips_GetFuncArg(0x800A4FE4, 1, true);
-					if(anim == NULL || !*anim) {
-						anim = mips_GetFuncArg(0x800A2000, 0, true);
-					}
+		dlist = mips_GetFuncArg(0x80035260, 1, true);
+		if(dlist == NULL || *dlist >= 0x80000000){
+			dlist = mips_GetFuncArg(0x80093D18, 3, true);
+			if(dlist == NULL || *dlist >= 0x80000000){
+				dlist = mips_GetFuncArg(0x800D0984, 0, true);
+				if(dlist == NULL || *dlist >= 0x80000000) {
+					dlist = mips_GetFuncArg(0x80035324, 1, true);
 				}
 			}
 		}
-		vCurrentActor.offsetAnims[0] = (anim != NULL) ? *anim : 0;
-		if(vCurrentActor.offsetAnims[0]) vCurrentActor.animTotal = 1;
+		bones = mips_GetFuncArg(0x800A457C, 2, true);
+		if(bones == NULL || !*bones){
+			bones = mips_GetFuncArg(0x800A46F8, 2, true);
+		}
+
+		if(vActors[vCurrentActor.actorNumber].ObjectSegment == 0x06) scanAnimations(vActors[vCurrentActor.actorNumber].ObjectSegment);
+
+		if(vCurrentActor.offsetAnims[0] == 0) {
+			anim = mips_GetFuncArg(0x800A457C, 3, true);
+			if(anim == NULL || !*anim){
+				anim = mips_GetFuncArg(0x800A51A0, 1, true);
+				if(anim == NULL || !*anim){
+					anim = mips_GetFuncArg(0x80B4FD00, 1, true);
+					if(anim == NULL || !*anim) {
+						anim = mips_GetFuncArg(0x800A4FE4, 1, true);
+						if(anim == NULL || !*anim) {
+							anim = mips_GetFuncArg(0x800A2000, 0, true);
+						}
+					}
+				}
+			}
+			vCurrentActor.offsetAnims[0] = (anim != NULL) ? *anim : 0;
+			if(vCurrentActor.offsetAnims[0]) vCurrentActor.animTotal = 1;
+		}
+
+		vCurrentActor.offsetBoneSetup = (bones != NULL) ? *bones : 0;
+		vCurrentActor.actorScale = (scale != NULL) ? *scale : 0.01f;
+		vCurrentActor.offsetDList = (dlist != NULL) ? *dlist : 0;
+
+		if(	(vCurrentActor.offsetBoneSetup == 0) &&
+			(vCurrentActor.offsetDList == 0) &&
+			(vActors[vCurrentActor.actorNumber].ObjectSegment == 0x06)
+		) scanBones(vActors[vCurrentActor.actorNumber].ObjectSegment);
+
+		if(!(vCurrentActor.offsetDList >> 24) && vCurrentActor.offsetDList){
+			vCurrentActor.offsetDList = 0;
+		}
+
+		if(vCurrentActor.actorScale < 0.0f) vCurrentActor.actorScale = 0.01f;
+
+		dbgprintf(0, MSK_COLORTYPE_INFO, "actor 0x%04X (%s):\n", vCurrentActor.actorNumber, vActors[vCurrentActor.actorNumber].ActorName);
+		dbgprintf(0, MSK_COLORTYPE_INFO, "known -> object 0x%04X (%s) seg:%i\n",
+			vActors[vCurrentActor.actorNumber].ObjectNumber, vObjects[vActors[vCurrentActor.actorNumber].ObjectNumber].ObjectName, vActors[vCurrentActor.actorNumber].ObjectSegment);
+		dbgprintf(0, MSK_COLORTYPE_INFO, "scanned -> bones:%08x, dlist:%08x, anim[0]:%08x, scale:%.2f\n",
+			vCurrentActor.offsetBoneSetup, vCurrentActor.offsetDList, vCurrentActor.offsetAnims[0], vCurrentActor.actorScale);
+
+	} else {
+		// parse object directly
+		dbgprintf(0, MSK_COLORTYPE_INFO, "direct object load, scanning now...\n");
+
+		if(vCurrentActor.useExtAnim) {
+			swapRAMSegments(0x06, 0x01);
+			scanAnimations(0x06);
+			swapRAMSegments(0x06, 0x01);
+		} else {
+			scanAnimations(0x06);
+		}
+
+		scanBones(0x06);
+		vCurrentActor.actorScale = 0.01f;
+
+		dbgprintf(0, MSK_COLORTYPE_INFO, "scanned -> bones:%08x, dlist:%08x, anim[0]:%08x, scale:%.2f\n",
+			vCurrentActor.offsetBoneSetup, vCurrentActor.offsetDList, vCurrentActor.offsetAnims[0], vCurrentActor.actorScale);
 	}
-
-	vCurrentActor.offsetBoneSetup = (bones != NULL) ? *bones : 0;
-	vCurrentActor.actorScale = (scale != NULL) ? *scale : 0.01f;
-	vCurrentActor.offsetDList = (dlist != NULL) ? *dlist : 0;
-
-	if(	(vCurrentActor.offsetBoneSetup == 0) &&
-		(vCurrentActor.offsetDList == 0) &&
-		(vActors[vCurrentActor.actorNumber].ObjectSegment == 0x06)
-	) scanBones(vActors[vCurrentActor.actorNumber].ObjectSegment);
-
-	if(!(vCurrentActor.offsetDList >> 24) && vCurrentActor.offsetDList){
-		vCurrentActor.offsetDList = 0;
-	}
-
-	if(vCurrentActor.actorScale < 0.0f) vCurrentActor.actorScale = 0.01f;
-
-	dbgprintf(0, MSK_COLORTYPE_INFO, "actor %i (%s):\n", vCurrentActor.actorNumber, vActors[vCurrentActor.actorNumber].ActorName);
-	dbgprintf(0, MSK_COLORTYPE_INFO, "known -> object %i (%s) seg:%i\n",
-		vActors[vCurrentActor.actorNumber].ObjectNumber, vActors[vCurrentActor.actorNumber].ObjectName, vActors[vCurrentActor.actorNumber].ObjectSegment);
-	dbgprintf(0, MSK_COLORTYPE_INFO, "scanned -> bones:%08x, dlist:%08x, anim[0]:%08x, scale:%.2f\n",
-		vCurrentActor.offsetBoneSetup, vCurrentActor.offsetDList, vCurrentActor.offsetAnims[0], vCurrentActor.actorScale);
 }
 
 void drawBone(actorBone Bones[], int CurrentBone, int ParentBone)
@@ -284,6 +371,9 @@ void drawBones(unsigned int BoneOffset, unsigned int AnimationOffset, float Scal
 	actorBone Bones[BoneCount];
 	memset(Bones, 0, sizeof(actorBone) * BoneCount);
 
+	// SWAP segments
+	if(vCurrentActor.useExtAnim) swapRAMSegments(0x06, 0x01);
+
 	if(RDP_CheckAddressValidity(AnimationOffset)){
 		AniSeg = AnimationOffset >> 24;
 		AnimationOffset &= 0xFFFFFF;
@@ -299,6 +389,9 @@ void drawBones(unsigned int BoneOffset, unsigned int AnimationOffset, float Scal
 
 		RotIndexOffset += 6;
 	}
+
+	// SWAP segments
+	if(vCurrentActor.useExtAnim) swapRAMSegments(0x06, 0x01);
 
 	Seg = (BoneListListOffset >> 24) & 0xFF;
 	BoneListListOffset &= 0xFFFFFF;
@@ -318,6 +411,10 @@ void drawBones(unsigned int BoneOffset, unsigned int AnimationOffset, float Scal
 		Bones[i].Sibling = RAM[_Seg].Data[BoneOffset+7];
 		Bones[i].DList = Read32(RAM[_Seg].Data, BoneOffset+8);
 		Bones[i].isSet = 1;
+
+		// SWAP segments
+		if(vCurrentActor.useExtAnim) swapRAMSegments(0x06, 0x01);
+
 		if(AniSeg && RDP_CheckAddressValidity((AniSeg<<24)|(RotIndexOffset + (i * 6) + 4) ) ){
 			unsigned short RXIndex = Read16(RAM[AniSeg].Data, RotIndexOffset + (i * 6));
 			unsigned short RYIndex = Read16(RAM[AniSeg].Data, RotIndexOffset + (i * 6) + 2);
@@ -331,8 +428,11 @@ void drawBones(unsigned int BoneOffset, unsigned int AnimationOffset, float Scal
 			Bones[i].RY = Read16(RAM[AniSeg].Data, RotValOffset + (RYIndex * 2));
 			Bones[i].RZ = Read16(RAM[AniSeg].Data, RotValOffset + (RZIndex * 2));
 
-			//dbgprintf(1, MSK_COLORTYPE_INFO, " Bone %2i (%08X): (%6i %6i %6i) (%2i %2i) %08X", i, BoneOffset, Bones[i].X, Bones[i].Y, Bones[i].Z, Bones[i].Child, Bones[i].Sibling, Bones[i].DList);
+			//dbgprintf(0, MSK_COLORTYPE_INFO, " Bone %2i (%08X): (%6i %6i %6i) (%2i %2i) %08X", i, BoneOffset, Bones[i].X, Bones[i].Y, Bones[i].Z, Bones[i].Child, Bones[i].Sibling, Bones[i].DList);
 		}
+
+		// SWAP segments
+		if(vCurrentActor.useExtAnim) swapRAMSegments(0x06, 0x01);
 	}
 
 	vBoneColorFactor.R = 0.0f;
@@ -387,17 +487,17 @@ int scanAnimations(unsigned char bank)
 	vCurrentActor.animTotal = -1;
 
 	int i;
-	for(i = 0; i < vActors[vCurrentActor.actorNumber].ObjectSize; i += 4) {
-		if ((!vActors[vCurrentActor.actorNumber].ObjectData[i])	&&
-			(vActors[vCurrentActor.actorNumber].ObjectData[i+1] > 1)	&&
-			(!vActors[vCurrentActor.actorNumber].ObjectData[i+2])	&&
-			(!vActors[vCurrentActor.actorNumber].ObjectData[i+3])	&&
-			(vActors[vCurrentActor.actorNumber].ObjectData[i+4] == bank)	&&
-			((int) ((vActors[vCurrentActor.actorNumber].ObjectData[i+5] << 16)|(vActors[vCurrentActor.actorNumber].ObjectData[i+6]<<8)|(vActors[vCurrentActor.actorNumber].ObjectData[i+7])) < vActors[vCurrentActor.actorNumber].ObjectSize)	&&
-			(vActors[vCurrentActor.actorNumber].ObjectData[i+8] == bank)	&&
-			((int) ((vActors[vCurrentActor.actorNumber].ObjectData[i+9] << 16)|(vActors[vCurrentActor.actorNumber].ObjectData[i+10]<<8)|(vActors[vCurrentActor.actorNumber].ObjectData[i+11])) < vActors[vCurrentActor.actorNumber].ObjectSize)	&&
-			(!vActors[vCurrentActor.actorNumber].ObjectData[i+14])	&&
-			(!vActors[vCurrentActor.actorNumber].ObjectData[i+15])) {
+	for(i = 0; i < RAM[bank].Size; i += 4) {
+		if ((!RAM[bank].Data[i])	&&
+			(RAM[bank].Data[i+1] > 1)	&&
+			(!RAM[bank].Data[i+2])	&&
+			(!RAM[bank].Data[i+3])	&&
+			(RAM[bank].Data[i+4] == bank)	&&
+			((int) ((RAM[bank].Data[i+5] << 16)|(RAM[bank].Data[i+6]<<8)|(RAM[bank].Data[i+7])) < RAM[bank].Size)	&&
+			(RAM[bank].Data[i+8] == bank)	&&
+			((int) ((RAM[bank].Data[i+9] << 16)|(RAM[bank].Data[i+10]<<8)|(RAM[bank].Data[i+11])) < RAM[bank].Size)	&&
+			(!RAM[bank].Data[i+14])	&&
+			(!RAM[bank].Data[i+15])) {
 				vCurrentActor.offsetAnims[vCurrentActor.animTotal] = (bank << 24) | i;
 				vCurrentActor.animTotal++;
 			}
@@ -409,15 +509,15 @@ int scanAnimations(unsigned char bank)
 int scanBones(unsigned char bank)
 {
 	int i, j;
-	for (i = 0; i < vActors[vCurrentActor.actorNumber].ObjectSize; i += 4) {
-		if ( (vActors[vCurrentActor.actorNumber].ObjectData[i] == bank) && (!(vActors[vCurrentActor.actorNumber].ObjectData[i+3] & 3)) && (vActors[vCurrentActor.actorNumber].ObjectData[i+4]) ) {
-			int offset = (int) ((vActors[vCurrentActor.actorNumber].ObjectData[i+1] << 16)|(vActors[vCurrentActor.actorNumber].ObjectData[i+2]<<8)|(vActors[vCurrentActor.actorNumber].ObjectData[i+3]));
-			if (offset < vActors[vCurrentActor.actorNumber].ObjectSize) {
-			unsigned char NoPts = vActors[vCurrentActor.actorNumber].ObjectData[i+4];
+	for (i = 0; i < RAM[bank].Size; i += 4) {
+		if ( (RAM[bank].Data[i] == bank) && (!(RAM[bank].Data[i+3] & 3)) && (RAM[bank].Data[i+4]) ) {
+			int offset = (int) ((RAM[bank].Data[i+1] << 16)|(RAM[bank].Data[i+2]<<8)|(RAM[bank].Data[i+3]));
+			if (offset < RAM[bank].Size) {
+			unsigned char NoPts = RAM[bank].Data[i+4];
 			int offset_end = offset + (NoPts<<2);
-			if (offset_end < vActors[vCurrentActor.actorNumber].ObjectSize) {
+			if (offset_end < RAM[bank].Size) {
 				for (j = offset;  j < offset_end; j+=4) {
-					if ( (vActors[vCurrentActor.actorNumber].ObjectData[j] != bank) || ((vActors[vCurrentActor.actorNumber].ObjectData[j+3] & 3)) || ((int) ((vActors[vCurrentActor.actorNumber].ObjectData[j+1] << 16)|(vActors[vCurrentActor.actorNumber].ObjectData[j+2]<<8)|(vActors[vCurrentActor.actorNumber].ObjectData[j+3])) > vActors[vCurrentActor.actorNumber].ObjectSize))
+					if ( (RAM[bank].Data[j] != bank) || ((RAM[bank].Data[j+3] & 3)) || ((int) ((RAM[bank].Data[j+1] << 16)|(RAM[bank].Data[j+2]<<8)|(RAM[bank].Data[j+3])) > RAM[bank].Size))
 						break;
 				}
 				if (j == i)

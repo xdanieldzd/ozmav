@@ -80,7 +80,7 @@ int WinAPIMain()
 			vProgram.key[VK_F1] = false;
 			if(vCurrentActor.actorNumber > 0) {
 				vCurrentActor.actorNumber--;
-				initActorParsing();
+				initActorParsing(-1);
 			}
 		}
 
@@ -88,7 +88,7 @@ int WinAPIMain()
 			vProgram.key[VK_F2] = false;
 			if(vCurrentActor.actorNumber < vZeldaInfo.actorCount - 1) {
 				vCurrentActor.actorNumber++;
-				initActorParsing();
+				initActorParsing(-1);
 			}
 		}
 

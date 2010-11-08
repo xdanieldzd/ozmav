@@ -22,7 +22,7 @@ typedef struct {
     GLint Matrix[16];
 } actorBone;
 
-void initActorParsing();
+void initActorParsing(int objFileNo);
 int loadExternalFiles(char * ovl_filename, char * obj_filename);
 void setMipsWatchers();
 struct actorSections getActorSections(unsigned char * Data, size_t Size, unsigned long VStart);
