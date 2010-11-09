@@ -28,3 +28,17 @@ char * getFilename(char * path)
 
 	return vProgram.tempString;
 }
+
+void getFilePath(char * FullPath, char * Target)
+{
+	char Temp[MAX_PATH];
+	strcpy(Temp, FullPath);
+	char * Ptr;
+	if((Ptr = strrchr(Temp, FILESEP))) {
+		Ptr++;
+		*Ptr = '\0';
+		strcpy(Target, Temp);
+	} else {
+		sprintf(Target, ".%c", FILESEP);
+	}
+}

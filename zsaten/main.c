@@ -38,8 +38,12 @@ void setActorNumber(unsigned char * Ptr)
 	} else {
 		int Var = 0;
 		sscanf((char*)Ptr+1, "%d", &Var);
-		vCurrentActor.actorNumber = Var;
-		initActorParsing(-1);
+		if(Var >= 0 && Var < vZeldaInfo.actorCount) {
+			vCurrentActor.actorNumber = Var;
+			initActorParsing(-1);
+		} else {
+			dbgprintf(0, MSK_COLORTYPE_ERROR, "> Error: Invalid actor number!\n");
+		}
 	}
 }
 
@@ -99,7 +103,8 @@ int main(int argc, char **argv)
 
 	char temp[BUFSIZ];
 
-	getcwd(vProgram.appPath, MAX_PATH);
+//	getcwd(vProgram.appPath, MAX_PATH);
+	getFilePath(argv[0], vProgram.appPath);
 
 	sprintf(vProgram.wndTitle, APP_TITLE" "APP_VERSION" (build "__DATE__" "__TIME__")");
 
@@ -135,7 +140,7 @@ int main(int argc, char **argv)
 	RDP_SetupOpenGL();
 
 	RDP_InitParser(F3DEX2);
-	RDP_SetRendererOptions(BRDP_TEXTURES/* | BRDP_COMBINER*/);
+	RDP_SetRendererOptions(BRDP_TEXTURES | BRDP_COMBINER);
 
 	vProgram.enableTextures = true;
 	vProgram.enableWireframe = false;
