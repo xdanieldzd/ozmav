@@ -88,6 +88,10 @@
 			</Target>
 		</Build>
 		<Unit filename="badrdp.h" />
+		<Unit filename="combine.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="combine.h" />
 		<Unit filename="dlparse.c">
 			<Option compilerVar="CC" />
 		</Unit>

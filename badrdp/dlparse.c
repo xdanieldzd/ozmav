@@ -305,14 +305,17 @@ void RDP_ClearStructures(bool Full)
 	Texture[0] = Texture_Empty;
 	Texture[1] = Texture_Empty;
 
-	static const __RGBA RGBA_Empty = { 0.0f, 0.0f, 0.0f, 0.0f };
-	Gfx.BlendColor = RGBA_Empty;
-	Gfx.EnvColor = RGBA_Empty;
-	Gfx.FogColor = RGBA_Empty;
-	static const __FillColor FillColor_Empty = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
-	Gfx.FillColor = FillColor_Empty;
-	static const __PrimColor PrimColor_Empty = { 0.5f, 0.5f, 0.5f, 0.5f, 0.0f, 0 };
-	Gfx.PrimColor = PrimColor_Empty;
+	Gfx.BlendColor =	(__RGBA){ 0.0f, 0.0f, 0.0f, 0.0f };
+	Gfx.FogColor =		(__RGBA){ 0.0f, 0.0f, 0.0f, 0.0f };
+	Gfx.EnvColor =		(__RGBA){ 0.5f, 0.5f, 0.5f, 0.5f };
+	Gfx.FillColor =		(__FillColor){ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+	Gfx.PrimColor =		(__PrimColor){ 0.5f, 0.5f, 0.5f, 0.5f, 0.0f, 0 };
+
+	if(OpenGL.Ext_FragmentProgram) {
+		glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 0, Gfx.EnvColor.R, Gfx.EnvColor.G, Gfx.EnvColor.B, Gfx.EnvColor.A);
+		glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 1, Gfx.PrimColor.R, Gfx.PrimColor.G, Gfx.PrimColor.B, Gfx.PrimColor.A);
+		glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 2, Gfx.PrimColor.L, Gfx.PrimColor.L, Gfx.PrimColor.L, Gfx.PrimColor.L);
+	}
 
 	Gfx.DLStackPos = 0;
 
@@ -362,6 +365,8 @@ void RDP_ParseDisplayList(unsigned int Address, bool ResetStack)
 
 	glPolygonMode(GL_FRONT_AND_BACK, (System.Options & BRDP_WIREFRAME) ? GL_LINE : GL_FILL);
 
+	if(OpenGL.Ext_FragmentProgram) glDisable(GL_FRAGMENT_PROGRAM_ARB);
+
 	while(Gfx.DLStackPos >= 0) {
 		unsigned int OldAddr = DListAddress;
 		DListAddress = RDP_Macro_DetectMacro(DListAddress);
@@ -383,9 +388,6 @@ void RDP_ParseDisplayList(unsigned int Address, bool ResetStack)
 			DListAddress += 8;
 		}
 	}
-
-	glDisable(GL_TEXTURE_GEN_S);
-	glDisable(GL_TEXTURE_GEN_T);
 }
 
 void RDP_DrawTriangle(int Vtxs[])
@@ -398,6 +400,11 @@ void RDP_DrawTriangle(int Vtxs[])
 		Vertex[Vtxs[i]].RealT0 = _FIXED2FLOAT(Vertex[Vtxs[i]].Vtx.T, 16) * (Texture[0].ScaleT * Texture[0].ShiftScaleT) / 32.0f / _FIXED2FLOAT(Texture[0].RealHeight, 16);
 		Vertex[Vtxs[i]].RealS1 = _FIXED2FLOAT(Vertex[Vtxs[i]].Vtx.S, 16) * (Texture[1].ScaleS * Texture[1].ShiftScaleS) / 32.0f / _FIXED2FLOAT(Texture[1].RealWidth, 16);
 		Vertex[Vtxs[i]].RealT1 = _FIXED2FLOAT(Vertex[Vtxs[i]].Vtx.T, 16) * (Texture[1].ScaleT * Texture[1].ShiftScaleT) / 32.0f / _FIXED2FLOAT(Texture[1].RealHeight, 16);
+
+		if(isnan(Vertex[Vtxs[i]].RealS0)) Vertex[Vtxs[i]].RealS0 = 0.0f;
+		if(isnan(Vertex[Vtxs[i]].RealT0)) Vertex[Vtxs[i]].RealT0 = 0.0f;
+		if(isnan(Vertex[Vtxs[i]].RealS1)) Vertex[Vtxs[i]].RealS1 = 0.0f;
+		if(isnan(Vertex[Vtxs[i]].RealT1)) Vertex[Vtxs[i]].RealT1 = 0.0f;
 
 		if(OpenGL.Ext_MultiTexture) {
 			glMultiTexCoord2fARB(GL_TEXTURE0_ARB, Vertex[Vtxs[i]].RealS0, Vertex[Vtxs[i]].RealT0);
@@ -423,443 +430,6 @@ void RDP_SetRenderMode(unsigned int Mode1, unsigned int Mode2)
 	Gfx.OtherModeL |= Mode1 | Mode2;
 
 	Gfx.Update |= CHANGED_RENDERMODE;
-}
-
-void RDP_CheckFragmentCache()
-{
-	int CacheCheck = 0; bool SearchingCache = true; bool NewProg = false;
-	while(SearchingCache) {
-		if((FragmentCache[CacheCheck].Combiner0 == Gfx.Combiner0) && (FragmentCache[CacheCheck].Combiner1 == Gfx.Combiner1)) {
-			SearchingCache = false;
-			NewProg = false;
-		} else {
-			if(CacheCheck != CACHE_FRAGMENT) {
-				CacheCheck++;
-			} else {
-				SearchingCache = false;
-				NewProg = true;
-			}
-		}
-	}
-
-	glEnable(GL_FRAGMENT_PROGRAM_ARB);
-
-	if(NewProg) {
-		RDP_CreateCombinerProgram(Gfx.Combiner0, Gfx.Combiner1);
-	} else {
-		glBindProgramARB(GL_FRAGMENT_PROGRAM_ARB, FragmentCache[CacheCheck].ProgramID);
-	}
-
-	if(System.FragCachePosition > CACHE_FRAGMENT) {
-		int i = 0;
-		static const __FragmentCache FragmentCache_Empty;
-		for(i = 0; i < CACHE_FRAGMENT; i++) FragmentCache[i] = FragmentCache_Empty;
-		System.FragCachePosition = 0;
-	}
-}
-
-void RDP_CreateCombinerProgram(unsigned int Cmb0, unsigned int Cmb1)
-{
-	if(!OpenGL.Ext_FragmentProgram) return;
-
-	int cA[2], cB[2], cC[2], cD[2], aA[2], aB[2], aC[2], aD[2];
-
-	cA[0] = ((Cmb0 >> 20) & 0x0F);
-	cB[0] = ((Cmb1 >> 28) & 0x0F);
-	cC[0] = ((Cmb0 >> 15) & 0x1F);
-	cD[0] = ((Cmb1 >> 15) & 0x07);
-
-	aA[0] = ((Cmb0 >> 12) & 0x07);
-	aB[0] = ((Cmb1 >> 12) & 0x07);
-	aC[0] = ((Cmb0 >>  9) & 0x07);
-	aD[0] = ((Cmb1 >>  9) & 0x07);
-
-	cA[1] = ((Cmb0 >>  5) & 0x0F);
-	cB[1] = ((Cmb1 >> 24) & 0x0F);
-	cC[1] = ((Cmb0 >>  0) & 0x1F);
-	cD[1] = ((Cmb1 >>  6) & 0x07);
-
-	aA[1] = ((Cmb1 >> 21) & 0x07);
-	aB[1] = ((Cmb1 >>  3) & 0x07);
-	aC[1] = ((Cmb1 >> 18) & 0x07);
-	aD[1] = ((Cmb1 >>  0) & 0x07);
-
-	char ProgramString[16384];
-	memset(ProgramString, 0x00, sizeof(ProgramString));
-
-	char * LeadIn =
-		"!!ARBfp1.0\n"
-		"\n"
-		"TEMP Tex0; TEMP Tex1;\n"
-		"TEMP R0; TEMP R1;\n"
-		"TEMP aR0; TEMP aR1;\n"
-		"TEMP Comb; TEMP aComb;\n"
-		"\n"
-		"PARAM EnvColor = program.env[0];\n"
-		"PARAM PrimColor = program.env[1];\n"
-		"PARAM BlendColor = program.env[2];\n"
-		"PARAM PrimColorLOD = program.env[3];\n"
-		"ATTRIB Shade = fragment.color.primary;\n"
-		"\n"
-		"OUTPUT Out = result.color;\n"
-		"\n"
-		"TEX Tex0, fragment.texcoord[0], texture[0], 2D;\n"
-		"TEX Tex1, fragment.texcoord[1], texture[1], 2D;\n"
-		"\n";
-
-	strcpy(ProgramString, LeadIn);
-
-	int Cycle = 0, NumCycles = 2;
-	for(Cycle = 0; Cycle < NumCycles; Cycle++) {
-		sprintf(ProgramString, "%s# Color %d\n", ProgramString, Cycle);
-		switch(cA[Cycle]) {
-			case G_CCMUX_COMBINED:
-				strcat(ProgramString, "MOV R0.rgb, Comb;\n");
-				break;
-			case G_CCMUX_TEXEL0:
-				strcat(ProgramString, "MOV R0.rgb, Tex0;\n");
-				break;
-			case G_CCMUX_TEXEL1:
-				strcat(ProgramString, "MOV R0.rgb, Tex1;\n");
-				break;
-			case G_CCMUX_PRIMITIVE:
-				strcat(ProgramString, "MOV R0.rgb, PrimColor;\n");
-				break;
-			case G_CCMUX_SHADE:
-				strcat(ProgramString, "MOV R0.rgb, Shade;\n");
-				break;
-			case G_CCMUX_ENVIRONMENT:
-				strcat(ProgramString, "MOV R0.rgb, EnvColor;\n");
-				break;
-			case G_CCMUX_1:
-				strcat(ProgramString, "MOV R0.rgb, {1.0, 1.0, 1.0, 1.0};\n");
-				break;
-			case G_CCMUX_COMBINED_ALPHA:
-				strcat(ProgramString, "MOV R0.rgb, Comb.a;\n");
-				break;
-			case G_CCMUX_TEXEL0_ALPHA:
-				strcat(ProgramString, "MOV R0.rgb, Tex0.a;\n");
-				break;
-			case G_CCMUX_TEXEL1_ALPHA:
-				strcat(ProgramString, "MOV R0.rgb, Tex1.a;\n");
-				break;
-			case G_CCMUX_PRIMITIVE_ALPHA:
-				strcat(ProgramString, "MOV R0.rgb, PrimColor.a;\n");
-				break;
-			case G_CCMUX_SHADE_ALPHA:
-				strcat(ProgramString, "MOV R0.rgb, Shade.a;\n");
-				break;
-			case G_CCMUX_ENV_ALPHA:
-				strcat(ProgramString, "MOV R0.rgb, EnvColor.a;\n");
-				break;
-			case G_CCMUX_LOD_FRACTION:
-				strcat(ProgramString, "MOV R0.rgb, {0.0, 0.0, 0.0, 0.0};\n");	// unemulated
-				break;
-			case G_CCMUX_PRIM_LOD_FRAC:
-				strcat(ProgramString, "MOV R0.rgb, PrimColorLOD;\n");
-				break;
-			case 15:	// 0
-				strcat(ProgramString, "MOV R0.rgb, {0.0, 0.0, 0.0, 0.0};\n");
-				break;
-			default:
-				strcat(ProgramString, "MOV R0.rgb, {0.0, 0.0, 0.0, 0.0};\n");
-				sprintf(ProgramString, "%s# -%d\n", ProgramString, cA[Cycle]);
-				break;
-		}
-
-		switch(cB[Cycle]) {
-			case G_CCMUX_COMBINED:
-				strcat(ProgramString, "MOV R1.rgb, Comb;\n");
-				break;
-			case G_CCMUX_TEXEL0:
-				strcat(ProgramString, "MOV R1.rgb, Tex0;\n");
-				break;
-			case G_CCMUX_TEXEL1:
-				strcat(ProgramString, "MOV R1.rgb, Tex1;\n");
-				break;
-			case G_CCMUX_PRIMITIVE:
-				strcat(ProgramString, "MOV R1.rgb, PrimColor;\n");
-				break;
-			case G_CCMUX_SHADE:
-				strcat(ProgramString, "MOV R1.rgb, Shade;\n");
-				break;
-			case G_CCMUX_ENVIRONMENT:
-				strcat(ProgramString, "MOV R1.rgb, EnvColor;\n");
-				break;
-			case G_CCMUX_1:
-				strcat(ProgramString, "MOV R1.rgb, {1.0, 1.0, 1.0, 1.0};\n");
-				break;
-			case G_CCMUX_COMBINED_ALPHA:
-				strcat(ProgramString, "MOV R1.rgb, Comb.a;\n");
-				break;
-			case G_CCMUX_TEXEL0_ALPHA:
-				strcat(ProgramString, "MOV R1.rgb, Tex0.a;\n");
-				break;
-			case G_CCMUX_TEXEL1_ALPHA:
-				strcat(ProgramString, "MOV R1.rgb, Tex1.a;\n");
-				break;
-			case G_CCMUX_PRIMITIVE_ALPHA:
-				strcat(ProgramString, "MOV R1.rgb, PrimColor.a;\n");
-				break;
-			case G_CCMUX_SHADE_ALPHA:
-				strcat(ProgramString, "MOV R1.rgb, Shade.a;\n");
-				break;
-			case G_CCMUX_ENV_ALPHA:
-				strcat(ProgramString, "MOV R1.rgb, EnvColor.a;\n");
-				break;
-			case G_CCMUX_LOD_FRACTION:
-				strcat(ProgramString, "MOV R1.rgb, {0.0, 0.0, 0.0, 0.0};\n");	// unemulated
-				break;
-			case G_CCMUX_PRIM_LOD_FRAC:
-				strcat(ProgramString, "MOV R1.rgb, PrimColorLOD;\n");
-				break;
-			case 15:	// 0
-				strcat(ProgramString, "MOV R1.rgb, {0.0, 0.0, 0.0, 0.0};\n");
-				break;
-			default:
-				strcat(ProgramString, "MOV R1.rgb, {0.0, 0.0, 0.0, 0.0};\n");
-				sprintf(ProgramString, "%s# -%d\n", ProgramString, cB[Cycle]);
-				break;
-		}
-		strcat(ProgramString, "SUB R0, R0, R1;\n\n");
-
-		switch(cC[Cycle]) {
-			case G_CCMUX_COMBINED:
-				strcat(ProgramString, "MOV R1.rgb, Comb;\n");
-				break;
-			case G_CCMUX_TEXEL0:
-				strcat(ProgramString, "MOV R1.rgb, Tex0;\n");
-				break;
-			case G_CCMUX_TEXEL1:
-				strcat(ProgramString, "MOV R1.rgb, Tex1;\n");
-				break;
-			case G_CCMUX_PRIMITIVE:
-				strcat(ProgramString, "MOV R1.rgb, PrimColor;\n");
-				break;
-			case G_CCMUX_SHADE:
-				strcat(ProgramString, "MOV R1.rgb, Shade;\n");
-				break;
-			case G_CCMUX_ENVIRONMENT:
-				strcat(ProgramString, "MOV R1.rgb, EnvColor;\n");
-				break;
-			case G_CCMUX_1:
-				strcat(ProgramString, "MOV R1.rgb, {1.0, 1.0, 1.0, 1.0};\n");
-				break;
-			case G_CCMUX_COMBINED_ALPHA:
-				strcat(ProgramString, "MOV R1.rgb, Comb.a;\n");
-				break;
-			case G_CCMUX_TEXEL0_ALPHA:
-				strcat(ProgramString, "MOV R1.rgb, Tex0.a;\n");
-				break;
-			case G_CCMUX_TEXEL1_ALPHA:
-				strcat(ProgramString, "MOV R1.rgb, Tex1.a;\n");
-				break;
-			case G_CCMUX_PRIMITIVE_ALPHA:
-				strcat(ProgramString, "MOV R1.rgb, PrimColor.a;\n");
-				break;
-			case G_CCMUX_SHADE_ALPHA:
-				strcat(ProgramString, "MOV R1.rgb, Shade.a;\n");
-				break;
-			case G_CCMUX_ENV_ALPHA:
-				strcat(ProgramString, "MOV R1.rgb, EnvColor.a;\n");
-				break;
-			case G_CCMUX_LOD_FRACTION:
-				strcat(ProgramString, "MOV R1.rgb, {0.0, 0.0, 0.0, 0.0};\n");	// unemulated
-				break;
-			case G_CCMUX_PRIM_LOD_FRAC:
-				strcat(ProgramString, "MOV R1.rgb, PrimColorLOD;\n");
-				break;
-			case G_CCMUX_K5:
-				strcat(ProgramString, "MOV R1.rgb, {1.0, 1.0, 1.0, 1.0};\n");	// unemulated
-				break;
-			case G_CCMUX_0:
-				strcat(ProgramString, "MOV R1.rgb, {0.0, 0.0, 0.0, 0.0};\n");
-				break;
-			default:
-				strcat(ProgramString, "MOV R1.rgb, {0.0, 0.0, 0.0, 0.0};\n");
-				sprintf(ProgramString, "%s# -%d\n", ProgramString, cC[Cycle]);
-				break;
-		}
-		strcat(ProgramString, "MUL R0, R0, R1;\n\n");
-
-		switch(cD[Cycle]) {
-			case G_CCMUX_COMBINED:
-				strcat(ProgramString, "MOV R1.rgb, Comb;\n");
-				break;
-			case G_CCMUX_TEXEL0:
-				strcat(ProgramString, "MOV R1.rgb, Tex0;\n");
-				break;
-			case G_CCMUX_TEXEL1:
-				strcat(ProgramString, "MOV R1.rgb, Tex1;\n");
-				break;
-			case G_CCMUX_PRIMITIVE:
-				strcat(ProgramString, "MOV R1.rgb, PrimColor;\n");
-				break;
-			case G_CCMUX_SHADE:
-				strcat(ProgramString, "MOV R1.rgb, Shade;\n");
-				break;
-			case G_CCMUX_ENVIRONMENT:
-				strcat(ProgramString, "MOV R1.rgb, EnvColor;\n");
-				break;
-			case G_CCMUX_1:
-				strcat(ProgramString, "MOV R1.rgb, {1.0, 1.0, 1.0, 1.0};\n");
-				break;
-			case 7:		// 0
-				strcat(ProgramString, "MOV R1.rgb, {0.0, 0.0, 0.0, 0.0};\n");
-				break;
-			default:
-				strcat(ProgramString, "MOV R1.rgb, {0.0, 0.0, 0.0, 0.0};\n");
-				sprintf(ProgramString, "%s# -%d\n", ProgramString, cD[Cycle]);
-				break;
-		}
-		strcat(ProgramString, "ADD R0, R0, R1;\n\n");
-
-		sprintf(ProgramString, "%s# Alpha %d\n", ProgramString, Cycle);
-
-		switch(aA[Cycle]) {
-			case G_ACMUX_COMBINED:
-				strcat(ProgramString, "MOV aR0.a, aComb;\n");
-				break;
-			case G_ACMUX_TEXEL0:
-				strcat(ProgramString, "MOV aR0.a, Tex0;\n");
-				break;
-			case G_ACMUX_TEXEL1:
-				strcat(ProgramString, "MOV aR0.a, Tex1;\n");
-				break;
-			case G_ACMUX_PRIMITIVE:
-				strcat(ProgramString, "MOV aR0.a, PrimColor;\n");
-				break;
-			case G_ACMUX_SHADE:
-				strcat(ProgramString, "MOV aR0.a, Shade;\n");
-				break;
-			case G_ACMUX_ENVIRONMENT:
-				strcat(ProgramString, "MOV aR0.a, EnvColor;\n");
-				break;
-			case G_ACMUX_1:
-				strcat(ProgramString, "MOV aR0.a, {1.0, 1.0, 1.0, 1.0};\n");
-				break;
-			case G_ACMUX_0:
-				strcat(ProgramString, "MOV aR0.a, {0.0, 0.0, 0.0, 0.0};\n");
-				break;
-			default:
-				strcat(ProgramString, "MOV aR0.a, {0.0, 0.0, 0.0, 0.0};\n");
-				sprintf(ProgramString, "%s# -%d\n", ProgramString, aA[Cycle]);
-				break;
-		}
-
-		switch(aB[Cycle]) {
-			case G_ACMUX_COMBINED:
-				strcat(ProgramString, "MOV aR1.a, aComb.a;\n");
-				break;
-			case G_ACMUX_TEXEL0:
-				strcat(ProgramString, "MOV aR1.a, Tex0.a;\n");
-				break;
-			case G_ACMUX_TEXEL1:
-				strcat(ProgramString, "MOV aR1.a, Tex1.a;\n");
-				break;
-			case G_ACMUX_PRIMITIVE:
-				strcat(ProgramString, "MOV aR1.a, PrimColor.a;\n");
-				break;
-			case G_ACMUX_SHADE:
-				strcat(ProgramString, "MOV aR1.a, Shade.a;\n");
-				break;
-			case G_ACMUX_ENVIRONMENT:
-				strcat(ProgramString, "MOV aR1.a, EnvColor.a;\n");
-				break;
-			case G_ACMUX_1:
-				strcat(ProgramString, "MOV aR1.a, {1.0, 1.0, 1.0, 1.0};\n");
-				break;
-			case G_ACMUX_0:
-				strcat(ProgramString, "MOV aR1.a, {0.0, 0.0, 0.0, 0.0};\n");
-				break;
-			default:
-				strcat(ProgramString, "MOV aR1.a, {0.0, 0.0, 0.0, 0.0};\n");
-				sprintf(ProgramString, "%s# -%d\n", ProgramString, aB[Cycle]);
-				break;
-		}
-		strcat(ProgramString, "SUB aR0.a, aR0.a, aR1.a;\n\n");
-
-		switch(aC[Cycle]) {
-			case G_ACMUX_COMBINED:
-				strcat(ProgramString, "MOV aR1.a, aComb.a;\n");
-				break;
-			case G_ACMUX_TEXEL0:
-				strcat(ProgramString, "MOV aR1.a, Tex0.a;\n");
-				break;
-			case G_ACMUX_TEXEL1:
-				strcat(ProgramString, "MOV aR1.a, Tex1.a;\n");
-				break;
-			case G_ACMUX_PRIMITIVE:
-				strcat(ProgramString, "MOV aR1.a, PrimColor.a;\n");
-				break;
-			case G_ACMUX_SHADE:
-				strcat(ProgramString, "MOV aR1.a, Shade.a;\n");
-				break;
-			case G_ACMUX_ENVIRONMENT:
-				strcat(ProgramString, "MOV aR1.a, EnvColor.a;\n");
-				break;
-			case G_ACMUX_1:
-				strcat(ProgramString, "MOV aR1.a, {1.0, 1.0, 1.0, 1.0};\n");
-				break;
-			case G_ACMUX_0:
-				strcat(ProgramString, "MOV aR1.a, {0.0, 0.0, 0.0, 0.0};\n");
-				break;
-			default:
-				strcat(ProgramString, "MOV aR1.a, {0.0, 0.0, 0.0, 0.0};\n");
-				sprintf(ProgramString, "%s# -%d\n", ProgramString, aC[Cycle]);
-				break;
-		}
-		strcat(ProgramString, "MUL aR0.a, aR0.a, aR1.a;\n\n");
-
-		switch(aD[Cycle]) {
-			case G_ACMUX_COMBINED:
-				strcat(ProgramString, "MOV aR1.a, aComb.a;\n");
-				break;
-			case G_ACMUX_TEXEL0:
-				strcat(ProgramString, "MOV aR1.a, Tex0.a;\n");
-				break;
-			case G_ACMUX_TEXEL1:
-				strcat(ProgramString, "MOV aR1.a, Tex1.a;\n");
-				break;
-			case G_ACMUX_PRIMITIVE:
-				strcat(ProgramString, "MOV aR1.a, PrimColor.a;\n");
-				break;
-			case G_ACMUX_SHADE:
-				strcat(ProgramString, "MOV aR1.a, Shade.a;\n");
-				break;
-			case G_ACMUX_ENVIRONMENT:
-				strcat(ProgramString, "MOV aR1.a, EnvColor.a;\n");
-				break;
-			case G_ACMUX_1:
-				strcat(ProgramString, "MOV aR1.a, {1.0, 1.0, 1.0, 1.0};\n");
-				break;
-			case G_ACMUX_0:
-				strcat(ProgramString, "MOV aR1.a, {0.0, 0.0, 0.0, 0.0};\n");
-				break;
-			default:
-				strcat(ProgramString, "MOV aR1.a, {0.0, 0.0, 0.0, 0.0};\n");
-				sprintf(ProgramString, "%s# -%d\n", ProgramString, aD[Cycle]);
-				break;
-		}
-		strcat(ProgramString, "ADD aR0.a, aR0.a, aR1.a;\n\n");
-
-		strcat(ProgramString, "MOV Comb.rgb, R0;\n");
-		strcat(ProgramString, "MOV aComb.a, aR0.a;\n\n");
-	}
-
-	strcat(ProgramString, "# Finish\n");
-	strcat(ProgramString,
-			"MOV Comb.a, aComb.a;\n"
-			"MOV Out, Comb;\n"
-			"END\n");
-
-	glGenProgramsARB(1, &FragmentCache[System.FragCachePosition].ProgramID);
-	glBindProgramARB(GL_FRAGMENT_PROGRAM_ARB, FragmentCache[System.FragCachePosition].ProgramID);
-	glProgramStringARB(GL_FRAGMENT_PROGRAM_ARB, GL_PROGRAM_FORMAT_ASCII_ARB, strlen(ProgramString), ProgramString);
-
-	FragmentCache[System.FragCachePosition].Combiner0 = Cmb0;
-	FragmentCache[System.FragCachePosition].Combiner1 = Cmb1;
-	System.FragCachePosition++;
 }
 
 void RDP_ChangeTileSize(unsigned int Tile, unsigned int ULS, unsigned int ULT, unsigned int LRS, unsigned int LRT)
@@ -1009,10 +579,10 @@ inline unsigned long RDP_PowOf(unsigned long dim)
 
 void RDP_InitLoadTexture()
 {
-	if(OpenGL.Ext_FragmentProgram && ((System.Options & BRDP_COMBINER) == 0)) {
+/*	if(OpenGL.Ext_FragmentProgram && ((System.Options & BRDP_COMBINER) == 0)) {
 		glDisable(GL_FRAGMENT_PROGRAM_ARB);
 	}
-
+*/
 	if(OpenGL.Ext_MultiTexture) {
 		if(Texture[0].Offset != 0x00) {
 			glEnable(GL_TEXTURE_2D);

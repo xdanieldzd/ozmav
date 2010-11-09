@@ -50,6 +50,15 @@ void RDP_Macro_LoadTextureBlock()
 		if((nw0[7] >> 24) == G_SETTIMG) return;
 	}
 
+	if(OpenGL.Ext_FragmentProgram) {
+		if(Gfx.IsMultiTexture) {
+			Gfx.EnvColor = (__RGBA){ 0.5f, 0.5f, 0.5f, 0.5f };
+		} else {
+			Gfx.EnvColor = (__RGBA){ 1.0f, 1.0f, 1.0f, 0.75f };
+		}
+		glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 0, Gfx.EnvColor.R, Gfx.EnvColor.G, Gfx.EnvColor.B, Gfx.EnvColor.A);
+	}
+
 	RDP_InitLoadTexture();
 }
 

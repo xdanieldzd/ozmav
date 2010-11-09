@@ -273,3 +273,4 @@ extern __OpenGL OpenGL;
 #include "f3dex.h"
 #include "f3dex2.h"
 #include "dump.h"
+#include "combine.h"

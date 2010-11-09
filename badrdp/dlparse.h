@@ -46,7 +46,6 @@ extern unsigned int G_MTX_PUSH;
 extern void RDP_DrawTriangle(int Vtxs[]);
 extern void RDP_UpdateGeometryMode();
 extern void RDP_SetRenderMode(unsigned int Mode1, unsigned int Mode2);
-extern void RDP_CheckFragmentCache();
 extern void RDP_ChangeTileSize(unsigned int Tile, unsigned int ULS, unsigned int ULT, unsigned int LRS, unsigned int LRT);
 extern void RDP_CalcTextureSize(int TextureID);
 inline unsigned long RDP_Pow2(unsigned long dim);
