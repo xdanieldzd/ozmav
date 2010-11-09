@@ -149,7 +149,7 @@ int main(int argc, char **argv)
 
 	vCurrentActor.actorNumber = 2;//467;
 
-	vProgram.debugLevel = 3;
+	vProgram.debugLevel = 0;
 	
 	#ifdef WIN32
 	sprintf(temp, "%s%c%s", vProgram.appPath, FILESEP, argv[1]); /* ??? */
