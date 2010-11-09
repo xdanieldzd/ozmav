@@ -339,7 +339,7 @@ void RDP_ClearStructures(bool Full)
 	if(Full) {
 		static const __FragmentCache FragmentCache_Empty = { 0, 0, -1 };
 		for(i = 0; i < ArraySize(FragmentCache); i++) {
-			glDeleteProgramsARB(1, &FragmentCache[i].ProgramID);
+			if(OpenGL.Ext_FragmentProgram) glDeleteProgramsARB(1, &FragmentCache[i].ProgramID);
 			FragmentCache[i] = FragmentCache_Empty;
 		}
 		System.FragCachePosition = 0;
