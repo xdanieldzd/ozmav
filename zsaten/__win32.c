@@ -113,6 +113,11 @@ int WinAPIMain()
 			vProgram.key[VK_F9] = false;
 		}
 
+		if(vProgram.key[VK_F12]) {
+			vProgram.enableHUD ^= 1;
+			vProgram.key[VK_F12] = false;
+		}
+
 		if(vProgram.key[VK_ADD]) {
 			if(vProgram.animPlay) vProgram.animPlay = false;
 			if(vCurrentActor.frameCurrent < vCurrentActor.frameTotal - 1) vCurrentActor.frameCurrent++;

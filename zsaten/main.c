@@ -135,10 +135,12 @@ int main(int argc, char **argv)
 	RDP_SetupOpenGL();
 
 	RDP_InitParser(F3DEX2);
-	RDP_SetRendererOptions(BRDP_TEXTURES);
+	RDP_SetRendererOptions(BRDP_TEXTURES/* | BRDP_COMBINER*/);
 
 	vProgram.enableTextures = true;
 	vProgram.enableWireframe = false;
+
+	vProgram.enableHUD = true;
 
 	vCurrentActor.actorNumber = 2;//467;
 

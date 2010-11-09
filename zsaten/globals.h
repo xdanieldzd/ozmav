@@ -79,6 +79,8 @@ typedef struct {
 	bool enableTextures;
 	bool enableWireframe;
 
+	bool enableHUD;
+
 	int debugLevel;
 	bool showBones;
 	bool animPlay;

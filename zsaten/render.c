@@ -179,8 +179,8 @@ void gl_DrawScene(void)
 	glRotatef(vCamera.actorRotX, 1.0f, 0.0f, 0.0f);
 	glRotatef(vCamera.actorRotY, 0.0f, 1.0f, 0.0f);
 
-	if((vCurrentActor.offsetBoneSetup) && (vCurrentActor.animTotal >= 0)) {
-		if(!vProgram.showBones) glCallList(vProgram.actorAxisMarkerDL);
+	if((vCurrentActor.offsetBoneSetup)/* && (vCurrentActor.animTotal >= 0)*/) {
+		if(!vProgram.showBones && vProgram.enableHUD) glCallList(vProgram.actorAxisMarkerDL);
 		drawBones(vCurrentActor.offsetBoneSetup, vCurrentActor.offsetAnims[vCurrentActor.animCurrent], vCurrentActor.actorScale, 0, 0, 0, 0, 0, 0);
 
 	} else if(vCurrentActor.offsetDList) {
@@ -195,6 +195,10 @@ void gl_DrawScene(void)
 		}
 	}
 	glPopMatrix();
+
+	if(!vProgram.enableHUD) return;
+
+	if(RDP_OpenGL_ExtFragmentProgram()) glDisable(GL_FRAGMENT_PROGRAM_ARB);
 	glCallList(vProgram.sceneAxisMarkerDL);
 
 	gl_SetupScene2D(vProgram.windowWidth, vProgram.windowHeight);
