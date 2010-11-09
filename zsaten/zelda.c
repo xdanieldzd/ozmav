@@ -1,6 +1,9 @@
 #include "globals.h"
 
 #include "zelda_ver.h"
+#ifndef TRUE
+ #define TRUE	1
+#endif
 
 bool zl_Init(char * Filename)
 {
@@ -38,7 +41,7 @@ int zl_LoadROM(char * Filename)
 	if((file = fopen(Filename, "rb")) == NULL) {
 		char Temp[MAX_PATH];
 		strcpy(Temp, getFilename(Filename));
-		dbgprintf(0, MSK_COLORTYPE_ERROR, "- Error: File '%s' not found\n", Temp);
+		dbgprintf(0, MSK_COLORTYPE_ERROR, "- Error: File '%s' not found\n", Filename);
 		return EXIT_FAILURE;
 	}
 

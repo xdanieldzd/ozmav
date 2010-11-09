@@ -130,7 +130,7 @@ int main(int argc, char **argv)
 	if(oz_InitProgram(APP_TITLE, vProgram.windowWidth, vProgram.windowHeight)) return EXIT_FAILURE;
 
 	sprintf(temp, "%s%cdata%cfont.bmp", vProgram.appPath, FILESEP, FILESEP);
-	if(hud_Init(temp)) {
+	if(hud_Init((unsigned char*)temp)) {
 		MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "- Error: Failed to initialize HUD system!\n");
 		die(EXIT_FAILURE);
 	}
@@ -149,10 +149,14 @@ int main(int argc, char **argv)
 
 	vCurrentActor.actorNumber = 2;//467;
 
-	vProgram.debugLevel = 0;
-
-	sprintf(temp, "%s%c%s", vProgram.appPath, FILESEP, argv[1]);
+	vProgram.debugLevel = 3;
+	
+	#ifdef WIN32
+	sprintf(temp, "%s%c%s", vProgram.appPath, FILESEP, argv[1]); /* ??? */
 	zl_Init(temp);
+	#else
+	zl_Init(argv[1]);
+	#endif
 
 	initActorParsing(-1);
 
@@ -234,6 +238,9 @@ inline void dbgprintf(int Level, int Type, char * Format, ...)
 
 void die(int Code)
 {
+	/* define getch() */
+	int getch(void);
+	
 	if(vProgram.tempString != NULL) free(vProgram.tempString);
 
 	hud_KillFont();

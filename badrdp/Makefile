@@ -8,7 +8,9 @@ AR = ar
 CFLAGS = -Wall -U_FORTIFY_SOURCE
 
 # Application pieces
-PIECES	= dump.o  f3dex2.o  dlparse.o  f3d.o   f3dex.o  rdp.o
+PIECES	= combine.o  dump.o  f3dex2.o  gdp.o  macro.o   opengl.o\
+	  dlparse.o  f3d.o   f3dex.o   gsp.o  matrix.o  rdp.o
+
 
 #Platfor specific options
 ifeq ($(WIN32), 1)

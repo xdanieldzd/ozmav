@@ -105,7 +105,7 @@ int main(int argc, char * argv[])
 
 	// load font image for HUD
 	sprintf(Temp, "%s//data//font.bmp", zProgram.AppPath);
-	if(hud_Init(Temp)) {
+	if(hud_Init((unsigned char*)Temp)) {
 		MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "- Error: Failed to initialize HUD system!\n");
 		die(EXIT_FAILURE);
 	}

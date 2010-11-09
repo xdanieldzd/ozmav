@@ -1,4 +1,4 @@
-PROJECT = OZMAV2
+PROJECT = zsaten
 
 # Environment
 CC = gcc
@@ -7,7 +7,7 @@ CC = gcc
 CFLAGS = -Wall -U_FORTIFY_SOURCE
 
 # Application pieces
-PIECES	= camera.o draw.o __linux.o mips-eval.o __win32.o zelda.o confunc.o main.o oz.o zactors.o hud.o
+PIECES	= camera.o  hud.o  __linux.o  main.o  memwatch.o  mips-eval.o  oz.o  render.o  shared.o  __win32.o  zactors.o  zelda.o
 
 # In regards to backslashes
 # (http://www.netbsd.org/docs/pkgsrc/makefile.html#makefile.variables)

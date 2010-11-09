@@ -70,7 +70,7 @@ int XMain()
 				XKeyEvent *kevent;
 				char       buffer[1];
 				kevent = (XKeyEvent *) &event;
-				if((XLookupString((XKeyEvent *)&event,buffer,1,&keysym,NULL) == 1) && (keysym == (KeySym)XK_Escape)) zProgram.IsRunning = false;
+				if((XLookupString((XKeyEvent *)&event,buffer,1,&keysym,NULL) == 1) && (keysym == (KeySym)XK_Escape)) vProgram.isRunning = false;
 				vProgram.key[keysym & 0xFF] = true;
 				break; }
 			case KeyRelease: {
