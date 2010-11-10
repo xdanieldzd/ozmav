@@ -77,19 +77,23 @@ int WinAPIMain()
 		}
 
 		if(vProgram.key[VK_F1]) {
-			vProgram.key[VK_F1] = false;
 			if(vCurrentActor.actorNumber > 0) {
 				vCurrentActor.actorNumber--;
+				vCurrentActor.animCurrent = 0;
+				vCurrentActor.frameCurrent = 0;
 				initActorParsing(-1);
 			}
+			vProgram.key[VK_F1] = false;
 		}
 
 		if(vProgram.key[VK_F2]) {
-			vProgram.key[VK_F2] = false;
 			if(vCurrentActor.actorNumber < vZeldaInfo.actorCount - 1) {
 				vCurrentActor.actorNumber++;
+				vCurrentActor.animCurrent = 0;
+				vCurrentActor.frameCurrent = 0;
 				initActorParsing(-1);
 			}
+			vProgram.key[VK_F2] = false;
 		}
 
 		if(vProgram.key[VK_F3]) {
@@ -101,11 +105,27 @@ int WinAPIMain()
 		}
 
 		if(vProgram.key[VK_F4]) {
-			if(vCurrentActor.animCurrent < vCurrentActor.animTotal - 1) {
+			if(vCurrentActor.animCurrent < vCurrentActor.animTotal) {
 				vCurrentActor.animCurrent++;
 				vCurrentActor.frameCurrent = 0;
 			}
 			vProgram.key[VK_F4] = false;
+		}
+
+		if(vProgram.key[VK_F5]) {
+			if(vCurrentActor.boneSetupCurrent > 0) {
+				vCurrentActor.boneSetupCurrent--;
+				vCurrentActor.frameCurrent = 0;
+			}
+			vProgram.key[VK_F5] = false;
+		}
+
+		if(vProgram.key[VK_F6]) {
+			if(vCurrentActor.boneSetupCurrent < vCurrentActor.boneSetupTotal) {
+				vCurrentActor.boneSetupCurrent++;
+				vCurrentActor.frameCurrent = 0;
+			}
+			vProgram.key[VK_F6] = false;
 		}
 
 		if(vProgram.key[VK_F9]) {
@@ -118,9 +138,19 @@ int WinAPIMain()
 			vProgram.key[VK_F12] = false;
 		}
 
+		if(vProgram.key[VK_DIVIDE]) {
+			if(vProgram.targetFPS > 15.0f) vProgram.targetFPS -= 15.0f;
+			vProgram.key[VK_DIVIDE] = false;
+		}
+
+		if(vProgram.key[VK_MULTIPLY]) {
+			if(vProgram.targetFPS <= 60.0f) vProgram.targetFPS += 15.0f;
+			vProgram.key[VK_MULTIPLY] = false;
+		}
+
 		if(vProgram.key[VK_ADD]) {
 			if(vProgram.animPlay) vProgram.animPlay = false;
-			if(vCurrentActor.frameCurrent < vCurrentActor.frameTotal - 1) vCurrentActor.frameCurrent++;
+			if(vCurrentActor.frameCurrent < vCurrentActor.frameTotal) vCurrentActor.frameCurrent++;
 			else vCurrentActor.frameCurrent = 0;
 			vProgram.key[VK_ADD] = false;
 		}
@@ -128,7 +158,7 @@ int WinAPIMain()
 		if(vProgram.key[VK_SUBTRACT]) {
 			if(vProgram.animPlay) vProgram.animPlay = false;
 			if(vCurrentActor.frameCurrent > 0) vCurrentActor.frameCurrent--;
-			else vCurrentActor.frameCurrent = vCurrentActor.frameTotal - 1;
+			else vCurrentActor.frameCurrent = vCurrentActor.frameTotal;
 			vProgram.key[VK_SUBTRACT] = false;
 		}
 

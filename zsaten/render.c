@@ -179,11 +179,12 @@ void gl_DrawScene(void)
 	glRotatef(vCamera.actorRotX, 1.0f, 0.0f, 0.0f);
 	glRotatef(vCamera.actorRotY, 0.0f, 1.0f, 0.0f);
 
-	if((vCurrentActor.offsetBoneSetup)/* && (vCurrentActor.animTotal >= 0)*/) {
+	if((vCurrentActor.boneSetupTotal >= 0)/* && (vCurrentActor.animTotal >= 0)*/) {
 		if(!vProgram.showBones && vProgram.enableHUD) glCallList(vProgram.actorAxisMarkerDL);
-		drawBones(vCurrentActor.offsetBoneSetup, vCurrentActor.offsetAnims[vCurrentActor.animCurrent], vCurrentActor.actorScale, 0, 0, 0, 0, 0, 0);
+		drawBones(vCurrentActor.offsetBoneSetup[vCurrentActor.boneSetupCurrent], vCurrentActor.offsetAnims[vCurrentActor.animCurrent], vCurrentActor.actorScale, 0, 0, 0, 0, 0, 0);
 
 	} else if(vCurrentActor.offsetDList) {
+		if(vProgram.enableHUD) glCallList(vProgram.actorAxisMarkerDL);
 		if(RDP_CheckAddressValidity(vCurrentActor.offsetDList)) {
 			RDP_ClearStructures(false);
 //			RDP_ClearTextures();
@@ -221,9 +222,18 @@ void gl_DrawScene(void)
 
 	hud_Print(0, 0, -1, -1, statMsg);
 
-	if((vCurrentActor.offsetBoneSetup) && (vCurrentActor.animTotal >= 0)) {
-		sprintf(statMsg, "Showing animation %02i of %02i\nCurrent animation frame: %02i/%02i\n%cBone structure: %s\n%cAnimation is %s",
-			vCurrentActor.animCurrent + 1, vCurrentActor.animTotal, vCurrentActor.frameCurrent + 1, vCurrentActor.frameTotal,
+	if((vCurrentActor.boneSetupTotal >= 0) && (vCurrentActor.animTotal >= 0) && (vActors[vCurrentActor.actorNumber].isValid)) {
+		sprintf(statMsg,
+			"Using bone structure %02i of %02i\n"
+			"Showing animation %02i of %02i\n"
+			"Current animation frame: %02i/%02i\n"
+			"Target FPS: %2.0f\n"
+			"%cBone structure: %s\n"
+			"%cAnimation is %s",
+			vCurrentActor.boneSetupCurrent + 1, vCurrentActor.boneSetupTotal + 1,
+			vCurrentActor.animCurrent + 1, vCurrentActor.animTotal + 1,
+			vCurrentActor.frameCurrent + 1, vCurrentActor.frameTotal + 1,
+			vProgram.targetFPS,
 			(vProgram.showBones ? '\x90' : '\x91'), (vProgram.showBones ? "shown" : "hidden"),
 			(vProgram.animPlay ? '\x90' : '\x91'), (vProgram.animPlay ? "running..." : "stopped."));
 		hud_Print(0, 40, -1, -1, statMsg);

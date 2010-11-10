@@ -118,7 +118,101 @@ int XMain()
 	if(vProgram.key[XK_Left]) vCamera.actorRotY -= 2.0f;
 	if(vProgram.key[XK_Right]) vCamera.actorRotY += 2.0f;
 
-	// needs more keys from __win32.c!
+	if(vProgram.key[XK_Tab]) {
+		vProgram.showBones ^= 1;
+		vProgram.key[XK_Tab] = false;
+	}
+
+	if(vProgram.key[XK_space]) {
+		vProgram.animPlay ^= 1;
+		vProgram.key[XK_space] = false;
+	}
+
+	if(vProgram.key[XK_F1]) {
+		vProgram.key[XK_F1] = false;
+		if(vCurrentActor.actorNumber > 0) {
+			vCurrentActor.actorNumber--;
+			vCurrentActor.animCurrent = 0;
+			vCurrentActor.frameCurrent = 0;
+			initActorParsing(-1);
+		}
+	}
+
+	if(vProgram.key[XK_F2]) {
+		vProgram.key[XK_F2] = false;
+		if(vCurrentActor.actorNumber < vZeldaInfo.actorCount - 1) {
+			vCurrentActor.actorNumber++;
+			vCurrentActor.animCurrent = 0;
+			vCurrentActor.frameCurrent = 0;
+			initActorParsing(-1);
+		}
+	}
+
+	if(vProgram.key[XK_F3]) {
+		if(vCurrentActor.animCurrent > 0) {
+			vCurrentActor.animCurrent--;
+			vCurrentActor.frameCurrent = 0;
+		}
+		vProgram.key[XK_F3] = false;
+	}
+
+	if(vProgram.key[XK_F4]) {
+		if(vCurrentActor.animCurrent < vCurrentActor.animTotal) {
+			vCurrentActor.animCurrent++;
+			vCurrentActor.frameCurrent = 0;
+		}
+		vProgram.key[XK_F4] = false;
+	}
+
+	if(vProgram.key[XK_F5]) {
+		if(vCurrentActor.boneSetupCurrent > 0) {
+			vCurrentActor.boneSetupCurrent--;
+			vCurrentActor.frameCurrent = 0;
+		}
+		vProgram.key[XK_F5] = false;
+	}
+
+	if(vProgram.key[XK_F6]) {
+		if(vCurrentActor.boneSetupCurrent < vCurrentActor.boneSetupTotal) {
+			vCurrentActor.boneSetupCurrent++;
+			vCurrentActor.frameCurrent = 0;
+		}
+		vProgram.key[XK_F6] = false;
+	}
+
+	if(vProgram.key[XK_F9]) {
+		ca_Reset();
+		vProgram.key[XK_F9] = false;
+	}
+
+	if(vProgram.key[XK_F12]) {
+		vProgram.enableHUD ^= 1;
+		vProgram.key[XK_F12] = false;
+	}
+
+	if(vProgram.key[XK_KP_Divide]) {
+		if(vProgram.targetFPS > 15.0f) vProgram.targetFPS -= 15.0f;
+		vProgram.key[XK_KP_Divide] = false;
+	}
+
+	if(vProgram.key[XK_KP_Multiply]) {
+		if(vProgram.targetFPS <= 60.0f) vProgram.targetFPS += 15.0f;
+		vProgram.key[XK_KP_Multiply] = false;
+	}
+
+	if(vProgram.key[XK_KP_Add]) {
+		if(vProgram.animPlay) vProgram.animPlay = false;
+		if(vCurrentActor.frameCurrent < vCurrentActor.frameTotal) vCurrentActor.frameCurrent++;
+		else vCurrentActor.frameCurrent = 0;
+		vProgram.key[XK_KP_Add] = false;
+	}
+
+	if(vProgram.key[XK_KP_Subtract]) {
+		if(vProgram.animPlay) vProgram.animPlay = false;
+		if(vCurrentActor.frameCurrent > 0) vCurrentActor.frameCurrent--;
+		else vCurrentActor.frameCurrent = vCurrentActor.frameTotal;
+		vProgram.key[XK_KP_Subtract] = false;
+	}
 
 	return EXIT_SUCCESS;
 }

@@ -19,13 +19,13 @@ void swapRAMSegments(unsigned char Seg1, unsigned char Seg2)
 
 void initActorParsing(int objFileNo)
 {
-	// if func param is -1, use an actor overlay file
-	if(objFileNo == -1) {
-		vCurrentActor.useActorOvl = true;
-
 	// if func param is > 0, do not use an actor file
-	} else if(objFileNo >= 0) {
+	if(objFileNo >= 0) {
 		vCurrentActor.useActorOvl = false;
+
+	// if func param is -1, use an actor overlay file
+	} else if(objFileNo == -1) {
+		vCurrentActor.useActorOvl = true;
 
 	// if func param is -2, use external anim file
 	} else if(objFileNo == -2) {
@@ -40,25 +40,28 @@ void initActorParsing(int objFileNo)
 
 		zl_ClearAllSegments();
 
-		vCurrentActor.offsetBoneSetup = 0;
+		vCurrentActor.variable = 0;
+
 		vCurrentActor.actorScale = 0;
 		vCurrentActor.offsetDList = 0;
 
-		vCurrentActor.variable = 0;
+		memset(vCurrentActor.offsetBoneSetup, 0, sizeof(vCurrentActor.offsetBoneSetup));
+		vCurrentActor.boneSetupTotal = 0;
+		vCurrentActor.boneSetupCurrent = 0;
 
-		memset(vCurrentActor.offsetAnims, 0, arraySize(vCurrentActor.offsetAnims));
+		memset(vCurrentActor.offsetAnims, 0, sizeof(vCurrentActor.offsetAnims));
 		vCurrentActor.animTotal = 0;
 		vCurrentActor.animCurrent = 0;
 
 		vCurrentActor.frameTotal = 0;
 		vCurrentActor.frameCurrent = 0;
 
-		memset(vCurrentActor.oName, 0, arraySize(vCurrentActor.oName));
+		memset(vCurrentActor.oName, 0, sizeof(vCurrentActor.oName));
 
 		vCurrentActor.useExtAnim = false;
 
 		vProgram.animPlay = false;
-		vProgram.animDelay = 2;
+		vProgram.targetFPS = 30.0f;
 	}
 
 	setMipsWatchers();
@@ -187,12 +190,11 @@ void processActor()
 				}
 			}
 		}
-		bones = mips_GetFuncArg(0x800A457C, 2, true);
-		if(bones == NULL || !*bones){
-			bones = mips_GetFuncArg(0x800A46F8, 2, true);
-		}
 
-		if(vActors[vCurrentActor.actorNumber].ObjectSegment == 0x06) scanAnimations(vActors[vCurrentActor.actorNumber].ObjectSegment);
+		vCurrentActor.actorScale = (scale != NULL) ? *scale : 0.01f;
+		vCurrentActor.offsetDList = (dlist != NULL) ? *dlist : 0;
+
+		scanAnimations(vActors[vCurrentActor.actorNumber].ObjectSegment);
 
 		if(vCurrentActor.offsetAnims[0] == 0) {
 			anim = mips_GetFuncArg(0x800A457C, 3, true);
@@ -209,17 +211,19 @@ void processActor()
 				}
 			}
 			vCurrentActor.offsetAnims[0] = (anim != NULL) ? *anim : 0;
-			if(vCurrentActor.offsetAnims[0]) vCurrentActor.animTotal = 1;
+			if(vCurrentActor.offsetAnims[0]) vCurrentActor.animTotal = 0;
 		}
 
-		vCurrentActor.offsetBoneSetup = (bones != NULL) ? *bones : 0;
-		vCurrentActor.actorScale = (scale != NULL) ? *scale : 0.01f;
-		vCurrentActor.offsetDList = (dlist != NULL) ? *dlist : 0;
+		bones = mips_GetFuncArg(0x800A457C, 2, true);
+		if(bones == NULL || !*bones){
+			bones = mips_GetFuncArg(0x800A46F8, 2, true);
+		}
+		vCurrentActor.offsetBoneSetup[0] = (bones != NULL) ? *bones : 0;
+		if(vCurrentActor.offsetBoneSetup[0]) vCurrentActor.boneSetupTotal = 0;
 
-		if(	(vCurrentActor.offsetBoneSetup == 0) &&
-			(vCurrentActor.offsetDList == 0) &&
-			(vActors[vCurrentActor.actorNumber].ObjectSegment == 0x06)
-		) scanBones(vActors[vCurrentActor.actorNumber].ObjectSegment);
+		if(vCurrentActor.offsetBoneSetup[0] == 0) {
+			scanBones(vActors[vCurrentActor.actorNumber].ObjectSegment);
+		}
 
 		if(!(vCurrentActor.offsetDList >> 24) && vCurrentActor.offsetDList){
 			vCurrentActor.offsetDList = 0;
@@ -230,8 +234,8 @@ void processActor()
 		dbgprintf(0, MSK_COLORTYPE_INFO, "actor 0x%04X (%s):\n", vCurrentActor.actorNumber, vActors[vCurrentActor.actorNumber].ActorName);
 		dbgprintf(0, MSK_COLORTYPE_INFO, "known -> object 0x%04X (%s) seg:%i\n",
 			vActors[vCurrentActor.actorNumber].ObjectNumber, vObjects[vActors[vCurrentActor.actorNumber].ObjectNumber].ObjectName, vActors[vCurrentActor.actorNumber].ObjectSegment);
-		dbgprintf(0, MSK_COLORTYPE_INFO, "scanned -> bones:%08x, dlist:%08x, anim[0]:%08x, scale:%.2f\n",
-			vCurrentActor.offsetBoneSetup, vCurrentActor.offsetDList, vCurrentActor.offsetAnims[0], vCurrentActor.actorScale);
+		dbgprintf(0, MSK_COLORTYPE_INFO, "scanned -> bones[0]:%08x, dlist:%08x, anim[0]:%08x, scale:%.2f\n",
+			vCurrentActor.offsetBoneSetup[0], vCurrentActor.offsetDList, vCurrentActor.offsetAnims[0], vCurrentActor.actorScale);
 
 	} else {
 		// parse object directly
@@ -248,8 +252,8 @@ void processActor()
 		scanBones(0x06);
 		vCurrentActor.actorScale = 0.01f;
 
-		dbgprintf(0, MSK_COLORTYPE_INFO, "scanned -> bones:%08x, dlist:%08x, anim[0]:%08x, scale:%.2f\n",
-			vCurrentActor.offsetBoneSetup, vCurrentActor.offsetDList, vCurrentActor.offsetAnims[0], vCurrentActor.actorScale);
+		dbgprintf(0, MSK_COLORTYPE_INFO, "scanned -> bones[0]:%08x, dlist:%08x, anim[0]:%08x, scale:%.2f\n",
+			vCurrentActor.offsetBoneSetup[0], vCurrentActor.offsetDList, vCurrentActor.offsetAnims[0], vCurrentActor.actorScale);
 	}
 }
 
@@ -381,7 +385,7 @@ void drawBones(unsigned int BoneOffset, unsigned int AnimationOffset, float Scal
 		RotIndexOffset &= 0xFFFFFF;
 		RotValOffset = Read32((RAM[AniSeg].Data), (AnimationOffset+4));
 		RotValOffset &= 0xFFFFFF;
-		vCurrentActor.frameTotal = Read16((RAM[AniSeg].Data), (AnimationOffset));
+		vCurrentActor.frameTotal = (Read16((RAM[AniSeg].Data), (AnimationOffset))) - 1;
 		Limit = Read16((RAM[AniSeg].Data), (AnimationOffset+12));
 		/*Bones[0].X = Read16(RAM[AniSeg].Data, RotValOffset + (Read16(RAM[AniSeg].Data, RotIndexOffset) * 2) );
 		Bones[0].Y = Read16(RAM[AniSeg].Data, RotValOffset + (Read16(RAM[AniSeg].Data, RotIndexOffset+2) * 2) );
@@ -424,11 +428,16 @@ void drawBones(unsigned int BoneOffset, unsigned int AnimationOffset, float Scal
 			if(RYIndex >= Limit) RYIndex += vCurrentActor.frameCurrent;
 			if(RZIndex >= Limit) RZIndex += vCurrentActor.frameCurrent;
 
+			if(	!RDP_CheckAddressValidity((AniSeg<<24)|(RotValOffset + (RXIndex * 2))) ||
+				!RDP_CheckAddressValidity((AniSeg<<24)|(RotValOffset + (RYIndex * 2))) ||
+				!RDP_CheckAddressValidity((AniSeg<<24)|(RotValOffset + (RZIndex * 2)))
+				) return;
+
 			Bones[i].RX = Read16(RAM[AniSeg].Data, RotValOffset + (RXIndex * 2));
 			Bones[i].RY = Read16(RAM[AniSeg].Data, RotValOffset + (RYIndex * 2));
 			Bones[i].RZ = Read16(RAM[AniSeg].Data, RotValOffset + (RZIndex * 2));
 
-			//dbgprintf(0, MSK_COLORTYPE_INFO, " Bone %2i (%08X): (%6i %6i %6i) (%2i %2i) %08X", i, BoneOffset, Bones[i].X, Bones[i].Y, Bones[i].Z, Bones[i].Child, Bones[i].Sibling, Bones[i].DList);
+//			dbgprintf(0, MSK_COLORTYPE_INFO, " Bone %2i (%08X): (%6i %6i %6i) (%2i %2i) %08X", i, BoneOffset, Bones[i].X, Bones[i].Y, Bones[i].Z, Bones[i].Child, Bones[i].Sibling, Bones[i].DList);
 		}
 
 		// SWAP segments
@@ -496,10 +505,12 @@ int scanAnimations(unsigned char bank)
 			((int) ((RAM[bank].Data[i+5] << 16)|(RAM[bank].Data[i+6]<<8)|(RAM[bank].Data[i+7])) < RAM[bank].Size)	&&
 			(RAM[bank].Data[i+8] == bank)	&&
 			((int) ((RAM[bank].Data[i+9] << 16)|(RAM[bank].Data[i+10]<<8)|(RAM[bank].Data[i+11])) < RAM[bank].Size)	&&
+			(!RAM[bank].Data[i+12]) &&		// ???
 			(!RAM[bank].Data[i+14])	&&
 			(!RAM[bank].Data[i+15])) {
-				vCurrentActor.offsetAnims[vCurrentActor.animTotal] = (bank << 24) | i;
 				vCurrentActor.animTotal++;
+				vCurrentActor.offsetAnims[vCurrentActor.animTotal] = (bank << 24) | i;
+//					dbgprintf(0,0,"ANIM %i:%08x", vCurrentActor.animTotal,vCurrentActor.offsetAnims[vCurrentActor.animTotal]);
 			}
 	}
 
@@ -508,6 +519,8 @@ int scanAnimations(unsigned char bank)
 
 int scanBones(unsigned char bank)
 {
+	vCurrentActor.boneSetupTotal = -1;
+
 	int i, j;
 	for (i = 0; i < RAM[bank].Size; i += 4) {
 		if ( (RAM[bank].Data[i] == bank) && (!(RAM[bank].Data[i+3] & 3)) && (RAM[bank].Data[i+4]) ) {
@@ -520,8 +533,11 @@ int scanBones(unsigned char bank)
 					if ( (RAM[bank].Data[j] != bank) || ((RAM[bank].Data[j+3] & 3)) || ((int) ((RAM[bank].Data[j+1] << 16)|(RAM[bank].Data[j+2]<<8)|(RAM[bank].Data[j+3])) > RAM[bank].Size))
 						break;
 				}
-				if (j == i)
-					vCurrentActor.offsetBoneSetup = (bank << 24) | i;
+				if (j == i) {
+					vCurrentActor.boneSetupTotal++;
+					vCurrentActor.offsetBoneSetup[vCurrentActor.boneSetupTotal] = (bank << 24) | i;
+//					dbgprintf(0,0,"BONES %i:%08x", vCurrentActor.boneSetupTotal,vCurrentActor.offsetBoneSetup[vCurrentActor.boneSetupTotal]);
+				}
 				}
 			}
 		}

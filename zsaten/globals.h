@@ -25,6 +25,7 @@ enum { false, true };
 #include <stdarg.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <time.h>
 
 #include <GL/gl.h>
 #include <GL/glext.h>
@@ -84,8 +85,8 @@ typedef struct {
 	int debugLevel;
 	bool showBones;
 	bool animPlay;
-	int animWait;
-	int animDelay;
+
+	float targetFPS;
 } vProgramStruct;
 
 typedef struct {
@@ -100,12 +101,15 @@ typedef struct {
 	bool useActorOvl;
 	bool useExtAnim;
 
-	unsigned int actorNumber;
+	unsigned short actorNumber;
 	unsigned short variable;
 
-	unsigned int offsetBoneSetup;
 	unsigned int offsetDList;
 	float actorScale;
+
+	unsigned int offsetBoneSetup[64];
+	int boneSetupTotal;
+	int boneSetupCurrent;
 
 	unsigned int offsetAnims[64];
 	int animTotal;
@@ -133,6 +137,8 @@ typedef struct {
 
 	unsigned char * ActorData;
 	unsigned int ActorSize;
+
+	bool isValid;
 } vActorStruct;
 
 typedef struct {
@@ -144,6 +150,8 @@ typedef struct {
 
 	unsigned char * ObjectData;
 	unsigned int ObjectSize;
+
+	bool isValid;
 } vObjectStruct;
 
 typedef struct {

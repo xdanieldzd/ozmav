@@ -147,16 +147,11 @@ int main(int argc, char **argv)
 
 	vProgram.enableHUD = true;
 
-	vCurrentActor.actorNumber = 2;//467;
+	vCurrentActor.actorNumber = 0;//467;
 
 	vProgram.debugLevel = 0;
-	
-	#ifdef WIN32
-	sprintf(temp, "%s%c%s", vProgram.appPath, FILESEP, argv[1]); /* ??? */
-	zl_Init(temp);
-	#else
+
 	zl_Init(argv[1]);
-	#endif
 
 	initActorParsing(-1);
 
@@ -184,16 +179,19 @@ int main(int argc, char **argv)
 					}
 				}
 
-				if(vProgram.animPlay) {
-					if(vProgram.animWait++ == vProgram.animDelay) {
+				static float lastTime = 0.0f;
+				float startTime = clock() * 0.001f;
+
+				gl_DrawScene();
+
+				if(((float)startTime - lastTime) > 1.0f / vProgram.targetFPS) {
+					lastTime = startTime;
+					if(vProgram.animPlay) {
 						vCurrentActor.frameCurrent++;
-						vProgram.animWait = 0;
+						if(vCurrentActor.frameCurrent > vCurrentActor.frameTotal) vCurrentActor.frameCurrent = 0;
 					}
-					if(vCurrentActor.frameCurrent >= vCurrentActor.frameTotal) vCurrentActor.frameCurrent = 0;
 				}
 
-				// let OpenGL do the rendering
-				gl_DrawScene();
 				if(gl_FinishScene()) die(EXIT_FAILURE);
 
 				break;
@@ -240,7 +238,7 @@ void die(int Code)
 {
 	/* define getch() */
 	int getch(void);
-	
+
 	if(vProgram.tempString != NULL) free(vProgram.tempString);
 
 	hud_KillFont();

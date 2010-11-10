@@ -118,6 +118,8 @@ int zl_ReadData()
 	int ValidActorCount = 0;
 
 	while(ActorNumber < vZeldaInfo.actorCount) {
+		vActors[ActorNumber].isValid = false;
+
 		vActors[ActorNumber].PStart =			Read32(vZeldaInfo.codeBuffer, BaseOffset);
 		vActors[ActorNumber].PEnd =				Read32(vZeldaInfo.codeBuffer, BaseOffset + 4);
 		vActors[ActorNumber].VStart =			Read32(vZeldaInfo.codeBuffer, BaseOffset + 8);
@@ -153,6 +155,8 @@ int zl_ReadData()
 				vActors[ActorNumber].ObjectSegment = 0x05;
 			}
 
+			vActors[ActorNumber].isValid = true;
+
 			ValidActorCount++;
 		}
 
@@ -169,6 +173,8 @@ int zl_ReadData()
 	int ValidObjectCount = 0;
 
 	while(ObjectNumber < vZeldaInfo.objectCount) {
+		vObjects[ObjectNumber].isValid = false;
+
 		vObjects[ObjectNumber].VStart =	Read32(vZeldaInfo.codeBuffer, BaseOffset);
 		vObjects[ObjectNumber].VEnd =	Read32(vZeldaInfo.codeBuffer, BaseOffset + 4);
 
@@ -185,6 +191,7 @@ int zl_ReadData()
 				dbgprintf(2, MSK_COLORTYPE_INFO, "- Object 0x%04X is called '%s', %i bytes\n", ObjectNumber, vObjects[ObjectNumber].ObjectName, vObjects[ObjectNumber].ObjectSize);
 			}
 
+			vObjects[ObjectNumber].isValid = true;
 			ValidObjectCount++;
 		}
 
@@ -449,7 +456,7 @@ void zl_ClearAllSegments()
 	dbgprintf(3, MSK_COLORTYPE_OKAY, "[DEBUG] %s();\n", __FUNCTION__);
 
 	int i = 0;
-	for(i = 0; i < 64; i++) {
+	for(i = 0; i < MAX_SEGMENTS; i++) {
 		RDP_ClearSegment(i);
 	}
 }
