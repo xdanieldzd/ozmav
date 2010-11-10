@@ -72,7 +72,6 @@ int XMain()
 				kevent = (XKeyEvent *) &event;
 				if((XLookupString((XKeyEvent *)&event,buffer,1,&keysym,NULL) == 1) && (keysym == (KeySym)XK_Escape)) vProgram.isRunning = false;
 				vProgram.key[keysym & 0xFF] = true;
-				dbgprintf(0, MSK_COLORTYPE_INFO, "key: %i : %i %i %i %i", (keysym & 0xFF), XK_Up, XK_Down, XK_Left, XK_Right);
 				break; }
 			case KeyRelease: {
 				KeySym     keysym;
