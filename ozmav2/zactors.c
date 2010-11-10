@@ -90,7 +90,7 @@ void zl_LoadObject(unsigned short ObjNumber)
 		zObject[ObjNumber].Data = zl_DMAToBuffer( Object );
 	}
 
-	dbgprintf(1, (zObject[ObjNumber].IsSet ? MSK_COLORTYPE_INFO : MSK_COLORTYPE_ERROR), "- %04X -> %08X %08X -> %s (%s)",
+	dbgprintf(2, (zObject[ObjNumber].IsSet ? MSK_COLORTYPE_INFO : MSK_COLORTYPE_ERROR), "- %04X -> %08X %08X -> %s (%s)",
 		ObjNumber,
 		zObject[ObjNumber].StartOffset, zObject[ObjNumber].EndOffset,
 		Object.Filename,
@@ -207,7 +207,7 @@ void zl_GetMapActors(int SceneNumber, int MapNumber)
 		}
 	}
 
-	dbgprintf(1, MSK_COLORTYPE_INFO, "\n");
+//	dbgprintf(1, MSK_COLORTYPE_INFO, "\n");
 }
 
 /*
@@ -266,7 +266,7 @@ unsigned int zl_ScanForBones(unsigned char RAMSeg, int BonesNo)
 {
 	if(!RAM[RAMSeg].IsSet) return 0;
 
-	dbgprintf(1, MSK_COLORTYPE_OKAY, "Scanning for bones...\n");
+	dbgprintf(2, MSK_COLORTYPE_OKAY, "Scanning for bones...\n");
 
 	int i = 0, j = 0, foundcnt = 0;
 	for(i = 0; i < RAM[RAMSeg].Size; i += 4) {
@@ -282,7 +282,7 @@ unsigned int zl_ScanForBones(unsigned char RAMSeg, int BonesNo)
 					}
 					if (j == i) {
 						i = RAMSeg << 24 | i;
-						dbgprintf(1, MSK_COLORTYPE_OKAY, "Found bones #%i at offset %08X\n", foundcnt, i);
+						dbgprintf(2, MSK_COLORTYPE_OKAY, "Found bones #%i at offset %08X\n", foundcnt, i);
 						if(foundcnt == BonesNo) return i;
 
 						foundcnt++;
@@ -292,7 +292,7 @@ unsigned int zl_ScanForBones(unsigned char RAMSeg, int BonesNo)
 		}
 	}
 
-	if(foundcnt == 0) dbgprintf(1, MSK_COLORTYPE_OKAY, "...no bones found!\n");
+	if(foundcnt == 0) dbgprintf(2, MSK_COLORTYPE_OKAY, "...no bones found!\n");
 
 	return 0;
 }
@@ -304,7 +304,7 @@ unsigned int zl_ScanForAnims(unsigned char RAMSeg, int AnimNo)
 {
 	if(!RAM[RAMSeg].IsSet) return 0;
 
-	dbgprintf(1, MSK_COLORTYPE_OKAY, "Scanning for animations...\n");
+	dbgprintf(2, MSK_COLORTYPE_OKAY, "Scanning for animations...\n");
 
 	int i = 0, foundcnt = 0, offset = 0;
 	for(i = 0; i < RAM[RAMSeg].Size; i += 4) {
@@ -322,14 +322,14 @@ unsigned int zl_ScanForAnims(unsigned char RAMSeg, int AnimNo)
 			)
 			{
 				offset = (RAMSeg << 24) | i;
-				dbgprintf(1, MSK_COLORTYPE_OKAY, "Found animation #%i at offset %08X\n", foundcnt, offset);
+				dbgprintf(2, MSK_COLORTYPE_OKAY, "Found animation #%i at offset %08X\n", foundcnt, offset);
 				if(foundcnt == AnimNo) return offset;
 
 				foundcnt++;
 			}
 	}
 
-	if(foundcnt == 0) dbgprintf(1, MSK_COLORTYPE_OKAY, "...no animations found!\n");
+	if(foundcnt == 0) dbgprintf(2, MSK_COLORTYPE_OKAY, "...no animations found!\n");
 
 	return 0;
 }
@@ -382,7 +382,7 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 
 	// if the actor hasn't been processed yet, do so
 	if(zActor[ActorNumber].IsSet == false) {
-		dbgprintf(1, MSK_COLORTYPE_INFO, "- Evaluating actor 0x%04X...", ActorNumber);
+		dbgprintf(2, MSK_COLORTYPE_INFO, "- Evaluating actor 0x%04X...", ActorNumber);
 
 		// get the base offset for reading from the actor table
 		unsigned int BaseOffset = zGame.ActorTableOffset + (ActorNumber * 0x20);
@@ -405,7 +405,7 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 			Current += sprintf(zActor[ActorNumber].Name, "%s", Current);
 			while(!*Current) Current++;
 
-			dbgprintf(1, MSK_COLORTYPE_INFO, "- Actor is called '%s'", zActor[ActorNumber].Name);
+			dbgprintf(2, MSK_COLORTYPE_INFO, "- Actor is called '%s'", zActor[ActorNumber].Name);
 		}
 
 		// get the actor's physical offsets via the DMA table
@@ -431,7 +431,7 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 
 			zActor[ActorNumber].Object = Read16(zActor[ActorNumber].Data, (zActor[ActorNumber].ProfileVStart - zActor[ActorNumber].VStart) + 8);
 
-			dbgprintf(1, MSK_COLORTYPE_INFO, "- Actor uses object 0x%04X (%s loaded)", zActor[ActorNumber].Object, (zObject[zActor[ActorNumber].Object].IsSet) ? "is" : "not");
+			dbgprintf(2, MSK_COLORTYPE_INFO, "- Actor uses object 0x%04X (%s loaded)", zActor[ActorNumber].Object, (zObject[zActor[ActorNumber].Object].IsSet) ? "is" : "not");
 
 			// check if the actor's requested object has been loaded before
 			if(zObject[zActor[ActorNumber].Object].IsSet == true) {
@@ -475,7 +475,7 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 				/* clear pevious evaluation */
 				mips_ResetResults();
 
-				dbgprintf(1, MSK_COLORTYPE_INFO, " - Sections:\n  -.text=0x%X; .data=0x%X; .rodata=0x%X; .bss=0x%X;\n - Evaluating ASM...\n",
+				dbgprintf(2, MSK_COLORTYPE_INFO, " - Sections:\n  -.text=0x%X; .data=0x%X; .rodata=0x%X; .bss=0x%X;\n - Evaluating ASM...\n",
 					Sections.text_va, Sections.data_va, Sections.rodata_va, Sections.bss_va);
 
 				/* interpret words */
@@ -524,7 +524,7 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 
 				if(alt_objn!=NULL && *alt_objn <= zGame.ObjectCount && zActor[ActorNumber].Object < 3 && *alt_objn > 3 && zObject[*alt_objn].IsSet){
 					zActor[ActorNumber].Object = *alt_objn;
-					dbgprintf(1, MSK_COLORTYPE_INFO, "  - Alternate object found for actor %s: 0x%04X", zActor[ActorNumber].Name, *alt_objn);
+					dbgprintf(2, MSK_COLORTYPE_INFO, "  - Alternate object found for actor %s: 0x%04X", zActor[ActorNumber].Name, *alt_objn);
 				}
 				if(!(zActor[ActorNumber].DisplayList >> 24) && zActor[ActorNumber].DisplayList){
 					zActor[ActorNumber].DisplayList = 0;
@@ -576,7 +576,7 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 				}
 
 				if(zActor[ActorNumber].DisplayList > 0x80000000 || ((!zActor[ActorNumber].DisplayList) && (!zActor[ActorNumber].BoneSetup))){//(zActor[ActorNumber].Scale <= 0.01f)) {
-					dbgprintf(1, MSK_COLORTYPE_WARNING, "  - Not all required information found, trying to find via hacks...");
+					dbgprintf(2, MSK_COLORTYPE_WARNING, "  - Not all required information found, trying to find via hacks...");
 
 					// flames
 					if(ActorNumber == 0x8) {
@@ -663,15 +663,15 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 		// mark actor as processed
 		zActor[ActorNumber].IsSet = true;
 
-		dbgprintf(1, MSK_COLORTYPE_INFO, "  - Scale %.3f, DL %08X, Bones %08X, Ani %08X\n     %s, Obj %04X\n",
+		dbgprintf(2, MSK_COLORTYPE_INFO, "  - Scale %.3f, DL %08X, Bones %08X, Ani %08X\n     %s, Obj %04X\n",
 			zActor[ActorNumber].Scale, zActor[ActorNumber].DisplayList,
 			zActor[ActorNumber].BoneSetup, zActor[ActorNumber].Animation,
 			zActor[ActorNumber].Name, zActor[ActorNumber].Object);
 
-		dbgprintf(1, MSK_COLORTYPE_INFO, "- Actor 0x%04X has been processed.", ActorNumber);
+		dbgprintf(2, MSK_COLORTYPE_INFO, "- Actor 0x%04X has been processed.", ActorNumber);
 
 	} else {
-		dbgprintf(1, MSK_COLORTYPE_INFO, "- Actor 0x%04X already known...", ActorNumber);
+		dbgprintf(2, MSK_COLORTYPE_INFO, "- Actor 0x%04X already known...", ActorNumber);
 	}
 
 	//collectables
@@ -703,15 +703,15 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 
 		//Bone structure
 		if(zActor[ActorNumber].BoneSetup) {
-			dbgprintf(1, MSK_COLORTYPE_OKAY, " - Drawing bone structure for actor %04X", ActorNumber);
+			dbgprintf(2, MSK_COLORTYPE_OKAY, " - Drawing bone structure for actor %04X", ActorNumber);
 			zl_DrawBones(zActor[ActorNumber].BoneSetup, zActor[ActorNumber].Animation, zActor[ActorNumber].Scale, X, Y, Z, RX, RY, RZ, DLBase);
 		}
 		//Display list
 		else if(zActor[ActorNumber].DisplayList) {
-			dbgprintf(1, MSK_COLORTYPE_OKAY, " - Trying to execute DList (%08X) for object 0x%04X...",zActor[ActorNumber].DisplayList, zActor[ActorNumber].Object);
+			dbgprintf(2, MSK_COLORTYPE_OKAY, " - Trying to execute DList (%08X) for object 0x%04X...",zActor[ActorNumber].DisplayList, zActor[ActorNumber].Object);
 
 			if(RDP_CheckAddressValidity(zActor[ActorNumber].DisplayList)) {
-				dbgprintf(1, MSK_COLORTYPE_OKAY, " - DList Address 0x%08X is valid!", zActor[ActorNumber].DisplayList);
+				dbgprintf(2, MSK_COLORTYPE_OKAY, " - DList Address 0x%08X is valid!", zActor[ActorNumber].DisplayList);
 				glNewList(DLBase, GL_COMPILE_AND_EXECUTE);
 					glPushMatrix();
 

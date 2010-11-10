@@ -9,10 +9,11 @@
 			<Target title="Debug - Win32">
 				<Option platforms="Windows;" />
 				<Option output="..\OZMAV2_debug" prefix_auto="1" extension_auto="1" />
+				<Option working_dir=".." />
 				<Option object_output="obj\DebugW32\" />
 				<Option type="1" />
 				<Option compiler="gcc" />
-				<Option parameters="-r ..\zmq_debug_test.z64 -s 81 -d 1" />
+				<Option parameters="-r zmq_debug_test.z64 -s 81 -d 1" />
 				<Compiler>
 					<Add option="-Wall" />
 					<Add option="-g" />
@@ -39,10 +40,11 @@
 			<Target title="Release - Win32">
 				<Option platforms="Windows;" />
 				<Option output="..\OZMAV2" prefix_auto="1" extension_auto="1" />
+				<Option working_dir=".." />
 				<Option object_output="obj\ReleaseW32\" />
 				<Option type="1" />
 				<Option compiler="gcc" />
-				<Option parameters="-r ..\zmq_debug_test.z64 -s 81 -d 1" />
+				<Option parameters="-r zmq_debug_test.z64 -s 81 -d 1" />
 				<Compiler>
 					<Add option="-O2" />
 					<Add directory="D:\zlib-1.2.3-lib\include" />

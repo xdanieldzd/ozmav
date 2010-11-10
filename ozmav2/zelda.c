@@ -151,7 +151,7 @@ int zl_LoadScene(int SceneNo)
 	dbgprintf(2, MSK_COLORTYPE_OKAY, "[DEBUG] Physical offsets: PStart 0x%08X, PEnd 0x%08X\n", Scene.PStart, Scene.PEnd);
 
 	if((Scene.PStart != 0x00) && (Scene.PEnd != 0x00)) {
-		dbgprintf(1, MSK_COLORTYPE_INFO, "Loading Scene #%i:\n", SceneNo);
+		dbgprintf(1, MSK_COLORTYPE_INFO, "\nLoading Scene #%i:\n", SceneNo);
 		if(zGame.HasFilenames) dbgprintf(1, MSK_COLORTYPE_INFO, " - Filename: %s\n", Scene.Filename);
 		dbgprintf(1, MSK_COLORTYPE_INFO, " - Location in ROM: 0x%08X to 0x%08X (0x%04X bytes)\n\n", Scene.PStart, Scene.PEnd, SceneSize);
 
@@ -337,7 +337,7 @@ int zl_GetDMATable()
 				memcpy(Build, &zROM.Data[Pos + 16], 20);
 			}
 			dbgprintf(1, MSK_COLORTYPE_INFO, "Creator:   %s\n", Creator);
-			dbgprintf(1, MSK_COLORTYPE_INFO, "Build:     %s\n\n", Build);
+			dbgprintf(1, MSK_COLORTYPE_INFO, "Build:     %s\n", Build);
 			break;
 		}
 		Pos += 8;

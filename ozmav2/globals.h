@@ -1,5 +1,5 @@
 #define APPTITLE		"OZMAV2"
-#define VERSION			"0.1"
+#define VERSION			"v1.0"
 
 #define WINDOW_WIDTH	640
 #define WINDOW_HEIGHT	480
