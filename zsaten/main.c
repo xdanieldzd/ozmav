@@ -127,7 +127,7 @@ int main(int argc, char **argv)
 
 	vProgram.windowWidth = WINDOW_WIDTH;
 	vProgram.windowHeight = WINDOW_HEIGHT;
-	if(oz_InitProgram(APP_TITLE, vProgram.windowWidth, vProgram.windowHeight)) return EXIT_FAILURE;
+	if(oz_InitProgram(vProgram.wndTitle, vProgram.windowWidth, vProgram.windowHeight)) return EXIT_FAILURE;
 
 	sprintf(temp, "%s%cdata%cfont.bmp", vProgram.appPath, FILESEP, FILESEP);
 	if(hud_Init((unsigned char*)temp)) {
