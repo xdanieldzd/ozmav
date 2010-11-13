@@ -183,17 +183,14 @@ void gl_DrawScene(void)
 		if(!vProgram.showBones && vProgram.enableHUD) glCallList(vProgram.actorAxisMarkerDL);
 		drawBones(vCurrentActor.offsetBoneSetup[vCurrentActor.boneSetupCurrent], vCurrentActor.offsetAnims[vCurrentActor.animCurrent], vCurrentActor.actorScale, 0, 0, 0, 0, 0, 0);
 
-	} else if(vCurrentActor.offsetDList) {
+	} else if(RDP_CheckAddressValidity(vCurrentActor.offsetDList)) {
 		if(vProgram.enableHUD) glCallList(vProgram.actorAxisMarkerDL);
-		if(RDP_CheckAddressValidity(vCurrentActor.offsetDList)) {
-			RDP_ClearStructures(false);
-//			RDP_ClearTextures();
+		RDP_ClearStructures(false);
 
-			glPushMatrix();
-			glScalef(vCurrentActor.actorScale, vCurrentActor.actorScale, vCurrentActor.actorScale);
-			RDP_ParseDisplayList(vCurrentActor.offsetDList, true);
-			glPopMatrix();
-		}
+		glPushMatrix();
+		glScalef(vCurrentActor.actorScale, vCurrentActor.actorScale, vCurrentActor.actorScale);
+		RDP_ParseDisplayList(vCurrentActor.offsetDList, true);
+		glPopMatrix();
 	}
 	glPopMatrix();
 

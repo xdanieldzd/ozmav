@@ -148,13 +148,6 @@ int zl_ReadData()
 
 			dbgprintf(2, MSK_COLORTYPE_INFO, "- Actor uses object 0x%04X\n", vActors[ActorNumber].ObjectNumber);
 
-			vActors[ActorNumber].ObjectSegment = 0x06;
-			if(vActors[ActorNumber].ObjectNumber == 0x0001) {
-				vActors[ActorNumber].ObjectSegment = 0x04;
-			} else if(vActors[ActorNumber].ObjectNumber == 0x0002 || vActors[ActorNumber].ObjectNumber == 0x0003) {
-				vActors[ActorNumber].ObjectSegment = 0x05;
-			}
-
 			vActors[ActorNumber].isValid = true;
 
 			ValidActorCount++;
@@ -185,6 +178,13 @@ int zl_ReadData()
 		if((vObjects[ObjectNumber].PStart != 0) && (vObjects[ObjectNumber].PEnd != 0)) {
 			vObjects[ObjectNumber].ObjectData = zl_DMAToBuffer(Object);
 			vObjects[ObjectNumber].ObjectSize = Object.PEnd - Object.PStart;
+
+			vObjects[ObjectNumber].ObjectSegment = 0x06;
+			if(ObjectNumber == 0x0001) {
+				vObjects[ObjectNumber].ObjectSegment = 0x04;
+			} else if(ObjectNumber == 0x0002 || ObjectNumber == 0x0003) {
+				vObjects[ObjectNumber].ObjectSegment = 0x05;
+			}
 
 			if(Object.Filename != NULL) {
 				strcpy(vObjects[ObjectNumber].ObjectName, Object.Filename);

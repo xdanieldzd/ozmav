@@ -133,7 +133,6 @@ typedef struct {
 	char ActorName[128];
 
 	unsigned int ObjectNumber;
-	unsigned char ObjectSegment;
 
 	unsigned char * ActorData;
 	unsigned int ActorSize;
@@ -150,6 +149,8 @@ typedef struct {
 
 	unsigned char * ObjectData;
 	unsigned int ObjectSize;
+
+	unsigned char ObjectSegment;
 
 	bool isValid;
 } vObjectStruct;

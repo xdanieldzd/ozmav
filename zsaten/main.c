@@ -92,6 +92,21 @@ void loadObjectAnim(unsigned char * Ptr)
 	}
 }
 
+void listSegmentUsage(unsigned char * Ptr)
+{
+	int i = 0;
+	for(i = 0; i < MAX_SEGMENTS; i++) {
+		if(RAM[i].IsSet) {
+			dbgprintf(0, MSK_COLORTYPE_OKAY, "Segment 0x%02X -> Size: 0x%06X bytes, ROM source offset: 0x%08X (%s)\n",
+				i, RAM[i].Size, RAM[i].SourceOffset,
+					(RAM[i].SourceCompType ? (RAM[i].SourceCompType == 1 ? "Yaz0" : "MIO0") : ("raw"))
+			);
+		} else {
+			dbgprintf(0, MSK_COLORTYPE_WARNING, "Segment 0x%02X -> Segment not set.\n", i);
+		}
+	}
+}
+
 // ----------------------------------------
 
 int main(int argc, char **argv)
@@ -115,6 +130,7 @@ int main(int argc, char **argv)
 	MSK_AddCommand("actor", "Jump to actor number (0-x)", setActorNumber);
 	MSK_AddCommand("loadobject", "Load object by filename", loadObjectName);
 	MSK_AddCommand("loadanim", "Load animations by filename", loadObjectAnim);
+	MSK_AddCommand("listsegs", "List currently set segments", listSegmentUsage);
 	MSK_AddCommand("options", "Change program options", programOptions);
 	MSK_AddCommand("about", "About this program", aboutProgram);
 

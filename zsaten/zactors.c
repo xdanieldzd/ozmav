@@ -46,17 +46,18 @@ void initActorParsing(int objFileNo)
 		vCurrentActor.offsetDList = 0;
 
 		memset(vCurrentActor.offsetBoneSetup, 0, sizeof(vCurrentActor.offsetBoneSetup));
-		vCurrentActor.boneSetupTotal = 0;
+		vCurrentActor.boneSetupTotal = -1;
 		vCurrentActor.boneSetupCurrent = 0;
 
 		memset(vCurrentActor.offsetAnims, 0, sizeof(vCurrentActor.offsetAnims));
-		vCurrentActor.animTotal = 0;
+		vCurrentActor.animTotal = -1;
 		vCurrentActor.animCurrent = 0;
 
 		vCurrentActor.frameTotal = 0;
 		vCurrentActor.frameCurrent = 0;
 
 		memset(vCurrentActor.oName, 0, sizeof(vCurrentActor.oName));
+		memset(vCurrentActor.eaName, 0, sizeof(vCurrentActor.eaName));
 
 		vCurrentActor.useExtAnim = false;
 
@@ -68,8 +69,8 @@ void initActorParsing(int objFileNo)
 
 	if(vCurrentActor.useActorOvl) {
 		// use actor overlay file
-		if(vActors[vCurrentActor.actorNumber].ObjectNumber > 0) {
-			RDP_LoadToSegment(	vActors[vCurrentActor.actorNumber].ObjectSegment,
+		if(vObjects[vActors[vCurrentActor.actorNumber].ObjectNumber].isValid) {
+			RDP_LoadToSegment(	vObjects[vActors[vCurrentActor.actorNumber].ObjectNumber].ObjectSegment,
 								vObjects[vActors[vCurrentActor.actorNumber].ObjectNumber].ObjectData,
 								0,
 								vObjects[vActors[vCurrentActor.actorNumber].ObjectNumber].ObjectSize);
@@ -108,9 +109,10 @@ void setMipsWatchers()
 	mips_SetFuncWatch(0x80035260);// u32 a1 = display list
 	mips_SetFuncWatch(0x800A457C);// u32 a2 = bones; u32 a3 = animation
 	mips_SetFuncWatch(0x8002D62C);// f32 a1 = scale
+	mips_SetFuncWatch(0x8009812C);// u16 a1 = object number to use
 	mips_SetFuncWatch(0x80093D18);// u32 a3 = display list
 	mips_SetFuncWatch(0x800A51A0);// u32 a1 = animation
-	mips_SetFuncWatch(0x800A46F8);// u32 a2 = bones
+	mips_SetFuncWatch(0x800A46F8);// u32 a2 = bones; u32 a3 = animation
 	mips_SetFuncWatch(0x800A2000);// a0 = animation
 	mips_SetFuncWatch(0x800D0984);// u32 a0 = display list
 
@@ -120,6 +122,8 @@ void setMipsWatchers()
 	mips_SetFuncWatch(0x800A4FE4); // a1 = animation ???
 	//mips_SetFuncWatch(0x80B4FD00); // a1 = animation from external file ???
 	mips_SetFuncWatch(0x80035324); // a1 = dlist
+	mips_SetFuncWatch(0x800D0884); // a1 = dlist
+	mips_SetFuncWatch(0x809C2324); // a1 = dlist (object_blkobj, water temple dark link room)
 
 	//mips_SetFuncWatch(0x80041880); // a0 = collision-related address, a1 = offset to address (negative)  ???
 	//mips_SetFuncWatch(0x808A3068); // a0 = collision-related address, a1 = offset to address (negative)  ???
@@ -159,7 +163,7 @@ void processActor()
 	if(vCurrentActor.useActorOvl) {
 		// use actor overlay file
 		float * scale = NULL;
-		int *anim = NULL, *dlist = NULL, *bones = NULL;
+		int *anim = NULL, *dlist = NULL, *bones = NULL, *alt_objn = NULL;
 		struct actorSections Sections;
 
 		mips_ResetSpecialOps();
@@ -176,6 +180,7 @@ void processActor()
 
 		mips_EvalWords((unsigned int *)Sections.text, Sections.text_s / 4);
 
+		// get scale and dlist
 		scale = mips_GetFuncArg(0x8002D62C, 1, true);
 		if(scale == NULL) {
 			scale = mips_GetFuncArg(0x80077A00, 2, true);
@@ -187,6 +192,12 @@ void processActor()
 				dlist = mips_GetFuncArg(0x800D0984, 0, true);
 				if(dlist == NULL || *dlist >= 0x80000000) {
 					dlist = mips_GetFuncArg(0x80035324, 1, true);
+					if(dlist == NULL || *dlist >= 0x80000000) {
+						dlist = mips_GetFuncArg(0x800D0884, 0, true);
+						if(dlist == NULL || *dlist >= 0x80000000) {
+							dlist = mips_GetFuncArg(0x809C2324, 1, true);
+						}
+					}
 				}
 			}
 		}
@@ -194,18 +205,21 @@ void processActor()
 		vCurrentActor.actorScale = (scale != NULL) ? *scale : 0.01f;
 		vCurrentActor.offsetDList = (dlist != NULL) ? *dlist : 0;
 
-		scanAnimations(vActors[vCurrentActor.actorNumber].ObjectSegment);
+		scanAnimations(0x06);
 
 		if(vCurrentActor.offsetAnims[0] == 0) {
-			anim = mips_GetFuncArg(0x800A457C, 3, true);
+			anim = mips_GetFuncArg(0x800A46F8, 3, true);
 			if(anim == NULL || !*anim){
-				anim = mips_GetFuncArg(0x800A51A0, 1, true);
+				anim = mips_GetFuncArg(0x800A457C, 3, true);
 				if(anim == NULL || !*anim){
-					anim = mips_GetFuncArg(0x80B4FD00, 1, true);
-					if(anim == NULL || !*anim) {
-						anim = mips_GetFuncArg(0x800A4FE4, 1, true);
+					anim = mips_GetFuncArg(0x800A51A0, 1, true);
+					if(anim == NULL || !*anim){
+						anim = mips_GetFuncArg(0x80B4FD00, 1, true);
 						if(anim == NULL || !*anim) {
-							anim = mips_GetFuncArg(0x800A2000, 0, true);
+							anim = mips_GetFuncArg(0x800A4FE4, 1, true);
+							if(anim == NULL || !*anim) {
+								anim = mips_GetFuncArg(0x800A2000, 0, true);
+							}
 						}
 					}
 				}
@@ -214,26 +228,44 @@ void processActor()
 			if(vCurrentActor.offsetAnims[0]) vCurrentActor.animTotal = 0;
 		}
 
-		bones = mips_GetFuncArg(0x800A457C, 2, true);
+		bones = mips_GetFuncArg(0x800A46F8, 2, true);
 		if(bones == NULL || !*bones){
-			bones = mips_GetFuncArg(0x800A46F8, 2, true);
+			bones = mips_GetFuncArg(0x800A457C, 2, true);
 		}
 		vCurrentActor.offsetBoneSetup[0] = (bones != NULL) ? *bones : 0;
 		if(vCurrentActor.offsetBoneSetup[0]) vCurrentActor.boneSetupTotal = 0;
 
-		if(vCurrentActor.offsetBoneSetup[0] == 0) {
-			scanBones(vActors[vCurrentActor.actorNumber].ObjectSegment);
+		if(vCurrentActor.offsetBoneSetup[0] == 0) scanBones(0x06);
+
+		// get alternate object number
+		alt_objn = mips_GetFuncArg(0x8009812C,1,true);
+
+		// if alternate object found and valid...
+		if(alt_objn != NULL && *alt_objn <= vZeldaInfo.objectCount && vActors[vCurrentActor.actorNumber].ObjectNumber < 3 && *alt_objn > 3 && vObjects[*alt_objn].isValid){
+			unsigned short ObjNumber = *alt_objn;
+
+			RDP_LoadToSegment(	vObjects[ObjNumber].ObjectSegment,
+								vObjects[ObjNumber].ObjectData,
+								0,
+								vObjects[ObjNumber].ObjectSize);
+
+			scanAnimations(vObjects[ObjNumber].ObjectSegment);
+			scanBones(vObjects[ObjNumber].ObjectSegment);
+
+			dbgprintf(0, MSK_COLORTYPE_ERROR, "!!! Alternate object 0x%04X found (%s)", ObjNumber, vObjects[ObjNumber].ObjectName);
 		}
 
+		// dlist and scale sanity checks
 		if(!(vCurrentActor.offsetDList >> 24) && vCurrentActor.offsetDList){
 			vCurrentActor.offsetDList = 0;
 		}
 
-		if(vCurrentActor.actorScale < 0.0f) vCurrentActor.actorScale = 0.01f;
+		if(vCurrentActor.actorScale < 0.01f) vCurrentActor.actorScale = 0.01f;
 
+		// do info dump
 		dbgprintf(0, MSK_COLORTYPE_INFO, "actor 0x%04X (%s):\n", vCurrentActor.actorNumber, vActors[vCurrentActor.actorNumber].ActorName);
 		dbgprintf(0, MSK_COLORTYPE_INFO, "known -> object 0x%04X (%s) seg:%i\n",
-			vActors[vCurrentActor.actorNumber].ObjectNumber, vObjects[vActors[vCurrentActor.actorNumber].ObjectNumber].ObjectName, vActors[vCurrentActor.actorNumber].ObjectSegment);
+			vActors[vCurrentActor.actorNumber].ObjectNumber, vObjects[vActors[vCurrentActor.actorNumber].ObjectNumber].ObjectName, vObjects[vActors[vCurrentActor.actorNumber].ObjectNumber].ObjectSegment);
 		dbgprintf(0, MSK_COLORTYPE_INFO, "scanned -> bones[0]:%08x, dlist:%08x, anim[0]:%08x, scale:%.2f\n",
 			vCurrentActor.offsetBoneSetup[0], vCurrentActor.offsetDList, vCurrentActor.offsetAnims[0], vCurrentActor.actorScale);
 
