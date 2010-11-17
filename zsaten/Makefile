@@ -2,7 +2,7 @@ PROJECT = zsaten
 
 #Install dir
 ifeq ($(PREFIX),)
-	ifeq($(WIN32), 1)
+	ifeq ($(WIN32), 1)
 		PREVIX = C:
 		CP = copy
 		RM = del

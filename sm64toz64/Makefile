@@ -4,7 +4,7 @@
 # make WIN32=1		Standard build on windows
 # make WIN32=1 DBG=1	Debug build on windows
 
-PROJECT = SM64toZ64
+PROJECT = sm64toz64
 
 # Target
 ifeq ($(WIN32), 1)
@@ -31,7 +31,7 @@ endif
 
 #Install dir
 ifeq ($(PREFIX),)
-	ifeq($(WIN32), 1)
+	ifeq ($(WIN32), 1)
 		PREVIX = C:\
 		CP = copy
 	else

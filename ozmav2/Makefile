@@ -1,8 +1,8 @@
-PROJECT = OZMAV2
+PROJECT = ozmav2
 
 #Install dir
 ifeq ($(PREFIX),)
-	ifeq($(WIN32), 1)
+	ifeq ($(WIN32), 1)
 		PREVIX = C:\
 		CP = copy
 	else
@@ -55,6 +55,7 @@ all: $(PIECES)
 # Install
 install:
 	$(CP) $(TARGET) $(PREFIX)/$(TARGET)
+	
 
 # Uninstall
 uninstall:
