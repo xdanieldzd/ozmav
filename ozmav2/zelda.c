@@ -34,6 +34,10 @@ bool zl_Init(char * Filename)
 		return zROM.IsROMLoaded;
 	}
 
+	// set the window title
+	sprintf(zProgram.WndTitle, "%s - %s - %s Mode", APPTITLE, zGame.TitleText, (zProgram.MouseMode == 0 ? "Camera" : "Actor"));
+	oz_SetWindowTitle(zProgram.WndTitle);
+
 	return RetVal;
 }
 

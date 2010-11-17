@@ -103,9 +103,8 @@ int main(int argc, char * argv[])
 	zProgram.WindowHeight = WINDOW_HEIGHT;
 	if(oz_InitProgram(APPTITLE, zProgram.WindowWidth, zProgram.WindowHeight)) die(EXIT_FAILURE);
 
-	// load font image for HUD
-	sprintf(Temp, "%s//data//font.bmp", zProgram.AppPath);
-	if(hud_Init((unsigned char*)Temp)) {
+	// init HUD system
+	if(hud_Init()) {
 		MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "- Error: Failed to initialize HUD system!\n");
 		die(EXIT_FAILURE);
 	}
@@ -166,10 +165,6 @@ int main(int argc, char * argv[])
 	if(!zROM.IsROMLoaded) dbgprintf(0, MSK_COLORTYPE_WARNING, "- No ROM loaded!\n\n");
 
 	zProgram.MouseMode = 0;
-
-	// set the window title
-	sprintf(zProgram.WndTitle, "%s - %s - %s Mode", APPTITLE, zGame.TitleText, (zProgram.MouseMode == 0 ? "Camera" : "Actor"));
-	oz_SetWindowTitle(zProgram.WndTitle);
 
 	// get the program to run
 	zProgram.IsRunning = true;

@@ -9,6 +9,7 @@ void cn_Cmd_LoadROM(unsigned char * Ptr)
 		char Path[MAX_PATH];
 		strcpy(Path, zProgram.AppPath);
 		strcat(Path, (char*)Ptr+1);
+		zOptions.SceneNo = 0;
 		zROM.IsROMLoaded = zl_Init(Path);
 	}
 }

@@ -13,7 +13,7 @@
 				<Option object_output="obj\DebugW32\" />
 				<Option type="1" />
 				<Option compiler="gcc" />
-				<Option parameters="-r zmq_debug_test.z64 -s 81 -d 1" />
+				<Option parameters="-r zmm_debug.z64 -s 48 -d 1" />
 				<Compiler>
 					<Add option="-Wall" />
 					<Add option="-g" />
@@ -134,6 +134,7 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="draw.h" />
+		<Unit filename="font.h" />
 		<Unit filename="globals.h" />
 		<Unit filename="hud.c">
 			<Option compilerVar="CC" />

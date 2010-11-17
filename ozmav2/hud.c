@@ -1,4 +1,5 @@
 #include "globals.h"
+#include "font.h"
 
 char TempString[8192];
 
@@ -24,9 +25,9 @@ const unsigned char FontWidths[] = {
 float BGColor[4] = { 0.1f, 0.1f, 0.1f, 0.5f };
 float FGColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 
-int hud_Init(unsigned char FontPath[])
+int hud_Init()
 {
-	if(!hud_LoadFontBMP(FontPath)) {
+	if(!hud_LoadFontBuffer(fontdata)) {
 		MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "- Error: Could not load font image!\n");
 		return EXIT_FAILURE;
 	}
@@ -49,31 +50,24 @@ int hud_Init(unsigned char FontPath[])
 	return EXIT_SUCCESS;
 }
 
-bool hud_LoadFontBMP(unsigned char Path[])
+bool hud_LoadFontBuffer(unsigned char * Buffer)
 {
 	int ColorKey[3] = { 0xFF, 0x00, 0xFF };
 
-	FILE * File;
-	if((File = fopen(Path, "rb")) == NULL) {
-		MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "- Error: Could not open BMP file '%s'!\n", Path);
-		return false;
-	}
-
 	char TempID[] = { 0, 0, 0 };
-	fread(&TempID, 2, 1, File);
+	memcpy(&TempID, &Buffer[0], 2);
 	if(strcmp(TempID, "BM")) {
-		MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "- Error: Font image not a BMP file!\n");
+		MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "- Error: Font image not in BMP format!\n");
 		return false;
 	}
 
-	fseek(File, 18, SEEK_SET);
-	fread(&zHUD.Width, 1, sizeof(int), File);
-	fread(&zHUD.Height, 1, sizeof(int), File);
-	fread(&zHUD.Plane, 1, sizeof(short), File);
-	fread(&zHUD.BPP, 1, sizeof(short), File);
+	memcpy(&zHUD.Width, &Buffer[18], sizeof(int));
+	memcpy(&zHUD.Height, &Buffer[22], sizeof(int));
+	memcpy(&zHUD.Plane, &Buffer[26], sizeof(short));
+	memcpy(&zHUD.BPP, &Buffer[28], sizeof(short));
 
 	if(zHUD.BPP != 24) {
-		MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "- Error: BMP file is not 24bpp!\n");
+		MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "- Error: BMP image is not 24bpp!\n");
 		return false;
 	}
 
@@ -82,10 +76,7 @@ bool hud_LoadFontBMP(unsigned char Path[])
 	int Size = zHUD.Width * zHUD.Height * (zHUD.BPP / 8);
 	unsigned char * TempImage = (unsigned char *)malloc(sizeof(char) * Size);
 
-	fseek(File, 24, SEEK_CUR);
-	fread(TempImage, Size, sizeof(char), File);
-
-	fclose(File);
+	memcpy(TempImage, &Buffer[54], sizeof(char) * Size);
 
 	int BytesPx = (zHUD.BPP / 8);
 
