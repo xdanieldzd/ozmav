@@ -1,7 +1,8 @@
 #Options to send to other makefiles...
 ifeq ($(WIN32), 1)
 	OPTIONS += WIN32=1
-else ifeq ($(DBG), 1)
+endif
+ifeq ($(DBG), 1)
 	OPTIONS += DBG=1
 endif
 
@@ -10,15 +11,21 @@ ifeq ($(PREFIX),)
 	PREFIX = /usr/bin
 endif
 
+ifneq($(APP),)
+	$APP = ozmav2
+endif
+
 targets:
-	@echo "OZMAV2 Makefile."
-	@echo "  Targets:"
+	@echo "ozmav svn Makefile."
+	@echo "  Actions:"
 	@echo "    all           == Build OZMAV2 and all needed libs"
 	@echo "    clean         == Remove all files built from source"
 	@echo "    rebuild       == clean and re-build all"
-	@echo "    install       == install OZMAV2"
+	@echo "    install       == install application x (details below)"
 	@echo "    uninstall     == uninstall OZMAV2"
 	@echo "    package       == Build package"
+	@echo "    zsaten        == Build ZSaten"
+	@echo "    sm64toz64     == Build sm64toz64"
 	@echo "  Options:"
 	@echo "    WIN32=1       == mingw build (Makefiles need fixing)"
 	@echo "  Debugging Options:"
@@ -26,6 +33,7 @@ targets:
 	@echo "                     suggested if not used previous build)"
 	@echo "  Install Options:"
 	@echo "    PREFIX=path   == install/uninstall prefix (default: /usr/bin)"
+	@echo "    APP=x         == install application x (ozmav2 (default),zsaten,sm64toz64)"
 
 all:
 	$(MAKE) -C misaka $(OPTIONS)
@@ -33,16 +41,23 @@ all:
 	$(MAKE) -C ozmav2 $(OPTIONS)
 
 install:
-	cp ozmav2/OZMAV2 $(PREFIX)/OZMAV2
-	ln -f $(PREFIX)/OZMAV2 $(PREFIX)/ozmav2
+	$(MAKE) -C $(APP) install
 
 uninstall:
-	rm -vf $(PREFIX)/OZMAV2 $(PREFIX)/ozmav2
+	$(MAKE) -C $(APP) uninstall
 
 rebuild: clean all
 
 package:
+	rm ozmav2.tgz
 	tgz ozmav2.tgz
+zsaten:
+	$(MAKE) -C misaka $(OPTIONS)
+	$(MAKE) -C badrdp $(OPTIONS)
+	$(MAKE) -C zsaten $(OPTIONS)
+
+sm64toz64:
+	$(MAKE) -C sm64toz64 $(OPTIONS)
 
 clean:
 	$(MAKE) -C misaka clean

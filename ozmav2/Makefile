@@ -1,5 +1,16 @@
 PROJECT = OZMAV2
 
+#Install dir
+ifeq ($(PREFIX),)
+	ifeq($(WIN32), 1)
+		PREVIX = C:\
+		CP = copy
+	else
+		PREFIX = /usr/bin
+		CP = cp
+	endif
+endif
+
 # Environment
 CC = gcc
 
@@ -8,24 +19,6 @@ CFLAGS = -Wall -U_FORTIFY_SOURCE
 
 # Application pieces
 PIECES	= camera.o draw.o __linux.o mips-eval.o __win32.o zelda.o confunc.o main.o oz.o zactors.o hud.o
-
-# In regards to backslashes
-# (http://www.netbsd.org/docs/pkgsrc/makefile.html#makefile.variables)
-#
-#   "	When a variable's value is parsed from a Makefile, the hash
-#	character ``#'' and the backslash character ``\'' are handled
-#	specially. If a backslash is followed by a newline, any
-#	whitespace immediately in front of the backslash, the backslash,
-#	the newline, and any whitespace immediately behind the newline
-#	are replaced with a single space. A backslash character and an
-#	immediately following hash character are replaced with a single
-#	hash character. Otherwise, the backslash is passed as is. In a
-#	variable assignment, any hash character that is not preceded by
-#	a backslash starts a comment that continues upto the end of the
-#	logical line.  "
-#
-# gedit (actually, gtk viewsource) does not seem to handle Makefile
-# backslashes properly.
 
 LDFLAGS = -Xlinker -zmuldefs
 
@@ -58,6 +51,14 @@ endif
 # Make
 all: $(PIECES)
 	$(CC) $(CFLAGS) -o $(TARGET) $(PIECES) $(LDFLAGS)
+
+# Install
+install:
+	$(CP) $(TARGET) $(PREFIX)/$(TARGET)
+
+# Uninstall
+uninstall:
+	$(RM) $(PREFIX)/$(TARGET)
 
 # Cleanup
 clean:

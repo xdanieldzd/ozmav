@@ -29,6 +29,17 @@ ifeq ($(WIN32), 1)
 	CFLAGS += -mwindows -mms-bitfields -DWIN32
 endif
 
+#Install dir
+ifeq ($(PREFIX),)
+	ifeq($(WIN32), 1)
+		PREVIX = C:\
+		CP = copy
+	else
+		PREFIX = /usr/bin
+		CP = cp
+	endif
+endif
+
 # Application pieces
 PIECES	= main.o actors.o script.o dlist.o collision.o
 
@@ -36,6 +47,13 @@ PIECES	= main.o actors.o script.o dlist.o collision.o
 all: $(PIECES)
 	$(CC) $(CFLAGS) -o $(TARGET) $(PIECES) $(LDFLAGS)
 
+# Install
+install:
+	$(CP) $(TARGET) $(PREFIX)/$(TARGET)
+
+# Uninstall
+uninstall:
+	$(RM) $(PREFIX)/$(TARGET)
 # Cleanup
 clean:
 	rm -vf $(TARGET) *.o 
