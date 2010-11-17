@@ -80,6 +80,7 @@
 		</Unit>
 		<Unit filename="camera.h" />
 		<Unit filename="dialog.h" />
+		<Unit filename="font.h" />
 		<Unit filename="globals.h" />
 		<Unit filename="hud.c">
 			<Option compilerVar="CC" />

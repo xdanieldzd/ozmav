@@ -32,8 +32,6 @@ void initActorParsing(int objFileNo)
 		vCurrentActor.useExtAnim = true;
 	}
 
-//	dbgprintf(0,0,"useActorOvl:%i, useExtAnim:%i", vCurrentActor.useActorOvl, vCurrentActor.useExtAnim);
-
 	if(objFileNo != -2) {
 		RDP_ClearStructures(true);
 		RDP_ClearTextures();
@@ -242,17 +240,15 @@ void processActor()
 
 		// if alternate object found and valid...
 		if(alt_objn != NULL && *alt_objn <= vZeldaInfo.objectCount && vActors[vCurrentActor.actorNumber].ObjectNumber < 3 && *alt_objn > 3 && vObjects[*alt_objn].isValid){
-			unsigned short ObjNumber = *alt_objn;
+			vActors[vCurrentActor.actorNumber].AltObjectNumber = *alt_objn;
 
-			RDP_LoadToSegment(	vObjects[ObjNumber].ObjectSegment,
-								vObjects[ObjNumber].ObjectData,
+			RDP_LoadToSegment(	vObjects[vActors[vCurrentActor.actorNumber].AltObjectNumber].ObjectSegment,
+								vObjects[vActors[vCurrentActor.actorNumber].AltObjectNumber].ObjectData,
 								0,
-								vObjects[ObjNumber].ObjectSize);
+								vObjects[vActors[vCurrentActor.actorNumber].AltObjectNumber].ObjectSize);
 
-			scanAnimations(vObjects[ObjNumber].ObjectSegment);
-			scanBones(vObjects[ObjNumber].ObjectSegment);
-
-			dbgprintf(0, MSK_COLORTYPE_ERROR, "!!! Alternate object 0x%04X found (%s)", ObjNumber, vObjects[ObjNumber].ObjectName);
+			scanAnimations(vObjects[vActors[vCurrentActor.actorNumber].AltObjectNumber].ObjectSegment);
+			scanBones(vObjects[vActors[vCurrentActor.actorNumber].AltObjectNumber].ObjectSegment);
 		}
 
 		// dlist and scale sanity checks
@@ -261,13 +257,6 @@ void processActor()
 		}
 
 		if(vCurrentActor.actorScale < 0.01f) vCurrentActor.actorScale = 0.01f;
-
-		// do info dump
-		dbgprintf(0, MSK_COLORTYPE_INFO, "actor 0x%04X (%s):\n", vCurrentActor.actorNumber, vActors[vCurrentActor.actorNumber].ActorName);
-		dbgprintf(0, MSK_COLORTYPE_INFO, "known -> object 0x%04X (%s) seg:%i\n",
-			vActors[vCurrentActor.actorNumber].ObjectNumber, vObjects[vActors[vCurrentActor.actorNumber].ObjectNumber].ObjectName, vObjects[vActors[vCurrentActor.actorNumber].ObjectNumber].ObjectSegment);
-		dbgprintf(0, MSK_COLORTYPE_INFO, "scanned -> bones[0]:%08x, dlist:%08x, anim[0]:%08x, scale:%.2f\n",
-			vCurrentActor.offsetBoneSetup[0], vCurrentActor.offsetDList, vCurrentActor.offsetAnims[0], vCurrentActor.actorScale);
 
 	} else {
 		// parse object directly
@@ -363,23 +352,7 @@ void drawBone(actorBone Bones[], int CurrentBone, int ParentBone)
 		vBoneColorFactor.B = 1.0f;
 	}
 }
-/*
-#define S1(row, col)	Src1[(col << 2) + row]
-#define S2(row, col)	Src1[(col << 2) + row]
-#define T(row, col)		Target[(col << 2) + row]
 
-void zl_MulMatrices(int Src1[16], int Src2[16], int Target[16])
-{
-	int i;
-	for(i = 0; i < 4; i++) {
-		const int si0 = S1(i, 0), si1 = S1(i, 1), si2 = S1(i, 2), si3 = S1(i, 3);
-		T(i, 0) = si0 * S2(0, 0) + si1 * S2(1, 0) + si2 * S2(2, 0) + si3 * S2(3,0);
-		T(i, 1) = si0 * S2(0, 1) + si1 * S2(1, 1) + si2 * S2(2, 1) + si3 * S2(3,1);
-		T(i, 2) = si0 * S2(0, 2) + si1 * S2(1, 2) + si2 * S2(2, 2) + si3 * S2(3,2);
-		T(i, 3) = si0 * S2(0, 3) + si1 * S2(1, 3) + si2 * S2(2, 3) + si3 * S2(3,3);
-	}
-}
-*/
 void drawBones(unsigned int BoneOffset, unsigned int AnimationOffset, float Scale, short X, short Y, short Z, short RX, short RY, short RZ)
 {
 	int BoneCount, BoneListListOffset, Seg, _Seg, i, AniSeg=0, RotIndexOffset=0, RotValOffset=0;
@@ -479,48 +452,12 @@ void drawBones(unsigned int BoneOffset, unsigned int AnimationOffset, float Scal
 	vBoneColorFactor.R = 0.0f;
 	vBoneColorFactor.G = 0.0f;
 	vBoneColorFactor.B = 0.0f;
-/*
-	RAM[0x0D].Size = (BoneCount+1)*0x40;
-	RAM[0x0D].Data = (unsigned char*)malloc(sizeof(char)*RAM[0x0D].Size);
-	RAM[0x0D].IsSet = true;
-	memset(RAM[0x0D].Data, 0x00, RAM[0x0D].Size);
 
-	for(i = 1; i < BoneCount; i++) {
-		glPushMatrix();
-		glLoadIdentity();
-			glTranslated(Bones[i].X, Bones[i].Y, Bones[i].Z);
-
-			// get current matrix
-			glGetIntegerv(GL_MODELVIEW_MATRIX, Bones[i].Matrix);
-			int j;
-			zl_MulMatrices(Bones[i].Matrix, Bones[i-1].Matrix, Bones[i].Matrix);
-
-			dbgprintf(0, MSK_COLORTYPE_WARNING, "Bone %i matrix, target %08X:", i, 0x0D << 24 | (i-1)*0x40);
-			for(j = 0; j < 16; j+=4) {
-				dbgprintf(0, MSK_COLORTYPE_INFO, "[%6i] [%6i] [%6i] [%6i]",
-					Bones[i].Matrix[j], Bones[i].Matrix[j + 1], Bones[i].Matrix[j + 2], Bones[i].Matrix[j + 3]);
-			}
-
-			// write to RAM
-			int Offset = (i-1)* 0x40;
-			for(j = 0; j < 16; j++) {
-				Write16(RAM[0x0D].Data, Offset + 0x20, (Bones[i].Matrix[j] & 0xFFFF0000) >> 16);
-				Write16(RAM[0x0D].Data, Offset, (Bones[i].Matrix[j] & 0xFFFF));
-				Offset+=2;
-			}
-		glPopMatrix();
-	}
-*/
 	//render
 	glPushMatrix();
 		glScalef(Scale, Scale, Scale);
 		drawBone(Bones, 0, -1);
 	glPopMatrix();
-/*
-	if(RAM[0x0D].Data != NULL) {
-		memset(RAM[0x0D].Data, 0x00, RAM[0x0D].Size);
-		RDP_ClearSegment(0x0D);
-	}*/
 }
 
 int scanAnimations(unsigned char bank)

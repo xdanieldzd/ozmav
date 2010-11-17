@@ -207,10 +207,11 @@ void gl_DrawScene(void)
 	hud_Print(0, 0, 0, 0, "");
 
 	if(vCurrentActor.useActorOvl) {
-		sprintf(statMsg, "Actor 0x%04X / Object 0x%04X:\n- Actor name: %s\n- Object name: %s",
+		sprintf(statMsg, "Actor 0x%04X / Object 0x%04X:\n- Actor name: %s\n- Object name: %s\n- Alt. Object name: %s",
 			vCurrentActor.actorNumber, vActors[vCurrentActor.actorNumber].ObjectNumber,
 			(strcmp(vActors[vCurrentActor.actorNumber].ActorName, "\0") ? vActors[vCurrentActor.actorNumber].ActorName : "unknown"),
-			(strcmp(vObjects[vActors[vCurrentActor.actorNumber].ObjectNumber].ObjectName, "\0") ? vObjects[vActors[vCurrentActor.actorNumber].ObjectNumber].ObjectName : "unknown"));
+			(strcmp(vObjects[vActors[vCurrentActor.actorNumber].ObjectNumber].ObjectName, "\0") ? vObjects[vActors[vCurrentActor.actorNumber].ObjectNumber].ObjectName : "unknown"),
+			(strcmp(vObjects[vActors[vCurrentActor.actorNumber].AltObjectNumber].ObjectName, "\0") ? vObjects[vActors[vCurrentActor.actorNumber].AltObjectNumber].ObjectName : "unknown"));
 	} else if(vCurrentActor.useExtAnim) {
 		sprintf(statMsg, "Object name: %s\nAnimation file: %s", vCurrentActor.oName, vCurrentActor.eaName);
 	} else {
@@ -222,24 +223,28 @@ void gl_DrawScene(void)
 	if((vCurrentActor.boneSetupTotal >= 0) && (vCurrentActor.animTotal >= 0) && (vActors[vCurrentActor.actorNumber].isValid)) {
 		sprintf(statMsg,
 			"Using bone structure %02i of %02i\n"
+			" - Offset: 0x%08X\n"
 			"Showing animation %02i of %02i\n"
+			" - Offset: 0x%08X\n"
 			"Current animation frame: %02i/%02i\n"
 			"Target FPS: %2.0f\n"
 			"%cBone structure: %s\n"
 			"%cAnimation is %s",
 			vCurrentActor.boneSetupCurrent + 1, vCurrentActor.boneSetupTotal + 1,
+			vCurrentActor.offsetBoneSetup[vCurrentActor.boneSetupCurrent],
 			vCurrentActor.animCurrent + 1, vCurrentActor.animTotal + 1,
+			vCurrentActor.offsetAnims[vCurrentActor.animCurrent],
 			vCurrentActor.frameCurrent + 1, vCurrentActor.frameTotal + 1,
 			vProgram.targetFPS,
 			(vProgram.showBones ? '\x90' : '\x91'), (vProgram.showBones ? "shown" : "hidden"),
 			(vProgram.animPlay ? '\x90' : '\x91'), (vProgram.animPlay ? "running..." : "stopped."));
-		hud_Print(0, 40, -1, -1, statMsg);
+		hud_Print(-1, 0, -1, -1, statMsg);
 	}
 
 	#if 0
 	sprintf(statMsg, "Camera:\nX: %.2f, Y: %.2f, Z: %.2f\nLX: %.2f, LY: %.2f, LZ: %.2f\nAngle: X: %.2f, Y: %.2f\nActor Rot: X: %.2f, Y: %.2f",
 		vCamera.X, vCamera.Y, vCamera.Z, vCamera.LX, vCamera.LY, vCamera.LZ, vCamera.angleX, vCamera.angleY, vCamera.actorRotX, vCamera.actorRotY);
-	hud_Print(-1, 0, -1, -1, statMsg);
+	hud_Print(-1, -1, -1, -1, statMsg);
 	#endif
 
 	#if 0

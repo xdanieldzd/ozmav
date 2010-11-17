@@ -132,7 +132,8 @@ typedef struct {
 	unsigned int NameCStart;
 	char ActorName[128];
 
-	unsigned int ObjectNumber;
+	unsigned short ObjectNumber;
+	unsigned short AltObjectNumber;
 
 	unsigned char * ActorData;
 	unsigned int ActorSize;

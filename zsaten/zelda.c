@@ -143,6 +143,7 @@ int zl_ReadData()
 			vActors[ActorNumber].ActorData = zl_DMAToBuffer(Actor);
 			vActors[ActorNumber].ActorSize = Actor.VEnd - Actor.VStart;
 			vActors[ActorNumber].ObjectNumber = Read16(vActors[ActorNumber].ActorData, (vActors[ActorNumber].ProfileVStart - vActors[ActorNumber].VStart) + 8);
+			vActors[ActorNumber].AltObjectNumber = 0;
 
 			dbgprintf(2, MSK_COLORTYPE_INFO, "\n- Actor 0x%04X is called '%s', %i bytes\n", ActorNumber, vActors[ActorNumber].ActorName, vActors[ActorNumber].ActorSize);
 

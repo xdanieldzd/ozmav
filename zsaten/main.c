@@ -94,16 +94,72 @@ void loadObjectAnim(unsigned char * Ptr)
 
 void listSegmentUsage(unsigned char * Ptr)
 {
+	dbgprintf(0, MSK_COLORTYPE_OKAY, "\nCurrent RAM segments:\n");
+
 	int i = 0;
 	for(i = 0; i < MAX_SEGMENTS; i++) {
 		if(RAM[i].IsSet) {
-			dbgprintf(0, MSK_COLORTYPE_OKAY, "Segment 0x%02X -> Size: 0x%06X bytes, ROM source offset: 0x%08X (%s)\n",
+			dbgprintf(0, MSK_COLORTYPE_OKAY, " - Segment 0x%02X -> Size: 0x%06X bytes, ROM source offset: 0x%08X (%s)\n",
 				i, RAM[i].Size, RAM[i].SourceOffset,
 					(RAM[i].SourceCompType ? (RAM[i].SourceCompType == 1 ? "Yaz0" : "MIO0") : ("raw"))
 			);
 		} else {
-			dbgprintf(0, MSK_COLORTYPE_WARNING, "Segment 0x%02X -> Segment not set.\n", i);
+			dbgprintf(0, MSK_COLORTYPE_WARNING, " - Segment 0x%02X -> Segment not set.\n", i);
 		}
+	}
+}
+
+void printActorData(unsigned char * Ptr)
+{
+	dbgprintf(0, MSK_COLORTYPE_OKAY, "\nActor #0x%04X:\n", vCurrentActor.actorNumber);
+
+	int i = 0;
+
+	if(vCurrentActor.useActorOvl) {
+		unsigned short ActorNumber = vCurrentActor.actorNumber;
+		unsigned short ObjectNumber = vActors[ActorNumber].ObjectNumber;
+		unsigned short AltObjectNumber = vActors[ActorNumber].AltObjectNumber;
+
+		if(!vActors[ActorNumber].isValid) {
+			dbgprintf(0, MSK_COLORTYPE_WARNING, " - Invalid Actor data!\n");
+			return;
+		}
+		dbgprintf(0, MSK_COLORTYPE_INFO, " - Actor 0x%04X '%s', %i bytes\n",
+			ActorNumber,
+			(strcmp(vActors[ActorNumber].ActorName, "\0") ? vActors[ActorNumber].ActorName : "unknown"),
+			vActors[ActorNumber].ActorSize);
+		if(ObjectNumber && vObjects[ObjectNumber].isValid) {
+			dbgprintf(0, MSK_COLORTYPE_INFO, "  - Object 0x%04X '%s', %i bytes, segment 0x%02X\n",
+				ObjectNumber,
+				(strcmp(vObjects[ObjectNumber].ObjectName, "\0") ? vObjects[ObjectNumber].ObjectName : "unknown"),
+				vObjects[ObjectNumber].ObjectSize,
+				vObjects[ObjectNumber].ObjectSegment);
+			if(AltObjectNumber && vObjects[AltObjectNumber].isValid) {
+				dbgprintf(0, MSK_COLORTYPE_INFO, "  - Alt. Object 0x%04X '%s', %i bytes, segment 0x%02X\n",
+					ObjectNumber,
+					(strcmp(vObjects[AltObjectNumber].ObjectName, "\0") ? vObjects[AltObjectNumber].ObjectName : "unknown"),
+					vObjects[AltObjectNumber].ObjectSize,
+					vObjects[AltObjectNumber].ObjectSegment);
+			}
+		}
+
+		if(vCurrentActor.offsetDList != 0) {
+			dbgprintf(0, MSK_COLORTYPE_INFO, " - Display List at offset 0x%08X\n", vCurrentActor.offsetDList);
+		} else {
+			dbgprintf(0, MSK_COLORTYPE_WARNING, " - No Display List found!\n");
+		}
+
+		dbgprintf(0, MSK_COLORTYPE_INFO, " - Bone structures:\n");
+		for(i = 0; i < vCurrentActor.boneSetupTotal + 1; i++) {
+			dbgprintf(0, MSK_COLORTYPE_INFO, "  - Structure #%i, offset 0x%08X\n", i + 1, vCurrentActor.offsetBoneSetup[i]);
+		}
+		if(i == 0) dbgprintf(0, MSK_COLORTYPE_WARNING, "  - No structures found!\n");
+
+		dbgprintf(0, MSK_COLORTYPE_INFO, " - Animations:\n");
+		for(i = 0; i < vCurrentActor.animTotal + 1; i++) {
+			dbgprintf(0, MSK_COLORTYPE_INFO, "  - Animation #%i, offset 0x%08X\n", i + 1, vCurrentActor.offsetAnims[i]);
+		}
+		if(i == 0) dbgprintf(0, MSK_COLORTYPE_WARNING, "  - No animations found!\n");
 	}
 }
 
@@ -131,6 +187,7 @@ int main(int argc, char **argv)
 	MSK_AddCommand("loadobject", "Load object by filename", loadObjectName);
 	MSK_AddCommand("loadanim", "Load animations by filename", loadObjectAnim);
 	MSK_AddCommand("listsegs", "List currently set segments", listSegmentUsage);
+	MSK_AddCommand("printdata", "Print current actor data", printActorData);
 	MSK_AddCommand("options", "Change program options", programOptions);
 	MSK_AddCommand("about", "About this program", aboutProgram);
 
@@ -163,7 +220,7 @@ int main(int argc, char **argv)
 
 	vProgram.enableHUD = true;
 
-	vCurrentActor.actorNumber = 0;//467;
+	vCurrentActor.actorNumber = 0x1c6;//467;
 
 	vProgram.debugLevel = 0;
 
