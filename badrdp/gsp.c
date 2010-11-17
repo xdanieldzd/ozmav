@@ -23,19 +23,15 @@ void gSP_Vertex(unsigned int Vtx, int N, int V0)
 		Vertex[V0 + i].Vtx.B = RAM[TempSegment].Data[TempOffset + (i * 16) + 14];
 		Vertex[V0 + i].Vtx.A = RAM[TempSegment].Data[TempOffset + (i * 16) + 15];
 
-		short X = Read16(RAM[TempSegment].Data, TempOffset + (i * 16));
-		short Y = Read16(RAM[TempSegment].Data, TempOffset + (i * 16) + 2);
-		short Z = Read16(RAM[TempSegment].Data, TempOffset + (i * 16) + 4);
-		short W = Read16(RAM[TempSegment].Data, TempOffset + (i * 16) + 6);
+		short X = (Read16(RAM[TempSegment].Data, TempOffset + (i * 16)));
+		short Y = (Read16(RAM[TempSegment].Data, TempOffset + (i * 16) + 2));
+		short Z = (Read16(RAM[TempSegment].Data, TempOffset + (i * 16) + 4));
+		short W = (Read16(RAM[TempSegment].Data, TempOffset + (i * 16) + 6));
 
 		Vertex[V0 + i].Vtx.X = X;//X * (short)Matrix.Comb[0][0] + Y * (short)Matrix.Comb[1][0] + Z * (short)Matrix.Comb[2][0] + (short)Matrix.Comb[3][0];
 		Vertex[V0 + i].Vtx.Y = Y;//X * (short)Matrix.Comb[0][1] + Y * (short)Matrix.Comb[1][1] + Z * (short)Matrix.Comb[2][1] + (short)Matrix.Comb[3][1];
 		Vertex[V0 + i].Vtx.Z = Z;//X * (short)Matrix.Comb[0][2] + Y * (short)Matrix.Comb[1][2] + Z * (short)Matrix.Comb[2][2] + (short)Matrix.Comb[3][2];
 		Vertex[V0 + i].Vtx.W = W;
-
-		if(Gfx.GeometryMode & G_ZBUFFER) {
-			Vertex[V0 + i].Vtx.Z = -Vertex[V0 + i].Vtx.W;
-		}
 	}
 }
 
@@ -120,6 +116,7 @@ void gSP_Matrix(unsigned int Mtx, unsigned char Param)
 
 	float TempMatrix[4][4];
 
+//	dbgprintf(0, 0, "RDP_F3DEX2_MTX -> Matrix %08X:", Mtx);
 	for(x = 0; x < 4; x++) {
 		for(y = 0; y < 4; y++) {
 			MtxTemp1 = Read16(RAM[Segment].Data, Offset);
@@ -127,23 +124,29 @@ void gSP_Matrix(unsigned int Mtx, unsigned char Param)
 			TempMatrix[x][y] = ((MtxTemp1 << 16) | MtxTemp2) * (1.0f / 65536.0f);
 			Offset += 2;
 		}
+//		dbgprintf(0, 0, "[% 6.0f] [% 6.0f] [% 6.0f] [% 6.0f]", TempMatrix[x][0], TempMatrix[x][1], TempMatrix[x][2], TempMatrix[x][3]);
 	}
 
 	if(Param & G_MTX_PROJECTION) {
 		if(Param & G_MTX_LOAD) {
 			RDP_Matrix_ProjectionLoad(TempMatrix);
+//			dbgprintf(0, 0, "!! Projection load\n");
 		} else {
 			RDP_Matrix_ProjectionMul(TempMatrix);
+//			dbgprintf(0, 0, "!! Projection mul\n");
 		}
 	} else {
 		if((Param & G_MTX_PUSH) && (Matrix.ModelIndex < (Matrix.ModelStackSize - 1))) {
+//			dbgprintf(0, 0, "!! Modelview push\n");
 			RDP_Matrix_ModelviewPush();
 		}
 
 		if(Param & G_MTX_LOAD) {
 			RDP_Matrix_ModelviewLoad(TempMatrix);
+//			dbgprintf(0, 0, "!! Modelview load\n");
 		} else {
 			RDP_Matrix_ModelviewMul(TempMatrix);
+//			dbgprintf(0, 0, "!! Modelview mul\n");
 		}
 	}
 }

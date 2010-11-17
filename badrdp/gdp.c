@@ -46,7 +46,7 @@ void gDP_SetTileSize(unsigned int w0, unsigned int w1)
 
 void gDP_SetTile(unsigned int w0, unsigned int w1)
 {
-	if(((w1 & 0xFF000000) >> 24) == 0x07) return;
+//	if(((w1 & 0xFF000000) >> 24) == 0x07) return;
 
 	Texture[Gfx.CurrentTexture].Offset = TexAddr;
 
@@ -59,6 +59,9 @@ void gDP_SetTile(unsigned int w0, unsigned int w1)
 	Texture[Gfx.CurrentTexture].ShiftS = _SHIFTR(w1, 0, 4);
 	Texture[Gfx.CurrentTexture].MaskT = _SHIFTR(w1, 14, 4);
 	Texture[Gfx.CurrentTexture].MaskS = _SHIFTR(w1, 4, 4);
+
+	if(!Texture[Gfx.CurrentTexture].MaskT) Texture[Gfx.CurrentTexture].CMT &= G_TX_CLAMP;
+	if(!Texture[Gfx.CurrentTexture].MaskS) Texture[Gfx.CurrentTexture].CMS &= G_TX_CLAMP;
 }
 
 void gDP_SetFillColor(unsigned int w0, unsigned int w1)
