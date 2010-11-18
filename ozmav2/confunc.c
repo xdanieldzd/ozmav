@@ -7,9 +7,16 @@ void cn_Cmd_LoadROM(unsigned char * Ptr)
 		dbgprintf(0, MSK_COLORTYPE_ERROR, "Error: No file specified!\n");
 	} else {
 		char Path[MAX_PATH];
-		strcpy(Path, zProgram.AppPath);
-		strcat(Path, (char*)Ptr+1);
 		zOptions.SceneNo = 0;
+		strcpy(Path,
+		#ifdef WIN32
+			zProgram.AppPath
+		);
+		strcat(Path, (char*)Ptr+1);
+		#else
+			(char*)Ptr+1
+		);
+		#endif
 		zROM.IsROMLoaded = zl_Init(Path);
 	}
 }
