@@ -64,7 +64,16 @@ void initActorParsing(int objFileNo)
 	}
 
 	setMipsWatchers();
-
+	if(!vCurrentActor.actorNumber){
+		DMA link_animetion;
+		if(!vActors[0].isValid)
+			goto end;
+		RDP_LoadToSegment(4, vObjects[1].ObjectData, 0, vObjects[1].ObjectSize);
+		link_animetion = zl_DMAGetFileByFilename("link_animetion");
+		if(link_animetion.ID == -1)
+			goto end;
+		RDP_LoadToSegment(7, zl_DMAToBuffer(link_animetion), 0, link_animetion.VEnd - link_animetion.VStart);
+	}
 	if(vCurrentActor.useActorOvl) {
 		// use actor overlay file
 		if(vObjects[vActors[vCurrentActor.actorNumber].ObjectNumber].isValid) {
@@ -97,7 +106,7 @@ void initActorParsing(int objFileNo)
 			processActor();
 		}
 	}
-
+end:
 	mips_ResetWatch();
 	mips_ResetResults();
 }
@@ -158,15 +167,30 @@ struct actorSections getActorSections(unsigned char * Data, size_t Size, unsigne
 
 void processActor()
 {
-	if(vCurrentActor.useActorOvl) {
+	if(!vCurrentActor.actorNumber) {
+		dbgprintf(0, MSK_COLORTYPE_INFO, "Link has come to town!!!!");
+		int pos;
+		vCurrentActor.isLink=1;
+		
+		/* Get bones */
+		scanBones(0x6);
+		/* Animations */
+		vCurrentActor.animTotal=0;
+		for(pos=0x2310;pos<0x34F8;pos+=8)
+		{
+			vCurrentActor.offsetAnims[vCurrentActor.animTotal] = Read32(RAM[4].Data, pos + 4);
+			vCurrentActor.animFrames[vCurrentActor.animTotal] = Read16(RAM[4].Data, pos)/*-1      maybe.*/;
+			vCurrentActor.animTotal++;
+		}
+	}else if(vCurrentActor.useActorOvl) {
 		// use actor overlay file
 		float * scale = NULL;
 		int *anim = NULL, *dlist = NULL, *bones = NULL, *alt_objn = NULL;
 		struct actorSections Sections;
 
 		mips_ResetSpecialOps();
-		mips_SetSpecialOp(MIPS_LH(mips_r0, 0x1C, mips_a0), vCurrentActor.variable);
-		mips_SetSpecialOp(MIPS_LH(mips_r0, 0x1C, mips_s0), vCurrentActor.variable);
+		mips_SetSpecialOp(MIPS_LH(mips_r0, 0x1C, mips_a0), MIPS_LH(mips_r0, 0x1C, mips_a0), vCurrentActor.variable);
+		mips_SetSpecialOp(MIPS_LH(mips_r0, 0x1C, mips_s0), MIPS_LH(mips_r0, 0x1C, mips_a0), vCurrentActor.variable);
 
 		Sections = getActorSections(vActors[vCurrentActor.actorNumber].ActorData, vActors[vCurrentActor.actorNumber].ActorSize, 0);
 
@@ -353,6 +377,92 @@ void drawBone(actorBone Bones[], int CurrentBone, int ParentBone)
 	}
 }
 
+void drawLink(unsigned int BoneOffset, unsigned int AnimationOffset, float Scale, short X, short Y, short Z, short RX, short RY, short RZ, int detail, int frames)
+{
+	int BoneCount, BoneListListOffset, Seg, _Seg, i, AniSeg=0, rot_offset=0;
+	
+	vCurrentActor.frameTotal = frames;
+
+	RDP_ClearStructures(false);
+
+	if(!RDP_CheckAddressValidity(BoneOffset)){
+		return;
+	}
+	if(Scale < 0.001f){
+		Scale = 0.02f;
+	}
+	Seg = (BoneOffset >> 24) & 0xFF;
+	BoneOffset &= 0xFFFFFF;
+
+	//parse bones
+	BoneCount = RAM[Seg].Data[(BoneOffset) + 4];
+	BoneListListOffset = Read32(RAM[Seg].Data, BoneOffset);
+	if(!RDP_CheckAddressValidity(BoneListListOffset)){
+		return;
+	}
+
+	actorBone Bones[BoneCount];
+	memset(Bones, 0, sizeof(actorBone) * BoneCount);
+
+
+	if(RDP_CheckAddressValidity(AnimationOffset))
+	{
+		AniSeg = AnimationOffset>>24;
+		rot_offset = AnimationOffset&0xFFFFFF;
+		rot_offset += (vCurrentActor.frameCurrent * (BoneCount * 6 + 8));
+		Bones[0].X = Read16(RAM[AniSeg].Data, rot_offset);
+		rot_offset+=2;
+		Bones[0].Y = Read16(RAM[AniSeg].Data, rot_offset);
+		rot_offset+=2;
+		Bones[0].Z = Read16(RAM[AniSeg].Data, rot_offset);
+		rot_offset+=2;
+	}
+
+	Seg = (BoneListListOffset >> 24) & 0xFF;
+	BoneListListOffset &= 0xFFFFFF;
+	
+	for(i=0; i<BoneCount; i++)
+	{
+		BoneOffset = Read32(RAM[Seg].Data, BoneListListOffset + (i << 2));
+		if(!RDP_CheckAddressValidity(BoneOffset)){
+			return;
+		}
+		_Seg = (BoneOffset >> 24) & 0xFF;
+		BoneOffset &= 0xFFFFFF;
+		Bones[i].X += Read16(RAM[_Seg].Data, BoneOffset);
+		Bones[i].Y += Read16(RAM[_Seg].Data, BoneOffset + 2);
+		Bones[i].Z += Read16(RAM[_Seg].Data, BoneOffset + 4);
+		Bones[i].Child = RAM[_Seg].Data[BoneOffset+6];
+		Bones[i].Sibling = RAM[_Seg].Data[BoneOffset+7];
+		Bones[i].DList = Read32(RAM[_Seg].Data, BoneOffset+8);
+		Bones[i].isSet = 1;
+
+
+		if( rot_offset ){
+
+			Bones[i].RX = Read16(RAM[AniSeg].Data, rot_offset);
+			rot_offset+=2;
+			Bones[i].RY = Read16(RAM[AniSeg].Data, rot_offset);
+			rot_offset+=2;
+			Bones[i].RZ = Read16(RAM[AniSeg].Data, rot_offset);
+			rot_offset+=2;
+
+//			dbgprintf(0, MSK_COLORTYPE_INFO, " Bone %2i (%08X): (%6i %6i %6i) (%2i %2i) %08X", i, BoneOffset, Bones[i].X, Bones[i].Y, Bones[i].Z, Bones[i].Child, Bones[i].Sibling, Bones[i].DList);
+		}
+
+	}
+
+	vBoneColorFactor.R = 0.0f;
+	vBoneColorFactor.G = 0.0f;
+	vBoneColorFactor.B = 0.0f;
+
+	//render
+	glPushMatrix();
+		glScalef(Scale, Scale, Scale);
+		drawBone(Bones, 0, -1);
+	glPopMatrix();
+}
+
 void drawBones(unsigned int BoneOffset, unsigned int AnimationOffset, float Scale, short X, short Y, short Z, short RX, short RY, short RZ)
 {
 	int BoneCount, BoneListListOffset, Seg, _Seg, i, AniSeg=0, RotIndexOffset=0, RotValOffset=0;
@@ -474,7 +584,7 @@ int scanAnimations(unsigned char bank)
 			((int) ((RAM[bank].Data[i+5] << 16)|(RAM[bank].Data[i+6]<<8)|(RAM[bank].Data[i+7])) < RAM[bank].Size)	&&
 			(RAM[bank].Data[i+8] == bank)	&&
 			((int) ((RAM[bank].Data[i+9] << 16)|(RAM[bank].Data[i+10]<<8)|(RAM[bank].Data[i+11])) < RAM[bank].Size)	&&
-			(!RAM[bank].Data[i+12]) &&		// ???
+			(!RAM[bank].Data[i+12]) &&		// Make sure padding is set to 0.
 			(!RAM[bank].Data[i+14])	&&
 			(!RAM[bank].Data[i+15])) {
 				vCurrentActor.animTotal++;

@@ -181,8 +181,25 @@ void gl_DrawScene(void)
 
 	if((vCurrentActor.boneSetupTotal >= 0)/* && (vCurrentActor.animTotal >= 0)*/) {
 		if(!vProgram.showBones && vProgram.enableHUD) glCallList(vProgram.actorAxisMarkerDL);
-		drawBones(vCurrentActor.offsetBoneSetup[vCurrentActor.boneSetupCurrent], vCurrentActor.offsetAnims[vCurrentActor.animCurrent], vCurrentActor.actorScale, 0, 0, 0, 0, 0, 0);
-
+		if(!vCurrentActor.isLink)
+			drawBones(
+				vCurrentActor.offsetBoneSetup[vCurrentActor.boneSetupCurrent],
+				vCurrentActor.offsetAnims[vCurrentActor.animCurrent],
+				vCurrentActor.actorScale,
+				0, 0, 0, /* trans */
+				0, 0, 0  /* rot */
+			);
+		else
+			drawLink(
+				vCurrentActor.offsetBoneSetup[vCurrentActor.boneSetupCurrent],
+				vCurrentActor.offsetAnims[vCurrentActor.animCurrent],
+				vCurrentActor.actorScale,
+				0, 0, 0, /* trans */
+				0, 0, 0, /* rot */
+				1, /* close or far model */
+				vCurrentActor.animFrames[vCurrentActor.animCurrent]
+			);
+		
 	} else if(RDP_CheckAddressValidity(vCurrentActor.offsetDList)) {
 		if(vProgram.enableHUD) glCallList(vProgram.actorAxisMarkerDL);
 		RDP_ClearStructures(false);
@@ -220,24 +237,23 @@ void gl_DrawScene(void)
 
 	hud_Print(0, 0, -1, -1, statMsg);
 
-	if((vCurrentActor.boneSetupTotal >= 0) && (vCurrentActor.animTotal >= 0) && (vActors[vCurrentActor.actorNumber].isValid)) {
+	if((vCurrentActor.boneSetupTotal >= 0) && (vCurrentActor.animTotal >= 0) && (vActors[vCurrentActor.actorNumber].isValid) ) {
 		sprintf(statMsg,
 			"Using bone structure %02i of %02i\n"
 			" - Offset: 0x%08X\n"
-			"Showing animation %02i of %02i\n"
+			"Showing animation %03i of %03i\n"
 			" - Offset: 0x%08X\n"
 			"Current animation frame: %02i/%02i\n"
 			"Target FPS: %2.0f\n"
 			"%cBone structure: %s\n"
 			"%cAnimation is %s",
 			vCurrentActor.boneSetupCurrent + 1, vCurrentActor.boneSetupTotal + 1,
-			vCurrentActor.offsetBoneSetup[vCurrentActor.boneSetupCurrent],
-			vCurrentActor.animCurrent + 1, vCurrentActor.animTotal + 1,
-			vCurrentActor.offsetAnims[vCurrentActor.animCurrent],
+			vCurrentActor.offsetBoneSetup[vCurrentActor.boneSetupCurrent],			vCurrentActor.animCurrent + 1, vCurrentActor.animTotal + 1,			vCurrentActor.offsetAnims[vCurrentActor.animCurrent],
 			vCurrentActor.frameCurrent + 1, vCurrentActor.frameTotal + 1,
 			vProgram.targetFPS,
 			(vProgram.showBones ? '\x90' : '\x91'), (vProgram.showBones ? "shown" : "hidden"),
-			(vProgram.animPlay ? '\x90' : '\x91'), (vProgram.animPlay ? "running..." : "stopped."));
+			(vProgram.animPlay ? '\x90' : '\x91'), (vProgram.animPlay ? "running..." : "stopped.")
+		);
 		hud_Print(-1, 0, -1, -1, statMsg);
 	}
 

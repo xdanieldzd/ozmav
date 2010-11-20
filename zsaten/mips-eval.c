@@ -26,6 +26,7 @@ signed int stack_pos = 128*SAFETY_VAL;
 
 typedef struct {
 	unsigned int Op;
+	unsigned int mask;
 	int Value;
 } SpecialOp;
 
@@ -51,7 +52,7 @@ void mips_EvalWord(unsigned int * words, int pos)
 	unsigned int word = flip32(words[pos]), CalcAddr;
 	int i, imm;
 	for(i=0;i<SpecialOpCount;i++){
-		if((word & SpecialOps[i].Op) == SpecialOps[i].Op){
+		if((word & SpecialOps[i].mask) == SpecialOps[i].Op){
 			if(!word & 0xFC000000)	//R type ops
 				regs[getRD(word)] = SpecialOps[i].Value;
 			else
@@ -186,9 +187,10 @@ void mips_ResetMap()
 When opcode & Op == Op
 opcode.dest_val = ValueToSet
 */
-void mips_SetSpecialOp(unsigned int Op, int ValueToSet)
+void mips_SetSpecialOp(unsigned int Op, unsigned int mask, int ValueToSet)
 {
 	SpecialOps[SpecialOpCount].Op = Op;
+	SpecialOps[SpecialOpCount].mask = mask;
 	SpecialOps[SpecialOpCount].Value = ValueToSet;
 	SpecialOpCount++;
 }

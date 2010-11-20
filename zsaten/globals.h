@@ -57,6 +57,8 @@ enum { false, true };
 
 #define arraySize(x)	(sizeof((x)) / sizeof((x)[0]))
 
+#define MAX_ANIMATIONS	1024
+
 typedef struct {
 	bool isRunning;
 	bool key[256];
@@ -100,6 +102,7 @@ typedef struct {
 typedef struct {
 	bool useActorOvl;
 	bool useExtAnim;
+	bool isLink;
 
 	unsigned short actorNumber;
 	unsigned short variable;
@@ -111,7 +114,8 @@ typedef struct {
 	int boneSetupTotal;
 	int boneSetupCurrent;
 
-	unsigned int offsetAnims[64];
+	unsigned int offsetAnims[MAX_ANIMATIONS];
+	short animFrames[MAX_ANIMATIONS]; // only used for link
 	int animTotal;
 	int animCurrent;
 

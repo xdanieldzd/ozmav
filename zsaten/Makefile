@@ -17,7 +17,7 @@ endif
 CC = gcc
 
 # Utils flags
-CFLAGS = -Wall -U_FORTIFY_SOURCE
+CFLAGS = -Wall -U_FORTIFY_SOURCE 
 
 # Application pieces
 PIECES	= camera.o  hud.o  __linux.o  main.o  memwatch.o  mips-eval.o  oz.o  render.o  shared.o  __win32.o  zactors.o  zelda.o
@@ -41,13 +41,13 @@ else
   PIECES += __linux.o
 endif
 
+LDFLAGS += ../misaka/libMISAKA.a ../badrdp/libbadRDP.a
 #Debug? 
 ifeq ($(DBG),1)
   CFLAGS += -DDEBUG -g
-  LDFLAGS += ../misaka/libMISAKA_debug.a ../badrdp/libbadRDP_debug.a
+#  LDFLAGS += ../misaka/libMISAKA_debug.a ../badrdp/libbadRDP_debug.a
 else
   CFLAGS += -O2
-  LDFLAGS += ../misaka/libMISAKA.a ../badrdp/libbadRDP.a
 endif
 
 # Make

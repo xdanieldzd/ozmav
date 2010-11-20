@@ -156,8 +156,15 @@ void printActorData(unsigned char * Ptr)
 		if(i == 0) dbgprintf(0, MSK_COLORTYPE_WARNING, "  - No structures found!\n");
 
 		dbgprintf(0, MSK_COLORTYPE_INFO, " - Animations:\n");
-		for(i = 0; i < vCurrentActor.animTotal + 1; i++) {
-			dbgprintf(0, MSK_COLORTYPE_INFO, "  - Animation #%i, offset 0x%08X\n", i + 1, vCurrentActor.offsetAnims[i]);
+		if(vCurrentActor.isLink)
+		{
+			for(i = 0; i < vCurrentActor.animTotal; i++) {
+				dbgprintf(0, MSK_COLORTYPE_INFO, "  - Animation #%i, offset 0x%08X, %i frames\n", i + 1, vCurrentActor.offsetAnims[i], vCurrentActor.animFrames[i]);
+			}
+		}else{
+			for(i = 0; i < vCurrentActor.animTotal + 1; i++) {
+				dbgprintf(0, MSK_COLORTYPE_INFO, "  - Animation #%i, offset 0x%08X\n", i + 1, vCurrentActor.offsetAnims[i]);
+			}
 		}
 		if(i == 0) dbgprintf(0, MSK_COLORTYPE_WARNING, "  - No animations found!\n");
 	}
@@ -220,7 +227,7 @@ int main(int argc, char **argv)
 
 	vProgram.enableHUD = true;
 
-	vCurrentActor.actorNumber = 0x1c6;//467;
+	vCurrentActor.actorNumber = 0;//x1c6;//467;
 
 	vProgram.debugLevel = 0;
 

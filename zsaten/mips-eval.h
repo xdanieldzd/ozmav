@@ -87,7 +87,7 @@ extern int mips_ReportFunc(unsigned int target);
 extern void mips_ResetResults();
 extern void mips_ResetWatch();
 extern void * mips_GetFuncArg(unsigned int target, int argc, int nonzero);
-extern void mips_SetSpecialOp(unsigned int Op, int ValueToSet);
+extern void mips_SetSpecialOp(unsigned int Op, unsigned int mask, int ValueToSet);
 extern void mips_ResetSpecialOps();
 extern void mips_SetMap(unsigned char * Data, int Size, unsigned int Address);
 extern void mips_ResetMap();

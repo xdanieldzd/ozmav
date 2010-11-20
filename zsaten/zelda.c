@@ -116,6 +116,7 @@ int zl_ReadData()
 	unsigned int BaseOffset = vZeldaInfo.actorTableOffset;
 	int ActorNumber = 0;
 	int ValidActorCount = 0;
+	DMA Actor;
 
 	while(ActorNumber < vZeldaInfo.actorCount) {
 		vActors[ActorNumber].isValid = false;
@@ -128,7 +129,7 @@ int zl_ReadData()
 		vActors[ActorNumber].NameRStart =		Read32(vZeldaInfo.codeBuffer, BaseOffset + 24);
 
 		// if game is not compressed...
-		if((!vZeldaInfo.isCompressed) && (vActors[ActorNumber].ProfileVStart != 0) && (vActors[ActorNumber].NameRStart != 0)) {
+		if((!vZeldaInfo.isCompressed) &&/* (vActors[ActorNumber].ProfileVStart != 0) &&*/ (vActors[ActorNumber].NameRStart != 0)) {
 			// calculate where the actor name starts inside the code file
 			vActors[ActorNumber].NameCStart = (vActors[ActorNumber].NameRStart - vZeldaInfo.codeRAMOffset);
 
@@ -137,8 +138,8 @@ int zl_ReadData()
 			Current += sprintf(vActors[ActorNumber].ActorName, "%s", Current);
 			while(!*Current) Current++;
 		}
-
-		DMA Actor = zl_DMAVirtualToPhysical(vActors[ActorNumber].PStart, vActors[ActorNumber].PEnd);
+//00C010B0  80832210     00026890  bin src  ovl_player_actor
+		Actor = zl_DMAVirtualToPhysical(vActors[ActorNumber].PStart, vActors[ActorNumber].PEnd);
 		if((Actor.PStart != 0) && (Actor.PEnd != 0)) {
 			vActors[ActorNumber].ActorData = zl_DMAToBuffer(Actor);
 			vActors[ActorNumber].ActorSize = Actor.VEnd - Actor.VStart;
@@ -152,8 +153,24 @@ int zl_ReadData()
 			vActors[ActorNumber].isValid = true;
 
 			ValidActorCount++;
+		} else if( ActorNumber == 0 ) {
+			Actor = zl_DMAGetFileByFilename("ovl_player_actor");
+			if(Actor.ID == -1)
+				goto end;
+			vActors[ActorNumber].ActorData	= zl_DMAToBuffer(Actor);
+			vActors[ActorNumber].ActorSize	= Actor.VEnd - Actor.VStart;
+			vActors[ActorNumber].ObjectNumber = 0x15;
+			vActors[ActorNumber].AltObjectNumber = 0x14;
+			vActors[ActorNumber].PStart	= Actor.VStart;
+			vActors[ActorNumber].PEnd	= Actor.VEnd;
+			vActors[ActorNumber].VStart	= 0x80832210; // WARNING HACK FIXME
+			vActors[ActorNumber].VEnd	= vActors[ActorNumber].VStart + vActors[ActorNumber].ActorSize;
+			vActors[ActorNumber].isValid = true;
+
+			ValidActorCount++;
 		}
 
+		end:
 		BaseOffset += 0x20;
 		ActorNumber++;
 	}
@@ -246,10 +263,10 @@ DMA zl_DMAGetFileByFilename(char * Name)
 	DMA File = {0, 0, 0, 0, 0, ""};
 	char Filename[MAX_PATH];
 
-	int i;
+	//int i;
 
 	// turn entered filename into lower case
-	for(i = 0; Name[i]; i++) Name[i] = tolower(Name[i]);
+	//for(i = 0; Name[i]; i++) Name[i] = tolower(Name[i]); bad idea; also corrupts memory
 
 	// does ROM contain filenames?
 	if(vZeldaInfo.hasFilenames) {
@@ -264,7 +281,7 @@ DMA zl_DMAGetFileByFilename(char * Name)
 
 			// read the filename out and turn it into lower case
 			zl_DMAGetFilename(Filename, FileNo);
-			for(i = 0; Filename[i]; i++) Filename[i] = tolower(Filename[i]);
+			//for(i = 0; Filename[i]; i++) Filename[i] = tolower(Filename[i]);
 
 			// compare found filename with entered one...
 			if(!strcmp(Name, Filename)) {
