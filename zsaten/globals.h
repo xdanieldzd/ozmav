@@ -46,10 +46,10 @@ enum { false, true };
 #include "memwatch.h"
 
 #define Read16(Buffer, Offset) \
-	(Buffer[Offset] << 8) | Buffer[(Offset) + 1]
+	((Buffer[Offset] << 8) | Buffer[(Offset) + 1])
 
 #define Read32(Buffer, Offset) \
-	(Buffer[Offset] << 24) | (Buffer[(Offset) + 1] << 16) | (Buffer[(Offset) + 2] << 8) | Buffer[(Offset) + 3]
+	((Buffer[Offset] << 24) | (Buffer[(Offset) + 1] << 16) | (Buffer[(Offset) + 2] << 8) | Buffer[(Offset) + 3])
 
 #define Write16(Buffer, Offset, Value) \
 	Buffer[Offset] = (Value & 0xFF00) >> 8; \

@@ -179,7 +179,7 @@ void processActor()
 		for(pos=0x2310;pos<0x34F8;pos+=8)
 		{
 			vCurrentActor.offsetAnims[vCurrentActor.animTotal] = Read32(RAM[4].Data, pos + 4);
-			vCurrentActor.animFrames[vCurrentActor.animTotal] = Read16(RAM[4].Data, pos)/*-1      maybe.*/;
+			vCurrentActor.animFrames[vCurrentActor.animTotal] = Read16(RAM[4].Data, pos)-1;
 			vCurrentActor.animTotal++;
 		}
 	}else if(vCurrentActor.useActorOvl) {

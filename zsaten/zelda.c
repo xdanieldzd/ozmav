@@ -159,8 +159,8 @@ int zl_ReadData()
 				goto end;
 			vActors[ActorNumber].ActorData	= zl_DMAToBuffer(Actor);
 			vActors[ActorNumber].ActorSize	= Actor.VEnd - Actor.VStart;
-			vActors[ActorNumber].ObjectNumber = 0x15;
-			vActors[ActorNumber].AltObjectNumber = 0x14;
+			vActors[ActorNumber].ObjectNumber = 0x14;
+			vActors[ActorNumber].AltObjectNumber = 0x15;
 			vActors[ActorNumber].PStart	= Actor.VStart;
 			vActors[ActorNumber].PEnd	= Actor.VEnd;
 			vActors[ActorNumber].VStart	= 0x80832210; // WARNING HACK FIXME

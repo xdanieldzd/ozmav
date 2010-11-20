@@ -157,13 +157,13 @@ void hud_Print(GLint X, GLint Y, int W, int H, char * String)
 	char * pch;
 	pch = strtok(TempString, "\n");
 	while(pch != NULL) {
-		strcpy(LineText[Lines], pch);
+		strcpy((char*)LineText[Lines], pch);
 		Lines++;
 		pch = strtok(NULL, "\n");
 	}
 
 	for(i = 0; i < Lines; i++) {
-		for(j = 0; j < strlen(LineText[i]); j++) {
+		for(j = 0; j < strlen((char*)LineText[i]); j++) {
 			if(LineText[i][j] == '\t') LineText[i][j] = 0x7F;
 			LineWidths[i] += vHUD.CharWidths[LineText[i][j] - 32];
 		}
@@ -241,7 +241,7 @@ void hud_Print(GLint X, GLint Y, int W, int H, char * String)
 			}
 			glPushMatrix();
 			glTranslated(HorzCenter, (i * 10), 0);
-			glCallLists(strlen(LineText[i]), GL_BYTE, LineText[i]);
+			glCallLists(strlen((char*)LineText[i]), GL_BYTE, LineText[i]);
 			glPopMatrix();
 		}
 		glDisable(GL_TEXTURE_2D);
