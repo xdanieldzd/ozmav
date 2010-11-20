@@ -430,11 +430,15 @@ void drawLink(unsigned int BoneOffset, unsigned int AnimationOffset, float Scale
 		_Seg = (BoneOffset >> 24) & 0xFF;
 		BoneOffset &= 0xFFFFFF;
 		Bones[i].X += Read16(RAM[_Seg].Data, BoneOffset);
-		Bones[i].Y += Read16(RAM[_Seg].Data, BoneOffset + 2);
-		Bones[i].Z += Read16(RAM[_Seg].Data, BoneOffset + 4);
-		Bones[i].Child = RAM[_Seg].Data[BoneOffset+6];
-		Bones[i].Sibling = RAM[_Seg].Data[BoneOffset+7];
-		Bones[i].DList = Read32(RAM[_Seg].Data, BoneOffset+8);
+		Bones[i].Y += Read16(RAM[_Seg].Data, BoneOffset + 0x2);
+		Bones[i].Z += Read16(RAM[_Seg].Data, BoneOffset + 0x4);
+		Bones[i].Child = RAM[_Seg].Data[BoneOffset+0x6];
+		Bones[i].Sibling = RAM[_Seg].Data[BoneOffset+0x7];
+		if(detail)
+			Bones[i].DList = Read32(RAM[_Seg].Data, BoneOffset+0x8);
+		else
+			Bones[i].DList = Read32(RAM[_Seg].Data, BoneOffset+0xC);
+			
 		Bones[i].isSet = 1;
 
 
