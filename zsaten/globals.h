@@ -215,5 +215,6 @@ extern vObjectStruct vObjects[768];
 
 extern vRGBAStruct vBoneColorFactor;
 
+void doKbdInput();
 inline void dbgprintf(int Level, int Type, char * Format, ...);
 void die(int Code);
