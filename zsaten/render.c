@@ -196,10 +196,10 @@ void gl_DrawScene(void)
 				vCurrentActor.actorScale,
 				0, 0, 0, /* trans */
 				0, 0, 0, /* rot */
-				1, /* close or far model */
+				vCurrentActor.linkUseDetailModel, /* close or far model */
 				vCurrentActor.animFrames[vCurrentActor.animCurrent]
 			);
-		
+
 	} else if(RDP_CheckAddressValidity(vCurrentActor.offsetDList)) {
 		if(vProgram.enableHUD) glCallList(vProgram.actorAxisMarkerDL);
 		RDP_ClearStructures(false);

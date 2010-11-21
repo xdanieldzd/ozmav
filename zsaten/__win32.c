@@ -99,16 +99,20 @@ int WinAPIMain()
 		if(vProgram.key[VK_F3]) {
 			if(vCurrentActor.animCurrent > 0) {
 				vCurrentActor.animCurrent--;
-				vCurrentActor.frameCurrent = 0;
+			} else {
+				vCurrentActor.animCurrent = vCurrentActor.animTotal;
 			}
+			vCurrentActor.frameCurrent = 0;
 			vProgram.key[VK_F3] = false;
 		}
 
 		if(vProgram.key[VK_F4]) {
 			if(vCurrentActor.animCurrent < vCurrentActor.animTotal) {
 				vCurrentActor.animCurrent++;
-				vCurrentActor.frameCurrent = 0;
+			} else {
+				vCurrentActor.animCurrent = 0;
 			}
+			vCurrentActor.frameCurrent = 0;
 			vProgram.key[VK_F4] = false;
 		}
 
@@ -126,6 +130,24 @@ int WinAPIMain()
 				vCurrentActor.frameCurrent = 0;
 			}
 			vProgram.key[VK_F6] = false;
+		}
+
+		if(vProgram.key[VK_F7]) {
+			vCurrentActor.linkUseDetailModel ^= 1;
+			vProgram.key[VK_F7] = false;
+		}
+
+		if(vProgram.key[VK_F8]) {
+			vCurrentActor.linkAgeSwitch ^= 1;
+			if(!vCurrentActor.linkAgeSwitch) {
+				vActors[0].ObjectNumber = 0x14;
+				vActors[0].AltObjectNumber = 0x15;
+			} else {
+				vActors[0].ObjectNumber = 0x15;
+				vActors[0].AltObjectNumber = 0x14;
+			}
+			initActorParsing(-1);
+			vProgram.key[VK_F8] = false;
 		}
 
 		if(vProgram.key[VK_F9]) {

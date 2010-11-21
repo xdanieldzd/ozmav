@@ -229,6 +229,9 @@ int main(int argc, char **argv)
 
 	vCurrentActor.actorNumber = 0;//x1c6;//467;
 
+	vCurrentActor.linkUseDetailModel = true;
+	vCurrentActor.linkAgeSwitch = false;
+
 	vProgram.debugLevel = 0;
 
 	zl_Init(argv[1]);

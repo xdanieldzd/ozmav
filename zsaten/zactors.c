@@ -167,20 +167,22 @@ struct actorSections getActorSections(unsigned char * Data, size_t Size, unsigne
 
 void processActor()
 {
+	vCurrentActor.isLink = 0;
+
 	if(!vCurrentActor.actorNumber) {
 		dbgprintf(0, MSK_COLORTYPE_INFO, "Link has come to town!!!!");
 		int pos;
 		vCurrentActor.isLink=1;
-		
+
 		/* Get bones */
 		scanBones(0x6);
 		/* Animations */
-		vCurrentActor.animTotal=0;
+		vCurrentActor.animTotal=-1;
 		for(pos=0x2310;pos<0x34F8;pos+=8)
 		{
+			vCurrentActor.animTotal++;
 			vCurrentActor.offsetAnims[vCurrentActor.animTotal] = Read32(RAM[4].Data, pos + 4);
 			vCurrentActor.animFrames[vCurrentActor.animTotal] = Read16(RAM[4].Data, pos)-1;
-			vCurrentActor.animTotal++;
 		}
 	}else if(vCurrentActor.useActorOvl) {
 		// use actor overlay file
@@ -380,7 +382,7 @@ void drawBone(actorBone Bones[], int CurrentBone, int ParentBone)
 void drawLink(unsigned int BoneOffset, unsigned int AnimationOffset, float Scale, short X, short Y, short Z, short RX, short RY, short RZ, int detail, int frames)
 {
 	int BoneCount, BoneListListOffset, Seg, _Seg, i, AniSeg=0, rot_offset=0;
-	
+
 	vCurrentActor.frameTotal = frames;
 
 	RDP_ClearStructures(false);
@@ -420,7 +422,7 @@ void drawLink(unsigned int BoneOffset, unsigned int AnimationOffset, float Scale
 
 	Seg = (BoneListListOffset >> 24) & 0xFF;
 	BoneListListOffset &= 0xFFFFFF;
-	
+
 	for(i=0; i<BoneCount; i++)
 	{
 		BoneOffset = Read32(RAM[Seg].Data, BoneListListOffset + (i << 2));
@@ -438,7 +440,7 @@ void drawLink(unsigned int BoneOffset, unsigned int AnimationOffset, float Scale
 			Bones[i].DList = Read32(RAM[_Seg].Data, BoneOffset+0x8);
 		else
 			Bones[i].DList = Read32(RAM[_Seg].Data, BoneOffset+0xC);
-			
+
 		Bones[i].isSet = 1;
 
 

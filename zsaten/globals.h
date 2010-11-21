@@ -104,6 +104,9 @@ typedef struct {
 	bool useExtAnim;
 	bool isLink;
 
+	bool linkUseDetailModel;	// close/far model
+	bool linkAgeSwitch;			// child/adult model
+
 	unsigned short actorNumber;
 	unsigned short variable;
 
