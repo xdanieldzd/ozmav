@@ -8,7 +8,7 @@
 #define U32(x)	( ((x)[0]<<24)|((x)[1]<<16)|((x)[2]<<8)|(x)[3] )
 #define U16(x)	( ((x)[0]<<8)|(x)[1] )
 #define S32(x)	((signed)U32(x))
-#define S16(x)	((signed)U32(x))
+#define S16(x)	((signed)U16(x))
 union {u32 u; f32 f;} ____t;
 #define F32(x)	( ( (____t.u = U32(x)) & 0) + ____t.f)
 
