@@ -67,6 +67,9 @@ int ExecuteLevelScript()
 	memset(ColTriBuffer, 0x10000, 0x0);
 	memset(ZWaterBuffer, 0x400, 0x0);
 	ZWaterOffset = 0;
+	#ifdef DEBUG
+	int i;
+	#endif
 
 	while (!(EndOfScript) && (TempScriptPos < ROMFilesize)) {
 		CurrentCmd = Read16(RAMSegment[TempScriptSegment].Data, TempScriptPos);
@@ -418,7 +421,7 @@ int ExecuteCollisionScript(unsigned int ColScriptSeg, unsigned int ColScriptPos)
 						{
 							msg(1, "WARNING: Collision vertex overflow!!!: %04i/%04i/%04i;max %04i", p1, p2, p3, ColVtxCount+_ColVtxCount);
 							EndOfColScript = true;
-							return -1; /* i hope this raises a error */
+							return -1; /* i hope this raises an error */
 						}
 						Write16(ColTriBuffer, ZTriOffset+2, p1);
 						Write16(ColTriBuffer, ZTriOffset+4, p2);
