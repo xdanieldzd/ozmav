@@ -35,15 +35,16 @@ enum { false, true };
 #include "hud.h"
 
 #include "camera.h"
-#include "mips.h"
+#include "mips.h"	/* note: typedefs u32, u16, s16, etc */
 #include "mips-eval.h"
 #include "oz.h"
 #include "render.h"
 #include "shared.h"
 #include "zactors.h"
 #include "zelda.h"
+#include "zold.h"
 
-#include "memwatch.h"
+#include "memwatch.h" //???
 
 #define Read16(Buffer, Offset) \
 	((Buffer[Offset] << 8) | Buffer[(Offset) + 1])
@@ -102,7 +103,13 @@ typedef struct {
 typedef struct {
 	bool useActorOvl;
 	bool useExtAnim;
-	bool isLink;
+	#define LINK	1
+	#define OBJECT_HUMAN	2
+	int hack;
+	void *old_limb_top;
+	
+	bool linkUseDetailModel;	// close/far model
+	bool linkAgeSwitch;			// child/adult model
 
 	bool linkUseDetailModel;	// close/far model
 	bool linkAgeSwitch;			// child/adult model
@@ -215,6 +222,7 @@ extern vObjectStruct vObjects[768];
 
 extern vRGBAStruct vBoneColorFactor;
 
+void doKbdInput();
 void doKbdInput();
 inline void dbgprintf(int Level, int Type, char * Format, ...);
 void die(int Code);

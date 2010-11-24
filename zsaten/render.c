@@ -181,7 +181,7 @@ void gl_DrawScene(void)
 
 	if((vCurrentActor.boneSetupTotal >= 0)/* && (vCurrentActor.animTotal >= 0)*/) {
 		if(!vProgram.showBones && vProgram.enableHUD) glCallList(vProgram.actorAxisMarkerDL);
-		if(!vCurrentActor.isLink)
+		if(!vCurrentActor.hack)
 			drawBones(
 				vCurrentActor.offsetBoneSetup[vCurrentActor.boneSetupCurrent],
 				vCurrentActor.offsetAnims[vCurrentActor.animCurrent],
@@ -189,7 +189,7 @@ void gl_DrawScene(void)
 				0, 0, 0, /* trans */
 				0, 0, 0  /* rot */
 			);
-		else
+		else if(vCurrentActor.hack == LINK)
 			drawLink(
 				vCurrentActor.offsetBoneSetup[vCurrentActor.boneSetupCurrent],
 				vCurrentActor.offsetAnims[vCurrentActor.animCurrent],
@@ -199,7 +199,14 @@ void gl_DrawScene(void)
 				vCurrentActor.linkUseDetailModel, /* close or far model */
 				vCurrentActor.animFrames[vCurrentActor.animCurrent]
 			);
-
+		else if(vCurrentActor.hack == OBJECT_HUMAN)
+			drawOldBones(
+				vCurrentActor.offsetBoneSetup[vCurrentActor.boneSetupCurrent],
+				vCurrentActor.offsetAnims[vCurrentActor.animCurrent],
+				vCurrentActor.actorScale,
+				0, 0, 0, /* trans */
+				0, 0, 0  /* rot */
+			);
 	} else if(RDP_CheckAddressValidity(vCurrentActor.offsetDList)) {
 		if(vProgram.enableHUD) glCallList(vProgram.actorAxisMarkerDL);
 		RDP_ClearStructures(false);

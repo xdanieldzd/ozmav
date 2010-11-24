@@ -111,9 +111,11 @@ void listSegmentUsage(unsigned char * Ptr)
 
 void printActorData(unsigned char * Ptr)
 {
+	int i = 0;
+	if(vCurrentActor.hack == OBJECT_HUMAN) goto boneprint;
+	
 	dbgprintf(0, MSK_COLORTYPE_OKAY, "\nActor #0x%04X:\n", vCurrentActor.actorNumber);
 
-	int i = 0;
 
 	if(vCurrentActor.useActorOvl) {
 		unsigned short ActorNumber = vCurrentActor.actorNumber;
@@ -148,7 +150,7 @@ void printActorData(unsigned char * Ptr)
 		} else {
 			dbgprintf(0, MSK_COLORTYPE_WARNING, " - No Display List found!\n");
 		}
-
+	boneprint:
 		dbgprintf(0, MSK_COLORTYPE_INFO, " - Bone structures:\n");
 		for(i = 0; i < vCurrentActor.boneSetupTotal + 1; i++) {
 			dbgprintf(0, MSK_COLORTYPE_INFO, "  - Structure #%i, offset 0x%08X\n", i + 1, vCurrentActor.offsetBoneSetup[i]);
@@ -156,7 +158,7 @@ void printActorData(unsigned char * Ptr)
 		if(i == 0) dbgprintf(0, MSK_COLORTYPE_WARNING, "  - No structures found!\n");
 
 		dbgprintf(0, MSK_COLORTYPE_INFO, " - Animations:\n");
-		if(vCurrentActor.isLink)
+		if(vCurrentActor.hack == LINK)
 		{
 			for(i = 0; i < vCurrentActor.animTotal; i++) {
 				dbgprintf(0, MSK_COLORTYPE_INFO, "  - Animation #%i, offset 0x%08X, %i frames\n", i + 1, vCurrentActor.offsetAnims[i], vCurrentActor.animFrames[i]);
@@ -228,6 +230,9 @@ int main(int argc, char **argv)
 	vProgram.enableHUD = true;
 
 	vCurrentActor.actorNumber = 0;//x1c6;//467;
+	
+	vCurrentActor.linkUseDetailModel = true;
+	vCurrentActor.linkAgeSwitch = false;
 
 	vCurrentActor.linkUseDetailModel = true;
 	vCurrentActor.linkAgeSwitch = false;
@@ -271,7 +276,7 @@ int main(int argc, char **argv)
 					lastTime = startTime;
 					if(vProgram.animPlay) {
 						vCurrentActor.frameCurrent++;
-						if(vCurrentActor.frameCurrent > vCurrentActor.frameTotal) vCurrentActor.frameCurrent = 0;
+						if(vCurrentActor.frameCurrent >= vCurrentActor.frameTotal) vCurrentActor.frameCurrent = 0;
 					}
 				}
 
@@ -300,6 +305,142 @@ int main(int argc, char **argv)
 }
 
 // ----------------------------------------
+
+void doKbdInput()
+{
+	if(vProgram.key[KEY_CAMERA_UP_FAST]) ca_Movement(false, 2.0f);
+	if(vProgram.key[KEY_CAMERA_DOWN_FAST]) ca_Movement(false, -2.0f);
+	if(vProgram.key[KEY_CAMERA_LEFT_FAST]) ca_Movement(true, -2.0f);
+	if(vProgram.key[KEY_CAMERA_RIGHT_FAST]) ca_Movement(true, 2.0f);
+
+	if(vProgram.key[KEY_CAMERA_UP_SLOW]) ca_Movement(false, 0.5f);
+	if(vProgram.key[KEY_CAMERA_DOWN_SLOW]) ca_Movement(false, -0.5f);
+	if(vProgram.key[KEY_CAMERA_LEFT_SLOW]) ca_Movement(true, -0.5f);
+	if(vProgram.key[KEY_CAMERA_RIGHT_SLOW]) ca_Movement(true, 0.5f);
+
+	if(vProgram.key[KEY_ACTOR_ROTATEX_MINUS]) vCamera.actorRotX -= 2.0f;
+	if(vProgram.key[KEY_ACTOR_ROTATEX_PLUS]) vCamera.actorRotX += 2.0f;
+	if(vProgram.key[KEY_ACTOR_ROTATEY_MINUS]) vCamera.actorRotY -= 2.0f;
+	if(vProgram.key[KEY_ACTOR_ROTATEY_PLUS]) vCamera.actorRotY += 2.0f;
+
+	if(vProgram.key[KEY_CAMERA_RESET]) {
+		ca_Reset();
+		vProgram.key[KEY_CAMERA_RESET] = false;
+	}
+
+	if(vProgram.key[KEY_SWITCH_SHOWBONES]) {
+		vProgram.showBones ^= 1;
+		vProgram.key[KEY_SWITCH_SHOWBONES] = false;
+	}
+
+	if(vProgram.key[KEY_SWITCH_PLAYANIM]) {
+		vProgram.animPlay ^= 1;
+		vProgram.key[KEY_SWITCH_PLAYANIM] = false;
+	}
+
+	if(vProgram.key[KEY_SWITCH_PREVACTOR]) {
+		if(vCurrentActor.actorNumber > 0) {
+			vCurrentActor.actorNumber--;
+			vCurrentActor.animCurrent = 0;
+			vCurrentActor.frameCurrent = 0;
+			initActorParsing(-1);
+		}
+		vProgram.key[KEY_SWITCH_PREVACTOR] = false;
+	}
+
+	if(vProgram.key[KEY_SWITCH_NEXTACTOR]) {
+		if(vCurrentActor.actorNumber < vZeldaInfo.actorCount - 1) {
+			vCurrentActor.actorNumber++;
+			vCurrentActor.animCurrent = 0;
+			vCurrentActor.frameCurrent = 0;
+			initActorParsing(-1);
+		}
+		vProgram.key[KEY_SWITCH_NEXTACTOR] = false;
+	}
+
+	if(vProgram.key[KEY_SWITCH_PREVANIM]) {
+		if(vCurrentActor.animCurrent > 0) {
+			vCurrentActor.animCurrent--;
+		} else {
+			vCurrentActor.animCurrent = vCurrentActor.animTotal;
+		}
+		vCurrentActor.frameCurrent = 0;
+		vProgram.key[KEY_SWITCH_PREVANIM] = false;
+	}
+
+	if(vProgram.key[KEY_SWITCH_NEXTANIM]) {
+		if(vCurrentActor.animCurrent < vCurrentActor.animTotal) {
+			vCurrentActor.animCurrent++;
+		} else {
+			vCurrentActor.animCurrent = 0;
+		}
+		vCurrentActor.frameCurrent = 0;
+		vProgram.key[KEY_SWITCH_NEXTANIM] = false;
+	}
+
+	if(vProgram.key[KEY_SWITCH_PREVBONES]) {
+		if(vCurrentActor.boneSetupCurrent > 0) {
+			vCurrentActor.boneSetupCurrent--;
+			vCurrentActor.frameCurrent = 0;
+		}
+		vProgram.key[KEY_SWITCH_PREVBONES] = false;
+	}
+
+	if(vProgram.key[KEY_SWITCH_NEXTBONES]) {
+		if(vCurrentActor.boneSetupCurrent < vCurrentActor.boneSetupTotal) {
+			vCurrentActor.boneSetupCurrent++;
+			vCurrentActor.frameCurrent = 0;
+		}
+		vProgram.key[KEY_SWITCH_NEXTBONES] = false;
+	}
+
+	if(vProgram.key[KEY_SWITCH_LINKDETAIL]) {
+		vCurrentActor.linkUseDetailModel ^= 1;
+		vProgram.key[KEY_SWITCH_LINKDETAIL] = false;
+	}
+
+	if(vProgram.key[KEY_SWITCH_LINKOBJECT]) {
+		vCurrentActor.linkAgeSwitch ^= 1;
+		if(!vCurrentActor.linkAgeSwitch) {
+			vActors[0].ObjectNumber = 0x14;
+			vActors[0].AltObjectNumber = 0x15;
+		} else {
+			vActors[0].ObjectNumber = 0x15;
+			vActors[0].AltObjectNumber = 0x14;
+		}
+		initActorParsing(-1);
+		vProgram.key[KEY_SWITCH_LINKOBJECT] = false;
+	}
+
+	if(vProgram.key[KEY_SWITCH_ENABLEHUD]) {
+		vProgram.enableHUD ^= 1;
+		vProgram.key[KEY_SWITCH_ENABLEHUD] = false;
+	}
+
+	if(vProgram.key[KEY_SWITCH_LOWERFPS]) {
+		if(vProgram.targetFPS > 15.0f) vProgram.targetFPS -= 15.0f;
+		vProgram.key[KEY_SWITCH_LOWERFPS] = false;
+	}
+
+	if(vProgram.key[KEY_SWITCH_RAISEFPS]) {
+		if(vProgram.targetFPS <= 60.0f) vProgram.targetFPS += 15.0f;
+		vProgram.key[KEY_SWITCH_RAISEFPS] = false;
+	}
+
+	if(vProgram.key[KEY_SWITCH_PREVFRAME]) {
+		if(vProgram.animPlay) vProgram.animPlay = false;
+		if(vCurrentActor.frameCurrent < vCurrentActor.frameTotal) vCurrentActor.frameCurrent++;
+		else vCurrentActor.frameCurrent = 0;
+		vProgram.key[KEY_SWITCH_PREVFRAME] = false;
+	}
+
+	if(vProgram.key[KEY_SWITCH_NEXTFRAME]) {
+		if(vProgram.animPlay) vProgram.animPlay = false;
+		if(vCurrentActor.frameCurrent > 0) vCurrentActor.frameCurrent--;
+		else vCurrentActor.frameCurrent = vCurrentActor.frameTotal;
+		vProgram.key[KEY_SWITCH_NEXTFRAME] = false;
+	}
+}
 
 void doKbdInput()
 {
