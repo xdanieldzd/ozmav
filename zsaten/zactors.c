@@ -303,6 +303,7 @@ void processActor()
 		}
 
 		if(vCurrentActor.actorScale < 0.01f) vCurrentActor.actorScale = 0.01f;
+		if(vCurrentActor.actorNumber == 0x14) vCurrentActor.hack = HORSE;
 
 	} else {
 		// parse object directly
@@ -554,7 +555,8 @@ void drawBones(unsigned int BoneOffset, unsigned int AnimationOffset, float Scal
 		Bones[i].Z += Read16(RAM[_Seg].Data, BoneOffset + 4);
 		Bones[i].Child = RAM[_Seg].Data[BoneOffset+6];
 		Bones[i].Sibling = RAM[_Seg].Data[BoneOffset+7];
-		Bones[i].DList = Read32(RAM[_Seg].Data, BoneOffset+8);
+		
+		Bones[i].DList = Read32(RAM[_Seg].Data, BoneOffset+((vCurrentActor.hack == HORSE) ? 0xC : 0x8));
 		Bones[i].isSet = 1;
 
 		// SWAP segments

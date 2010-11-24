@@ -105,12 +105,10 @@ typedef struct {
 	bool useExtAnim;
 	#define LINK	1
 	#define OBJECT_HUMAN	2
+	#define HORSE	3
 	int hack;
 	void *old_limb_top;
 	
-	bool linkUseDetailModel;	// close/far model
-	bool linkAgeSwitch;			// child/adult model
-
 	bool linkUseDetailModel;	// close/far model
 	bool linkAgeSwitch;			// child/adult model
 
@@ -222,7 +220,6 @@ extern vObjectStruct vObjects[768];
 
 extern vRGBAStruct vBoneColorFactor;
 
-void doKbdInput();
 void doKbdInput();
 inline void dbgprintf(int Level, int Type, char * Format, ...);
 void die(int Code);

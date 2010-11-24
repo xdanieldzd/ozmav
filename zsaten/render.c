@@ -181,15 +181,7 @@ void gl_DrawScene(void)
 
 	if((vCurrentActor.boneSetupTotal >= 0)/* && (vCurrentActor.animTotal >= 0)*/) {
 		if(!vProgram.showBones && vProgram.enableHUD) glCallList(vProgram.actorAxisMarkerDL);
-		if(!vCurrentActor.hack)
-			drawBones(
-				vCurrentActor.offsetBoneSetup[vCurrentActor.boneSetupCurrent],
-				vCurrentActor.offsetAnims[vCurrentActor.animCurrent],
-				vCurrentActor.actorScale,
-				0, 0, 0, /* trans */
-				0, 0, 0  /* rot */
-			);
-		else if(vCurrentActor.hack == LINK)
+		if(vCurrentActor.hack == LINK)
 			drawLink(
 				vCurrentActor.offsetBoneSetup[vCurrentActor.boneSetupCurrent],
 				vCurrentActor.offsetAnims[vCurrentActor.animCurrent],
@@ -201,6 +193,14 @@ void gl_DrawScene(void)
 			);
 		else if(vCurrentActor.hack == OBJECT_HUMAN)
 			drawOldBones(
+				vCurrentActor.offsetBoneSetup[vCurrentActor.boneSetupCurrent],
+				vCurrentActor.offsetAnims[vCurrentActor.animCurrent],
+				vCurrentActor.actorScale,
+				0, 0, 0, /* trans */
+				0, 0, 0  /* rot */
+			);
+		else
+			drawBones(
 				vCurrentActor.offsetBoneSetup[vCurrentActor.boneSetupCurrent],
 				vCurrentActor.offsetAnims[vCurrentActor.animCurrent],
 				vCurrentActor.actorScale,

@@ -93,7 +93,7 @@ processOldObject(u32 first)
 {
     vCurrentActor.offsetBoneSetup[0] = first;
     vCurrentActor.boneSetupTotal = 0;
-    vCurrentActor.actorScale = 0.1;
+    vCurrentActor.actorScale = 0.01;
     scanOldAnimations(0x6);
     vCurrentActor.animTotal++;
     vCurrentActor.offsetAnims[vCurrentActor.animTotal] = 0xDEADBEEF;
@@ -210,7 +210,6 @@ void drawOldBones(u32 BoneOffset, u32 anim, f32 Scale, short X, short Y, short Z
     u32 order[256]; // this is big just-in-case. 64 would probably work fine
     u8 abank, *pos, *rindex, *rvals;
     int i=0, j, ind;
-    static u32 last = 0;
     
     RDP_ClearStructures(false);
 
@@ -276,7 +275,6 @@ void drawOldBones(u32 BoneOffset, u32 anim, f32 Scale, short X, short Y, short Z
                 rindex+=2;
             }
         }
-        last = anim;
     } else if (vCurrentActor.frameTotal) {
         old_anim_init(lTop);
         vCurrentActor.frameTotal = 0;
