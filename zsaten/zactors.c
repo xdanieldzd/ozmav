@@ -1,5 +1,7 @@
 #include "globals.h"
 
+void old_limb_free_tree(void *l);
+
 void swapRAMSegments(unsigned char Seg1, unsigned char Seg2)
 {
 	unsigned int SegTemp_Size = RAM[Seg1].Size;
@@ -19,6 +21,18 @@ void swapRAMSegments(unsigned char Seg1, unsigned char Seg2)
 
 void initActorParsing(int objFileNo)
 {
+	static void *free_next[4] = {NULL,NULL,NULL,NULL};
+	int fn,i;
+	for(i=0;i<4;i++)
+	{
+		fn = i;
+		if(free_next[i])
+		{
+			free(free_next[i]);
+			free_next[i] = NULL;
+		}
+		else break;
+	}
 	// if func param is > 0, do not use an actor file
 	if(objFileNo >= 0) {
 		vCurrentActor.useActorOvl = false;
@@ -40,6 +54,7 @@ void initActorParsing(int objFileNo)
 
 		vCurrentActor.variable = 0;
 		vCurrentActor.hack = 0;
+		vCurrentActor.old_limb_top = NULL;
 
 		vCurrentActor.actorScale = 0;
 		vCurrentActor.offsetDList = 0;
@@ -64,6 +79,12 @@ void initActorParsing(int objFileNo)
 		vProgram.targetFPS = 30.0f;
 	}
 	
+	if(vCurrentActor.old_limb_top)
+	{
+		old_limb_free_tree(vCurrentActor.old_limb_top);
+		vCurrentActor.old_limb_top = NULL;
+	}
+	
 	// object_human
 	if(objFileNo == 505) {
 		
@@ -73,7 +94,7 @@ void initActorParsing(int objFileNo)
 		strcpy(vCurrentActor.oName, FileInfo.Filename);
 			RDP_ClearSegment(0x06);
 			RAM[0x06].Size = FileInfo.PEnd - FileInfo.PStart;
-			RAM[0x06].Data = zl_DMAToBuffer(FileInfo);
+			RAM[0x06].Data = free_next[fn++] = zl_DMAToBuffer(FileInfo);
 			RAM[0x06].IsSet = true;
 		}
 		
@@ -84,7 +105,7 @@ void initActorParsing(int objFileNo)
 	}
 
 	setMipsWatchers();
-	if(!vCurrentActor.actorNumber && objFileNo == -1){
+	if((!vCurrentActor.actorNumber && objFileNo == -1) || vCurrentActor.actorNumber == 0x33){
 		vCurrentActor.hack = LINK;
 		DMA link_animetion;
 		if(!vActors[0].isValid)
@@ -93,7 +114,8 @@ void initActorParsing(int objFileNo)
 		link_animetion = zl_DMAGetFileByFilename("link_animetion");
 		if(link_animetion.ID == -1)
 			goto end;
-		RDP_LoadToSegment(7, zl_DMAToBuffer(link_animetion), 0, link_animetion.VEnd - link_animetion.VStart);
+		free_next[fn] = zl_DMAToBuffer(link_animetion);
+		RDP_LoadToSegment(7, free_next[fn++], 0, link_animetion.VEnd - link_animetion.VStart);
 	}
 	if(vCurrentActor.useActorOvl) {
 		// use actor overlay file
@@ -118,7 +140,7 @@ void initActorParsing(int objFileNo)
 				RDP_ClearSegment(0x06);
 
 				RAM[0x06].Size = FileInfo.PEnd - FileInfo.PStart;
-				RAM[0x06].Data = zl_DMAToBuffer(FileInfo);
+				RAM[0x06].Data = free_next[fn++] = zl_DMAToBuffer(FileInfo);
 				RAM[0x06].IsSet = true;
 
 				processActor();
@@ -207,7 +229,7 @@ void processActor()
 	}else if(vCurrentActor.useActorOvl) {
 		// use actor overlay file
 		float * scale = NULL;
-		int *anim = NULL, *dlist = NULL, *bones = NULL, *alt_objn = NULL;
+		int *anim = NULL, *dlist = NULL, *bones = NULL, *alt_objn = NULL, i;
 		struct actorSections Sections;
 
 		mips_ResetSpecialOps();
@@ -303,7 +325,12 @@ void processActor()
 		}
 
 		if(vCurrentActor.actorScale < 0.01f) vCurrentActor.actorScale = 0.01f;
-		if(vCurrentActor.actorNumber == 0x14) vCurrentActor.hack = HORSE;
+		int horses[] = {20, 60, 66, 91,154};
+		for(i=0;i<arraySize(horses);i++)
+		    if(vCurrentActor.actorNumber == horses[i]){
+		    	vCurrentActor.hack = HORSE;
+		    	break;
+		    }
 
 	} else {
 		// parse object directly

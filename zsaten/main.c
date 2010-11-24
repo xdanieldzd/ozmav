@@ -229,13 +229,11 @@ int main(int argc, char **argv)
 
 	vProgram.enableHUD = true;
 
-	vCurrentActor.actorNumber = 0;//x1c6;//467;
+	vCurrentActor.actorNumber = 0;
 	
 	vCurrentActor.linkUseDetailModel = true;
 	vCurrentActor.linkAgeSwitch = false;
-
-	vCurrentActor.linkUseDetailModel = true;
-	vCurrentActor.linkAgeSwitch = false;
+	vCurrentActor.old_limb_top = NULL;
 
 	vProgram.debugLevel = 0;
 
@@ -276,7 +274,7 @@ int main(int argc, char **argv)
 					lastTime = startTime;
 					if(vProgram.animPlay) {
 						vCurrentActor.frameCurrent++;
-						if(vCurrentActor.frameCurrent == vCurrentActor.frameTotal) vCurrentActor.frameCurrent = 0;
+						if(vCurrentActor.frameCurrent >= vCurrentActor.frameTotal) vCurrentActor.frameCurrent = 0;
 					}
 				}
 
