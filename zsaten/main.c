@@ -427,15 +427,15 @@ void doKbdInput()
 
 	if(vProgram.key[KEY_SWITCH_PREVFRAME]) {
 		if(vProgram.animPlay) vProgram.animPlay = false;
-		if(vCurrentActor.frameCurrent < vCurrentActor.frameTotal) vCurrentActor.frameCurrent++;
-		else vCurrentActor.frameCurrent = 0;
+		vCurrentActor.frameCurrent++;
+		if(vCurrentActor.frameCurrent >= vCurrentActor.frameTotal) vCurrentActor.frameCurrent = 0;
 		vProgram.key[KEY_SWITCH_PREVFRAME] = false;
 	}
 
 	if(vProgram.key[KEY_SWITCH_NEXTFRAME]) {
 		if(vProgram.animPlay) vProgram.animPlay = false;
 		if(vCurrentActor.frameCurrent > 0) vCurrentActor.frameCurrent--;
-		else vCurrentActor.frameCurrent = vCurrentActor.frameTotal;
+		else vCurrentActor.frameCurrent = vCurrentActor.frameTotal-1;
 		vProgram.key[KEY_SWITCH_NEXTFRAME] = false;
 	}
 }
