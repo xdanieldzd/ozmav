@@ -176,11 +176,11 @@ void hud_Print(GLint X, GLint Y, int W, int H, char * String)
 	if(W != -1) RectWidth = W;
 	if(H != -1) RectHeight = H;
 
-	if(X == -1) X = WINDOW_WIDTH - RectWidth;
-	if(Y == -1) Y = WINDOW_HEIGHT - RectHeight;
+	if(X == -1) X = vProgram.windowWidth - RectWidth;
+	if(Y == -1) Y = vProgram.windowHeight - RectHeight;
 
-	if(X + RectWidth > WINDOW_WIDTH) X -= RectWidth;
-	if(Y + RectHeight > WINDOW_HEIGHT) Y -= RectHeight;
+	if(X + RectWidth > vProgram.windowWidth) X -= RectWidth;
+	if(Y + RectHeight > vProgram.windowHeight) Y -= RectHeight;
 
 	{
 		glPushMatrix();
@@ -203,7 +203,7 @@ void hud_Print(GLint X, GLint Y, int W, int H, char * String)
 			int HorzCenter = 0;
 			switch(LineText[i][0]) {
 				case 0x80: {
-					HorzCenter = (WINDOW_WIDTH / 2) - (LineWidths[i] / 2);
+					HorzCenter = (vProgram.windowWidth / 2) - (LineWidths[i] / 2);
 					break;
 				}
 				case 0x90: {
@@ -219,17 +219,17 @@ void hud_Print(GLint X, GLint Y, int W, int H, char * String)
 					break;
 				}
 				case 0xA0: {
-					HorzCenter = (WINDOW_WIDTH / 2) - (LineWidths[i] / 2);
+					HorzCenter = (vProgram.windowWidth / 2) - (LineWidths[i] / 2);
 					glColor4f(0.0f, 1.0f, 0.0f, FGColor[3]);
 					break;
 				}
 				case 0xA1: {
-					HorzCenter = (WINDOW_WIDTH / 2) - (LineWidths[i] / 2);
+					HorzCenter = (vProgram.windowWidth / 2) - (LineWidths[i] / 2);
 					glColor4f(1.0f, 0.5f, 0.0f, FGColor[3]);
 					break;
 				}
 				case 0xA2: {
-					HorzCenter = (WINDOW_WIDTH / 2) - (LineWidths[i] / 2);
+					HorzCenter = (vProgram.windowWidth / 2) - (LineWidths[i] / 2);
 					glColor4f(0.0f, 0.75f, 1.0f, FGColor[3]);
 					break;
 				}

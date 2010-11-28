@@ -267,6 +267,7 @@ DMA zl_DMAGetFileByFilename(char * Name)
 
 	// turn entered filename into lower case
 	//for(i = 0; Name[i]; i++) Name[i] = tolower(Name[i]); bad idea; also corrupts memory
+	strtolower(Name);
 
 	// does ROM contain filenames?
 	if(vZeldaInfo.hasFilenames) {
@@ -282,6 +283,7 @@ DMA zl_DMAGetFileByFilename(char * Name)
 			// read the filename out and turn it into lower case
 			zl_DMAGetFilename(Filename, FileNo);
 			//for(i = 0; Filename[i]; i++) Filename[i] = tolower(Filename[i]);
+			strtolower(Filename);
 
 			// compare found filename with entered one...
 			if(!strcmp(Name, Filename)) {

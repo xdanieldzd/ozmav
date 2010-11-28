@@ -82,6 +82,7 @@ typedef struct {
 
 	bool enableTextures;
 	bool enableWireframe;
+	bool enableCombiner;
 
 	bool enableHUD;
 
@@ -108,11 +109,11 @@ typedef struct {
 	#define HORSE	3
 	int hack;
 	void *old_limb_top;
-	
+
 	bool linkUseDetailModel;	// close/far model
 	bool linkAgeSwitch;			// child/adult model
 
-	unsigned short actorNumber;
+	short actorNumber;
 	unsigned short variable;
 
 	unsigned int offsetDList;

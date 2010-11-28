@@ -121,6 +121,10 @@
 		</Unit>
 		<Unit filename="zelda.h" />
 		<Unit filename="zelda_ver.h" />
+		<Unit filename="zold.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="zold.h" />
 		<Extensions>
 			<code_completion />
 			<envvars />

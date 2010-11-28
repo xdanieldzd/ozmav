@@ -298,6 +298,9 @@ void * mips_GetFuncArg(unsigned int target, int argc, int nonzero)
 			if(nonzero && mips_funcs_found[i].args[argc] != 0) {
 				func_no = i;
 				break;
+			} else if(!nonzero) {
+				func_no = i;
+				break;
 			}
 		}
 	}

@@ -21,12 +21,11 @@ static __MSK_UI_Dialog dlgOptions =
 		{ MSK_UI_DLGOBJ_LABEL,     1,  2,  -1, "Rendering",           NULL },
 		{ MSK_UI_DLGOBJ_CHECKBOX,  3,  1,  0,  "Enable Textures",     (short*)&vProgram.enableTextures },
 		{ MSK_UI_DLGOBJ_CHECKBOX,  3,  27,  1, "Enable Wireframe",    (short*)&vProgram.enableWireframe },
-		{ MSK_UI_DLGOBJ_CHECKBOX,  5,  1,  2,  "Show bone structure", (short*)&vProgram.showBones },
-		{ MSK_UI_DLGOBJ_CHECKBOX,  5,  27,  3, "Play animation",      (short*)&vProgram.animPlay },
+		{ MSK_UI_DLGOBJ_CHECKBOX,  5,  1,  2,  "Enable Combiner",     (short*)&vProgram.enableCombiner },
 		{ MSK_UI_DLGOBJ_LINE,      7,  1,  -1, "-1",                  NULL },
 		{ MSK_UI_DLGOBJ_LABEL,     7,  2,  -1, "Misc. Settings",      NULL },
-		{ MSK_UI_DLGOBJ_NUMBERSEL, 9,  1,  4,  "Debug Level|4|0|0|0", (short*)&vProgram.debugLevel },
+		{ MSK_UI_DLGOBJ_NUMBERSEL, 9,  1,  3,  "Debug Level|4|0|0|0", (short*)&vProgram.debugLevel },
 		{ MSK_UI_DLGOBJ_LINE,      11, 1,  -1, "-1",                  NULL },
-		{ MSK_UI_DLGOBJ_BUTTON,    -1, -1, 5,  "OK|1",                NULL }
+		{ MSK_UI_DLGOBJ_BUTTON,    -1, -1, 4,  "OK|1",                NULL }
 	}
 };

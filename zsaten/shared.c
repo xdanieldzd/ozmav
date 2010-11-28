@@ -42,3 +42,13 @@ void getFilePath(char * FullPath, char * Target)
 		sprintf(Target, ".%c", FILESEP);
 	}
 }
+
+void strtolower(char str[])
+{
+	while(*str != 0) {
+		if(*str >= 'A' && *str <= 'Z') {
+			*str = *str + 'a' - 'A';
+		}
+		str++;
+	}
+}

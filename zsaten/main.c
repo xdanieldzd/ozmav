@@ -57,6 +57,8 @@ void loadObjectName(unsigned char * Ptr)
 
 		DMA ObjFile = zl_DMAGetFileByFilename(ObjFilename);
 		if(ObjFile.ID != -1) {
+			vCurrentActor.actorNumber = -1;
+
 			initActorParsing(ObjFile.ID);
 		} else {
 			dbgprintf(0, MSK_COLORTYPE_ERROR, "> Error: Object '%s' not found!\n", ObjFilename);
@@ -113,7 +115,7 @@ void printActorData(unsigned char * Ptr)
 {
 	int i = 0;
 	if(vCurrentActor.hack == OBJECT_HUMAN) goto boneprint;
-	
+
 	dbgprintf(0, MSK_COLORTYPE_OKAY, "\nActor #0x%04X:\n", vCurrentActor.actorNumber);
 
 
@@ -226,11 +228,12 @@ int main(int argc, char **argv)
 
 	vProgram.enableTextures = true;
 	vProgram.enableWireframe = false;
+	vProgram.enableCombiner = true;
 
 	vProgram.enableHUD = true;
 
 	vCurrentActor.actorNumber = 0;
-	
+
 	vCurrentActor.linkUseDetailModel = true;
 	vCurrentActor.linkAgeSwitch = false;
 	vCurrentActor.old_limb_top = NULL;
@@ -255,10 +258,11 @@ int main(int argc, char **argv)
 
 				if(ReturnVal.Handle == vProgram.guiHandleOptions) {
 					// -> button "OK"
-					if(ReturnVal.s8 == 5) {
+					if(ReturnVal.s8 == 4) {
 						unsigned char Options = 0;
 						if(vProgram.enableTextures) Options |= BRDP_TEXTURES;
 						if(vProgram.enableWireframe) Options |= BRDP_WIREFRAME;
+						if(vProgram.enableCombiner) Options |= BRDP_COMBINER;
 						RDP_SetRendererOptions(Options);
 						RDP_ClearStructures(true);
 						RDP_ClearTextures();
