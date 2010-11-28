@@ -42,7 +42,9 @@ void RDP_F3D_SPNOOP()
 
 void RDP_F3D_MTX()
 {
-	int i = 0, j = 0;
+	gSP_Matrix(w1, _SHIFTR(w0, 16, 8));
+
+/*	int i = 0, j = 0;
 	signed long MtxTemp1 = 0, MtxTemp2 = 0;
 
 	unsigned char Segment = w1 >> 24;
@@ -72,7 +74,7 @@ void RDP_F3D_MTX()
 	}
 
 	glPushMatrix();
-	glMultMatrixf(*Matrix);
+	glMultMatrixf(*Matrix);*/
 }
 
 void RDP_F3D_RESERVED0()
@@ -148,14 +150,12 @@ void RDP_F3D_QUAD()
 void RDP_F3D_CLEARGEOMETRYMODE()
 {
 	Gfx.GeometryMode &= ~w1;
-
 	Gfx.Update |= CHANGED_GEOMETRYMODE;
 }
 
 void RDP_F3D_SETGEOMETRYMODE()
 {
 	Gfx.GeometryMode |= w1;
-
 	Gfx.Update |= CHANGED_GEOMETRYMODE;
 }
 
@@ -209,11 +209,17 @@ void RDP_F3D_TEXTURE()
 	Gfx.CurrentTexture = 0;
 	Gfx.IsMultiTexture = false;
 
-	Texture[0].ScaleS = _FIXED2FLOAT(_SHIFTR(w1, 16, 16), 16);
-	Texture[0].ScaleT = _FIXED2FLOAT(_SHIFTR(w1, 0, 16), 16);
+	if(_SHIFTR(w1, 16, 16) < 0xFFFF) {
+		Texture[0].ScaleS = _FIXED2FLOAT(_SHIFTR(w1, 16, 16), 16);
+	} else {
+		Texture[0].ScaleS = 1.0f;
+	}
 
-	if(Texture[0].ScaleS == 0.0f) Texture[0].ScaleS = 1.0f;
-	if(Texture[0].ScaleT == 0.0f) Texture[0].ScaleT = 1.0f;
+	if(_SHIFTR(w1, 0, 16) < 0xFFFF) {
+		Texture[0].ScaleT = _FIXED2FLOAT(_SHIFTR(w1, 0, 16), 16);
+	} else {
+		Texture[0].ScaleT = 1.0f;
+	}
 
 	Texture[1].ScaleS = Texture[0].ScaleS;
 	Texture[1].ScaleT = Texture[0].ScaleT;
@@ -226,7 +232,8 @@ void RDP_F3D_MOVEWORD()
 
 void RDP_F3D_POPMTX()
 {
-	glPopMatrix();
+	RDP_Matrix_ModelviewPop(w1);
+//	glPopMatrix();
 }
 
 void RDP_F3D_CULLDL()

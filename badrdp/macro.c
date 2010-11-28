@@ -67,3 +67,22 @@ void RDP_Macro_LoadTLUT()
 
 	RDP_InitLoadTexture();
 }
+
+void RDP_Macro_LoadTextureSF64()
+{
+	Gfx.CurrentTexture = ((nw0[1] & 0x0F00) ? 1 : 0);
+	Gfx.IsMultiTexture = Gfx.CurrentTexture;
+
+	gDP_SetTImg(nw0[3], nw1[3]);
+	gDP_SetTile(nw0[1], nw1[1]);
+	gDP_SetTileSize(nw0[2], nw1[2]);
+
+	if(Gfx.IsMultiTexture) {
+		Gfx.EnvColor = (__RGBA){ 0.5f, 0.5f, 0.5f, 0.5f };
+	} else {
+		Gfx.EnvColor = (__RGBA){ 1.0f, 1.0f, 1.0f, 0.75f };
+	}
+	if(OpenGL.Ext_FragmentProgram) glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 0, Gfx.EnvColor.R, Gfx.EnvColor.G, Gfx.EnvColor.B, Gfx.EnvColor.A);
+
+	RDP_InitLoadTexture();
+}
