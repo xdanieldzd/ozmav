@@ -89,10 +89,6 @@
 		<Unit filename="main.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="memwatch.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="memwatch.h" />
 		<Unit filename="mips-eval.c">
 			<Option compilerVar="CC" />
 		</Unit>

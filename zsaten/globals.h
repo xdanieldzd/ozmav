@@ -1,8 +1,3 @@
-#if 0
-#define MEMWATCH
-#define MW_STDIO
-#endif
-
 #define APP_TITLE 		"Project ZSaten"
 #define APP_VERSION		"v0.1"
 
@@ -43,8 +38,6 @@ enum { false, true };
 #include "zactors.h"
 #include "zelda.h"
 #include "zold.h"
-
-#include "memwatch.h" //???
 
 #define Read16(Buffer, Offset) \
 	((Buffer[Offset] << 8) | Buffer[(Offset) + 1])

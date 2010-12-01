@@ -13,7 +13,7 @@ int hud_Init()
 	memset(FontWidths, 2, sizeof(FontWidths));
 
 	if(!hud_LoadFontBuffer(fontdata)) {
-		MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "- Error: Could not load font image!\n");
+		MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "- Error: Could not load font data!\n");
 		return EXIT_FAILURE;
 	}
 
@@ -43,7 +43,7 @@ bool hud_LoadFontBuffer(unsigned char * Buffer)
 	char TempID[] = { 0, 0, 0 };
 	memcpy(&TempID, &Buffer[0], 2);
 	if(strcmp(TempID, "BM")) {
-		MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "- Error: Font image not in BMP format!\n");
+		MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "- Error: Font data not in BMP format!\n");
 		return false;
 	}
 
@@ -53,7 +53,7 @@ bool hud_LoadFontBuffer(unsigned char * Buffer)
 	memcpy(&vHUD.BPP, &Buffer[28], sizeof(short));
 
 	if(vHUD.BPP != 24) {
-		MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "- Error: BMP image is not 24bpp!\n");
+		MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "- Error: BMP data is not 24bpp!\n");
 		return false;
 	}
 

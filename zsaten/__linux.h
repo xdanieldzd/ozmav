@@ -34,8 +34,8 @@
 #define KEY_SWITCH_ENABLEHUD		XK_F12&0xFF
 #define KEY_SWITCH_LOWERFPS			XK_KP_Divide&0xFF
 #define KEY_SWITCH_RAISEFPS			XK_KP_Multiply&0xFF
-#define KEY_SWITCH_PREVFRAME		XK_KP_Add&0xFF
-#define KEY_SWITCH_NEXTFRAME		XK_KP_Subtract&0xFF
+#define KEY_SWITCH_PREVFRAME		XK_KP_Subtract&0xFF
+#define KEY_SWITCH_NEXTFRAME		XK_KP_Add&0xFF
 
 int XInit(char * WndTitle, int Width, int Height);
 int XMain();

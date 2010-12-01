@@ -429,7 +429,7 @@ void drawLink(unsigned int BoneOffset, unsigned int AnimationOffset, float Scale
 {
 	int BoneCount, BoneListListOffset, Seg, _Seg, i, AniSeg=0, rot_offset=0;
 
-	vCurrentActor.frameTotal = frames;
+	vCurrentActor.frameTotal = frames - 1;
 
 	RDP_ClearStructures(false);
 

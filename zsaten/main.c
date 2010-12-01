@@ -278,7 +278,7 @@ int main(int argc, char **argv)
 					lastTime = startTime;
 					if(vProgram.animPlay) {
 						vCurrentActor.frameCurrent++;
-						if(vCurrentActor.frameCurrent >= vCurrentActor.frameTotal) vCurrentActor.frameCurrent = 0;
+						if(vCurrentActor.frameCurrent >= vCurrentActor.frameTotal + 1) vCurrentActor.frameCurrent = 0;
 					}
 				}
 
@@ -429,18 +429,18 @@ void doKbdInput()
 		vProgram.key[KEY_SWITCH_RAISEFPS] = false;
 	}
 
-	if(vProgram.key[KEY_SWITCH_PREVFRAME]) {
-		if(vProgram.animPlay) vProgram.animPlay = false;
-		vCurrentActor.frameCurrent++;
-		if(vCurrentActor.frameCurrent >= vCurrentActor.frameTotal) vCurrentActor.frameCurrent = 0;
-		vProgram.key[KEY_SWITCH_PREVFRAME] = false;
-	}
-
 	if(vProgram.key[KEY_SWITCH_NEXTFRAME]) {
 		if(vProgram.animPlay) vProgram.animPlay = false;
-		if(vCurrentActor.frameCurrent > 0) vCurrentActor.frameCurrent--;
-		else vCurrentActor.frameCurrent = vCurrentActor.frameTotal-1;
+		vCurrentActor.frameCurrent++;
+		if(vCurrentActor.frameCurrent >= vCurrentActor.frameTotal + 1) vCurrentActor.frameCurrent = 0;
 		vProgram.key[KEY_SWITCH_NEXTFRAME] = false;
+	}
+
+	if(vProgram.key[KEY_SWITCH_PREVFRAME]) {
+		if(vProgram.animPlay) vProgram.animPlay = false;
+		if(vCurrentActor.frameCurrent > 0) vCurrentActor.frameCurrent--;
+		else vCurrentActor.frameCurrent = vCurrentActor.frameTotal;
+		vProgram.key[KEY_SWITCH_PREVFRAME] = false;
 	}
 }
 
