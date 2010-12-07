@@ -165,5 +165,5 @@ void hudMenu_Render(char Title[], int X, int Y, __zHUDMenuEntry * Menu, int Len)
 	}
 
 	// print via HUD
-	hud_Print(X, Y, -1, -1, 1, Message);
+	hud_Print(X, Y, -1, -1, 1, 1.0f, Message);
 }

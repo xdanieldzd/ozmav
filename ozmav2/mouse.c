@@ -55,6 +55,8 @@ __Vect3D ms_GetSceneCoords(int MousePosX, int MousePosY)
 		RetVect.X = (signed int)Pos[0];
 		RetVect.Y = (signed int)Pos[1];
 		RetVect.Z = (signed int)Pos[2];
+
+		gl_SetupScene2D(zProgram.WindowWidth, zProgram.WindowHeight);
 	glPopMatrix();
 
 	return RetVect;

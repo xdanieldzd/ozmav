@@ -1,10 +1,6 @@
 #define MAX_SEGMENTS		16
 
 typedef struct {
-	short X, Y, Z;
-} __Vect3D;
-
-typedef struct {
 	bool IsSet;
 	unsigned int Size;
 	int SourceCompType;

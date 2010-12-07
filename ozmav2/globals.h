@@ -10,6 +10,10 @@ enum { true = 1, false = 0 };
 
 //union { unsigned long ul; float f; } u;
 
+typedef struct {
+	short X, Y, Z;
+} __Vect3D;
+
 // ----------------------------------------
 
 #ifdef WIN32

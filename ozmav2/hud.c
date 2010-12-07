@@ -141,7 +141,7 @@ void hud_KillFont()
 	if(glIsList(zHUD.BaseDL)) glDeleteLists(zHUD.BaseDL, 256);
 }
 
-void hud_Print(GLint X, GLint Y, int W, int H, int Scale, char * String, ...)
+void hud_Print(GLint X, GLint Y, int W, int H, int Scale, float Vis, char * String, ...)
 {
 	// NOTES:
 	//  - if X or Y == -1, text appears at (window width/height - text width/height)
@@ -197,8 +197,14 @@ void hud_Print(GLint X, GLint Y, int W, int H, int Scale, char * String, ...)
 		glScaled(Scale, Scale, Scale);
 		glTranslated(X, Y, 0);
 
+		if(RDP_OpenGL_ExtFragmentProgram()) glDisable(GL_FRAGMENT_PROGRAM_ARB);
+
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glDisable(GL_ALPHA_TEST);
+
 		glDisable(GL_TEXTURE_2D);
-		glColor4f(BGColor[0], BGColor[1], BGColor[2], BGColor[3]);
+		glColor4f(BGColor[0], BGColor[1], BGColor[2], BGColor[3] * Vis);
 		glRectd(0, 0, RectWidth, RectHeight);
 		glEnable(GL_TEXTURE_2D);
 
@@ -216,35 +222,35 @@ void hud_Print(GLint X, GLint Y, int W, int H, int Scale, char * String, ...)
 					break;
 				}
 				case 0x90: {
-					glColor4f(0.0f, 1.0f, 0.0f, FGColor[3]);
+					glColor4f(0.0f, 1.0f, 0.0f, FGColor[3] * Vis);
 					break;
 				}
 				case 0x91: {
-					glColor4f(1.0f, 0.5f, 0.0f, FGColor[3]);
+					glColor4f(1.0f, 0.5f, 0.0f, FGColor[3] * Vis);
 					break;
 				}
 				case 0x92: {
-					glColor4f(0.0f, 0.75f, 1.0f, FGColor[3]);
+					glColor4f(0.0f, 0.75f, 1.0f, FGColor[3] * Vis);
 					break;
 				}
 				case 0xA0: {
 					HorzCenter = (WINDOW_WIDTH / 2) - (LineWidths[i] / 2);
-					glColor4f(0.0f, 1.0f, 0.0f, FGColor[3]);
+					glColor4f(0.0f, 1.0f, 0.0f, FGColor[3] * Vis);
 					break;
 				}
 				case 0xA1: {
 					HorzCenter = (WINDOW_WIDTH / 2) - (LineWidths[i] / 2);
-					glColor4f(1.0f, 0.5f, 0.0f, FGColor[3]);
+					glColor4f(1.0f, 0.5f, 0.0f, FGColor[3] * Vis);
 					break;
 				}
 				case 0xA2: {
 					HorzCenter = (WINDOW_WIDTH / 2) - (LineWidths[i] / 2);
-					glColor4f(0.0f, 0.75f, 1.0f, FGColor[3]);
+					glColor4f(0.0f, 0.75f, 1.0f, FGColor[3] * Vis);
 					break;
 				}
 
 				default: {
-					glColor4f(FGColor[0], FGColor[1], FGColor[2], FGColor[3]);
+					glColor4f(FGColor[0], FGColor[1], FGColor[2], FGColor[3] * Vis);
 					break;
 				}
 			}
@@ -254,6 +260,8 @@ void hud_Print(GLint X, GLint Y, int W, int H, int Scale, char * String, ...)
 			glPopMatrix();
 		}
 		glDisable(GL_TEXTURE_2D);
+		glEnable(GL_ALPHA_TEST);
+		glDisable(GL_BLEND);
 
 		glPopMatrix();
 	}

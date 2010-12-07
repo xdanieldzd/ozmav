@@ -66,13 +66,8 @@ void gl_SetupScene2D(int Width, int Height)
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 
-	if(RDP_OpenGL_ExtFragmentProgram()) glDisable(GL_FRAGMENT_PROGRAM_ARB);
-
 	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_CULL_FACE);
-
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	glDisable(GL_LIGHTING);
 	glDisable(GL_NORMALIZE);
@@ -193,11 +188,17 @@ void gl_DrawDoors()
 	}
 }
 
+static inline GLfloat gl_GetPointDistance(__Vect3D First, __Vect3D Second)
+{
+	GLfloat DeltaX = (float)Second.X - (float)First.X;
+	GLfloat DeltaY = (float)Second.Y - (float)First.Y;
+	GLfloat DeltaZ = (float)Second.Z - (float)First.Z;
+	return sqrtf(DeltaX * DeltaX + DeltaY * DeltaY + DeltaZ * DeltaZ);
+};
+
 void gl_DrawHUD(int StartMap, int EndMap)
 {
 	gl_SetupScene2D(zProgram.WindowWidth, zProgram.WindowHeight);
-
-	glDisable(GL_DEPTH_TEST);
 
 	__Vect3D SelectedActorSC;
 	bool ShowActorBox = false;
@@ -215,9 +216,20 @@ void gl_DrawHUD(int StartMap, int EndMap)
 						SelectedActorSC = ScreenCoords;
 						ShowActorBox = true;
 					} else {
-						hud_Print(ScreenCoords.X, ScreenCoords.Y, -1, -1, 1,
-							"#%i: %s\n0x%04X/0x%04X",
-							Actor, zActor[zMapActor[Map][Actor].Number].Name, zMapActor[Map][Actor].Number, zMapActor[Map][Actor].Var);
+						__Vect3D CamPos = ms_GetSceneCoords(0, 0);
+						__Vect3D ActorPos = {
+							(float)zMapActor[Map][Actor].Pos.X,
+							(float)zMapActor[Map][Actor].Pos.Y,
+							(float)zMapActor[Map][Actor].Pos.Z
+							};
+						GLfloat Visibility = (-(gl_GetPointDistance(CamPos, ActorPos) / 7500.0f) + 1.0f);
+						Visibility = (Visibility > 1.0f) ? 1.0f : Visibility;
+
+						if(Visibility > 0.0f) {
+							hud_Print(ScreenCoords.X, ScreenCoords.Y, -1, -1, 1, Visibility,
+								"#%i: %s\n0x%04X/0x%04X",
+								Actor, zActor[zMapActor[Map][Actor].Number].Name, zMapActor[Map][Actor].Number, zMapActor[Map][Actor].Var);
+						}
 					}
 			}
 		}
@@ -251,8 +263,6 @@ void gl_DrawHUD(int StartMap, int EndMap)
 		sprintf(TempString, "Map Actor #%i", zOptions.SelectedActor);
 		hudMenu_Render(TempString, SelectedActorSC.X, SelectedActorSC.Y, ActorMenu, ArraySize(ActorMenu));
 	}
-
-	glEnable(GL_DEPTH_TEST);
 }
 
 void gl_DrawActorCube(bool Selected)
