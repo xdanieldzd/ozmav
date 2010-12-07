@@ -221,8 +221,6 @@ typedef struct {
 	int MaterialID;
 } __TextureCache;
 
-typedef unsigned __int64 u64;
-
 typedef struct {
 	int DLStack[16];
 	int DLStackPos;
@@ -277,7 +275,7 @@ typedef struct {
 				unsigned int pad : 8;
 			};
 
-			u64 _u64;
+			uint64_t _u64;
 
 			struct {
 				unsigned int L, H;
