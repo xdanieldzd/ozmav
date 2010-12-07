@@ -51,7 +51,7 @@ void mips_EvalWord(unsigned int * words, int pos)
 	int i, imm;
 	for(i=0;i<SpecialOpCount;i++){
 		if((word & SpecialOps[i].Op) == SpecialOps[i].Op){
-			if(!word & 0xFC000000)	//R type ops
+			if(!(word & 0xFC000000))	//R type ops
 				regs[getRD(word)] = SpecialOps[i].Value;
 			else
 				regs[getRT(word)] = SpecialOps[i].Value;

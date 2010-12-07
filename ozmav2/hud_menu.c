@@ -1,5 +1,6 @@
 #include "globals.h"
 
+#ifdef WIN32
 #define KEY_HUDMENU_UP			VK_UP
 #define KEY_HUDMENU_DOWN		VK_DOWN
 #define KEY_HUDMENU_LEFT		VK_LEFT
@@ -7,6 +8,15 @@
 #define KEY_HUDMENU_TOGGLE		VK_SPACE
 #define KEY_HUDMENU_SKIP1		VK_CONTROL
 #define KEY_HUDMENU_SKIP2		VK_SHIFT
+#else
+#define KEY_HUDMENU_UP			XK_Up
+#define KEY_HUDMENU_DOWN		XK_Down
+#define KEY_HUDMENU_LEFT		XK_Left
+#define KEY_HUDMENU_RIGHT		XK_Right
+#define KEY_HUDMENU_TOGGLE		XK_space
+#define KEY_HUDMENU_SKIP1		XK_Control_L
+#define KEY_HUDMENU_SKIP2		XK_Shift_L
+#endif
 
 int MenuItem, LastMenuItem, FirstTrueMenuItem, MaxMenuItem;
 
