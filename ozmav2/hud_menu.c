@@ -9,13 +9,13 @@
 #define KEY_HUDMENU_SKIP1		VK_CONTROL
 #define KEY_HUDMENU_SKIP2		VK_SHIFT
 #else
-#define KEY_HUDMENU_UP			XK_Up
-#define KEY_HUDMENU_DOWN		XK_Down
-#define KEY_HUDMENU_LEFT		XK_Left
-#define KEY_HUDMENU_RIGHT		XK_Right
+#define KEY_HUDMENU_UP			XK_Up&0xFF
+#define KEY_HUDMENU_DOWN		XK_Down&0xFF
+#define KEY_HUDMENU_LEFT		XK_Left&0xFF
+#define KEY_HUDMENU_RIGHT		XK_Right&0xFF
 #define KEY_HUDMENU_TOGGLE		XK_space
-#define KEY_HUDMENU_SKIP1		XK_Control_L
-#define KEY_HUDMENU_SKIP2		XK_Shift_L
+#define KEY_HUDMENU_SKIP1		XK_Control_L&0xFF
+#define KEY_HUDMENU_SKIP2		XK_Shift_L&0xFF
 #endif
 
 int MenuItem, LastMenuItem, FirstTrueMenuItem, MaxMenuItem;
