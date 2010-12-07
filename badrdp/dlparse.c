@@ -301,7 +301,7 @@ void RDP_ClearStructures(bool Full)
 	static const __Palette Palette_Empty = { 0, 0, 0, 0 };
 	for(i = 0; i < ArraySize(Palette); i++) Palette[i] = Palette_Empty;
 
-	static const __Texture Texture_Empty = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.0f, 0.0f, 0.0f, 0.0f };
+	static const __Texture Texture_Empty = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, {{0, 0, 0, 0, 0, 0}}, 0.0f, 0.0f, 0.0f, 0.0f };
 	Texture[0] = Texture_Empty;
 	Texture[1] = Texture_Empty;
 
@@ -319,10 +319,10 @@ void RDP_ClearStructures(bool Full)
 
 	Gfx.DLStackPos = 0;
 
-	Gfx.Update = 0;
+	Gfx.Update = 0xFFFFFFFF;
 	Gfx.GeometryMode = 0;
-	Gfx.OtherModeL = 0;
-	Gfx.OtherModeH = 0;
+	Gfx.OtherMode.L = 0;
+	Gfx.OtherMode.H = 0;
 	Gfx.Store_RDPHalf1 = 0; Gfx.Store_RDPHalf2 = 0;
 	Gfx.Combiner0 = 0; Gfx.Combiner1 = 0;
 
@@ -392,6 +392,8 @@ void RDP_ParseDisplayList(unsigned int Address, bool ResetStack)
 
 void RDP_DrawTriangle(int Vtxs[])
 {
+	if(Gfx.Update) RDP_UpdateGLStates();
+
 	glBegin(GL_TRIANGLES);
 
 	int i = 0;
@@ -426,8 +428,8 @@ void RDP_DrawTriangle(int Vtxs[])
 
 void RDP_SetRenderMode(unsigned int Mode1, unsigned int Mode2)
 {
-	Gfx.OtherModeL &= 0x00000007;
-	Gfx.OtherModeL |= Mode1 | Mode2;
+	Gfx.OtherMode.L &= 0x00000007;
+	Gfx.OtherMode.L |= Mode1 | Mode2;
 
 	Gfx.Update |= CHANGED_RENDERMODE;
 }
@@ -439,11 +441,6 @@ void RDP_ChangeTileSize(unsigned int Tile, unsigned int ULS, unsigned int ULT, u
 	Texture[Gfx.CurrentTexture].ULT = _SHIFTR(ULT, 2, 10);
 	Texture[Gfx.CurrentTexture].LRS = _SHIFTR(LRS, 2, 10);
 	Texture[Gfx.CurrentTexture].LRT = _SHIFTR(LRT, 2, 10);
-
-	Texture[Gfx.CurrentTexture].Width = (Texture[Gfx.CurrentTexture].LRS - Texture[Gfx.CurrentTexture].ULS) + 1;
-	Texture[Gfx.CurrentTexture].Height = (Texture[Gfx.CurrentTexture].LRT - Texture[Gfx.CurrentTexture].ULT) + 1;
-
-	RDP_CalcTextureSize(Gfx.CurrentTexture);
 }
 
 void RDP_CalcTextureSize(int TextureID)
@@ -475,8 +472,8 @@ void RDP_CalcTextureSize(int TextureID)
 
 	unsigned int Line_Width = Texture[TextureID].LineSize << Line_Shift;
 
-	unsigned int Tile_Width = Texture[TextureID].LRS - Texture[TextureID].ULS + 1;
-	unsigned int Tile_Height = Texture[TextureID].LRT - Texture[TextureID].ULT + 1;
+	unsigned int Tile_Width = (Texture[TextureID].LRS - Texture[TextureID].ULS) + 1;
+	unsigned int Tile_Height = (Texture[TextureID].LRT - Texture[TextureID].ULT) + 1;
 
 	unsigned int Mask_Width = 1 << Texture[TextureID].MaskS;
 	unsigned int Mask_Height = 1 << Texture[TextureID].MaskT;
@@ -500,19 +497,11 @@ void RDP_CalcTextureSize(int TextureID)
 		Texture[TextureID].Height = Line_Height;
 	}
 
-	unsigned int Clamp_Width = 0;
-	unsigned int Clamp_Height = 0;
+	unsigned int Clamp_Width = Texture[TextureID].clamps ? Tile_Width : Texture[TextureID].Width;
+	unsigned int Clamp_Height = Texture[TextureID].clampt ? Tile_Height : Texture[TextureID].Height;
 
-	if(Texture[TextureID].CMS == 1) {
-		Clamp_Width = Tile_Width;
-	} else {
-		Clamp_Width = Texture[TextureID].Width;
-	}
-	if(Texture[TextureID].CMT == 1) {
-		Clamp_Height = Tile_Height;
-	} else {
-		Clamp_Height = Texture[TextureID].Height;
-	}
+	if(Clamp_Width > 256) Texture[TextureID].clamps = 0;
+	if(Clamp_Height > 256) Texture[TextureID].clampt = 0;
 
 	if(Mask_Width > Texture[TextureID].Width) {
 		Texture[TextureID].MaskS = RDP_PowOf(Texture[TextureID].Width);
@@ -523,17 +512,17 @@ void RDP_CalcTextureSize(int TextureID)
 		Mask_Height = 1 << Texture[TextureID].MaskT;
 	}
 
-	if((Texture[TextureID].CMS == 2) || (Texture[TextureID].CMS == 3)) {
+	if(Texture[TextureID].clamps) {
 		Texture[TextureID].RealWidth = RDP_Pow2(Clamp_Width);
-	} else if(Texture[TextureID].CMS == 1) {
+	} else if(Texture[TextureID].mirrors) {
 		Texture[TextureID].RealWidth = RDP_Pow2(Mask_Width);
 	} else {
 		Texture[TextureID].RealWidth = RDP_Pow2(Texture[TextureID].Width);
 	}
 
-	if((Texture[TextureID].CMT == 2) || (Texture[TextureID].CMT == 3)) {
+	if(Texture[TextureID].clampt) {
 		Texture[TextureID].RealHeight = RDP_Pow2(Clamp_Height);
-	} else if(Texture[TextureID].CMT == 1) {
+	} else if(Texture[TextureID].mirrort) {
 		Texture[TextureID].RealHeight = RDP_Pow2(Mask_Height);
 	} else {
 		Texture[TextureID].RealHeight = RDP_Pow2(Texture[TextureID].Height);
@@ -585,12 +574,14 @@ void RDP_InitLoadTexture()
 */
 	if(OpenGL.Ext_MultiTexture) {
 		if(Texture[0].Offset != 0x00) {
+			RDP_CalcTextureSize(0);
 			glEnable(GL_TEXTURE_2D);
 			glActiveTextureARB(GL_TEXTURE0_ARB);
 			glBindTexture(GL_TEXTURE_2D, RDP_CheckTextureCache(0));
 		}
 
 		if(Gfx.IsMultiTexture && (Texture[1].Offset != 0x00)) {
+			RDP_CalcTextureSize(1);
 			glEnable(GL_TEXTURE_2D);
 			glActiveTextureARB(GL_TEXTURE1_ARB);
 			glBindTexture(GL_TEXTURE_2D, RDP_CheckTextureCache(1));
@@ -601,6 +592,7 @@ void RDP_InitLoadTexture()
 		glActiveTextureARB(GL_TEXTURE0_ARB);
 	} else {
 		if(Texture[0].Offset != 0x00) {
+			RDP_CalcTextureSize(1);
 			glEnable(GL_TEXTURE_2D);
 			glBindTexture(GL_TEXTURE_2D, RDP_CheckTextureCache(0));
 		}
@@ -883,6 +875,12 @@ GLuint RDP_LoadTexture(int TextureID)
 	glBindTexture(GL_TEXTURE_2D, Gfx.GLTextureID[Gfx.GLTextureCount]);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, Texture[TextureID].RealWidth, Texture[TextureID].RealHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, TextureData);
 
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, Texture[TextureID].clamps ? GL_CLAMP_TO_EDGE : GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, Texture[TextureID].clampt ? GL_CLAMP_TO_EDGE : GL_REPEAT);
+
+	if((Texture[TextureID].mirrors) && (OpenGL.Ext_TexMirroredRepeat)) glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT_ARB);
+	if((Texture[TextureID].mirrort) && (OpenGL.Ext_TexMirroredRepeat)) glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT_ARB);
+/*
 	switch(Texture[TextureID].CMS) {
 		case G_TX_CLAMP:
 		case 3:
@@ -914,7 +912,7 @@ GLuint RDP_LoadTexture(int TextureID)
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 			break;
 	}
-
+*/
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 

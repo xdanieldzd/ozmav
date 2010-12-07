@@ -55,12 +55,8 @@ void RDP_F3DEX_BRANCH_Z()
 
 void RDP_F3DEX_TRI2()
 {
-	if(Gfx.Update) RDP_UpdateGLStates();
-
 	int Vtxs1[] = { _SHIFTR( w0, 17, 7 ), _SHIFTR( w0, 9, 7 ), _SHIFTR( w0, 1, 7 ) };
 	RDP_DrawTriangle(Vtxs1);
-
-	if(Gfx.Update) RDP_UpdateGLStates();
 
 	int Vtxs2[] = { _SHIFTR( w1, 17, 7 ), _SHIFTR( w1, 9, 7 ), _SHIFTR( w1, 1, 7 ) };
 	RDP_DrawTriangle(Vtxs2);
@@ -78,8 +74,6 @@ void RDP_F3DEX_CULLDL()
 
 void RDP_F3DEX_TRI1()
 {
-	if(Gfx.Update) RDP_UpdateGLStates();
-
 	int Vtxs[] = { _SHIFTR( w1, 17, 7 ), _SHIFTR( w1, 9, 7 ), _SHIFTR( w1, 1, 7 ) };
 	RDP_DrawTriangle(Vtxs);
 }

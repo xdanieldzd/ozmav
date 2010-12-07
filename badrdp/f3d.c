@@ -176,8 +176,8 @@ void RDP_F3D_SETOTHERMODE_L()
 			unsigned int length = _SHIFTR( w0, 0, 8 );
 			unsigned int mask = ((1 << length) - 1) << shift;
 
-			Gfx.OtherModeL &= ~mask;
-			Gfx.OtherModeL |= w1 & mask;
+			Gfx.OtherMode.L &= ~mask;
+			Gfx.OtherMode.L |= w1 & mask;
 
 			Gfx.Update |= CHANGED_RENDERMODE | CHANGED_ALPHACOMPARE;
 			break;
@@ -193,8 +193,8 @@ void RDP_F3D_SETOTHERMODE_H()
 			unsigned int length = _SHIFTR(w0, 0, 8);
 			unsigned int mask = ((1 << length) - 1) << shift;
 
-			Gfx.OtherModeH &= ~mask;
-			Gfx.OtherModeH |= w1 & mask;
+			Gfx.OtherMode.H &= ~mask;
+			Gfx.OtherMode.H |= w1 & mask;
 			break;
 		}
 	}
@@ -202,7 +202,7 @@ void RDP_F3D_SETOTHERMODE_H()
 
 void RDP_F3D_TEXTURE()
 {
-	static const __Texture Texture_Empty = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.0f, 0.0f, 0.0f, 0.0f };
+	static const __Texture Texture_Empty = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, {{0, 0, 0, 0, 0, 0}}, 0.0f, 0.0f, 0.0f, 0.0f };
 	Texture[0] = Texture_Empty;
 	Texture[1] = Texture_Empty;
 
@@ -243,8 +243,6 @@ void RDP_F3D_CULLDL()
 
 void RDP_F3D_TRI1()
 {
-	if(Gfx.Update) RDP_UpdateGLStates();
-
 	int Vtxs[] = { _SHIFTR( w1, 17, 7 ), _SHIFTR( w1, 9, 7 ), _SHIFTR( w1, 1, 7 ) };
 	RDP_DrawTriangle(Vtxs);
 }

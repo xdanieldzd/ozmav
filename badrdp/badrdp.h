@@ -15,7 +15,8 @@ extern enum { F3D, F3DEX, F3DEX2 } UcodeIDs;
 extern enum {
 	BRDP_WIREFRAME	= 1,
 	BRDP_TEXTURES	= 1 << 1,
-	BRDP_COMBINER	= 1 << 2
+	BRDP_COMBINER	= 1 << 2,
+	BRDP_LOGMAX		= 1 << 3
 } RenderOpts;
 
 extern void RDP_SetupOpenGL();

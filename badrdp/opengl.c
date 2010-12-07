@@ -163,19 +163,19 @@ void RDP_UpdateGLStates()
 	}
 */
 	if(Gfx.Update & CHANGED_RENDERMODE) {
-/*		if(Gfx.OtherModeL & Z_CMP) {
+/*		if(Gfx.OtherMode.depthCompare) {
 			glDepthFunc(GL_LEQUAL);
 		} else {
 			glDepthFunc(GL_ALWAYS);
-		}*/
-/*
-		if(Gfx.OtherModeL & Z_UPD) {
+		}
+
+		if(Gfx.OtherMode.depthUpdate) {
 			glDepthMask(GL_TRUE);
 		} else {
 			glDepthMask(GL_FALSE);
 		}
 */
-		if(Gfx.OtherModeL & ZMODE_DEC) {
+		if(Gfx.OtherMode.depthMode == ZMODE_DEC) {
 			glEnable(GL_POLYGON_OFFSET_FILL);
 			glPolygonOffset(-3.0f, -3.0f);
 		} else {
@@ -184,11 +184,11 @@ void RDP_UpdateGLStates()
 	}
 
 	if((Gfx.Update & CHANGED_ALPHACOMPARE) || (Gfx.Update & CHANGED_RENDERMODE)) {
-		if(!(Gfx.OtherModeL & ALPHA_CVG_SEL)) {
+		if(!(Gfx.OtherMode.L & ALPHA_CVG_SEL)) {
 			glEnable(GL_ALPHA_TEST);
 			glAlphaFunc((Gfx.BlendColor.A > 0.0f) ? GL_GEQUAL : GL_GREATER, Gfx.BlendColor.A);
 
-		} else if(Gfx.OtherModeL & CVG_X_ALPHA) {
+		} else if(Gfx.OtherMode.L & CVG_X_ALPHA) {
 			glEnable(GL_ALPHA_TEST);
 			glAlphaFunc(GL_GEQUAL, 0.5f);
 
@@ -197,10 +197,10 @@ void RDP_UpdateGLStates()
 	}
 
 	if(Gfx.Update & CHANGED_RENDERMODE) {
-		if((Gfx.OtherModeL & FORCE_BL) && !(Gfx.OtherModeL & ALPHA_CVG_SEL)) {
+		if((Gfx.OtherMode.L & FORCE_BL) && !(Gfx.OtherMode.L & ALPHA_CVG_SEL)) {
 			glEnable(GL_BLEND);
 
-			switch(Gfx.OtherModeL >> 16) {
+			switch(Gfx.OtherMode.L >> 16) {
 				case 0x0448: // Add
 				case 0x055A:
 					glBlendFunc(GL_ONE, GL_ONE);

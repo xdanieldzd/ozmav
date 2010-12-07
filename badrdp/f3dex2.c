@@ -92,20 +92,14 @@ void RDP_F3DEX2_BRANCH_Z()
 
 void RDP_F3DEX2_TRI1()
 {
-	if(Gfx.Update) RDP_UpdateGLStates();
-
 	int Vtxs[] = { ((w0 & 0x00FF0000) >> 16) / 2, ((w0 & 0x0000FF00) >> 8) / 2, (w0 & 0x000000FF) / 2 };
 	RDP_DrawTriangle(Vtxs);
 }
 
 void RDP_F3DEX2_TRI2()
 {
-	if(Gfx.Update) RDP_UpdateGLStates();
-
 	int Vtxs1[] = { ((w0 & 0x00FF0000) >> 16) / 2, ((w0 & 0x0000FF00) >> 8) / 2, (w0 & 0x000000FF) / 2 };
 	RDP_DrawTriangle(Vtxs1);
-
-	if(Gfx.Update) RDP_UpdateGLStates();
 
 	int Vtxs2[] = { ((w1 & 0x00FF0000) >> 16) / 2, ((w1 & 0x0000FF00) >> 8) / 2, (w1 & 0x000000FF) / 2 };
 	RDP_DrawTriangle(Vtxs2);
@@ -113,12 +107,8 @@ void RDP_F3DEX2_TRI2()
 
 void RDP_F3DEX2_QUAD()
 {
-	if(Gfx.Update) RDP_UpdateGLStates();
-
 	int Vtxs1[] = { ((w1 & 0xFF000000) >> 24) / 2, ((w1 & 0x00FF0000) >> 16) / 2, ((w1 & 0x0000FF00) >> 8) / 2 };
 	RDP_DrawTriangle(Vtxs1);
-
-	if(Gfx.Update) RDP_UpdateGLStates();
 
 	int Vtxs2[] = { ((w1 & 0xFF000000) >> 24) / 2, ((w1 & 0x0000FF00) >> 8) / 2, (w1 & 0x000000FF) / 2 };
 	RDP_DrawTriangle(Vtxs2);
@@ -146,7 +136,7 @@ void RDP_F3DEX2_DMA_IO()
 
 void RDP_F3DEX2_TEXTURE()
 {
-	static const __Texture Texture_Empty = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.0f, 0.0f, 0.0f, 0.0f };
+	static const __Texture Texture_Empty = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, {{0, 0, 0, 0, 0, 0}}, 0.0f, 0.0f, 0.0f, 0.0f };
 	Texture[0] = Texture_Empty;
 	Texture[1] = Texture_Empty;
 
@@ -294,8 +284,8 @@ void RDP_F3DEX2_SETOTHERMODE_L()
 			unsigned int shift = 32 - _SHIFTR( w0, 8, 8 ) - length;
 			unsigned int mask = ((1 << length) - 1) << shift;
 
-			Gfx.OtherModeL &= ~mask;
-			Gfx.OtherModeL |= w1 & mask;
+			Gfx.OtherMode.L &= ~mask;
+			Gfx.OtherMode.L |= w1 & mask;
 
 			Gfx.Update |= CHANGED_RENDERMODE | CHANGED_ALPHACOMPARE;
 			break;
@@ -311,8 +301,8 @@ void RDP_F3DEX2_SETOTHERMODE_H()
 			unsigned int shift = 32 - _SHIFTR( w0, 8, 8 ) - length;
 			unsigned int mask = ((1 << length) - 1) << shift;
 
-			Gfx.OtherModeH &= ~mask;
-			Gfx.OtherModeH |= w1 & mask;
+			Gfx.OtherMode.H &= ~mask;
+			Gfx.OtherMode.H |= w1 & mask;
 			break;
 		}
 	}

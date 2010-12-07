@@ -98,13 +98,20 @@
 #define	CVG_DST_WRAP			0x00000100
 #define	CVG_DST_FULL			0x00000200
 #define	CVG_DST_SAVE			0x00000300
+/*
 #define	ZMODE_OPA				0x00000000
 #define	ZMODE_INTER				0x00000400
 #define	ZMODE_XLU				0x00000800
 #define	ZMODE_DEC				0x00000C00
+*/
 #define	CVG_X_ALPHA				0x00001000
 #define	ALPHA_CVG_SEL			0x00002000
 #define	FORCE_BL				0x00004000
 
 #define G_MWO_POINT_RGBA		0x10
 #define G_MWO_POINT_ST			0x14
+
+#define	ZMODE_OPA				0
+#define	ZMODE_INTER				1
+#define	ZMODE_XLU				2
+#define	ZMODE_DEC				3

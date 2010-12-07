@@ -164,7 +164,19 @@ typedef struct {
 	unsigned int LineSize, Palette;
 	unsigned int MaskT, MaskS;
 	unsigned int ShiftT, ShiftS;
-	unsigned int CMT, CMS;
+	union {
+		struct {
+			unsigned mirrort : 1;
+			unsigned clampt : 1;
+			unsigned pad0 : 30;
+			unsigned mirrors : 1;
+			unsigned clamps : 1;
+			unsigned pad1 : 30;
+		};
+		struct {
+			unsigned int CMT, CMS;
+		};
+	};
 	float ScaleT, ScaleS;
 	float ShiftScaleT, ShiftScaleS;
 } __Texture;
@@ -209,14 +221,70 @@ typedef struct {
 	int MaterialID;
 } __TextureCache;
 
+typedef unsigned __int64 u64;
+
 typedef struct {
 	int DLStack[16];
 	int DLStackPos;
 
 	unsigned int Update;
 	unsigned int GeometryMode;
-	unsigned int OtherModeL;
-	unsigned int OtherModeH;
+
+	struct {
+		union {
+			struct {
+				unsigned int alphaCompare : 2;
+				unsigned int depthSource : 1;
+
+				unsigned int AAEnable : 1;
+				unsigned int depthCompare : 1;
+				unsigned int depthUpdate : 1;
+				unsigned int imageRead : 1;
+				unsigned int clearOnCvg : 1;
+
+				unsigned int cvgDest : 2;
+				unsigned int depthMode : 2;
+
+				unsigned int cvgXAlpha : 1;
+				unsigned int alphaCvgSel : 1;
+				unsigned int forceBlender : 1;
+				unsigned int textureEdge : 1;
+
+				unsigned int c2_m2b : 2;
+				unsigned int c1_m2b : 2;
+				unsigned int c2_m2a : 2;
+				unsigned int c1_m2a : 2;
+				unsigned int c2_m1b : 2;
+				unsigned int c1_m1b : 2;
+				unsigned int c2_m1a : 2;
+				unsigned int c1_m1a : 2;
+
+				unsigned int blendMask : 4;
+				unsigned int alphaDither : 2;
+				unsigned int colorDither : 2;
+
+				unsigned int combineKey : 1;
+				unsigned int textureConvert : 3;
+				unsigned int textureFilter : 2;
+				unsigned int textureLUT : 2;
+
+				unsigned int textureLOD : 1;
+				unsigned int textureDetail : 2;
+				unsigned int texturePersp : 1;
+				unsigned int cycleType : 2;
+				unsigned int pipelineMode : 1;
+
+				unsigned int pad : 8;
+			};
+
+			u64 _u64;
+
+			struct {
+				unsigned int L, H;
+			};
+		};
+	} OtherMode;
+
 	GLfloat LightAmbient[4];
 	GLfloat LightDiffuse[4];
 	GLfloat LightSpecular[4];
