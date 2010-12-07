@@ -107,6 +107,8 @@ int main(int argc, char * argv[])
 	if(hud_Init()) {
 		MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "- Error: Failed to initialize HUD system!\n");
 		die(EXIT_FAILURE);
+	} else {
+		hudMenu_Init();
 	}
 
 	// create folder for .obj & texture dumps
@@ -247,6 +249,106 @@ int main(int argc, char * argv[])
 	die(EXIT_SUCCESS);
 
 	return EXIT_FAILURE;
+}
+
+// ----------------------------------------
+
+int DoMainKbdInput()
+{
+	if(zProgram.Key[KEY_CAMERA_UP_FAST]) ca_Movement(false, 6.0f);
+	if(zProgram.Key[KEY_CAMERA_DOWN_FAST]) ca_Movement(false, -6.0f);
+	if(zProgram.Key[KEY_CAMERA_LEFT_FAST]) ca_Movement(true, -6.0f);
+	if(zProgram.Key[KEY_CAMERA_RIGHT_FAST]) ca_Movement(true, 6.0f);
+
+	if(zProgram.Key[KEY_CAMERA_UP_SLOW]) ca_Movement(false, 1.0f);
+	if(zProgram.Key[KEY_CAMERA_DOWN_SLOW]) ca_Movement(false, -1.0f);
+	if(zProgram.Key[KEY_CAMERA_LEFT_SLOW]) ca_Movement(true, -1.0f);
+	if(zProgram.Key[KEY_CAMERA_RIGHT_SLOW]) ca_Movement(true, 1.0f);
+
+	if(zOptions.SelectedActor == -1) {
+		if(zProgram.Key[KEY_SCENE_PREVIOUS] && zOptions.SceneNo > 0) {
+			zOptions.SceneNo--;
+			if(zl_LoadScene(zOptions.SceneNo)) return EXIT_FAILURE;
+			zProgram.Key[KEY_SCENE_PREVIOUS] = false;
+		}
+
+		if(zProgram.Key[KEY_SCENE_NEXT] && zOptions.SceneNo < zGame.SceneCount) {
+			zOptions.SceneNo++;
+			if(zl_LoadScene(zOptions.SceneNo)) return EXIT_FAILURE;
+			zProgram.Key[KEY_SCENE_NEXT] = false;
+		}
+
+		if(zProgram.Key[KEY_MAP_PREVIOUS] && zOptions.MapToRender > -1) {
+			if(zSHeader[0].MapCount > 1) {
+				zOptions.MapToRender--;
+				zOptions.SelectedActor = -1;
+				zOptions.SelectedActorMap = zOptions.MapToRender;
+			} else {
+				zOptions.MapToRender = 0;
+			}
+			zProgram.Key[KEY_MAP_PREVIOUS] = false;
+		}
+
+		if(zProgram.Key[KEY_MAP_NEXT] && zOptions.MapToRender < zSHeader[0].MapCount - 1) {
+			zOptions.MapToRender++;
+			zOptions.SelectedActor = -1;
+			zOptions.SelectedActorMap = zOptions.MapToRender;
+			zProgram.Key[KEY_MAP_NEXT] = false;
+		}
+	} else {
+		__zHUDMenuEntry ActorMenu[] = {
+			{ "Name", NULL, -1, -1 },
+			{ "---", NULL, -1, -1 },
+			{ "Settings", NULL, -1, -1 },
+			{ "Number", (short*)&zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Number, 2, 3 },
+			{ "Variable", (short*)&zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Var, 2, 3 },
+			{ "Position", NULL, -1, -1 },
+			{ "X", (short*)&zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Pos.X, 2, 0 },
+			{ "Y", (short*)&zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Pos.Y, 2, 0 },
+			{ "Z", (short*)&zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Pos.Z, 2, 0 },
+			{ "Rotation", NULL, -1, -1 },
+			{ "X", (short*)&zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Rot.X, 2, 0 },
+			{ "Y", (short*)&zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Rot.Y, 2, 0 },
+			{ "Z", (short*)&zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Rot.Z, 2, 0 }
+		};
+
+		hudMenu_HandleInput(ActorMenu, ArraySize(ActorMenu));
+
+		if(zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Number > zGame.ActorCount)
+			zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Number = zGame.ActorCount;
+
+		if(zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Number == 0)
+			zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Number = 1;
+
+		if((!zGame.IsCompressed) && (!zGame.GameType)) zl_ProcessActor(zOptions.SelectedActorMap, zOptions.SelectedActor, 0);
+	}
+
+	if(zProgram.Key[KEY_MOUSE_MODESWITCH]) {
+		zProgram.MouseMode++;
+		if(zProgram.MouseMode == 6) zProgram.MouseMode = 0;
+		sprintf(zProgram.WndTitle, "%s - %s - ", APPTITLE, zGame.TitleText);
+		switch(zProgram.MouseMode) {
+			case 0: sprintf(zProgram.WndTitle, "%sCamera Mode", zProgram.WndTitle); break;
+			case 1: sprintf(zProgram.WndTitle, "%sActor Mode (X/Y)", zProgram.WndTitle); break;
+			case 2: sprintf(zProgram.WndTitle, "%sActor Mode (X/Z)", zProgram.WndTitle); break;
+			case 3: sprintf(zProgram.WndTitle, "%sActor Mode (X)", zProgram.WndTitle); break;
+			case 4: sprintf(zProgram.WndTitle, "%sActor Mode (Y)", zProgram.WndTitle); break;
+			case 5: sprintf(zProgram.WndTitle, "%sActor Mode (Z)", zProgram.WndTitle); break;
+		}
+		oz_SetWindowTitle(zProgram.WndTitle);
+		zProgram.Key[KEY_MOUSE_MODESWITCH] = false;
+	}
+	if(zProgram.Key[KEY_ACTOR_PREVIOUS] && zOptions.SelectedActor > -1) {
+		zOptions.SelectedActor--;
+		zProgram.Key[KEY_ACTOR_PREVIOUS] = false;
+	}
+
+	if(zProgram.Key[KEY_ACTOR_NEXT] && zOptions.SelectedActor < zMHeader[0][zOptions.MapToRender].ActorCount - 1) {
+		zOptions.SelectedActor++;
+		zProgram.Key[KEY_ACTOR_NEXT] = false;
+	}
+
+	return EXIT_SUCCESS;
 }
 
 // ----------------------------------------

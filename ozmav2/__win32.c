@@ -51,75 +51,8 @@ int WinAPIMain()
 	} else {
 		if(zProgram.Key[VK_ESCAPE]) PostQuitMessage(0);
 
-		if(zProgram.Key['W']) ca_Movement(false, 6.0f);
-		if(zProgram.Key['S']) ca_Movement(false, -6.0f);
-		if(zProgram.Key['A']) ca_Movement(true, -6.0f);
-		if(zProgram.Key['D']) ca_Movement(true, 6.0f);
-
-		if(zProgram.Key['T']) ca_Movement(false, 1.0f);
-		if(zProgram.Key['G']) ca_Movement(false, -1.0f);
-		if(zProgram.Key['F']) ca_Movement(true, -1.0f);
-		if(zProgram.Key['H']) ca_Movement(true, 1.0f);
-
-		if(zProgram.Key[VK_F1] && zOptions.SceneNo > 0) {
-			zOptions.SceneNo--;
-			if(zl_LoadScene(zOptions.SceneNo)) return EXIT_FAILURE;
-			zProgram.Key[VK_F1] = false;
-		}
-
-		if(zProgram.Key[VK_F2] && zOptions.SceneNo < zGame.SceneCount) {
-			zOptions.SceneNo++;
-			if(zl_LoadScene(zOptions.SceneNo)) return EXIT_FAILURE;
-			zProgram.Key[VK_F2] = false;
-		}
-
-		if(zProgram.Key[VK_F3] && zOptions.MapToRender > -1) {
-			if(zSHeader[0].MapCount > 1) {
-				zOptions.MapToRender--;
-				zOptions.SelectedActor = -1;
-				zOptions.SelectedActorMap = zOptions.MapToRender;
-			} else {
-				zOptions.MapToRender = 0;
-			}
-			zProgram.Key[VK_F3] = false;
-		}
-
-		if(zProgram.Key[VK_F4] && zOptions.MapToRender < zSHeader[0].MapCount - 1) {
-			zOptions.MapToRender++;
-			zOptions.SelectedActor = -1;
-			zOptions.SelectedActorMap = zOptions.MapToRender;
-			zProgram.Key[VK_F4] = false;
-		}
-
-		if(zProgram.Key[VK_F5]) {
-			zProgram.MouseMode++;
-			if(zProgram.MouseMode == 6) zProgram.MouseMode = 0;
-			sprintf(zProgram.WndTitle, "%s - %s - ", APPTITLE, zGame.TitleText);
-			switch(zProgram.MouseMode) {
-				case 0: sprintf(zProgram.WndTitle, "%sCamera Mode", zProgram.WndTitle); break;
-				case 1: sprintf(zProgram.WndTitle, "%sActor Mode (X/Y)", zProgram.WndTitle); break;
-				case 2: sprintf(zProgram.WndTitle, "%sActor Mode (X/Z)", zProgram.WndTitle); break;
-				case 3: sprintf(zProgram.WndTitle, "%sActor Mode (X)", zProgram.WndTitle); break;
-				case 4: sprintf(zProgram.WndTitle, "%sActor Mode (Y)", zProgram.WndTitle); break;
-				case 5: sprintf(zProgram.WndTitle, "%sActor Mode (Z)", zProgram.WndTitle); break;
-			}
-			oz_SetWindowTitle(zProgram.WndTitle);
-			zProgram.Key[VK_F5] = false;
-		}
-
-		if(zProgram.Key[VK_SUBTRACT] && zOptions.SelectedActor > -1) {
-			zOptions.SelectedActor--;
-			zProgram.Key[VK_SUBTRACT] = false;
-		}
-
-		if(zProgram.Key[VK_ADD] && zOptions.SelectedActor < zMHeader[0][zOptions.MapToRender].ActorCount - 1) {
-			zOptions.SelectedActor++;
-			zProgram.Key[VK_ADD] = false;
-		}
-
 		zOptions.SelectedActorMap = zOptions.MapToRender;
-
-		return EXIT_SUCCESS;
+		return DoMainKbdInput();
 	}
 
 	return EXIT_FAILURE;

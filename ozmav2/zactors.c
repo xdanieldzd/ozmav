@@ -317,6 +317,7 @@ unsigned int zl_ScanForAnims(unsigned char RAMSeg, int AnimNo)
 			((int) ((RAM[RAMSeg].Data[i+5] << 16)|(RAM[RAMSeg].Data[i+6]<<8)|(RAM[RAMSeg].Data[i+7])) < RAM[RAMSeg].Size)	&&
 			(RAM[RAMSeg].Data[i+8] == RAMSeg)	&&
 			((int) ((RAM[RAMSeg].Data[i+9] << 16)|(RAM[RAMSeg].Data[i+10]<<8)|(RAM[RAMSeg].Data[i+11])) < RAM[RAMSeg].Size)	&&
+			(!RAM[RAMSeg].Data[i+12])	&&		// Make sure padding is set to 0.
 			(!RAM[RAMSeg].Data[i+14])	&&
 			(!RAM[RAMSeg].Data[i+15])
 			)
@@ -395,6 +396,9 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 		zActor[ActorNumber].ProfileVStart = Read32(zGame.CodeBuffer, BaseOffset + 20);
 		zActor[ActorNumber].NameRStart = Read32(zGame.CodeBuffer, BaseOffset + 24);
 
+		// return if the actor is invalid
+		if(zActor[ActorNumber].VStart == 0x00) return;
+
 		// if game is not compressed...
 		if(!zGame.IsCompressed) {
 			// calculate where the actor name starts inside the code file
@@ -403,6 +407,7 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 			// and read the name out
 			unsigned char * Current = &zGame.CodeBuffer[zActor[ActorNumber].NameCStart];
 			Current += sprintf(zActor[ActorNumber].Name, "%s", Current);
+			dbgprintf(2, MSK_COLORTYPE_INFO, "-'%s'", zActor[ActorNumber].Name);
 			while(!*Current) Current++;
 
 			dbgprintf(2, MSK_COLORTYPE_INFO, "- Actor is called '%s'", zActor[ActorNumber].Name);
@@ -974,6 +979,12 @@ void zl_SaveMapActors(int SceneNumber, int MapNumber)
 			Write16(RAM[Segment].Data, (Offset + (CurrActor * 0x10) + 12), RZ);
 			Write16(RAM[Segment].Data, (Offset + (CurrActor * 0x10) + 14), zMapActor[MapNumber][CurrActor].Var);
 //			dbgprintf(0, MSK_COLORTYPE_WARNING, " -NEW X is %i...\n", Read16(RAM[Segment].Data, (Offset + (CurrActor * 0x10) + 2)));
+
+			if(!zObject[zActor[zMapActor[MapNumber][CurrActor].Number].Object].IsSet) {
+				dbgprintf(0, MSK_COLORTYPE_WARNING, "Warning: Object 0x%04X required for Actor 0x%04X is not loaded!",
+					zActor[zMapActor[MapNumber][CurrActor].Number].Object,
+					zMapActor[MapNumber][CurrActor].Number);
+			}
 
 			CurrActor++;
 		}

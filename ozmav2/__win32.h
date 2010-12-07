@@ -7,6 +7,22 @@
 
 #define FILESEP '\\'
 
+#define KEY_CAMERA_UP_FAST			'W'
+#define KEY_CAMERA_DOWN_FAST		'S'
+#define KEY_CAMERA_LEFT_FAST		'A'
+#define KEY_CAMERA_RIGHT_FAST		'D'
+#define KEY_CAMERA_UP_SLOW			'T'
+#define KEY_CAMERA_DOWN_SLOW		'G'
+#define KEY_CAMERA_LEFT_SLOW		'F'
+#define KEY_CAMERA_RIGHT_SLOW		'H'
+#define KEY_SCENE_PREVIOUS			VK_F1
+#define KEY_SCENE_NEXT				VK_F2
+#define KEY_MAP_PREVIOUS			VK_F3
+#define KEY_MAP_NEXT				VK_F4
+#define KEY_MOUSE_MODESWITCH		VK_F5
+#define KEY_ACTOR_PREVIOUS			VK_SUBTRACT
+#define KEY_ACTOR_NEXT				VK_ADD
+
 int WinAPIInit(char * WndTitle, int Width, int Height);
 int WinAPIMain();
 int WinAPIExit();

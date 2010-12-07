@@ -34,6 +34,7 @@ enum { true = 1, false = 0 };
 
 #include "oz.h"
 #include "hud.h"
+#include "hud_menu.h"
 #include "draw.h"
 #include "mouse.h"
 #include "zelda.h"
@@ -100,6 +101,9 @@ enum { true = 1, false = 0 };
 #ifndef min
 #define min(a, b)				((a) < (b) ? (a) : (b))
 #endif
+
+#define GetPaddingSize(Filesize, Factor) \
+	(((Filesize / Factor) + 1) * Factor) - Filesize
 
 // ----------------------------------------
 
@@ -177,6 +181,7 @@ struct __zGame {
 
 	unsigned char * CodeBuffer;
 	int ObjectCount;
+	int ActorCount;
 };
 
 struct __zHeader {
@@ -295,6 +300,7 @@ extern struct __zCamera zCamera;
 
 // ----------------------------------------
 
+extern int DoMainKbdInput();
 extern void GetFilePath(char * FullPath, char * Target);
 extern void GetFileName(char * FullPath, char * Target);
 extern inline void dbgprintf(int Level, int Type, char * Format, ...);

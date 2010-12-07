@@ -232,6 +232,17 @@ void cn_Cmd_ExtractFiles(unsigned char * Ptr)
 	sprintf(Temp, "%s//extr//%s", zProgram.AppPath, zGame.TitleText);
 	oz_CreateFolder(Temp);
 
+	FILE * LayoutFile;
+	sprintf(Temp, "%s//extr//%s//layout.txt", zProgram.AppPath, zGame.TitleText);
+	if((LayoutFile = fopen(Temp, "w")) == NULL) {
+		dbgprintf(0, MSK_COLORTYPE_ERROR, "Error: Could not create layout file!\n");
+		return;
+	}
+
+	// write dummy filesize to layout file
+	int RebuildFilesize = 0;
+	fprintf(LayoutFile, "0x00000000 rebuilt.z64\n");
+
 	DMA CurrentFile = {0, 0, 0, 0, 0, ""};
 	int FileNo = 0;
 	bool IsFileValid = true;
@@ -251,10 +262,10 @@ void cn_Cmd_ExtractFiles(unsigned char * Ptr)
 
 		if((CurrentFile.PStart == 0xFFFFFFFF) || (CurrentFile.PEnd == 0xFFFFFFFF)) IsFileValid = false;
 
-		dbgprintf(0, MSK_COLORTYPE_INFO, "File %i: %s, PStart 0x%08X, PEnd 0x%08X%s\n", FileNo, CurrentFile.Filename, CurrentFile.PStart, CurrentFile.PEnd, (IsFileValid ? "" : " XX"));
-		FileNo++;
-
+//		dbgprintf(0, MSK_COLORTYPE_INFO, "File %i: %s, PStart 0x%08X, PEnd 0x%08X%s\n", FileNo, CurrentFile.Filename, CurrentFile.PStart, CurrentFile.PEnd, (IsFileValid ? "" : " XX"));
 		sprintf(Temp, "%s//extr//%s//%s", zProgram.AppPath, zGame.TitleText, CurrentFile.Filename);
+
+		FileNo++;
 
 		if(IsFileValid) {
 			FILE * File = fopen(Temp, "wb");
@@ -270,24 +281,38 @@ void cn_Cmd_ExtractFiles(unsigned char * Ptr)
 			if(ID == 0x59617A30) {
 				strcat(Temp, ".dec");
 
+				unsigned int Size = 0;
 				File = fopen(Temp, "wb");
 				if(File != NULL) {
-					unsigned int Size = Read32(zROM.Data, CurrentFile.PStart + 4);
+					Size = Read32(zROM.Data, CurrentFile.PStart + 4);
 					unsigned char * FileBuffer = malloc(sizeof(char) * Size);
 					RDP_Yaz0Decode(&zROM.Data[CurrentFile.PStart], FileBuffer, Size);
-					dbgprintf(0, MSK_COLORTYPE_WARNING, "%08X", Read32(FileBuffer, 0));
+//					dbgprintf(0, MSK_COLORTYPE_WARNING, "%08X", Read32(FileBuffer, 0));
 					fwrite(FileBuffer, 1, Size, File);
 					fclose(File);
 				} else {
 					dbgprintf(0, MSK_COLORTYPE_ERROR, "Error: Could not create file!\n");
 					break;
 				}
+				RebuildFilesize += (Size + GetPaddingSize(Size, 0x1000));
+			} else {
+				RebuildFilesize += ((CurrentFile.PEnd - CurrentFile.PStart)
+									+ GetPaddingSize((CurrentFile.PEnd - CurrentFile.PStart), 0x1000));
 			}
 		}
 
 		CurrentFile = zl_DMAGetFile(FileNo);
 		IsFileValid = true;
 	}
+
+	// pad filesize to multiple of 0x800000
+	RebuildFilesize += GetPaddingSize(RebuildFilesize, 0x800000);
+
+	// rewind and write filesize to layout file
+	rewind(LayoutFile);
+	fprintf(LayoutFile, "0x%08X rebuilt.z64\n", RebuildFilesize);
+
+	fclose(LayoutFile);
 
 	dbgprintf(0, MSK_COLORTYPE_OKAY, "Done!\n");
 }

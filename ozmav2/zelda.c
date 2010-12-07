@@ -109,6 +109,7 @@ int zl_GetGameVersion()
 			zGame.ActorTableOffset = GameVer[i].ActorTableOffset;
 			zGame.SceneCount = GameVer[i].SceneCount;
 			zGame.ObjectCount = GameVer[i].ObjectCount;
+			zGame.ActorCount = GameVer[i].ActorCount;
 			strcpy(zGame.TitleText, GameVer[i].TitleText);
 			break;
 		}
@@ -460,6 +461,13 @@ void zl_ClearViewerStructures()
 	for(i = 0; i < ArraySize(zActor); i++) {
 		zActor[i] = zActor_Empty;
 	}
+
+	static const struct __zMapActor zMapActor_Empty = { 0, { 0, 0, 0 }, { 0, 0, 0 }, 0, 0 };
+	for(i = 0; i < 256; i++) zLink[i] = zMapActor_Empty;
+	for(i = 0; i < 256; i++) for(j = 0; j < 256; j++) zMapActor[i][j] = zMapActor_Empty;
+
+	static const struct __zDoor zDoor_Empty = { 0, 0, 0, 0, 0, { 0, 0, 0 }, { 0, 0, 0 }, 0, 0 };
+	for(i = 0; i < 256; i++) zDoor[i] = zDoor_Empty;
 }
 
 int zl_ExecuteHeader(unsigned char Segment, unsigned int Offset, int SHeaderNumber, int MHeaderNumber)

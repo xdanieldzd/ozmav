@@ -13,7 +13,7 @@
 				<Option object_output="obj\DebugW32\" />
 				<Option type="1" />
 				<Option compiler="gcc" />
-				<Option parameters="-r zmm_debug.z64 -s 48 -d 1" />
+				<Option parameters="-r zmq_debug_test.z64 -s 108 -d 1" />
 				<Compiler>
 					<Add option="-Wall" />
 					<Add option="-g" />
@@ -44,7 +44,7 @@
 				<Option object_output="obj\ReleaseW32\" />
 				<Option type="1" />
 				<Option compiler="gcc" />
-				<Option parameters="-r zmq_debug_test.z64 -s 81 -d 1" />
+				<Option parameters="-r zmm_debug.z64 -d 1" />
 				<Compiler>
 					<Add option="-O2" />
 					<Add directory="D:\zlib-1.2.3-lib\include" />
@@ -74,7 +74,6 @@
 				<Option object_output="obj\DebugLinux\" />
 				<Option type="1" />
 				<Option compiler="gcc" />
-				<Option parameters='&quot;..\Legend of Zelda, The - Ocarina of Time (U) (V1.0) [!].z64&quot; 81 -d 1' />
 				<Compiler>
 					<Add option="-Wall" />
 					<Add option="-g" />
@@ -94,7 +93,6 @@
 				<Option object_output="obj\ReleaseLinux\" />
 				<Option type="1" />
 				<Option compiler="gcc" />
-				<Option parameters='&quot;..\Legend of Zelda, The - Ocarina of Time (U) (V1.0) [!].z64&quot; 81 -d 1' />
 				<Compiler>
 					<Add option="-O2" />
 				</Compiler>
@@ -140,6 +138,10 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="hud.h" />
+		<Unit filename="hud_menu.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="hud_menu.h" />
 		<Unit filename="main.c">
 			<Option compilerVar="CC" />
 		</Unit>

@@ -1,5 +1,35 @@
 #include "globals.h"
 
+__Vect3D ms_GetScreenCoords(float SceneX, float SceneY, float SceneZ)
+{
+	__Vect3D RetVect;
+	GLdouble ModelM[16], ProjM[16], Pos[3];
+	int Viewp[4];
+
+	glPushMatrix();
+		glLoadIdentity();
+		gl_SetupScene3D(zProgram.WindowWidth, zProgram.WindowHeight);
+		gl_LookAt(zCamera.X, zCamera.Y, zCamera.Z, zCamera.X + zCamera.LX, zCamera.Y + zCamera.LY, zCamera.Z + zCamera.LZ);
+		glScalef(0.005, 0.005, 0.005);
+
+		glGetDoublev(GL_MODELVIEW_MATRIX, ModelM);
+		glGetDoublev(GL_PROJECTION_MATRIX, ProjM);
+		glGetIntegerv(GL_VIEWPORT, (GLint*)Viewp);
+
+		gluProject((GLdouble)SceneX, (GLdouble)SceneY, (GLdouble)SceneZ, ModelM, ProjM, (GLint*)Viewp, &Pos[0], &Pos[1], &Pos[2]);
+
+		Pos[1] = (GLdouble)Viewp[3] - (GLdouble)Pos[1] - 1;
+
+		RetVect.X = (signed int)Pos[0];
+		RetVect.Y = (signed int)Pos[1];
+		RetVect.Z = (signed int)Pos[2];
+
+		gl_SetupScene2D(zProgram.WindowWidth, zProgram.WindowHeight);
+	glPopMatrix();
+
+	return RetVect;
+}
+
 __Vect3D ms_GetSceneCoords(int MousePosX, int MousePosY)
 {
 	__Vect3D RetVect;
@@ -7,18 +37,25 @@ __Vect3D ms_GetSceneCoords(int MousePosX, int MousePosY)
 	GLdouble ModelM[16], ProjM[16], Pos[3];
 	int Viewp[4];
 
-	glGetDoublev(GL_MODELVIEW_MATRIX, ModelM);
-	glGetDoublev(GL_PROJECTION_MATRIX, ProjM);
-	glGetIntegerv(GL_VIEWPORT, (GLint*)Viewp);
+	glPushMatrix();
+		glLoadIdentity();
+		gl_SetupScene3D(zProgram.WindowWidth, zProgram.WindowHeight);
+		gl_LookAt(zCamera.X, zCamera.Y, zCamera.Z, zCamera.X + zCamera.LX, zCamera.Y + zCamera.LY, zCamera.Z + zCamera.LZ);
+		glScalef(0.005, 0.005, 0.005);
 
-	X = (float)MousePosX;
-	Y = (float)Viewp[3] - (float)MousePosY;
-	glReadPixels(MousePosX, (int)Y, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &Z);
-	gluUnProject((GLdouble)X, (GLdouble)Y, (GLdouble)Z, ModelM, ProjM, (GLint*)Viewp, &Pos[0], &Pos[1], &Pos[2]);
+		glGetDoublev(GL_MODELVIEW_MATRIX, ModelM);
+		glGetDoublev(GL_PROJECTION_MATRIX, ProjM);
+		glGetIntegerv(GL_VIEWPORT, (GLint*)Viewp);
 
-	RetVect.X = (signed int)Pos[0];
-	RetVect.Y = (signed int)Pos[1];
-	RetVect.Z = (signed int)Pos[2];
+		X = (float)MousePosX;
+		Y = (float)Viewp[3] - (float)MousePosY;
+		glReadPixels(MousePosX, (int)Y, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &Z);
+		gluUnProject((GLdouble)X, (GLdouble)Y, (GLdouble)Z, ModelM, ProjM, (GLint*)Viewp, &Pos[0], &Pos[1], &Pos[2]);
+
+		RetVect.X = (signed int)Pos[0];
+		RetVect.Y = (signed int)Pos[1];
+		RetVect.Z = (signed int)Pos[2];
+	glPopMatrix();
 
 	return RetVect;
 }
@@ -166,5 +203,39 @@ GLint gluUnProject(GLdouble winx, GLdouble winy, GLdouble winz,
     *objx = out[0];
     *objy = out[1];
     *objz = out[2];
+    return(GL_TRUE);
+}
+
+GLint gluProject(GLdouble objx, GLdouble objy, GLdouble objz,
+	      const GLdouble modelMatrix[16],
+	      const GLdouble projMatrix[16],
+              const GLint viewport[4],
+	      GLdouble *winx, GLdouble *winy, GLdouble *winz)
+{
+    double in[4];
+    double out[4];
+
+    in[0]=objx;
+    in[1]=objy;
+    in[2]=objz;
+    in[3]=1.0;
+    __gluMultMatrixVecd(modelMatrix, in, out);
+    __gluMultMatrixVecd(projMatrix, out, in);
+    if (in[3] == 0.0) return(GL_FALSE);
+    in[0] /= in[3];
+    in[1] /= in[3];
+    in[2] /= in[3];
+    /* Map x, y and z to range 0-1 */
+    in[0] = in[0] * 0.5 + 0.5;
+    in[1] = in[1] * 0.5 + 0.5;
+    in[2] = in[2] * 0.5 + 0.5;
+
+    /* Map x,y to viewport */
+    in[0] = in[0] * viewport[2] + viewport[0];
+    in[1] = in[1] * viewport[3] + viewport[1];
+
+    *winx=in[0];
+    *winy=in[1];
+    *winz=in[2];
     return(GL_TRUE);
 }

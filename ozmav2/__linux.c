@@ -116,7 +116,7 @@ int XMain()
 			#endif
 
 				break; }
-			
+
 			case ConfigureNotify: {
 				zProgram.WindowWidth = event.xconfigure.width;
 				zProgram.WindowHeight = event.xconfigure.height;
@@ -125,34 +125,7 @@ int XMain()
 		}
 	}
 
-	if(zProgram.Key[XK_w]) ca_Movement(false, 6.0f);
-	if(zProgram.Key[XK_s]) ca_Movement(false, -6.0f);
-	if(zProgram.Key[XK_a]) ca_Movement(true, -6.0f);
-	if(zProgram.Key[XK_d]) ca_Movement(true, 6.0f);
-
-	if(zProgram.Key[XK_1] && zOptions.SceneNo > 0) {
-		zOptions.SceneNo--;
-		if(zl_LoadScene(zOptions.SceneNo)) return EXIT_FAILURE;
-		zProgram.Key[XK_1] = false;
-	}
-
-	if(zProgram.Key[XK_2] && zOptions.SceneNo < zGame.SceneCount) {
-		zOptions.SceneNo++;
-		if(zl_LoadScene(zOptions.SceneNo)) return EXIT_FAILURE;
-		zProgram.Key[XK_2] = false;
-	}
-
-	if(zProgram.Key[XK_3] && zOptions.MapToRender > -1) {
-		zOptions.MapToRender--;
-		zProgram.Key[XK_3] = false;
-	}
-
-	if(zProgram.Key[XK_4] && zOptions.MapToRender < zSHeader[0].MapCount - 1) {
-		zOptions.MapToRender++;
-		zProgram.Key[XK_4] = false;
-	}
-
-	return EXIT_SUCCESS;
+	return DoMainKbdInput();
 }
 
 int XExit()

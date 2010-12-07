@@ -3,32 +3,17 @@
 
 char TempString[8192];
 
-const unsigned char FontWidths[] = {
-//	   !  "  #  $  %  &  '  (  )  *  +  ,  -  .  /
-	4, 2, 4, 6, 6, 6, 6, 2, 4, 4, 6, 6, 3, 5, 2, 4,
-//	0  1  2  3  4  5  6  7  8  9  :  ;  <  =  >  ?
-	6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 2, 3, 5, 5, 5, 6,
-//	@  A  B  C  D  E  F  G  H  I  J  K  L  M  N  O
-	6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
-//	P  Q  R  S  T  U  V  W  X  Y  Z  [  \  ]  ^  _
-	6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 4, 4, 4, 6, 5,
-//	`  a  b  c  d  e  f  g  h  i  j  k  l  m  n  o
-	3, 6, 6, 6, 6, 6, 6, 6, 6, 2, 4, 6, 2, 6, 6, 6,
-//	p  q  r  s  t  u  v  w  x  y  z  {  |  }  ~  (tab)
-	6, 6, 5, 6, 6, 6, 6, 6, 6, 6, 6, 4, 2, 4, 7, 16,
-//
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-//
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-};
+unsigned char FontWidths[128];
 
 float BGColor[4] = { 0.1f, 0.1f, 0.1f, 0.5f };
 float FGColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 
 int hud_Init()
 {
+	memset(FontWidths, 2, sizeof(FontWidths));
+
 	if(!hud_LoadFontBuffer(fontdata)) {
-		MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "- Error: Could not load font image!\n");
+		MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "- Error: Could not load font data!\n");
 		return EXIT_FAILURE;
 	}
 
@@ -53,11 +38,12 @@ int hud_Init()
 bool hud_LoadFontBuffer(unsigned char * Buffer)
 {
 	int ColorKey[3] = { 0xFF, 0x00, 0xFF };
+	int WidthKey[3] = { 0xFF, 0xFF, 0x00 };
 
 	char TempID[] = { 0, 0, 0 };
 	memcpy(&TempID, &Buffer[0], 2);
 	if(strcmp(TempID, "BM")) {
-		MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "- Error: Font image not in BMP format!\n");
+		MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "- Error: Font data not in BMP format!\n");
 		return false;
 	}
 
@@ -67,7 +53,7 @@ bool hud_LoadFontBuffer(unsigned char * Buffer)
 	memcpy(&zHUD.BPP, &Buffer[28], sizeof(short));
 
 	if(zHUD.BPP != 24) {
-		MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "- Error: BMP image is not 24bpp!\n");
+		MSK_ConsolePrint(MSK_COLORTYPE_ERROR, "- Error: BMP data is not 24bpp!\n");
 		return false;
 	}
 
@@ -80,10 +66,10 @@ bool hud_LoadFontBuffer(unsigned char * Buffer)
 
 	int BytesPx = (zHUD.BPP / 8);
 
-	int X, Y;
+	int X, Y, Y2 = 0;
 	int SrcOffset = 0;
 
-	for(Y = zHUD.Height; Y > 0; Y--) {
+	for(Y = zHUD.Height; Y > 0; Y--, Y2++) {
 		for(X = 0; X < zHUD.Width * BytesPx; X += BytesPx) {
 			// check for transparency color key
             if(	TempImage[((Y - 1) * zHUD.Width) * BytesPx + X + 2] == ColorKey[0] &&
@@ -91,6 +77,20 @@ bool hud_LoadFontBuffer(unsigned char * Buffer)
 				TempImage[((Y - 1) * zHUD.Width) * BytesPx + X + 0] == ColorKey[2])
 			{
 				zHUD.Image[SrcOffset + 3]	= 0;
+
+			// check for width marker color key (255, 255, 0)
+			} else if(
+				TempImage[((Y - 1) * zHUD.Width) * BytesPx + X + 2] == WidthKey[0] &&
+				TempImage[((Y - 1) * zHUD.Width) * BytesPx + X + 1] == WidthKey[1] &&
+				TempImage[((Y - 1) * zHUD.Width) * BytesPx + X + 0] == WidthKey[2])
+			{
+				int CharNo = ((Y2 * zHUD.Width / 8) / 8) + ((X / BytesPx) / 8);
+				int Width = ((X / BytesPx) - (((X / BytesPx) / 8) * 8)) + 1;
+				FontWidths[CharNo] = Width;
+
+				zHUD.Image[SrcOffset + 3]	= 0;
+
+			// if not a special marker, use full alpha
 			} else {
 				zHUD.Image[SrcOffset + 3]	= 0xFF;
 			}
@@ -102,6 +102,8 @@ bool hud_LoadFontBuffer(unsigned char * Buffer)
 			SrcOffset += 4;
 		}
 	}
+
+	free(TempImage);
 
 	return true;
 }
@@ -139,15 +141,22 @@ void hud_KillFont()
 	if(glIsList(zHUD.BaseDL)) glDeleteLists(zHUD.BaseDL, 256);
 }
 
-void hud_Print(GLint X, GLint Y, int W, int H, char * String)
+void hud_Print(GLint X, GLint Y, int W, int H, int Scale, char * String, ...)
 {
 	// NOTES:
 	//  - if X or Y == -1, text appears at (window width/height - text width/height)
 	//  - if W or H == -1, text background is sized via text width/height
 
+	char Text[256];
+	va_list argp;
+	if(String == NULL) return;
+	va_start(argp, String);
+	vsprintf(Text, String, argp);
+	va_end(argp);
+
 	int i, j;
 
-	strcpy(TempString, String);
+	strcpy(TempString, Text);
 	unsigned char LineText[512][MAX_PATH];
 	int Lines = 0, LineWidths[512], Width = 0;
 
@@ -165,7 +174,7 @@ void hud_Print(GLint X, GLint Y, int W, int H, char * String)
 	for(i = 0; i < Lines; i++) {
 		for(j = 0; j < strlen(LineText[i]); j++) {
 			if(LineText[i][j] == '\t') LineText[i][j] = 0x7F;
-			LineWidths[i] += zHUD.CharWidths[LineText[i][j] - 32];
+			if(LineText[i][j] < 0x80) LineWidths[i] += zHUD.CharWidths[LineText[i][j] - 32];
 		}
 		if(LineWidths[i] > Width) Width = LineWidths[i];
 	}
@@ -185,10 +194,13 @@ void hud_Print(GLint X, GLint Y, int W, int H, char * String)
 	{
 		glPushMatrix();
 		glLoadIdentity();
+		glScaled(Scale, Scale, Scale);
 		glTranslated(X, Y, 0);
 
+		glDisable(GL_TEXTURE_2D);
 		glColor4f(BGColor[0], BGColor[1], BGColor[2], BGColor[3]);
-		glRectf(0, 0, RectWidth, RectHeight);
+		glRectd(0, 0, RectWidth, RectHeight);
+		glEnable(GL_TEXTURE_2D);
 
 		// text
 		glTranslated(3, 3, 0);

@@ -96,7 +96,6 @@ void gl_SetupScene3D(int Width, int Height)
 	RDP_Matrix_ModelviewLoad(TempMatrix);
 
 	glEnable(GL_DEPTH_TEST);
-//	if(RDP_OpenGL_ExtFragmentProgram()) glEnable(GL_FRAGMENT_PROGRAM_ARB);
 }
 
 void gl_DrawScene()
@@ -108,56 +107,74 @@ void gl_DrawScene()
 
 	glScalef(0.005, 0.005, 0.005);
 
-	int Maps = 0, DL = 0, Door = 0, Actor = 0;
-	GLfloat ActorAmbientHighlight[] = { 1.0, -1.0, -1.0, 1.0 };
-	GLfloat AmbientDefault[3];
-	glGetLightfv(GL_LIGHT0, GL_AMBIENT, AmbientDefault);
-
 	int StartMap = 0; int EndMap = zSHeader[0].MapCount;
 	if(zOptions.MapToRender != -1) {
 		StartMap = zOptions.MapToRender;
 		EndMap = StartMap + 1;
 	}
 
+	int Maps = 0;
 	for(Maps = StartMap; Maps < EndMap; Maps++) {
-		for(DL = 0; DL < zGfx.DLCount[Maps]; DL++) {
-			glCallList(zGfx.GLLists[Maps] + DL);
-		}
-
-		for(Actor = 0; Actor < zMHeader[0][Maps].ActorCount; Actor++) {
-			glPushMatrix();
-
-			// pop the matrix and translate/rotate to the actor's position
-			glTranslated(zMapActor[Maps][Actor].Pos.X, zMapActor[Maps][Actor].Pos.Y, zMapActor[Maps][Actor].Pos.Z);
-			glRotated(zMapActor[Maps][Actor].Rot.X / 182.0444444, 1, 0, 0);
-			glRotated(zMapActor[Maps][Actor].Rot.Y / 182.0444444, 0, 1, 0);
-			glRotated(zMapActor[Maps][Actor].Rot.Z / 182.0444444, 0, 0, 1);
-
-			if((Maps == zOptions.SelectedActorMap) && (Actor == zOptions.SelectedActor) &&
-				(zOptions.SelectedActorMap > -1) && (zOptions.SelectedActor > -1)) {
-					// setup GL lighting to do the red highlighting
-					glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ActorAmbientHighlight);
-					// call the actor's GL display list
-					glCallList(zMapActor[Maps][Actor].GLDList);
-
-					// ...so that we can call our axis marker display list...
-					if(RDP_OpenGL_ExtFragmentProgram()) glDisable(GL_FRAGMENT_PROGRAM_ARB);
-					glCallList(zProgram.AxisMarker);
-//					if(RDP_OpenGL_ExtFragmentProgram()) glEnable(GL_FRAGMENT_PROGRAM_ARB);
-
-					// and reset the lighting
-					glLightModelfv(GL_LIGHT_MODEL_AMBIENT, AmbientDefault);
-
-					gl_DrawActorCube(true);
-				} else {
-					glLightModelfv(GL_LIGHT_MODEL_AMBIENT, AmbientDefault);
-					glCallList(zMapActor[Maps][Actor].GLDList);
-					gl_DrawActorCube(false);
-				}
-
-			glPopMatrix();
-		}
+		gl_DrawMap(Maps);
+		gl_DrawActors(Maps);
 	}
+	gl_DrawDoors();
+
+	gl_DrawHUD(StartMap, EndMap);
+}
+
+void gl_DrawMap(int MapNo)
+{
+	int DL = 0;
+	for(DL = 0; DL < zGfx.DLCount[MapNo]; DL++) glCallList(zGfx.GLLists[MapNo] + DL);
+}
+
+void gl_DrawActors(int MapNo)
+{
+	GLfloat ActorAmbientHighlight[] = { 1.0, -1.0, -1.0, 1.0 };
+	GLfloat AmbientDefault[3];
+	glGetLightfv(GL_LIGHT0, GL_AMBIENT, AmbientDefault);
+
+	int Actor = 0;
+
+	for(Actor = 0; Actor < zMHeader[0][MapNo].ActorCount; Actor++) {
+		glPushMatrix();
+
+		// pop the matrix and translate/rotate to the actor's position
+		glTranslated(zMapActor[MapNo][Actor].Pos.X, zMapActor[MapNo][Actor].Pos.Y, zMapActor[MapNo][Actor].Pos.Z);
+		glRotated(zMapActor[MapNo][Actor].Rot.X / 182.0444444, 1, 0, 0);
+		glRotated(zMapActor[MapNo][Actor].Rot.Y / 182.0444444, 0, 1, 0);
+		glRotated(zMapActor[MapNo][Actor].Rot.Z / 182.0444444, 0, 0, 1);
+
+		if((MapNo == zOptions.SelectedActorMap) && (Actor == zOptions.SelectedActor) &&
+			(zOptions.SelectedActorMap > -1) && (zOptions.SelectedActor > -1)) {
+				// setup GL lighting to do the red highlighting
+				glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ActorAmbientHighlight);
+				// call the actor's GL display list
+				glCallList(zMapActor[MapNo][Actor].GLDList);
+
+				// ...so that we can call our axis marker display list...
+				if(RDP_OpenGL_ExtFragmentProgram()) glDisable(GL_FRAGMENT_PROGRAM_ARB);
+				glCallList(zProgram.AxisMarker);
+				if(RDP_OpenGL_ExtFragmentProgram()) glEnable(GL_FRAGMENT_PROGRAM_ARB);
+
+				// and reset the lighting
+				glLightModelfv(GL_LIGHT_MODEL_AMBIENT, AmbientDefault);
+
+				gl_DrawActorCube(true);
+			} else {
+				glLightModelfv(GL_LIGHT_MODEL_AMBIENT, AmbientDefault);
+				glCallList(zMapActor[MapNo][Actor].GLDList);
+				gl_DrawActorCube(false);
+			}
+
+		glPopMatrix();
+	}
+}
+
+void gl_DrawDoors()
+{
+	int Door = 0;
 
 	for(Door = 0; Door < zSHeader[0].DoorCount; Door++) {
 		glPushMatrix();
@@ -174,13 +191,68 @@ void gl_DrawScene()
 
 		glPopMatrix();
 	}
-/*
+}
+
+void gl_DrawHUD(int StartMap, int EndMap)
+{
 	gl_SetupScene2D(zProgram.WindowWidth, zProgram.WindowHeight);
-	hud_Print(0, 0, 0, 0, "");
-	hud_Print(0, 0, -1, -1, "Toaru Kagaku no Railgun!! only my railgun & LEVEL5 ~judgelight~ = <3");
-	hud_Print(0, 16, -1, -1, "SATEN-SAN FTW!!! <3");
-	hud_Print(0, 32, -1, -1, "Eh? This working? Or not?");*/
-	//no useful hud output yet...unless anyone's interested in my favorite character from railgun :P
+
+	glDisable(GL_DEPTH_TEST);
+
+	__Vect3D SelectedActorSC;
+	bool ShowActorBox = false;
+
+	int Actor = 0, Map = 0;
+	for(Map = StartMap; Map < EndMap; Map++) {
+		for(Actor = 0; Actor < zMHeader[0][Map].ActorCount; Actor++) {
+			__Vect3D ScreenCoords = ms_GetScreenCoords((float)zMapActor[Map][Actor].Pos.X, (float)zMapActor[Map][Actor].Pos.Y, (float)zMapActor[Map][Actor].Pos.Z);
+			if(ScreenCoords.X == -1) ScreenCoords.X = 0;
+			if(ScreenCoords.Y == -1) ScreenCoords.Y = 0;
+
+			if(ScreenCoords.Z == 0) {
+				if((Map == zOptions.SelectedActorMap) && (Actor == zOptions.SelectedActor) &&
+					(zOptions.SelectedActorMap > -1) && (zOptions.SelectedActor > -1)) {
+						SelectedActorSC = ScreenCoords;
+						ShowActorBox = true;
+					} else {
+						hud_Print(ScreenCoords.X, ScreenCoords.Y, -1, -1, 1,
+							"#%i: %s\n0x%04X/0x%04X",
+							Actor, zActor[zMapActor[Map][Actor].Number].Name, zMapActor[Map][Actor].Number, zMapActor[Map][Actor].Var);
+					}
+			}
+		}
+	}
+
+	if(ShowActorBox) {
+/*		dbgprintf(0, 0, "%4.2f %4.2f %4.2f -> %4.2f %4.2f %4.2f -> %i %i %i",
+			(float)zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Pos.X,
+			(float)zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Pos.Y,
+			(float)zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Pos.Z,
+			zCamera.X, zCamera.Y, zCamera.Z, SelectedActorSC.X, SelectedActorSC.Y, SelectedActorSC.Z);
+*/
+		__zHUDMenuEntry ActorMenu[] = {
+			{ "Name", NULL, -1, -1 },
+			{ "", NULL, 0, -1 },
+			{ "Settings", NULL, -1, -1 },
+			{ "Number", (short*)&zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Number, 2, 3 },
+			{ "Variable", (short*)&zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Var, 2, 3 },
+			{ "Position", NULL, -1, -1 },
+			{ "X", (short*)&zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Pos.X, 2, 0 },
+			{ "Y", (short*)&zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Pos.Y, 2, 0 },
+			{ "Z", (short*)&zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Pos.Z, 2, 0 },
+			{ "Rotation", NULL, -1, -1 },
+			{ "X", (short*)&zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Rot.X, 2, 0 },
+			{ "Y", (short*)&zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Rot.Y, 2, 0 },
+			{ "Z", (short*)&zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Rot.Z, 2, 0 }
+		};
+		sprintf(ActorMenu[1].Name, "%s", zActor[zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Number].Name);
+
+		char TempString[256];
+		sprintf(TempString, "Map Actor #%i", zOptions.SelectedActor);
+		hudMenu_Render(TempString, SelectedActorSC.X, SelectedActorSC.Y, ActorMenu, ArraySize(ActorMenu));
+	}
+
+	glEnable(GL_DEPTH_TEST);
 }
 
 void gl_DrawActorCube(bool Selected)
@@ -210,7 +282,7 @@ void gl_DrawActorCube(bool Selected)
 	//reset settings...
 	glLineWidth(1);
 	glDisable(GL_BLEND);
-//	if(RDP_OpenGL_ExtFragmentProgram()) glEnable(GL_FRAGMENT_PROGRAM_ARB);
+	if(RDP_OpenGL_ExtFragmentProgram()) glEnable(GL_FRAGMENT_PROGRAM_ARB);
 	glDisable(GL_CULL_FACE);
 	glEnable(GL_LIGHTING);
 
