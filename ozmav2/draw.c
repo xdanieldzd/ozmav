@@ -200,7 +200,7 @@ void gl_DrawHUD(int StartMap, int EndMap)
 {
 	gl_SetupScene2D(zProgram.WindowWidth, zProgram.WindowHeight);
 
-	Vect3D SelectedActorSC = { 0, 0, 0 };
+	__Vect3D SelectedActorSC = { 0, 0, 0 };
 	bool ShowActorBox = false;
 
 	int Actor = 0, Map = 0;
