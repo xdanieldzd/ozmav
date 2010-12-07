@@ -18,7 +18,7 @@ CC = gcc
 CFLAGS = -Wall -U_FORTIFY_SOURCE
 
 # Application pieces
-PIECES	= camera.o draw.o __linux.o mips-eval.o __win32.o zelda.o confunc.o main.o oz.o zactors.o hud.o
+PIECES	= camera.o draw.o __linux.o mips-eval.o __win32.o zelda.o confunc.o main.o oz.o zactors.o hud.o hud_menu.o
 
 LDFLAGS = -Xlinker -zmuldefs
 
