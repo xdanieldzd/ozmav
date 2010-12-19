@@ -7,6 +7,12 @@ void RDP_SetupOpenGL()
 	RDP_ResetOpenGL();
 }
 
+void RDP_SetOpenGLDimensions(int Width, int Height)
+{
+	System.DrawWidth = Width;
+	System.DrawHeight = Height;
+}
+
 void RDP_ResetOpenGL()
 {
 	glShadeModel(GL_SMOOTH);
@@ -139,12 +145,28 @@ void RDP_UpdateGLStates()
 			glDisable(GL_CULL_FACE);
 		}
 
+		if((Gfx.GeometryMode & G_TEXTURE_GEN_LINEAR) && !(Gfx.GeometryMode & G_LIGHTING)) {
+			glShadeModel(GL_FLAT);
+		} else {
+			glShadeModel(GL_SMOOTH);
+		}
+
+		if(Gfx.GeometryMode & G_TEXTURE_GEN) {
+			glTexGeni(GL_S, GL_TEXTURE_GEN_MODE, GL_SPHERE_MAP);
+			glTexGeni(GL_T, GL_TEXTURE_GEN_MODE, GL_SPHERE_MAP);
+			glEnable(GL_TEXTURE_GEN_S);
+			glEnable(GL_TEXTURE_GEN_T);
+		} else {
+			glDisable(GL_TEXTURE_GEN_S);
+			glDisable(GL_TEXTURE_GEN_T);
+		}
+/*
 		if((Gfx.GeometryMode & G_SHADING_SMOOTH) || !(Gfx.GeometryMode & G_TEXTURE_GEN_LINEAR)) {
 			glShadeModel(GL_SMOOTH);
 		} else {
 			glShadeModel(GL_FLAT);
 		}
-
+*/
 		if(Gfx.GeometryMode & G_LIGHTING) {
 			glEnable(GL_LIGHTING);
 			glEnable(GL_NORMALIZE);

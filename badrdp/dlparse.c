@@ -11,8 +11,8 @@ RDPInstruction RDP_UcodeCmd[256];
 unsigned int DListAddress;
 unsigned char Segment; unsigned int Offset;
 
-unsigned int w0, w1;
 unsigned int wp0, wp1;
+unsigned int w0, w1;
 unsigned int wn0, wn1;
 
 unsigned int G_TEXTURE_ENABLE;
@@ -103,6 +103,10 @@ void RDP_InitParser(int UcodeID)
 	Matrix.ModelStackSize = G_MTX_STACKSIZE;
 
 	Gfx.Update |= CHANGED_MULT_MAT;
+
+	crc_GenerateTable();
+
+	Matrix.UseMatrixHack = false;
 }
 
 void RDP_LoadToSegment(unsigned char Segment, unsigned char * Buffer, unsigned int Offset, unsigned int Size)
@@ -127,6 +131,15 @@ void RDP_LoadToSegment(unsigned char Segment, unsigned char * Buffer, unsigned i
 
 	RAM[Segment].IsSet = true;
 	RAM[Segment].Size = Size;
+}
+
+void RDP_LoadToRDRAM(unsigned char * Buffer, unsigned int Size)
+{
+	if(Size >= 0x800000) Size = 0x800000;
+	RDRAM.Data = (unsigned char*) malloc (sizeof(char) * Size);
+	memcpy(RDRAM.Data, &Buffer[0], Size);
+	RDRAM.IsSet = true;
+	RDRAM.Size = Size;
 }
 
 bool RDP_SaveSegment(unsigned char Segment, unsigned char * Buffer)
@@ -275,9 +288,13 @@ bool RDP_CheckAddressValidity(unsigned int Address)
 	unsigned char Segment = Address >> 24;
 	unsigned int Offset = (Address & 0x00FFFFFF);
 
-	if(Segment >= MAX_SEGMENTS) return false;
+	if((Segment >= MAX_SEGMENTS) && (Segment != 0x80)) return false;
 
-	if((RAM[Segment].IsSet == false) || (RAM[Segment].Size < Offset)) return false;
+	if(Segment != 0x80) {
+		if((RAM[Segment].IsSet == false) || (RAM[Segment].Size < Offset)) return false;
+	} else {
+		if((RDRAM.IsSet == false) || (RDRAM.Size < Offset)) return false;
+	}
 
 	return true;
 }
@@ -288,6 +305,15 @@ void RDP_ClearSegment(unsigned char Segment)
 		free(RAM[Segment].Data);
 		RAM[Segment].IsSet = false;
 		RAM[Segment].Size = 0;
+	}
+}
+
+void RDP_ClearRDRAM()
+{
+	if(RDRAM.IsSet == true) {
+		free(RDRAM.Data);
+		RDRAM.IsSet = false;
+		RDRAM.Size = 0;
 	}
 }
 
@@ -360,10 +386,20 @@ void RDP_ParseDisplayList(unsigned int Address, bool ResetStack)
 	DListAddress = Address;
 
 	RDP_SetRenderMode(0, 0);
+//	Gfx.OtherMode.cycleType = G_CYC_2CYCLE;
 
 	if(ResetStack) Gfx.DLStackPos = 0;
 
 	glPolygonMode(GL_FRONT_AND_BACK, (System.Options & BRDP_WIREFRAME) ? GL_LINE : GL_FILL);
+
+	glDisable(GL_TEXTURE_2D);
+	if(OpenGL.Ext_MultiTexture) {
+		glActiveTextureARB(GL_TEXTURE0_ARB);
+		glDisable(GL_TEXTURE_2D);
+		glActiveTextureARB(GL_TEXTURE1_ARB);
+		glDisable(GL_TEXTURE_2D);
+		glActiveTextureARB(GL_TEXTURE0_ARB);
+	}
 
 	if(OpenGL.Ext_FragmentProgram) glDisable(GL_FRAGMENT_PROGRAM_ARB);
 
@@ -374,18 +410,29 @@ void RDP_ParseDisplayList(unsigned int Address, bool ResetStack)
 			Segment = DListAddress >> 24;
 			Offset = (DListAddress & 0x00FFFFFF);
 
-			w0 = Read32(RAM[Segment].Data, Offset);
-			w1 = Read32(RAM[Segment].Data, Offset + 4);
+			if(Segment != 0x80) {
+				w0 = Read32(RAM[Segment].Data, Offset);
+				w1 = Read32(RAM[Segment].Data, Offset + 4);
 
-			wp0 = Read32(RAM[Segment].Data, Offset - 8);
-			wp1 = Read32(RAM[Segment].Data, Offset - 4);
+				wp0 = Read32(RAM[Segment].Data, Offset - 8);
+				wp1 = Read32(RAM[Segment].Data, Offset - 4);
 
-			wn0 = Read32(RAM[Segment].Data, Offset + 8);
-			wn1 = Read32(RAM[Segment].Data, Offset + 12);
+				wn0 = Read32(RAM[Segment].Data, Offset + 8);
+				wn1 = Read32(RAM[Segment].Data, Offset + 12);
+			} else {
+				w0 = Read32(RDRAM.Data, Offset);
+				w1 = Read32(RDRAM.Data, Offset + 4);
 
-			RDP_UcodeCmd[w0 >> 24] ();
+				wp0 = Read32(RDRAM.Data, Offset - 8);
+				wp1 = Read32(RDRAM.Data, Offset - 4);
+
+				wn0 = Read32(RDRAM.Data, Offset + 8);
+				wn1 = Read32(RDRAM.Data, Offset + 12);
+			}
 
 			DListAddress += 8;
+
+			RDP_UcodeCmd[w0 >> 24] ();
 		}
 	}
 }
@@ -408,14 +455,17 @@ void RDP_DrawTriangle(int Vtxs[])
 		if(isnan(Vertex[Vtxs[i]].RealS1)) Vertex[Vtxs[i]].RealS1 = 0.0f;
 		if(isnan(Vertex[Vtxs[i]].RealT1)) Vertex[Vtxs[i]].RealT1 = 0.0f;
 
-		if(OpenGL.Ext_MultiTexture) {
-			glMultiTexCoord2fARB(GL_TEXTURE0_ARB, Vertex[Vtxs[i]].RealS0, Vertex[Vtxs[i]].RealT0);
-			glMultiTexCoord2fARB(GL_TEXTURE1_ARB, Vertex[Vtxs[i]].RealS1, Vertex[Vtxs[i]].RealT1);
-		} else {
-			glTexCoord2f(Vertex[Vtxs[i]].RealS0, Vertex[Vtxs[i]].RealT0);
+		if(!(Gfx.GeometryMode & G_TEXTURE_GEN_LINEAR)) {
+			if(OpenGL.Ext_MultiTexture) {
+				glMultiTexCoord2fARB(GL_TEXTURE0_ARB, Vertex[Vtxs[i]].RealS0, Vertex[Vtxs[i]].RealT0);
+				glMultiTexCoord2fARB(GL_TEXTURE1_ARB, Vertex[Vtxs[i]].RealS1, Vertex[Vtxs[i]].RealT1);
+			} else {
+				glTexCoord2f(Vertex[Vtxs[i]].RealS0, Vertex[Vtxs[i]].RealT0);
+			}
 		}
 
 		glNormal3b(Vertex[Vtxs[i]].Vtx.R, Vertex[Vtxs[i]].Vtx.G, Vertex[Vtxs[i]].Vtx.B);
+//		glColor4f(1.0f,1.0f,1.0f,1.0f);
 		if(!(Gfx.GeometryMode & G_LIGHTING)) glColor4ub(Vertex[Vtxs[i]].Vtx.R, Vertex[Vtxs[i]].Vtx.G, Vertex[Vtxs[i]].Vtx.B, Vertex[Vtxs[i]].Vtx.A);
 
 		glVertex3d(Vertex[Vtxs[i]].Vtx.X, Vertex[Vtxs[i]].Vtx.Y, Vertex[Vtxs[i]].Vtx.Z);
@@ -432,6 +482,23 @@ void RDP_SetRenderMode(unsigned int Mode1, unsigned int Mode2)
 	Gfx.OtherMode.L |= Mode1 | Mode2;
 
 	Gfx.Update |= CHANGED_RENDERMODE;
+}
+
+void RDP_SetCycleType(unsigned int Type)
+{
+	Gfx.OtherMode.cycleType = Type;
+}
+
+void RDP_SetPrimColor(unsigned char R, unsigned char G, unsigned char B, unsigned char A)
+{
+	unsigned int Color = (R << 24) | (G << 16) | (B << 8) | A;
+	gDP_SetPrimColor(0, Color);
+}
+
+void RDP_SetEnvColor(unsigned char R, unsigned char G, unsigned char B, unsigned char A)
+{
+	unsigned int Color = (R << 24) | (G << 16) | (B << 8) | A;
+	gDP_SetEnvColor(0, Color);
 }
 
 void RDP_ChangeTileSize(unsigned int Tile, unsigned int ULS, unsigned int ULT, unsigned int LRS, unsigned int LRT)
@@ -481,20 +548,63 @@ void RDP_CalcTextureSize(int TextureID)
 	unsigned int Line_Height = 0;
 	if(Line_Width > 0) Line_Height = min(MaxTexel / Line_Width, Tile_Height);
 
-	if((Texture[TextureID].MaskS > 0) && ((Mask_Width * Mask_Height) <= MaxTexel)) {
-		Texture[TextureID].Width = Mask_Width;
-	} else if((Tile_Width * Tile_Height) <= MaxTexel) {
-		Texture[TextureID].Width = Tile_Width;
-	} else {
-		Texture[TextureID].Width = Line_Width;
-	}
+	if(Texture[TextureID].IsTexRect) {
+		unsigned short TexRect_Width = Texture[TextureID].TexRectW - Texture[TextureID].ULS;
+		unsigned short TexRect_Height = Texture[TextureID].TexRectH - Texture[TextureID].ULT;
 
-	if((Texture[TextureID].MaskT > 0) && ((Mask_Width * Mask_Height) <= MaxTexel)) {
-		Texture[TextureID].Height = Mask_Height;
-	} else if((Tile_Width * Tile_Height) <= MaxTexel) {
-		Texture[TextureID].Height = Tile_Height;
+		if((Texture[TextureID].MaskS > 0) && ((Mask_Width * Mask_Height) <= MaxTexel)) {
+			Texture[TextureID].Width = Mask_Width;
+
+		} else if((Tile_Width * Tile_Height) <= MaxTexel) {
+			Texture[TextureID].Width = Tile_Width;
+
+		} else if((Tile_Width * TexRect_Height) <= MaxTexel) {
+			Texture[TextureID].Width = Tile_Width;
+
+		} else if((TexRect_Width * Tile_Height) <= MaxTexel) {
+			Texture[TextureID].Width = Texture[TextureID].TexRectW;
+
+		} else if((TexRect_Width * TexRect_Height) <= MaxTexel) {
+			Texture[TextureID].Width = Texture[TextureID].TexRectW;
+
+		} else {
+			Texture[TextureID].Width = Line_Width;
+		}
+
+		if((Texture[TextureID].MaskT > 0) && ((Mask_Width * Mask_Height) <= MaxTexel)) {
+			Texture[TextureID].Height = Mask_Height;
+
+		} else if((Tile_Width * Tile_Height) <= MaxTexel) {
+			Texture[TextureID].Height = Tile_Height;
+
+		} else if((Tile_Width * TexRect_Height) <= MaxTexel) {
+			Texture[TextureID].Height = Tile_Height;
+
+		} else if((TexRect_Width * Tile_Height) <= MaxTexel) {
+			Texture[TextureID].Height = Texture[TextureID].TexRectH;
+
+		} else if((TexRect_Width * TexRect_Height) <= MaxTexel) {
+			Texture[TextureID].Height = Texture[TextureID].TexRectH;
+
+		} else {
+			Texture[TextureID].Height = Line_Height;
+		}
 	} else {
-		Texture[TextureID].Height = Line_Height;
+		if((Texture[TextureID].MaskS > 0) && ((Mask_Width * Mask_Height) <= MaxTexel)) {
+			Texture[TextureID].Width = Mask_Width;
+		} else if((Tile_Width * Tile_Height) <= MaxTexel) {
+			Texture[TextureID].Width = Tile_Width;
+		} else {
+			Texture[TextureID].Width = Line_Width;
+		}
+
+		if((Texture[TextureID].MaskT > 0) && ((Mask_Width * Mask_Height) <= MaxTexel)) {
+			Texture[TextureID].Height = Mask_Height;
+		} else if((Tile_Width * Tile_Height) <= MaxTexel) {
+			Texture[TextureID].Height = Tile_Height;
+		} else {
+			Texture[TextureID].Height = Line_Height;
+		}
 	}
 
 	unsigned int Clamp_Width = Texture[TextureID].clamps ? Tile_Width : Texture[TextureID].Width;
@@ -592,7 +702,7 @@ void RDP_InitLoadTexture()
 		glActiveTextureARB(GL_TEXTURE0_ARB);
 	} else {
 		if(Texture[0].Offset != 0x00) {
-			RDP_CalcTextureSize(1);
+			RDP_CalcTextureSize(0);
 			glEnable(GL_TEXTURE_2D);
 			glBindTexture(GL_TEXTURE_2D, RDP_CheckTextureCache(0));
 		}
@@ -607,7 +717,8 @@ GLuint RDP_CheckTextureCache(unsigned int TexID)
 	while(SearchingCache) {
 		if((TextureCache[CacheCheck].Offset == Texture[TexID].Offset) &&
 			(TextureCache[CacheCheck].RealWidth == Texture[TexID].RealWidth) &&
-			(TextureCache[CacheCheck].RealHeight == Texture[TexID].RealHeight)) {
+			(TextureCache[CacheCheck].RealHeight == Texture[TexID].RealHeight) &&
+			(TextureCache[CacheCheck].CRC32 == Texture[TexID].CRC32)) {
 			SearchingCache = false;
 			NewTexture = false;
 		} else {
@@ -626,6 +737,7 @@ GLuint RDP_CheckTextureCache(unsigned int TexID)
 		TextureCache[System.TextureCachePosition].Offset = Texture[TexID].Offset;
 		TextureCache[System.TextureCachePosition].RealWidth = Texture[TexID].RealWidth;
 		TextureCache[System.TextureCachePosition].RealHeight = Texture[TexID].RealHeight;
+		TextureCache[System.TextureCachePosition].CRC32 = Texture[TexID].CRC32;
 		TextureCache[System.TextureCachePosition].TextureID = GLID;
 		System.TextureCachePosition++;
 	} else {
@@ -674,6 +786,23 @@ GLuint RDP_LoadTexture(int TextureID)
 
 	unsigned int GLTexPosition = 0;
 
+	unsigned char * SourceBuffer = NULL;
+	unsigned int SourceSize = 0;
+
+	if(TexSegment != 0x80) {
+		SourceBuffer = RAM[TexSegment].Data;
+		SourceSize = RAM[TexSegment].Size;
+	} else {
+		SourceBuffer = RDRAM.Data;
+		SourceSize = RDRAM.Size;
+	}
+
+	if(System.Options & BRDP_TEXCRC) {
+		Texture[TextureID].CRC32 = crc_GenerateCRC(SourceBuffer, SourceSize);
+	} else {
+		Texture[TextureID].CRC32 = 0;
+	}
+
 	if(!RDP_CheckAddressValidity(Texture[TextureID].Offset)) {
 		while(i < BufferSize) { TextureData[i++] = 0xFF; TextureData[i++] = 0x00; TextureData[i++] = 0x00; TextureData[i++] = 0xFF; }
 
@@ -690,7 +819,7 @@ GLuint RDP_LoadTexture(int TextureID)
 
 				for(j = 0; j < Texture[TextureID].Height; j++) {
 					for(i = 0; i < Texture[TextureID].Width; i++) {
-						Raw = (RAM[TexSegment].Data[TexOffset] << 8) | RAM[TexSegment].Data[TexOffset + 1];
+						Raw = (SourceBuffer[TexOffset] << 8) | SourceBuffer[TexOffset + 1];
 
 						RGBA = ((Raw & 0xF800) >> 8) << 24;
 						RGBA |= (((Raw & 0x07C0) << 5) >> 8) << 16;
@@ -701,14 +830,14 @@ GLuint RDP_LoadTexture(int TextureID)
 						TexOffset += 2;
 						GLTexPosition += 4;
 
-						if(TexOffset > RAM[TexSegment].Size) break;
+						if(TexOffset > SourceSize) break;
 					}
 					TexOffset += Texture[TextureID].LineSize * 4 - Texture[TextureID].Width;
 				}
 				break; }
 
 			case 0x18: {
-				memcpy(TextureData, &RAM[TexSegment].Data[TexOffset], (Texture[TextureID].Height * Texture[TextureID].Width * 4));
+				memcpy(TextureData, &SourceBuffer[TexOffset], (Texture[TextureID].Height * Texture[TextureID].Width * 4));
 				break; }
 
 			case 0x40:
@@ -718,8 +847,8 @@ GLuint RDP_LoadTexture(int TextureID)
 
 				for(j = 0; j < Texture[TextureID].Height; j++) {
 					for(i = 0; i < Texture[TextureID].Width / 2; i++) {
-						CI1 = (RAM[TexSegment].Data[TexOffset] & 0xF0) >> 4;
-						CI2 = (RAM[TexSegment].Data[TexOffset] & 0x0F);
+						CI1 = (SourceBuffer[TexOffset] & 0xF0) >> 4;
+						CI2 = (SourceBuffer[TexOffset] & 0x0F);
 
 						RGBA = (Palette[CI1].R << 24);
 						RGBA |= (Palette[CI1].G << 16);
@@ -746,7 +875,7 @@ GLuint RDP_LoadTexture(int TextureID)
 
 				for(j = 0; j < Texture[TextureID].Height; j++) {
 					for(i = 0; i < Texture[TextureID].Width; i++) {
-						Raw = RAM[TexSegment].Data[TexOffset];
+						Raw = SourceBuffer[TexOffset];
 
 						RGBA = (Palette[Raw].R << 24);
 						RGBA |= (Palette[Raw].G << 16);
@@ -767,14 +896,14 @@ GLuint RDP_LoadTexture(int TextureID)
 
 				for(j = 0; j < Texture[TextureID].Height; j++) {
 					for(i = 0; i < Texture[TextureID].Width / 2; i++) {
-						Raw = (RAM[TexSegment].Data[TexOffset] & 0xF0) >> 4;
+						Raw = (SourceBuffer[TexOffset] & 0xF0) >> 4;
 						RGBA = (((Raw & 0x0E) << 4) << 24);
 						RGBA |= (((Raw & 0x0E) << 4) << 16);
 						RGBA |= (((Raw & 0x0E) << 4) << 8);
 						if((Raw & 0x01)) RGBA |= 0xFF;
 						Write32(TextureData, GLTexPosition, RGBA);
 
-						Raw = (RAM[TexSegment].Data[TexOffset] & 0x0F);
+						Raw = (SourceBuffer[TexOffset] & 0x0F);
 						RGBA = (((Raw & 0x0E) << 4) << 24);
 						RGBA |= (((Raw & 0x0E) << 4) << 16);
 						RGBA |= (((Raw & 0x0E) << 4) << 8);
@@ -794,7 +923,7 @@ GLuint RDP_LoadTexture(int TextureID)
 
 				for(j = 0; j < Texture[TextureID].Height; j++) {
 					for(i = 0; i < Texture[TextureID].Width; i++) {
-						Raw = RAM[TexSegment].Data[TexOffset];
+						Raw = SourceBuffer[TexOffset];
 						RGBA = (((Raw & 0xF0) + 0x0F) << 24);
 						RGBA |= (((Raw & 0xF0) + 0x0F) << 16);
 						RGBA |= (((Raw & 0xF0) + 0x0F) << 8);
@@ -811,10 +940,10 @@ GLuint RDP_LoadTexture(int TextureID)
 			case 0x70: {
 				for(j = 0; j < Texture[TextureID].Height; j++) {
 					for(i = 0; i < Texture[TextureID].Width; i++) {
-						TextureData[GLTexPosition]     = RAM[TexSegment].Data[TexOffset];
-						TextureData[GLTexPosition + 1] = RAM[TexSegment].Data[TexOffset];
-						TextureData[GLTexPosition + 2] = RAM[TexSegment].Data[TexOffset];
-						TextureData[GLTexPosition + 3] = RAM[TexSegment].Data[TexOffset + 1];
+						TextureData[GLTexPosition]     = SourceBuffer[TexOffset];
+						TextureData[GLTexPosition + 1] = SourceBuffer[TexOffset];
+						TextureData[GLTexPosition + 2] = SourceBuffer[TexOffset];
+						TextureData[GLTexPosition + 3] = SourceBuffer[TexOffset + 1];
 
 						TexOffset += 2;
 						GLTexPosition += 4;
@@ -830,14 +959,14 @@ GLuint RDP_LoadTexture(int TextureID)
 
 				for(j = 0; j < Texture[TextureID].Height; j++) {
 					for(i = 0; i < Texture[TextureID].Width / 2; i++) {
-						Raw = (RAM[TexSegment].Data[TexOffset] & 0xF0) >> 4;
+						Raw = (SourceBuffer[TexOffset] & 0xF0) >> 4;
 						RGBA = (((Raw & 0x0F) << 4) << 24);
 						RGBA |= (((Raw & 0x0F) << 4) << 16);
 						RGBA |= (((Raw & 0x0F) << 4) << 8);
 						RGBA |= 0xFF;
 						Write32(TextureData, GLTexPosition, RGBA);
 
-						Raw = (RAM[TexSegment].Data[TexOffset] & 0x0F);
+						Raw = (SourceBuffer[TexOffset] & 0x0F);
 						RGBA = (((Raw & 0x0F) << 4) << 24);
 						RGBA |= (((Raw & 0x0F) << 4) << 16);
 						RGBA |= (((Raw & 0x0F) << 4) << 8);
@@ -854,9 +983,9 @@ GLuint RDP_LoadTexture(int TextureID)
 			case 0x88: {
 				for(j = 0; j < Texture[TextureID].Height; j++) {
 					for(i = 0; i < Texture[TextureID].Width; i++) {
-						TextureData[GLTexPosition]     = RAM[TexSegment].Data[TexOffset];
-						TextureData[GLTexPosition + 1] = RAM[TexSegment].Data[TexOffset];
-						TextureData[GLTexPosition + 2] = RAM[TexSegment].Data[TexOffset];
+						TextureData[GLTexPosition]     = SourceBuffer[TexOffset];
+						TextureData[GLTexPosition + 1] = SourceBuffer[TexOffset];
+						TextureData[GLTexPosition + 2] = SourceBuffer[TexOffset];
 						TextureData[GLTexPosition + 3] = 0xFF;
 
 						TexOffset += 1;
@@ -873,13 +1002,14 @@ GLuint RDP_LoadTexture(int TextureID)
 	}
 
 	glBindTexture(GL_TEXTURE_2D, Gfx.GLTextureID[Gfx.GLTextureCount]);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, Texture[TextureID].RealWidth, Texture[TextureID].RealHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, TextureData);
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, Texture[TextureID].clamps ? GL_CLAMP_TO_EDGE : GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, Texture[TextureID].clampt ? GL_CLAMP_TO_EDGE : GL_REPEAT);
 
 	if((Texture[TextureID].mirrors) && (OpenGL.Ext_TexMirroredRepeat)) glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT_ARB);
 	if((Texture[TextureID].mirrort) && (OpenGL.Ext_TexMirroredRepeat)) glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT_ARB);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, Texture[TextureID].RealWidth, Texture[TextureID].RealHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, TextureData);
 /*
 	switch(Texture[TextureID].CMS) {
 		case G_TX_CLAMP:
@@ -931,4 +1061,9 @@ void RDP_SetRendererOptions(unsigned char Options)
 unsigned char RDP_GetRendererOptions()
 {
 	return System.Options;
+}
+
+void RDP_ToggleMatrixHack()
+{
+	Matrix.UseMatrixHack ^= 1;
 }

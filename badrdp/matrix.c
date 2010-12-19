@@ -39,6 +39,9 @@ void RDP_Matrix_ModelviewLoad(float Mat[4][4])
 {
 	memcpy(Matrix.Model, Mat, 64);
 
+	glMatrixMode(GL_MODELVIEW);
+	glLoadMatrixf(*Matrix.Model);
+
 	Gfx.Update |= CHANGED_MULT_MAT;
 }
 
@@ -48,6 +51,9 @@ void RDP_Matrix_ModelviewMul(float Mat[4][4])
 	memcpy(MatTemp, Matrix.Model, 64);
 
 	RDP_Matrix_MulMatrices(Mat, MatTemp, Matrix.Model);
+
+	glMatrixMode(GL_MODELVIEW);
+	glLoadMatrixf(*Matrix.Model);
 
 	Gfx.Update |= CHANGED_MULT_MAT;
 }
@@ -66,6 +72,9 @@ void RDP_Matrix_ModelviewPop(int PopTo)
 		Matrix.ModelIndex -= PopTo;
 		memcpy(Matrix.Model, Matrix.ModelStack[Matrix.ModelIndex], 64);
 
+		glMatrixMode(GL_MODELVIEW);
+		glLoadMatrixf(*Matrix.Model);
+
 		Gfx.Update |= CHANGED_MULT_MAT;
 	} else {
 		return;
@@ -76,6 +85,9 @@ void RDP_Matrix_ProjectionLoad(float Mat[4][4])
 {
 	memcpy(Matrix.Proj, Mat, 64);
 
+	glMatrixMode(GL_PROJECTION);
+	glLoadMatrixf(*Matrix.Proj);
+
 	Gfx.Update |= CHANGED_MULT_MAT;
 }
 
@@ -85,6 +97,9 @@ void RDP_Matrix_ProjectionMul(float Mat[4][4])
 	memcpy(MatTemp, Matrix.Proj, 64);
 
 	RDP_Matrix_MulMatrices(Mat, MatTemp, Matrix.Proj);
+
+	glMatrixMode(GL_PROJECTION);
+	glLoadMatrixf(*Matrix.Proj);
 
 	Gfx.Update |= CHANGED_MULT_MAT;
 }

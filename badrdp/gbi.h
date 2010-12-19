@@ -115,3 +115,18 @@
 #define	ZMODE_INTER				1
 #define	ZMODE_XLU				2
 #define	ZMODE_DEC				3
+
+#define	G_CYC_1CYCLE			0
+#define	G_CYC_2CYCLE			1
+#define	G_CYC_COPY				2
+#define	G_CYC_FILL				3
+
+#define G_MW_MATRIX			0x00
+#define G_MW_NUMLIGHT		0x02
+#define G_MW_CLIP			0x04
+#define G_MW_SEGMENT		0x06
+#define G_MW_FOG			0x08
+#define G_MW_LIGHTCOL		0x0A
+#define G_MW_FORCEMTX		0x0C
+#define G_MW_POINTS			0x0C
+#define	G_MW_PERSPNORM		0x0E

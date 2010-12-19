@@ -100,6 +100,8 @@ PFNGLPROGRAMLOCALPARAMETER4FARBPROC	glProgramLocalParameter4fARB;
 // ----------------------------------------
 
 typedef struct {
+	int DrawWidth, DrawHeight;
+
 	unsigned int FragCachePosition;
 	unsigned int TextureCachePosition;
 
@@ -120,6 +122,8 @@ typedef struct {
 	float ModelStack[32][4][4];
 	int ModelStackSize;
 	int ModelIndex;
+
+	bool UseMatrixHack;
 } __Matrix;
 
 typedef struct {
@@ -179,6 +183,12 @@ typedef struct {
 	};
 	float ScaleT, ScaleS;
 	float ShiftScaleT, ShiftScaleS;
+
+	bool IsTexRect;
+	unsigned int TexRectW;
+	unsigned int TexRectH;
+
+	unsigned int CRC32;
 } __Texture;
 
 typedef struct {
@@ -216,6 +226,7 @@ typedef struct {
 	unsigned int Offset;
 	unsigned int RealWidth;
 	unsigned int RealHeight;
+	unsigned int CRC32;
 	GLuint TextureID;
 
 	int MaterialID;
@@ -340,3 +351,4 @@ extern __OpenGL OpenGL;
 #include "f3dex2.h"
 #include "dump.h"
 #include "combine.h"
+#include "crc.h"

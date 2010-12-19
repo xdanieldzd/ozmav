@@ -173,68 +173,52 @@ void RDP_F3DEX2_GEOMETRYMODE()
 
 void RDP_F3DEX2_MTX()
 {
-//	gSP_Matrix(w1, _SHIFTR(w0, 0, 8) ^ G_MTX_PUSH);
-//	return;
+	if(Matrix.UseMatrixHack == false) {
+		gSP_Matrix(w1, _SHIFTR(w0, 0, 8) ^ G_MTX_PUSH);
 
-	if(!(w0 & 0x00FFFFFF)) return;
-
-	unsigned char Segment = w1 >> 24;
-	unsigned int Offset = (w1 & 0x00FFFFFF);
-
-	if(Segment == 0x80) {
-		glPopMatrix();
-		return;
-	} else if(Segment == 0x0D) {
-		return;
-	}
-
-	if(!RDP_CheckAddressValidity(w1)) return;
-
-	int MtxTemp1 = 0, MtxTemp2 = 0;
-	int x = 0, y = 0;
-
-	float TempMatrix[4][4];
-
-//	dbgprintf(0, 2, "RDP_F3DEX2_MTX -> Matrix %08X:", w1);
-
-	for(x = 0; x < 4; x++) {
-		for(y = 0; y < 4; y++) {
-			MtxTemp1 = Read16(RAM[Segment].Data, Offset);
-			MtxTemp2 = Read16(RAM[Segment].Data, Offset + 32);
-			TempMatrix[x][y] = ((MtxTemp1 << 16) | MtxTemp2) * (1.0f / 65536.0f);
-			Offset += 2;
-		}
-//		dbgprintf(0, 0, "[% 6.0f] [% 6.0f] [% 6.0f] [% 6.0f]", TempMatrix[x][0], TempMatrix[x][1], TempMatrix[x][2], TempMatrix[x][3]);
-	}
-
-	glPushMatrix();
-	glMultMatrixf(*TempMatrix);
-/*
-	// below does not yet work right
-	unsigned char MtxCommand = (_SHIFTR(w0, 0, 8) | G_MTX_PUSH);
-
-	if(MtxCommand & G_MTX_PROJECTION) {
-		if(MtxCommand & G_MTX_LOAD) {
-			RDP_Matrix_ProjectionLoad(TempMatrix);
-		} else {
-			RDP_Matrix_ProjectionMul(TempMatrix);
-		}
 	} else {
-		if((MtxCommand & G_MTX_PUSH) && (Matrix.ModelIndex < (Matrix.ModelStackSize - 1))) {
-			RDP_Matrix_ModelviewPush();
+		if(!(w0 & 0x00FFFFFF)) return;
+
+		unsigned char Segment = w1 >> 24;
+		unsigned int Offset = (w1 & 0x00FFFFFF);
+
+		if(Segment == 0x80) {
+			glPopMatrix();
+			return;
+		} else if(Segment == 0x0D) {
+			return;
 		}
 
-		if(MtxCommand & G_MTX_LOAD) {
-			RDP_Matrix_ModelviewLoad(TempMatrix);
-		} else {
-			RDP_Matrix_ModelviewMul(TempMatrix);
+		if(!RDP_CheckAddressValidity(w1)) return;
+
+		int MtxTemp1 = 0, MtxTemp2 = 0;
+		int x = 0, y = 0;
+
+		float TempMatrix[4][4];
+
+		for(x = 0; x < 4; x++) {
+			for(y = 0; y < 4; y++) {
+				MtxTemp1 = Read16(RAM[Segment].Data, Offset);
+				MtxTemp2 = Read16(RAM[Segment].Data, Offset + 32);
+				TempMatrix[x][y] = ((MtxTemp1 << 16) | MtxTemp2) * (1.0f / 65536.0f);
+				Offset += 2;
+			}
 		}
-	}*/
+
+		glPushMatrix();
+		glMultMatrixf(*TempMatrix);
+	}
 }
 
 void RDP_F3DEX2_MOVEWORD()
 {
-	//
+	switch(_SHIFTR(w0, 16, 8)) {
+		case G_MW_SEGMENT:
+			gSP_Segment(_SHIFTR(w0, 0, 16) >> 2, w1 & 0x00FFFFFF);
+			break;
+		default:
+			break;
+	}
 }
 
 void RDP_F3DEX2_MOVEMEM()
@@ -296,6 +280,9 @@ void RDP_F3DEX2_SETOTHERMODE_L()
 void RDP_F3DEX2_SETOTHERMODE_H()
 {
 	switch(32 - _SHIFTR( w0, 8, 8 ) - (_SHIFTR( w0, 0, 8 ) + 1)) {
+		case G_MDSFT_CYCLETYPE:
+			RDP_SetCycleType(w1 >> G_MDSFT_CYCLETYPE);
+			break;
 		default: {
 			unsigned int length = _SHIFTR( w0, 0, 8 ) + 1;
 			unsigned int shift = 32 - _SHIFTR( w0, 8, 8 ) - length;

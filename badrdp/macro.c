@@ -17,19 +17,27 @@ unsigned int RDP_Macro_DetectMacro(unsigned int Addr)
 	Segment = Addr >> 24;
 	Offset = (Addr & 0x00FFFFFF);
 
-	for(i = 0; i < MaxMacroLen; i++) NextCmds[i] = RAM[Segment].Data[Offset + (i * 8)];
+	for(i = 0; i < MaxMacroLen; i++) {
+		if(Segment != 0x80) NextCmds[i] = RAM[Segment].Data[Offset + (i * 8)];
+		else NextCmds[i] = RDRAM.Data[Offset + (i * 8)];
+	}
 
 	for(i = 0; i < ArraySize(GfxMacros); i++) {
 		if(!memcmp(GfxMacros[i].Cmd, NextCmds, GfxMacros[i].Len)) {
 			for(j = 0; j < GfxMacros[i].Len + 1; j++) {
-				nw0[j] = Read32(RAM[Segment].Data, Offset);
-				nw1[j] = Read32(RAM[Segment].Data, Offset + 4);
+				if(Segment != 0x80) {
+					nw0[j] = Read32(RAM[Segment].Data, Offset);
+					nw1[j] = Read32(RAM[Segment].Data, Offset + 4);
+				} else {
+					nw0[j] = Read32(RDRAM.Data, Offset);
+					nw1[j] = Read32(RDRAM.Data, Offset + 4);
+				}
 				Offset += 8;
 			}
 			GfxMacros[i].Func();
 
 			Addr += GfxMacros[i].Len * 8;
-			break;
+			return Addr;
 		}
 	}
 
@@ -49,14 +57,14 @@ void RDP_Macro_LoadTextureBlock()
 	if((Texture[Gfx.CurrentTexture].Format == 0x40) || (Texture[Gfx.CurrentTexture].Format == 0x48) || (Texture[Gfx.CurrentTexture].Format == 0x50)) {
 		if((nw0[7] >> 24) == G_SETTIMG) return;
 	}
-
+/*
 	if(Gfx.IsMultiTexture) {
 		Gfx.EnvColor = (__RGBA){ 0.5f, 0.5f, 0.5f, 0.5f };
 	} else {
 		Gfx.EnvColor = (__RGBA){ 1.0f, 1.0f, 1.0f, 0.75f };
 	}
 	if(OpenGL.Ext_FragmentProgram) glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 0, Gfx.EnvColor.R, Gfx.EnvColor.G, Gfx.EnvColor.B, Gfx.EnvColor.A);
-
+*/
 	RDP_InitLoadTexture();
 }
 

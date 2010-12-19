@@ -19,5 +19,5 @@ __GfxMacro GfxMacros[] =
 	// SF64 texture loads??
 	{
 		8, RDP_Macro_LoadTextureSF64, { G_RDPTILESYNC, G_SETTILE, G_SETTILESIZE, G_SETTIMG, G_RDPTILESYNC, G_SETTILE, G_RDPLOADSYNC, G_LOADBLOCK }
-	},
+	}
 };

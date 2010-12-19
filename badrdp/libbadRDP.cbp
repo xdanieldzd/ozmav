@@ -92,6 +92,10 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="combine.h" />
+		<Unit filename="crc.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="crc.h" />
 		<Unit filename="dlparse.c">
 			<Option compilerVar="CC" />
 		</Unit>

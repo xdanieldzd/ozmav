@@ -124,6 +124,9 @@ void RDP_CreateCombinerProgram(unsigned int Cmb0, unsigned int Cmb1)
 	strcpy(ProgramString, LeadIn);
 
 	int Cycle = 0, NumCycles = 2;
+
+	if(Gfx.OtherMode.cycleType == G_CYC_1CYCLE) NumCycles = 1;
+
 	for(Cycle = 0; Cycle < NumCycles; Cycle++) {
 		sprintf(ProgramString, "%s# Color %d\n", ProgramString, Cycle);
 		switch(cA[Cycle]) {
@@ -335,19 +338,19 @@ void RDP_CreateCombinerProgram(unsigned int Cmb0, unsigned int Cmb1)
 				strcat(ProgramString, "MOV aR0.a, aComb;\n");
 				break;
 			case G_ACMUX_TEXEL0:
-				strcat(ProgramString, "MOV aR0.a, Tex0;\n");
+				strcat(ProgramString, "MOV aR0.a, Tex0.a;\n");
 				break;
 			case G_ACMUX_TEXEL1:
-				strcat(ProgramString, "MOV aR0.a, Tex1;\n");
+				strcat(ProgramString, "MOV aR0.a, Tex1.a;\n");
 				break;
 			case G_ACMUX_PRIMITIVE:
-				strcat(ProgramString, "MOV aR0.a, PrimColor;\n");
+				strcat(ProgramString, "MOV aR0.a, PrimColor.a;\n");
 				break;
 			case G_ACMUX_SHADE:
-				strcat(ProgramString, "MOV aR0.a, Shade;\n");
+				strcat(ProgramString, "MOV aR0.a, Shade.a;\n");
 				break;
 			case G_ACMUX_ENVIRONMENT:
-				strcat(ProgramString, "MOV aR0.a, EnvColor;\n");
+				strcat(ProgramString, "MOV aR0.a, EnvColor.a;\n");
 				break;
 			case G_ACMUX_1:
 				strcat(ProgramString, "MOV aR0.a, {1.0, 1.0, 1.0, 1.0};\n");
@@ -363,7 +366,7 @@ void RDP_CreateCombinerProgram(unsigned int Cmb0, unsigned int Cmb1)
 
 		switch(aB[Cycle]) {
 			case G_ACMUX_COMBINED:
-				strcat(ProgramString, "MOV aR1.a, aComb.a;\n");
+				strcat(ProgramString, "MOV aR1.a, aComb;\n");
 				break;
 			case G_ACMUX_TEXEL0:
 				strcat(ProgramString, "MOV aR1.a, Tex0.a;\n");
@@ -394,8 +397,8 @@ void RDP_CreateCombinerProgram(unsigned int Cmb0, unsigned int Cmb1)
 		strcat(ProgramString, "SUB aR0.a, aR0.a, aR1.a;\n\n");
 
 		switch(aC[Cycle]) {
-			case G_ACMUX_COMBINED:
-				strcat(ProgramString, "MOV aR1.a, aComb.a;\n");
+			case G_ACMUX_LOD_FRACTION:
+				strcat(ProgramString, "MOV R1.rgb, {0.0, 0.0, 0.0, 0.0};\n");	// unemulated
 				break;
 			case G_ACMUX_TEXEL0:
 				strcat(ProgramString, "MOV aR1.a, Tex0.a;\n");
@@ -412,8 +415,8 @@ void RDP_CreateCombinerProgram(unsigned int Cmb0, unsigned int Cmb1)
 			case G_ACMUX_ENVIRONMENT:
 				strcat(ProgramString, "MOV aR1.a, EnvColor.a;\n");
 				break;
-			case G_ACMUX_1:
-				strcat(ProgramString, "MOV aR1.a, {1.0, 1.0, 1.0, 1.0};\n");
+			case G_ACMUX_PRIM_LOD_FRAC:
+				strcat(ProgramString, "MOV aR1.a, PrimColorLOD.a;\n");
 				break;
 			case G_ACMUX_0:
 				strcat(ProgramString, "MOV aR1.a, {0.0, 0.0, 0.0, 0.0};\n");
@@ -458,7 +461,7 @@ void RDP_CreateCombinerProgram(unsigned int Cmb0, unsigned int Cmb1)
 		strcat(ProgramString, "ADD aR0.a, aR0.a, aR1.a;\n\n");
 
 		strcat(ProgramString, "MOV Comb.rgb, R0;\n");
-		strcat(ProgramString, "MOV aComb.a, aR0.a;\n\n");
+		strcat(ProgramString, "MOV aComb.a, aR0;\n\n");
 	}
 
 	strcat(ProgramString, "# Finish\n");

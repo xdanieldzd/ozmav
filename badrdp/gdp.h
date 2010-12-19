@@ -1,3 +1,5 @@
+extern void gDP_TexRect(unsigned int w0, unsigned int w1, unsigned int w2, unsigned int w3);
+extern void gDP_FillRect(unsigned int w0, unsigned int w1, unsigned int w2, unsigned int w3);
 extern void gDP_LoadTLUT(unsigned int w0, unsigned int w1);
 extern void gDP_SetTileSize(unsigned int w0, unsigned int w1);
 extern void gDP_SetTile(unsigned int w0, unsigned int w1);

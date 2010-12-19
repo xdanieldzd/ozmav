@@ -9,7 +9,19 @@ void RDP_UnemulatedCmd()
 
 void RDP_G_TEXRECT()
 {
-	// RDP_G_TEXRECT - EVENTUALLY NEEDED SOMEDAY
+	unsigned char Segment = DListAddress >> 24;
+	unsigned int Offset = (DListAddress & 0x00FFFFFF);
+
+	unsigned int w2, w3;
+	if(Segment != 0x80) {
+		w2 = Read32(RAM[Segment].Data, Offset + 4);
+		w3 = Read32(RAM[Segment].Data, Offset + 12);
+	} else {
+		w2 = Read32(RDRAM.Data, Offset + 4);
+		w3 = Read32(RDRAM.Data, Offset + 12);
+	}
+
+	gDP_TexRect(w0, w1, w2, w3);
 }
 
 void RDP_G_TEXRECTFLIP()
@@ -94,7 +106,7 @@ void RDP_G_SETTILE()
 
 void RDP_G_FILLRECT()
 {
-	// RDP_G_FILLRECT - EVENTUALLY NEEDED SOMEDAY
+	gDP_FillRect(w0, w1, wn0, wn1);
 }
 
 void RDP_G_SETFILLCOLOR()

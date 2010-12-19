@@ -227,7 +227,13 @@ void RDP_F3D_TEXTURE()
 
 void RDP_F3D_MOVEWORD()
 {
-	//
+	switch(_SHIFTR(w0, 0, 8)) {
+		case G_MW_SEGMENT:
+			gSP_Segment(_SHIFTR(w0, 8, 16) >> 2, w1 & 0x00FFFFFF);
+			break;
+		default:
+			break;
+	}
 }
 
 void RDP_F3D_POPMTX()
@@ -243,6 +249,6 @@ void RDP_F3D_CULLDL()
 
 void RDP_F3D_TRI1()
 {
-	int Vtxs[] = { _SHIFTR( w1, 17, 7 ), _SHIFTR( w1, 9, 7 ), _SHIFTR( w1, 1, 7 ) };
+	int Vtxs[] = { _SHIFTR(w1, 16, 8) / 10, _SHIFTR(w1, 8, 8) / 10, _SHIFTR(w1, 0, 8) / 10 };
 	RDP_DrawTriangle(Vtxs);
 }

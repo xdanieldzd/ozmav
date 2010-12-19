@@ -14,19 +14,23 @@ void gSP_Vertex(unsigned int Vtx, int N, int V0)
 	unsigned char TempSegment = Vtx >> 24;
 	unsigned int TempOffset = (Vtx & 0x00FFFFFF);
 
+	unsigned char * SourceBuffer = NULL;
+	if(TempSegment != 0x80) SourceBuffer = RAM[TempSegment].Data;
+	else SourceBuffer = RDRAM.Data;
+
 	int i = 0;
 	for(i = 0; i < N; i++) {
-		Vertex[V0 + i].Vtx.S = Read16(RAM[TempSegment].Data, TempOffset + (i * 16) + 8);
-		Vertex[V0 + i].Vtx.T = Read16(RAM[TempSegment].Data, TempOffset + (i * 16) + 10);
-		Vertex[V0 + i].Vtx.R = RAM[TempSegment].Data[TempOffset + (i * 16) + 12];
-		Vertex[V0 + i].Vtx.G = RAM[TempSegment].Data[TempOffset + (i * 16) + 13];
-		Vertex[V0 + i].Vtx.B = RAM[TempSegment].Data[TempOffset + (i * 16) + 14];
-		Vertex[V0 + i].Vtx.A = RAM[TempSegment].Data[TempOffset + (i * 16) + 15];
+		Vertex[V0 + i].Vtx.S = Read16(SourceBuffer, TempOffset + (i * 16) + 8);
+		Vertex[V0 + i].Vtx.T = Read16(SourceBuffer, TempOffset + (i * 16) + 10);
+		Vertex[V0 + i].Vtx.R = SourceBuffer[TempOffset + (i * 16) + 12];
+		Vertex[V0 + i].Vtx.G = SourceBuffer[TempOffset + (i * 16) + 13];
+		Vertex[V0 + i].Vtx.B = SourceBuffer[TempOffset + (i * 16) + 14];
+		Vertex[V0 + i].Vtx.A = SourceBuffer[TempOffset + (i * 16) + 15];
 
-		short X = (Read16(RAM[TempSegment].Data, TempOffset + (i * 16)));
-		short Y = (Read16(RAM[TempSegment].Data, TempOffset + (i * 16) + 2));
-		short Z = (Read16(RAM[TempSegment].Data, TempOffset + (i * 16) + 4));
-		short W = (Read16(RAM[TempSegment].Data, TempOffset + (i * 16) + 6));
+		short X = (Read16(SourceBuffer, TempOffset + (i * 16)));
+		short Y = (Read16(SourceBuffer, TempOffset + (i * 16) + 2));
+		short Z = (Read16(SourceBuffer, TempOffset + (i * 16) + 4));
+		short W = (Read16(SourceBuffer, TempOffset + (i * 16) + 6));
 
 		Vertex[V0 + i].Vtx.X = X;//X * (short)Matrix.Comb[0][0] + Y * (short)Matrix.Comb[1][0] + Z * (short)Matrix.Comb[2][0] + (short)Matrix.Comb[3][0];
 		Vertex[V0 + i].Vtx.Y = Y;//X * (short)Matrix.Comb[0][1] + Y * (short)Matrix.Comb[1][1] + Z * (short)Matrix.Comb[2][1] + (short)Matrix.Comb[3][1];
@@ -38,7 +42,7 @@ void gSP_Vertex(unsigned int Vtx, int N, int V0)
 void gSP_VertexMtxHack(unsigned int Vtx, int N, int V0, unsigned int Mtx)
 {
 //	dbgprintf(0, 0, "%s(%08X, %i, %i, %08X)", __FUNCTION__, Vtx, N, V0, Mtx);
-
+/*
 	if(!RDP_CheckAddressValidity(Vtx)) return;
 	if(!RDP_CheckAddressValidity(Mtx)) return;
 
@@ -77,7 +81,7 @@ void gSP_VertexMtxHack(unsigned int Vtx, int N, int V0, unsigned int Mtx)
 		Vertex[V0 + i].Vtx.X = X + TX;
 		Vertex[V0 + i].Vtx.Y = Y + TY;
 		Vertex[V0 + i].Vtx.Z = Z + TZ;
-
+*/
 /*		float X = _FIXED2FLOAT((Read16(RAM[VSeg].Data, VOffset + (i * 16))), 14) / 32.0f;
 		float Y = _FIXED2FLOAT((Read16(RAM[VSeg].Data, VOffset + (i * 16) + 2)), 14) / 32.0f;
 		float Z = _FIXED2FLOAT((Read16(RAM[VSeg].Data, VOffset + (i * 16) + 4)), 14) / 32.0f;
@@ -85,7 +89,7 @@ void gSP_VertexMtxHack(unsigned int Vtx, int N, int V0, unsigned int Mtx)
 		Vertex[V0 + i].Vtx.X = (int)(X * TempMatrix[0][0] + Y * TempMatrix[1][0] + Z * TempMatrix[2][0] + TempMatrix[3][0]);
 		Vertex[V0 + i].Vtx.Y = (int)(X * TempMatrix[0][1] + Y * TempMatrix[1][1] + Z * TempMatrix[2][1] + TempMatrix[3][1]);
 		Vertex[V0 + i].Vtx.Z = (int)(X * TempMatrix[0][2] + Y * TempMatrix[1][2] + Z * TempMatrix[2][2] + TempMatrix[3][2]);*/
-	}
+//	}
 }
 
 void gSP_ModifyVertex(unsigned int Vtx, unsigned int Type, unsigned int Val)
@@ -111,6 +115,10 @@ void gSP_Matrix(unsigned int Mtx, unsigned char Param)
 	unsigned char Segment = Mtx >> 24;
 	unsigned int Offset = (Mtx & 0x00FFFFFF);
 
+	unsigned char * SourceBuffer = NULL;
+	if(Segment != 0x80) SourceBuffer = RAM[Segment].Data;
+	else SourceBuffer = RDRAM.Data;
+
 	int MtxTemp1 = 0, MtxTemp2 = 0;
 	int x = 0, y = 0;
 
@@ -119,8 +127,8 @@ void gSP_Matrix(unsigned int Mtx, unsigned char Param)
 //	dbgprintf(0, 0, "RDP_F3DEX2_MTX -> Matrix %08X:", Mtx);
 	for(x = 0; x < 4; x++) {
 		for(y = 0; y < 4; y++) {
-			MtxTemp1 = Read16(RAM[Segment].Data, Offset);
-			MtxTemp2 = Read16(RAM[Segment].Data, Offset + 32);
+			MtxTemp1 = Read16(SourceBuffer, Offset);
+			MtxTemp2 = Read16(SourceBuffer, Offset + 32);
 			TempMatrix[x][y] = ((MtxTemp1 << 16) | MtxTemp2) * (1.0f / 65536.0f);
 			Offset += 2;
 		}
@@ -178,4 +186,12 @@ void gSP_GeometryMode(unsigned int Clear, unsigned int Set)
 		Set & G_CULL_BACK ? "G_CULL_BACK | " : "",
 		Set & G_FOG ? "G_FOG | " : "",
 		Set & G_CLIPPING ? "G_CLIPPING" : "" );*/
+}
+
+void gSP_Segment(unsigned char Segment, unsigned int BaseAddress)
+{
+	RAM[Segment].Data = &RDRAM.Data[BaseAddress];
+	RAM[Segment].IsSet = true;
+	RAM[Segment].Size = RDRAM.Size - BaseAddress;
+	RAM[Segment].SourceOffset = BaseAddress;
 }
