@@ -185,11 +185,11 @@ void hud_Print(GLint X, GLint Y, int W, int H, int Scale, float Vis, char * Stri
 	if(W != -1) RectWidth = W;
 	if(H != -1) RectHeight = H;
 
-	if(X == -1) X = WINDOW_WIDTH - RectWidth;
-	if(Y == -1) Y = WINDOW_HEIGHT - RectHeight;
+	if(X == -1) X = zProgram.WindowWidth - RectWidth;
+	if(Y == -1) Y = zProgram.WindowHeight - RectHeight;
 
-	if(X + RectWidth > WINDOW_WIDTH) X -= RectWidth;
-	if(Y + RectHeight > WINDOW_HEIGHT) Y -= RectHeight;
+	if(X + RectWidth > zProgram.WindowWidth) X -= RectWidth;
+	if(Y + RectHeight > zProgram.WindowHeight) Y -= RectHeight;
 
 	{
 		glPushMatrix();
@@ -198,6 +198,9 @@ void hud_Print(GLint X, GLint Y, int W, int H, int Scale, float Vis, char * Stri
 		glTranslated(X, Y, 0);
 
 		if(RDP_OpenGL_ExtFragmentProgram()) glDisable(GL_FRAGMENT_PROGRAM_ARB);
+
+		glDisable(GL_TEXTURE_GEN_S);
+		glDisable(GL_TEXTURE_GEN_T);
 
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -218,7 +221,7 @@ void hud_Print(GLint X, GLint Y, int W, int H, int Scale, float Vis, char * Stri
 			int HorzCenter = 0;
 			switch(LineText[i][0]) {
 				case 0x80: {
-					HorzCenter = (WINDOW_WIDTH / 2) - (LineWidths[i] / 2);
+					HorzCenter = (zProgram.WindowWidth / 2) - (LineWidths[i] / 2);
 					break;
 				}
 				case 0x90: {
@@ -234,17 +237,17 @@ void hud_Print(GLint X, GLint Y, int W, int H, int Scale, float Vis, char * Stri
 					break;
 				}
 				case 0xA0: {
-					HorzCenter = (WINDOW_WIDTH / 2) - (LineWidths[i] / 2);
+					HorzCenter = (zProgram.WindowWidth / 2) - (LineWidths[i] / 2);
 					glColor4f(0.0f, 1.0f, 0.0f, FGColor[3] * Vis);
 					break;
 				}
 				case 0xA1: {
-					HorzCenter = (WINDOW_WIDTH / 2) - (LineWidths[i] / 2);
+					HorzCenter = (zProgram.WindowWidth / 2) - (LineWidths[i] / 2);
 					glColor4f(1.0f, 0.5f, 0.0f, FGColor[3] * Vis);
 					break;
 				}
 				case 0xA2: {
-					HorzCenter = (WINDOW_WIDTH / 2) - (LineWidths[i] / 2);
+					HorzCenter = (zProgram.WindowWidth / 2) - (LineWidths[i] / 2);
 					glColor4f(0.0f, 0.75f, 1.0f, FGColor[3] * Vis);
 					break;
 				}

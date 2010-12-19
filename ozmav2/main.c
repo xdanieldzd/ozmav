@@ -32,6 +32,7 @@ struct __zHUD zHUD;
 // ----------------------------------------
 
 __RAM RAM[MAX_SEGMENTS];
+__RDRAM RDRAM;
 
 // ----------------------------------------
 
@@ -167,6 +168,7 @@ int main(int argc, char * argv[])
 	if(!zROM.IsROMLoaded) dbgprintf(0, MSK_COLORTYPE_WARNING, "- No ROM loaded!\n\n");
 
 	zProgram.MouseMode = 0;
+	zOptions.EnableHUD = true;
 
 	// get the program to run
 	zProgram.IsRunning = true;
@@ -228,6 +230,14 @@ int main(int argc, char * argv[])
 				// let OpenGL do the rendering
 				gl_DrawScene();
 				if(gl_FinishScene()) die(EXIT_FAILURE);
+
+				// FPS calculation!
+				zProgram.Frames++;
+				if((clock() - zProgram.LastTime) >= 1000) {
+					zProgram.LastTime = clock();
+					zProgram.LastFPS = zProgram.Frames;
+					zProgram.Frames = 0;
+				}
 
 				break;
 			}
@@ -346,6 +356,11 @@ int DoMainKbdInput()
 	if(zProgram.Key[KEY_ACTOR_NEXT] && zOptions.SelectedActor < zMHeader[0][zOptions.MapToRender].ActorCount - 1) {
 		zOptions.SelectedActor++;
 		zProgram.Key[KEY_ACTOR_NEXT] = false;
+	}
+
+	if(zProgram.Key[KEY_GUI_TOGGLEHUD]) {
+		zOptions.EnableHUD ^= 1;
+		zProgram.Key[KEY_GUI_TOGGLEHUD] = false;
 	}
 
 	return EXIT_SUCCESS;

@@ -23,6 +23,7 @@
 #define KEY_MOUSE_MODESWITCH		XK_F5&0xFF
 #define KEY_ACTOR_PREVIOUS			XK_KP_Subtract&0xFF
 #define KEY_ACTOR_NEXT				XK_KP_Add&0xFF
+#define KEY_GUI_TOGGLEHUD			XK_F12&0xFF
 
 int XInit(char * WndTitle, int Width, int Height);
 int XMain();

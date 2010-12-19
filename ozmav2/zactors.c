@@ -706,6 +706,8 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 		RAM[TargetSeg].Size = zObject[zActor[ActorNumber].Object].EndOffset - zObject[zActor[ActorNumber].Object].StartOffset;
 		RAM[TargetSeg].IsSet = true;
 
+		RDP_ClearStructures(false);
+
 		//Bone structure
 		if(zActor[ActorNumber].BoneSetup) {
 			dbgprintf(2, MSK_COLORTYPE_OKAY, " - Drawing bone structure for actor %04X", ActorNumber);

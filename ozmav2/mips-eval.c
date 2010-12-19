@@ -125,7 +125,7 @@ void mips_EvalWord(unsigned int * words, int pos)
 		}
 		for(i=0; i<mipsRAMSetCount; i++){
 			if(CalcAddr  > mipsRAM[i].Addr && mipsRAM[i].Size + mipsRAM[i].Addr > CalcAddr){
-				regs[getRT(word)] = Read32(mipsRAM[i].Data, CalcAddr -mipsRAM[i].Addr );
+				if(RDP_CheckAddressValidity(CalcAddr - mipsRAM[i].Addr)) regs[getRT(word)] = Read32(mipsRAM[i].Data, CalcAddr - mipsRAM[i].Addr );
 				break;
 			}
 		}

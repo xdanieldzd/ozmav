@@ -27,6 +27,7 @@ typedef struct {
 #include <string.h>
 #include <math.h>
 #include <stdarg.h>
+#include <time.h>
 #include <GL/gl.h>
 #include <GL/glext.h>
 
@@ -117,6 +118,10 @@ struct __zProgram {
 
 	int WindowWidth, WindowHeight;
 
+	float LastTime;
+	int Frames;
+	int LastFPS;
+
 	int MouseMode;
 	int MousePosX, MousePosY;
 	int MouseCenterX, MouseCenterY;
@@ -138,6 +143,8 @@ struct __zProgram {
 
 struct __zOptions {
 	unsigned int SceneNo;
+	char SceneName[256];
+
 	int MapToRender;
 	int DebugLevel;
 	int CreateLog;
@@ -147,6 +154,7 @@ struct __zOptions {
 	int EnableActors;
 	int SelectedActor;
 	int SelectedActorMap;
+	int EnableHUD;
 };
 
 struct __zROM {

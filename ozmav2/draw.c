@@ -75,20 +75,14 @@ void gl_SetupScene2D(int Width, int Height)
 
 void gl_SetupScene3D(int Width, int Height)
 {
-	float TempMatrix[4][4];
-
 	glViewport(0, 0, Width, Height);
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	gl_Perspective(60.0f, (GLfloat)Width / (GLfloat)Height, 0.001f, 10000.0f);
-	glGetFloatv(GL_PROJECTION_MATRIX, *TempMatrix);
-	RDP_Matrix_ProjectionLoad(TempMatrix);
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	glGetFloatv(GL_MODELVIEW_MATRIX, *TempMatrix);
-	RDP_Matrix_ModelviewLoad(TempMatrix);
 
 	glEnable(GL_DEPTH_TEST);
 }
@@ -97,8 +91,16 @@ void gl_DrawScene()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+	RDP_SetOpenGLDimensions(zProgram.WindowWidth, zProgram.WindowHeight);
+
 	gl_SetupScene3D(zProgram.WindowWidth, zProgram.WindowHeight);
 	gl_LookAt(zCamera.X, zCamera.Y, zCamera.Z, zCamera.X + zCamera.LX, zCamera.Y + zCamera.LY, zCamera.Z + zCamera.LZ);
+
+	float TempMatrix[4][4];
+	glGetFloatv(GL_PROJECTION_MATRIX, *TempMatrix);
+	RDP_Matrix_ProjectionLoad(TempMatrix);
+	glGetFloatv(GL_MODELVIEW_MATRIX, *TempMatrix);
+	RDP_Matrix_ModelviewLoad(TempMatrix);
 
 	glScalef(0.005, 0.005, 0.005);
 
@@ -198,6 +200,8 @@ static inline GLfloat gl_GetPointDistance(__Vect3D First, __Vect3D Second)
 
 void gl_DrawHUD(int StartMap, int EndMap)
 {
+	if(!zOptions.EnableHUD) return;
+
 	gl_SetupScene2D(zProgram.WindowWidth, zProgram.WindowHeight);
 
 	__Vect3D SelectedActorSC = { 0, 0, 0 };
@@ -263,6 +267,15 @@ void gl_DrawHUD(int StartMap, int EndMap)
 		sprintf(TempString, "Map Actor #%i", zOptions.SelectedActor);
 		hudMenu_Render(TempString, SelectedActorSC.X, SelectedActorSC.Y, ActorMenu, ArraySize(ActorMenu));
 	}
+
+	hud_Print(
+		0, -1, zProgram.WindowWidth, -1, 1, 1.0f,
+		"%s",
+		zOptions.SceneName);
+	hud_Print(
+		zProgram.WindowWidth - 45, -1, 0, -1, 1, 1.0f,
+		"FPS: %i",
+		zProgram.LastFPS);
 }
 
 void gl_DrawActorCube(bool Selected)

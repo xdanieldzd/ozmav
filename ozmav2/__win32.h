@@ -22,6 +22,7 @@
 #define KEY_MOUSE_MODESWITCH		VK_F5
 #define KEY_ACTOR_PREVIOUS			VK_SUBTRACT
 #define KEY_ACTOR_NEXT				VK_ADD
+#define KEY_GUI_TOGGLEHUD			VK_F12
 
 int WinAPIInit(char * WndTitle, int Width, int Height);
 int WinAPIMain();

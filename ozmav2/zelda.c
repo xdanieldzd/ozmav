@@ -139,7 +139,10 @@ int zl_LoadScene(int SceneNo)
 	RDP_ClearTextures();
 
 	RDP_InitParser(F3DEX2);
+	RDP_SetCycleType(1);
 	zl_InitCombiner();
+
+	RDP_ToggleMatrixHack();
 
 	// default to rendering the first map of the scene
 	zOptions.MapToRender = 0;
@@ -203,6 +206,14 @@ int zl_LoadScene(int SceneNo)
 
 			zl_GetDisplayLists(i);
 			zl_ExecuteDisplayLists(i);
+		}
+
+		strcpy(zOptions.SceneName, "undefined");
+		for(i = 0; i < ArraySize(GameScene); i++) {
+			if(GameScene[i].SceneNo == SceneNo) {
+				strcpy(zOptions.SceneName, GameScene[i].Name);
+				break;
+			}
 		}
 
 		ca_Reset();
@@ -684,6 +695,9 @@ void zl_GetDisplayLists(int MapNumber)
 			unsigned int DListStart1, DListStart2;
 			Offset += 12;
 
+			unsigned int SecondaryDLs[512];
+			unsigned int SecondaryCount = 0;
+
 			while(MeshCount < MeshTotal) {
 				ClipMaxX = Read16(RAM[Segment].Data, Offset);
 				ClipMaxZ = Read16(RAM[Segment].Data, Offset + 2);
@@ -693,12 +707,18 @@ void zl_GetDisplayLists(int MapNumber)
 				DListStart2 = Read32(RAM[Segment].Data, Offset + 12);
 
 				if(DListStart1 != 0) zGfx.DLOffset[MapNumber][zGfx.DLCount[MapNumber]++] = DListStart1;
-				if(DListStart2 != 0) zGfx.DLOffset[MapNumber][zGfx.DLCount[MapNumber]++] = DListStart2;
+				if(DListStart2 != 0) SecondaryDLs[SecondaryCount++] = DListStart2;
 
 				Offset += 16;
 
 				MeshCount++;
 			}
+
+			int i;
+			for(i = 0; i < SecondaryCount; i++) {
+				zGfx.DLOffset[MapNumber][zGfx.DLCount[MapNumber]++] = SecondaryDLs[i];
+			}
+
 			break; }
 
 		default: {
@@ -719,6 +739,8 @@ void zl_ExecuteDisplayLists(int MapNumber)
 
 	zGfx.GLLists[MapNumber] = glGenLists(zGfx.DLCount[MapNumber]);
 	glListBase(zGfx.GLLists[MapNumber]);
+
+	RDP_ClearStructures(false);
 
 	while(DL < zGfx.DLCount[MapNumber]) {
 		if(RDP_CheckAddressValidity(zGfx.DLOffset[MapNumber][DL])) {
