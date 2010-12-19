@@ -179,6 +179,8 @@ void gl_DrawScene(void)
 	glRotatef(vCamera.actorRotX, 1.0f, 0.0f, 0.0f);
 	glRotatef(vCamera.actorRotY, 0.0f, 1.0f, 0.0f);
 
+	RDP_ToggleMatrixHack();
+
 	if((vCurrentActor.boneSetupTotal >= 0)/* && (vCurrentActor.animTotal >= 0)*/) {
 		if(!vProgram.showBones && vProgram.enableHUD) glCallList(vProgram.actorAxisMarkerDL);
 		if(vCurrentActor.hack == LINK)

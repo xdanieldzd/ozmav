@@ -23,8 +23,6 @@ bool zl_Init(char * Filename)
 		if(zl_GetFilenameTable()) vZeldaInfo.hasFilenames = false;
 		if(zl_GetCodeFile()) return EXIT_FAILURE;
 
-		//zl_SetMipsWatchers();
-
 		if(zl_ReadData()) return EXIT_FAILURE;
 	} else {
 		return vGameROM.isROMLoaded;

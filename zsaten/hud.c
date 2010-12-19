@@ -187,11 +187,19 @@ void hud_Print(GLint X, GLint Y, int W, int H, char * String)
 		glLoadIdentity();
 		glTranslated(X, Y, 0);
 
+		if(RDP_OpenGL_ExtFragmentProgram()) glDisable(GL_FRAGMENT_PROGRAM_ARB);
+
+		glDisable(GL_TEXTURE_GEN_S);
+		glDisable(GL_TEXTURE_GEN_T);
+
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glDisable(GL_ALPHA_TEST);
 
+		glDisable(GL_TEXTURE_2D);
 		glColor4f(BGColor[0], BGColor[1], BGColor[2], BGColor[3]);
-		glRectf(0, 0, RectWidth, RectHeight);
+		glRectd(0, 0, RectWidth, RectHeight);
+		glEnable(GL_TEXTURE_2D);
 
 		// text
 		glTranslated(3, 3, 0);

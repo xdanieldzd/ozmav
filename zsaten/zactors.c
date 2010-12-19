@@ -395,6 +395,7 @@ void drawBone(actorBone Bones[], int CurrentBone, int ParentBone)
 	//Draw display list
 	if(Bones[CurrentBone].DList && RDP_CheckAddressValidity(Bones[CurrentBone].DList)){
 		RDP_ClearStructures(false);
+		RDP_SetEnvColor(0xFF, 0xFF, 0xFF, 0xC0);
 		RDP_ParseDisplayList(Bones[CurrentBone].DList, true);
 	}
 

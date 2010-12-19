@@ -18,6 +18,7 @@ vRGBAStruct vBoneColorFactor;
 // ----------------------------------------
 
 __RAM RAM[MAX_SEGMENTS];
+__RDRAM RDRAM;
 
 // ----------------------------------------
 
@@ -225,6 +226,8 @@ int main(int argc, char **argv)
 
 	RDP_InitParser(F3DEX2);
 	RDP_SetRendererOptions(BRDP_TEXTURES | BRDP_COMBINER);
+
+	RDP_SetCycleType(1);
 
 	vProgram.enableTextures = true;
 	vProgram.enableWireframe = false;
