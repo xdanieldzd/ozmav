@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="DLView" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="Debug">
+				<Option platforms="Windows;" />
+				<Option output="..\DLView_debug" prefix_auto="1" extension_auto="1" />
+				<Option working_dir=".." />
+				<Option object_output="obj\DebugW32\" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-Wall" />
+					<Add option="-g" />
+					<Add option="-DDEBUG" />
+					<Add directory="D:\zlib-1.2.3-lib\include" />
+					<Add directory="D:\libpng-1.2.37-lib\include" />
+					<Add directory="C:\Programme\PDCurses-SO" />
+					<Add directory="C:\Programme\PDCurses-SO\win32" />
+				</Compiler>
+				<Linker>
+					<Add library="..\..\OZMAV2\libbadRDP_debug.a" />
+					<Add library="opengl32" />
+					<Add library="glu32" />
+					<Add library="glaux" />
+					<Add library="kernel32" />
+					<Add library="user32" />
+					<Add library="gdi32" />
+					<Add library="D:\libpng-1.2.37-lib\lib\libpng12.dll.a" />
+					<Add library="D:\zlib-1.2.3-lib\lib\libz.a" />
+					<Add library="..\..\libMISAKA\libMISAKA_debug.a" />
+					<Add library="C:\Programme\PDCurses-SO\win32\panel.a" />
+					<Add library="C:\Programme\PDCurses-SO\win32\pdcurses.a" />
+				</Linker>
+			</Target>
+			<Target title="Release">
+				<Option platforms="Windows;" />
+				<Option output="..\DLView" prefix_auto="1" extension_auto="1" />
+				<Option working_dir=".." />
+				<Option object_output="obj\ReleaseW32\" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-O2" />
+					<Add directory="D:\zlib-1.2.3-lib\include" />
+					<Add directory="D:\libpng-1.2.37-lib\include" />
+					<Add directory="C:\Programme\PDCurses-SO" />
+					<Add directory="C:\Programme\PDCurses-SO\win32" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+					<Add library="..\..\OZMAV2\libbadRDP.a" />
+					<Add library="opengl32" />
+					<Add library="glu32" />
+					<Add library="glaux" />
+					<Add library="kernel32" />
+					<Add library="user32" />
+					<Add library="gdi32" />
+					<Add library="D:\libpng-1.2.37-lib\lib\libpng12.dll.a" />
+					<Add library="D:\zlib-1.2.3-lib\lib\libz.a" />
+					<Add library="..\..\libMISAKA\libMISAKA.a" />
+					<Add library="C:\Programme\PDCurses-SO\win32\panel.a" />
+					<Add library="C:\Programme\PDCurses-SO\win32\pdcurses.a" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+		</Compiler>
+		<Unit filename="__linux.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="__linux.h" />
+		<Unit filename="__win32.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="__win32.h" />
+		<Unit filename="badrdp.h" />
+		<Unit filename="camera.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="camera.h" />
+		<Unit filename="confunc.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="confunc.h" />
+		<Unit filename="dlist.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="dlist.h" />
+		<Unit filename="draw.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="draw.h" />
+		<Unit filename="font.h" />
+		<Unit filename="globals.h" />
+		<Unit filename="hud.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="hud.h" />
+		<Unit filename="hud_menu.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="hud_menu.h" />
+		<Unit filename="main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="misaka.h" />
+		<Unit filename="mouse.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="mouse.h" />
+		<Unit filename="msk_data.h" />
+		<Unit filename="oz.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="oz.h" />
+		<Extensions>
+			<code_completion />
+			<envvars />
+			<debugger />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>
