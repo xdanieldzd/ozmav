@@ -14,8 +14,8 @@ static __MSK_UI_Dialog DlgAbout =
 };
 
 typedef struct {
-	unsigned char * Name;
-	unsigned char * Desc;
+	char * Name;
+	char * Desc;
 	void (* Func)(void * Params);
 } __ConsoleCmd;
 

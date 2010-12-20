@@ -9,7 +9,7 @@ void dl_ViewerInit(int UCode)
 	RDP_ClearStructures(true);
 	RDP_ClearTextures();
 
-	if(zProgram.UCode != UCode) {
+	if((int)zProgram.UCode != UCode) {
 		zProgram.UCode = UCode;
 		RDP_InitParser(zProgram.UCode);
 
@@ -90,11 +90,11 @@ bool dl_IsDLEndInBetween(unsigned char Segment, unsigned int From, unsigned int 
 {
 	int i = From;
 
-	while(i < To) {
+	while(i < (int)To) {
 		unsigned int W0 = Read32(RAM[Segment].Data, i);
 		unsigned int W1 = Read32(RAM[Segment].Data, i + 4);
 
-		if((W0 == (Cmd_ENDDL << 24)) && (W1 == 0)) return true;
+		if(((int)W0 == (Cmd_ENDDL << 24)) && ((int)W1 == 0)) return true;
 
 		i++;
 	}
@@ -117,7 +117,7 @@ void dl_FindDLists(unsigned char Segment)
 		unsigned int W0 = Read32(RAM[Segment].Data, i);
 		unsigned int W1 = Read32(RAM[Segment].Data, i + 4);
 
-		if((W0 == (Cmd_DL << 24)) && (W1 != 0) && (RDP_CheckAddressValidity(W1))) {
+		if(((int)W0 == (Cmd_DL << 24)) && ((int)W1 != 0) && (RDP_CheckAddressValidity(W1))) {
 			zProgram.DListAddr[++zProgram.DListCount] = W1;
 			dbgprintf(0, MSK_COLORTYPE_INFO, "Found Display List at address 0x%08X.", zProgram.DListAddr[zProgram.DListCount]);
 		}
@@ -139,7 +139,7 @@ void dl_FindDLists(unsigned char Segment)
 				((W0 == 0xE8000000) && (W1 == 0)) ||
 				(W0 >> 8 == 0xFA0000) ||
 				(W0 == 0xFB000000) ||
-				(W0 >> 8 == (Cmd_TEXTURE << 16)) ||
+				((int)W0 >> 8 == (Cmd_TEXTURE << 16)) ||
 				((W0 >> 24 == 0xFD) && ((W0 & 0x0000FFFF) == 0) && (RDP_CheckAddressValidity(W1)))) {
 					if(zProgram.DListCount == -1) {
 						zProgram.DListAddr[++zProgram.DListCount] = FullAddr;

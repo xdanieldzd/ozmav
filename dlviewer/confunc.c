@@ -13,7 +13,7 @@ void cn_InitCommands()
 {
 	int i;
 
-	for(i = 0; i < ArraySize(Cmds); i++) MSK_AddCommand(Cmds[i].Name, Cmds[i].Desc, Cmds[i].Func);
+	for(i = 0; i < (int)ArraySize(Cmds); i++) MSK_AddCommand(Cmds[i].Name, Cmds[i].Desc, Cmds[i].Func);
 
 	memset(WorkingDir, 0, sizeof(WorkingDir));
 }
@@ -66,7 +66,7 @@ void cn_Cmd_LoadScript(unsigned char * Ptr)
 
 			// if line is not a comment, go and check known commands
 			if(TempCmd[0] != '#') {
-				while(i < ArraySize(Cmds)) {
+				while(i < (int)ArraySize(Cmds)) {
 					// if command exists, execute its function using the line's parameters
 					if(!strcmp(Cmds[i].Name, TempCmd)) {
 						Cmds[i].Func(Temp + strlen(TempCmd));
@@ -99,7 +99,7 @@ void cn_Cmd_SetUCode(unsigned char * Ptr)
 			Error = true;
 		} else {
 			int i = 0;
-			for(i = 0; i < ArraySize(UCodeNames); i++) {
+			for(i = 0; i < (int)ArraySize(UCodeNames); i++) {
 				if(!strcmp(UCodeName, UCodeNames[i])) {
 					dl_ViewerInit(i);
 					return;
@@ -224,6 +224,8 @@ void cn_Cmd_AddDList(unsigned char * Ptr)
 
 void cn_Cmd_ClearDLists(unsigned char * Ptr)
 {
+	Ptr = NULL;
+
 	memset(zProgram.DListAddr, 0, ArraySize(zProgram.DListAddr));
 	zProgram.DListCount = -1;
 	zProgram.DListSel = -1;
@@ -251,6 +253,8 @@ void cn_Cmd_SetScale(unsigned char * Ptr)
 
 void cn_cmd_SegmentUsage(unsigned char * Ptr)
 {
+	Ptr = NULL;
+
 	dbgprintf(0, MSK_COLORTYPE_OKAY, "Current RAM segments:");
 
 	int i = 0;
@@ -265,5 +269,6 @@ void cn_cmd_SegmentUsage(unsigned char * Ptr)
 
 void cn_Cmd_About(unsigned char * Ptr)
 {
+	Ptr = NULL;
 	zProgram.HandleAbout = MSK_Dialog(&DlgAbout);
 }

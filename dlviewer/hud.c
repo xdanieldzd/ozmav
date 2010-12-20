@@ -172,7 +172,7 @@ void hud_Print(GLint X, GLint Y, int W, int H, int Scale, float Vis, char * Stri
 	}
 
 	for(i = 0; i < Lines; i++) {
-		for(j = 0; j < strlen((char*)LineText[i]); j++) {
+		for(j = 0; j < (int)strlen((char*)LineText[i]); j++) {
 			if(LineText[i][j] == '\t') LineText[i][j] = 0x7F;
 			if(LineText[i][j] < 0x80) LineWidths[i] += zHUD.CharWidths[LineText[i][j] - 32];
 		}

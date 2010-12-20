@@ -37,6 +37,7 @@ extern bool RDP_SaveSegment(unsigned char Segment, unsigned char * Buffer);
 extern void RDP_Yaz0Decode(unsigned char * Input, unsigned char * Output, unsigned int DecSize);
 extern void RDP_MIO0Decode(unsigned char * Input, unsigned char * Output, unsigned int DecSize);
 extern bool RDP_CheckAddressValidity(unsigned int Address);
+extern unsigned int RDP_GetPhysicalAddress(unsigned int VAddress);
 extern void RDP_ClearSegment(unsigned char Segment);
 extern void RDP_ClearRDRAM();
 extern void RDP_ClearTextures();
