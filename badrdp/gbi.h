@@ -130,3 +130,6 @@
 #define G_MW_FORCEMTX		0x0C
 #define G_MW_POINTS			0x0C
 #define	G_MW_PERSPNORM		0x0E
+
+#define G_DL_PUSH		0x00
+#define G_DL_NOPUSH		0x01

@@ -233,12 +233,29 @@ void RDP_F3DEX2_LOAD_UCODE()
 
 void RDP_F3DEX2_DL()
 {
-	if(!RDP_CheckAddressValidity(w1)) return;
+/*	if(!RDP_CheckAddressValidity(w1)) {
+		dbgprintf(0,0,"%s: %08X: %08X %08X", __FUNCTION__, DListAddress-8, w0, w1);
+		dbgprintf(0,0,"Invalid DList address %08X (physical %08X)", w1, RDP_GetPhysicalAddress(w1));
+		dbgprintf(0,0,"Segment %02X base is %08X", (w1 >> 24), RAM[(w1 >> 24)].SourceOffset);
+		dbgprintf(0,0,"Call would go to %08X in RAM", ((RAM[(w1 >> 24)].SourceOffset & 0x00FFFFFF) + (w1 & 0x00FFFFFF)));
+		return;
+	}
+*/
 
-	Gfx.DLStack[Gfx.DLStackPos] = DListAddress;
-	Gfx.DLStackPos++;
-
-	RDP_ParseDisplayList(w1, false);
+	switch(_SHIFTR(w0, 16, 8)) {
+		case G_DL_NOPUSH: {
+//			dbgprintf(0,0,"NOPUSH! OLD DListAddress == %08x", DListAddress);
+			DListAddress = w1;
+			Gfx.DLStack[Gfx.DLStackPos] = DListAddress;
+//			dbgprintf(0,0,"NOPUSH! NEW DListAddress == %08x", DListAddress);
+			break; }
+		default:
+		case G_DL_PUSH: {
+			Gfx.DLStack[Gfx.DLStackPos] = DListAddress;
+			Gfx.DLStackPos++;
+			RDP_ParseDisplayList(w1, false);
+			break; }
+	}
 }
 
 void RDP_F3DEX2_ENDDL()

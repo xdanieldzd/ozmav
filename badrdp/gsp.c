@@ -4,6 +4,8 @@ void gSP_Vertex(unsigned int Vtx, int N, int V0)
 {
 	if(!RDP_CheckAddressValidity(Vtx)) return;
 
+//	dbgprintf(0,0,"%s(%08X, %i, %i);", __FUNCTION__, RDP_GetPhysicalAddress(Vtx), N, V0);
+
 	if((N > 32) || (V0 > 32)) return;
 
 	if(Gfx.Update & CHANGED_MULT_MAT) {

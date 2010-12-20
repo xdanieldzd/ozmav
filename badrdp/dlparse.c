@@ -295,6 +295,18 @@ bool RDP_CheckAddressValidity(unsigned int Address)
 	return true;
 }
 
+unsigned int RDP_GetPhysicalAddress(unsigned int VAddress)
+{
+	if(!RDP_CheckAddressValidity(VAddress)) return 0x0;
+
+	unsigned char Seg = (VAddress >> 24);
+	unsigned int Offset = (VAddress & 0x00FFFFFF);
+
+	if(Seg == 0x80) return VAddress;
+
+	return ((0x80 << 24) + RAM[Seg].SourceOffset + Offset);
+}
+
 void RDP_ClearSegment(unsigned char Segment)
 {
 	if(RAM[Segment].IsSet == true) {
@@ -384,18 +396,20 @@ void RDP_ParseDisplayList(unsigned int Address, bool ResetStack)
 	RDP_SetRenderMode(0, 0);
 //	Gfx.OtherMode.cycleType = G_CYC_2CYCLE;
 
-	if(ResetStack) Gfx.DLStackPos = 0;
+	if(ResetStack) {
+		Gfx.DLStackPos = 0;
+
+		glDisable(GL_TEXTURE_2D);
+		if(OpenGL.Ext_MultiTexture) {
+			glActiveTextureARB(GL_TEXTURE0_ARB);
+			glDisable(GL_TEXTURE_2D);
+			glActiveTextureARB(GL_TEXTURE1_ARB);
+			glDisable(GL_TEXTURE_2D);
+			glActiveTextureARB(GL_TEXTURE0_ARB);
+		}
+	}
 
 	glPolygonMode(GL_FRONT_AND_BACK, (System.Options & BRDP_WIREFRAME) ? GL_LINE : GL_FILL);
-
-	glDisable(GL_TEXTURE_2D);
-	if(OpenGL.Ext_MultiTexture) {
-		glActiveTextureARB(GL_TEXTURE0_ARB);
-		glDisable(GL_TEXTURE_2D);
-		glActiveTextureARB(GL_TEXTURE1_ARB);
-		glDisable(GL_TEXTURE_2D);
-		glActiveTextureARB(GL_TEXTURE0_ARB);
-	}
 
 	if(OpenGL.Ext_FragmentProgram) glDisable(GL_FRAGMENT_PROGRAM_ARB);
 
@@ -531,6 +545,8 @@ void RDP_CalcTextureSize(int TextureID)
 
 		/* 32-bit */
 		case 0x18: { MaxTexel = 1024; Line_Shift = 2; break; }	// RGBA
+
+		default: return;
 	}
 
 	unsigned int Line_Width = Texture[TextureID].LineSize << Line_Shift;
@@ -679,14 +695,14 @@ void RDP_InitLoadTexture()
 	}
 */
 	if(OpenGL.Ext_MultiTexture) {
-		if(Texture[0].Offset != 0x00) {
+		if(RDP_CheckAddressValidity(Texture[0].Offset)) {
 			RDP_CalcTextureSize(0);
 			glEnable(GL_TEXTURE_2D);
 			glActiveTextureARB(GL_TEXTURE0_ARB);
 			glBindTexture(GL_TEXTURE_2D, RDP_CheckTextureCache(0));
 		}
 
-		if(Gfx.IsMultiTexture && (Texture[1].Offset != 0x00)) {
+		if(Gfx.IsMultiTexture && RDP_CheckAddressValidity(Texture[1].Offset)) {
 			RDP_CalcTextureSize(1);
 			glEnable(GL_TEXTURE_2D);
 			glActiveTextureARB(GL_TEXTURE1_ARB);
@@ -697,7 +713,7 @@ void RDP_InitLoadTexture()
 		glDisable(GL_TEXTURE_2D);
 		glActiveTextureARB(GL_TEXTURE0_ARB);
 	} else {
-		if(Texture[0].Offset != 0x00) {
+		if(RDP_CheckAddressValidity(Texture[0].Offset)) {
 			RDP_CalcTextureSize(0);
 			glEnable(GL_TEXTURE_2D);
 			glBindTexture(GL_TEXTURE_2D, RDP_CheckTextureCache(0));
@@ -1046,6 +1062,13 @@ GLuint RDP_LoadTexture(int TextureID)
 
 	free(TextureData);
 
+/*	if(RDP_GetPhysicalAddress(Texture[TextureID].Offset) > 0x80260000) {
+		dbgprintf(0,0,"%s -> %08x (phy:%08x), h:%i, w:%i (v?:%i)",
+			__FUNCTION__,Texture[TextureID].Offset,RDP_GetPhysicalAddress(Texture[TextureID].Offset),
+			Texture[TextureID].RealHeight,Texture[TextureID].RealWidth,
+			RDP_CheckAddressValidity(Texture[TextureID].Offset));
+	}
+*/
 	return Gfx.GLTextureID[Gfx.GLTextureCount++];
 }
 

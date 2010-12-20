@@ -6,6 +6,8 @@ void gDP_TexRect(unsigned int w0, unsigned int w1, unsigned int w2, unsigned int
 {
 	// HACKISH AND WRONG
 
+//	dbgprintf(0,0,"%s(%08x, %08x, %08x, %08x);", __FUNCTION__,w0,w1,w2,w3);
+
 	unsigned int ULX = _SHIFTR(w1, 12, 12) / 2;
 	unsigned int ULY = _SHIFTR(w1,  0, 12) / 2;
 	unsigned int LRX = _SHIFTR(w0, 12, 12) / 2;
@@ -35,6 +37,25 @@ void gDP_TexRect(unsigned int w0, unsigned int w1, unsigned int w2, unsigned int
 
 	RDP_InitLoadTexture();
 
+	float S0_0, T0_0, S1_0, T1_0;
+	float S0_1, T0_1, S1_1, T1_1;
+
+	RDP_CalcTextureSize(0);
+	RDP_CalcTextureSize(1);
+/*
+	dbgprintf(0,0,"TEXRECT!");
+	dbgprintf(0,0,"0-> w:%i h:%i", Texture[0].RealWidth, Texture[0].RealHeight);
+	dbgprintf(0,0,"1-> w:%i h:%i", Texture[1].RealWidth, Texture[1].RealHeight);
+*/
+	S0_0 = 0.0f;
+	T0_0 = 1.0f;
+	S1_0 = 0.0f;
+	T1_0 = 1.0f;
+	S0_1 = 0.0f;
+	T0_1 = 1.0f;
+	S1_1 = 0.0f;
+	T1_1 = 1.0f;
+/*
 	float ULS = _FIXED2FLOAT((short)_SHIFTR(w2, 16, 16), 5);
 	float ULT = _FIXED2FLOAT((short)_SHIFTR(w2,  0, 16), 5);
 	float DSDX = _FIXED2FLOAT((short)_SHIFTR(w3, 16, 16), 10);
@@ -47,7 +68,6 @@ void gDP_TexRect(unsigned int w0, unsigned int w1, unsigned int w2, unsigned int
 	float Height = max(LRT, ULT) + DTDY;
 
 	// 0
-	float S0_0, T0_0, S1_0, T1_0;
 	S0_0 = ULS * Texture[0].ShiftScaleS - _FIXED2FLOAT(Texture[0].ULS, 2);
 	T0_0 = ULT * Texture[0].ShiftScaleT - _FIXED2FLOAT(Texture[0].ULT, 2);
 	S1_0 = (LRS + 1.0f) * Texture[0].ShiftScaleS - _FIXED2FLOAT(Texture[0].ULS, 2);
@@ -78,7 +98,6 @@ void gDP_TexRect(unsigned int w0, unsigned int w1, unsigned int w2, unsigned int
 	if(isnan(T1_0) || T1_0 == 0.0f) T1_0 = 1.0f;
 
 	// 1
-	float S0_1, T0_1, S1_1, T1_1;
 	if(OpenGL.Ext_MultiTexture) {
 		S0_1 = ULS * Texture[1].ShiftScaleS - _FIXED2FLOAT(Texture[1].ULS, 2);
 		T0_1 = ULT * Texture[1].ShiftScaleT - _FIXED2FLOAT(Texture[1].ULT, 2);
@@ -109,7 +128,7 @@ void gDP_TexRect(unsigned int w0, unsigned int w1, unsigned int w2, unsigned int
 		if(isnan(S1_1) || S1_1 == 0.0f) S1_1 = 1.0f;
 		if(isnan(T1_1) || T1_1 == 0.0f) T1_1 = 1.0f;
 	}
-
+*/
 	//dbgprintf(0,0,"%4.2f %4.2f %4.2f %4.2f", S0_0, T0_0, S1_0, T1_0);
 
 	// ->
