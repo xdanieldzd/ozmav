@@ -1,4 +1,5 @@
 PROJECT = libbadRDP
+TARGET = $(PROJECT).a
 
 # Environment
 CC = gcc
@@ -9,7 +10,8 @@ CFLAGS = -Wall -U_FORTIFY_SOURCE
 
 # Application pieces
 PIECES	= combine.o  dump.o  f3dex2.o  gdp.o  macro.o   opengl.o\
-	  dlparse.o  f3d.o   f3dex.o   gsp.o  matrix.o  rdp.o
+	  dlparse.o  f3d.o   f3dex.o   gsp.o  matrix.o  rdp.o \
+	  crc.o      
 
 
 #Platfor specific options
@@ -25,10 +27,8 @@ endif
 #Debug?
 ifeq ($(DBG),1)
   CFLAGS += -DDEBUG -ggdb3 -g
-  TARGET = $(PROJECT)_debug.a
 else
   CFLAGS += -O2
-  TARGET = $(PROJECT).a
 endif
 
 # Make

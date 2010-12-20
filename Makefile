@@ -27,10 +27,11 @@ targets:
 	@echo "    ozmav2        == Build ozmav2"
 	@echo "    zsaten        == Build ZSaten"
 	@echo "    sm64toz64     == Build sm64toz64"
+	@echo "    dlviewer      == Build dlviewer"
 	@echo "  Options:"
 	@echo "    WIN32=1       == mingw build (Makefiles need fixing)"
 	@echo "  Debugging Options:"
-	@echo "    DBG=1         == Enable debugging symbols. Rebuild"
+	@echo "    DBG=1         == Enable debugging symbols. (Rebuild"
 	@echo "                     suggested if not used previous build)"
 	@echo "  Install Options:"
 	@echo "    PREFIX=path   == install/uninstall prefix (default: /usr/bin)"
@@ -38,18 +39,26 @@ targets:
 
 dummy:
 	@echo
+
 libs:
 	$(MAKE) -C misaka $(OPTIONS)
 	$(MAKE) -C badrdp $(OPTIONS)
+
 ozmav2: libs
 	$(MAKE) -C misaka $(OPTIONS)
 	$(MAKE) -C badrdp $(OPTIONS)
 	$(MAKE) -C ozmav2 $(OPTIONS)
-sm64toz64:dummy
+
+sm64toz64: dummy
 	$(MAKE) -C sm64toz64 $(OPTIONS)
+
 zsaten: libs
 	$(MAKE) -C zsaten $(OPTIONS)
-all: ozmav2 zsaten sm64toz64
+
+dlviewer: libs
+	$(MAKE) -C dlviewer $(OPTIONS)
+
+all: ozmav2 zsaten sm64toz64 dlviewer
 
 install:
 	$(MAKE) -C $(APP) install
@@ -64,8 +73,10 @@ package:
 	tgz ozmav2.tgz
 
 clean:
-	$(MAKE) -C misaka clean
-	$(MAKE) -C badrdp clean
-	$(MAKE) -C ozmav2 clean
-	$(MAKE) -C sm64toz64 clean
-	$(MAKE) -C zsaten clean
+	$(MAKE) -C misaka clean $(OPTIONS)
+	$(MAKE) -C badrdp clean $(OPTIONS)
+	$(MAKE) -C ozmav2 clean $(OPTIONS)
+	$(MAKE) -C sm64toz64 clean $(OPTIONS)
+	$(MAKE) -C zsaten clean $(OPTIONS)
+	$(MAKE) -C dlviewer clean $(OPTIONS)
+
