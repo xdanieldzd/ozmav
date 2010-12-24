@@ -44,7 +44,7 @@ int main(int argc, char * argv[])
 		if(!strcmp(argv[1], "--help") || !strcmp(argv[1], "-h")) {
 			char Temp[MAX_PATH];
 			GetFileName(argv[0], Temp);
-			printf("Prototype:\n %s [options]\n\nOptions:\n -r PATH\tPath to Ocarina of Time or Majora's Mask ROM to load\n -s SCENE\tInitial scene number to load, in decimal\n -d LEVEL\tLevel of debugging messages shown, between 0 and 3\n -a, --about\tDisplay program information\n -h, --help\tThis message\n", Temp);
+			printf("Prototype:\n %s [options]\n\nOptions:\n -a, --about\tDisplay program information\n -h, --help\tThis message\n", Temp);
 			return EXIT_SUCCESS;
 		}
 
