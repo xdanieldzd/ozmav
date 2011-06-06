@@ -138,7 +138,7 @@ void RDP_LoadToRDRAM(unsigned char * Buffer, unsigned int Size)
 	RDRAM.Size = Size;
 }
 
-bool RDP_SaveSegment(unsigned char Segment, unsigned char * Buffer)
+int RDP_SaveSegment(unsigned char Segment, unsigned char * Buffer)
 {
 	// check if the segment is invalid
 	if((Segment >= MAX_SEGMENTS) || (RAM[Segment].IsSet == false)) return false;
@@ -279,7 +279,7 @@ void RDP_MIO0Decode(unsigned char * Input, unsigned char * Output, unsigned int 
 	return;
 }
 
-bool RDP_CheckAddressValidity(unsigned int Address)
+int RDP_CheckAddressValidity(unsigned int Address)
 {
 	unsigned char Segment = Address >> 24;
 	unsigned int Offset = (Address & 0x00FFFFFF);
@@ -325,7 +325,7 @@ void RDP_ClearRDRAM()
 	}
 }
 
-void RDP_ClearStructures(bool Full)
+void RDP_ClearStructures(int Full)
 {
 	int i = 0;
 
@@ -387,7 +387,7 @@ void RDP_ClearStructures(bool Full)
 	}
 }
 
-void RDP_ParseDisplayList(unsigned int Address, bool ResetStack)
+void RDP_ParseDisplayList(unsigned int Address, int ResetStack)
 {
 	if(!RDP_CheckAddressValidity(Address)) return;
 

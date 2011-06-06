@@ -1,7 +1,12 @@
 #define MAX_SEGMENTS		16
 
+#ifndef MAX_PATH
+ #include <limits.h>
+ #define MAX_PATH PATH_MAX
+#endif
+
 typedef struct {
-	bool IsSet;
+	int IsSet;
 	unsigned int Size;
 	int SourceCompType;
 	unsigned int SourceOffset;
@@ -11,7 +16,7 @@ typedef struct {
 extern __RAM RAM[MAX_SEGMENTS];
 
 typedef struct {
-	bool IsSet;
+	int IsSet;
 	unsigned int Size;
 	unsigned char * Data;
 } __RDRAM;
@@ -33,20 +38,20 @@ extern void RDP_SetOpenGLDimensions(int Width, int Height);
 extern void RDP_InitParser(int UcodeID);
 extern void RDP_LoadToSegment(unsigned char Segment, unsigned char * Buffer, unsigned int Offset, unsigned int Size);
 extern void RDP_LoadToRDRAM(unsigned char * Buffer, unsigned int Size);
-extern bool RDP_SaveSegment(unsigned char Segment, unsigned char * Buffer);
+extern int RDP_SaveSegment(unsigned char Segment, unsigned char * Buffer);
 extern void RDP_Yaz0Decode(unsigned char * Input, unsigned char * Output, unsigned int DecSize);
 extern void RDP_MIO0Decode(unsigned char * Input, unsigned char * Output, unsigned int DecSize);
-extern bool RDP_CheckAddressValidity(unsigned int Address);
+extern int RDP_CheckAddressValidity(unsigned int Address);
 extern unsigned int RDP_GetPhysicalAddress(unsigned int VAddress);
 extern void RDP_ClearSegment(unsigned char Segment);
 extern void RDP_ClearRDRAM();
 extern void RDP_ClearTextures();
-extern void RDP_ClearStructures(bool Full);
-extern void RDP_ParseDisplayList(unsigned int Address, bool ResetStack);
+extern void RDP_ClearStructures(int Full);
+extern void RDP_ParseDisplayList(unsigned int Address, int ResetStack);
 extern void RDP_CreateCombinerProgram(unsigned int Cmb0, unsigned int Cmb1);
 extern void RDP_Dump_InitModelDumping(char Path[MAX_PATH], char ObjFilename[MAX_PATH], char MtlFilename[MAX_PATH]);
 extern void RDP_Dump_StopModelDumping();
-extern bool RDP_OpenGL_ExtFragmentProgram();
+extern int RDP_OpenGL_ExtFragmentProgram();
 extern void RDP_SetRendererOptions(unsigned char Options);
 extern unsigned char RDP_GetRendererOptions();
 extern void RDP_Matrix_ModelviewLoad(float [4][4]);

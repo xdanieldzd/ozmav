@@ -256,7 +256,7 @@ void RDP_UpdateGLStates()
 	}
 }
 
-bool RDP_OpenGL_ExtFragmentProgram()
+int RDP_OpenGL_ExtFragmentProgram()
 {
 	return OpenGL.Ext_FragmentProgram;
 }
