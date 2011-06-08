@@ -43,10 +43,11 @@ void RDP_ResetOpenGL()
 	glLightfv(GL_LIGHT0, GL_SPECULAR, Gfx.LightSpecular);
 	glLightfv(GL_LIGHT0, GL_POSITION, Gfx.LightPosition);
 	glEnable(GL_LIGHT0);
-
-	glEnable(GL_LIGHTING);
-	glEnable(GL_NORMALIZE);
-
+	if(!(System.Options & BRDP_DISABLESHADE))
+	{
+		glEnable(GL_LIGHTING);
+		glEnable(GL_NORMALIZE);
+	}
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
 
@@ -145,7 +146,7 @@ void RDP_UpdateGLStates()
 			glDisable(GL_CULL_FACE);
 		}
 
-		if((Gfx.GeometryMode & G_TEXTURE_GEN_LINEAR) && !(Gfx.GeometryMode & G_LIGHTING)) {
+		if((Gfx.GeometryMode & G_TEXTURE_GEN_LINEAR) && !(Gfx.GeometryMode & G_LIGHTING) && (System.Options & BRDP_DISABLESHADE)) {
 			glShadeModel(GL_FLAT);
 		} else {
 			glShadeModel(GL_SMOOTH);
@@ -167,7 +168,7 @@ void RDP_UpdateGLStates()
 			glShadeModel(GL_FLAT);
 		}
 */
-		if(Gfx.GeometryMode & G_LIGHTING) {
+		if(Gfx.GeometryMode & G_LIGHTING && !(System.Options & BRDP_DISABLESHADE)) {
 			glEnable(GL_LIGHTING);
 			glEnable(GL_NORMALIZE);
 		} else {

@@ -29,8 +29,9 @@ extern enum {
 	BRDP_WIREFRAME	= 1,
 	BRDP_TEXTURES	= 1 << 1,
 	BRDP_COMBINER	= 1 << 2,
-	BRDP_LOGMAX		= 1 << 3,
-	BRDP_TEXCRC		= 1 << 4
+	BRDP_LOGMAX	= 1 << 3,
+	BRDP_TEXCRC	= 1 << 4,
+	BRDP_DISABLESHADE	= 1 << 5
 } RenderOpts;
 
 extern void RDP_SetupOpenGL();

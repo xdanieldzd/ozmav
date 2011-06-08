@@ -1075,6 +1075,16 @@ GLuint RDP_LoadTexture(int TextureID)
 void RDP_SetRendererOptions(unsigned char Options)
 {
 	System.Options = Options;
+	if(!(System.Options & BRDP_DISABLESHADE))
+	{
+		glEnable(GL_LIGHTING);
+		glEnable(GL_NORMALIZE);
+	}
+	else
+	{
+		glDisable(GL_LIGHTING);
+		glDisable(GL_NORMALIZE);
+	}
 }
 
 unsigned char RDP_GetRendererOptions()
