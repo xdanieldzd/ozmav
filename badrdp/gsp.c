@@ -2,6 +2,9 @@
 
 void gSP_Vertex(unsigned int Vtx, int N, int V0)
 {
+	// "hack": if we didn't find a macro for texture loading, try it here manually, hoping we've got enough intel about it
+	if(!isMacro) RDP_InitLoadTexture();
+
 	if(!RDP_CheckAddressValidity(Vtx)) return;
 
 //	dbgprintf(0,0,"%s(%08X, %i, %i);", __FUNCTION__, RDP_GetPhysicalAddress(Vtx), N, V0);
@@ -192,8 +195,10 @@ void gSP_GeometryMode(unsigned int Clear, unsigned int Set)
 
 void gSP_Segment(unsigned char Segment, unsigned int BaseAddress)
 {
-	RAM[Segment].Data = &RDRAM.Data[BaseAddress];
-	RAM[Segment].IsSet = true;
-	RAM[Segment].Size = RDRAM.Size - BaseAddress;
-	RAM[Segment].SourceOffset = BaseAddress;
+//	if(RDRAM.IsSet) {
+		RAM[Segment].Data = &RDRAM.Data[BaseAddress];
+		RAM[Segment].IsSet = true;
+		RAM[Segment].Size = RDRAM.Size - BaseAddress;
+		RAM[Segment].SourceOffset = BaseAddress;
+//	}
 }

@@ -4,15 +4,80 @@ static unsigned int TexAddr = 0;
 
 void gDP_TexRect(unsigned int w0, unsigned int w1, unsigned int w2, unsigned int w3)
 {
-	// HACKISH AND WRONG
-
 //	dbgprintf(0,0,"%s(%08x, %08x, %08x, %08x);", __FUNCTION__,w0,w1,w2,w3);
 
+	// CALCULATE!
 	unsigned int ULX = _SHIFTR(w1, 12, 12) / 2;
 	unsigned int ULY = _SHIFTR(w1,  0, 12) / 2;
 	unsigned int LRX = _SHIFTR(w0, 12, 12) / 2;
 	unsigned int LRY = _SHIFTR(w0,  0, 12) / 2;
 
+	float ULS[2], ULT[2], LRS[2], LRT[2];
+
+	float Off_S = (float)((short)((w2 & 0xFFFF0000) >> 16)) / 32.0f;
+	float Off_T = (float)((short)(w2 & 0x0000FFFF)) / 32.0f;
+	float DSDX = (float)((short)((w3 & 0xFFFF0000) >> 16)) / 1024.0f;
+	float DTDY = (float)((short)(w3 & 0x0000FFFF)) / 1024.0f;
+
+	if(Gfx.OtherMode.cycleType >= 2) {
+		DSDX = 1.0f;
+		LRX++;
+		LRY++;
+	}
+
+//	dbgprintf(0,0,"Coords: %i, %i -> %i, %i", ULX, ULY, LRX, LRY);
+
+	if(Gfx.OtherMode.cycleType == G_CYC_COPY) DSDX /= 4.0f;
+
+	float Off_X = (float)Off_S;
+	float Off_Y = (float)Off_T;
+	float Off_Size_X = (float)((LRX - ULX) * DSDX);
+	float Off_Size_Y = (float)((LRY - ULY) * DTDY);
+
+	RDP_InitLoadTexture();
+
+	int i = 0;
+	for(i = 0; i < 2; i++) {
+		Texture[i].TexRectW = Off_Size_X;
+		Texture[i].TexRectH = Off_Size_Y;
+		Texture[i].IsTexRect = true;
+
+		RDP_CalcTextureSize(i);
+
+//		dbgprintf(0,0,"Tex%i: RW:%i, RH:%i", i, Texture[i].RealWidth, Texture[i].RealHeight);
+
+		float SX = 1.0f, SY = 1.0f;
+
+		if(Texture[i].ShiftS > 10) {
+			SX = (1 << (16 - Texture[i].ShiftS));
+		} else if(Texture[i].ShiftS > 0) {
+			SX /= (1 << Texture[i].ShiftS);
+		}
+
+		if(Texture[i].ShiftT > 10) {
+			SY = (1 << (16 - Texture[i].ShiftT));
+		} else if(Texture[i].ShiftT > 0) {
+			SY /= (1 << Texture[i].ShiftT);
+		}
+
+		ULS[i] = (Off_X * SX);
+		ULT[i] = (Off_Y * SY);
+
+		ULS[i] -= Texture[i].ULS + Texture[i].ScaleS - 0.5f;
+		ULT[i] -= Texture[i].ULT + Texture[i].ScaleT - 0.5f;
+
+		LRS[i] = (ULS[i] + Off_Size_X * SX - 1.0f);
+		LRT[i] = (ULT[i] + Off_Size_Y * SY - 1.0f);
+
+		ULS[i] /= Texture[i].RealWidth * 2.0f;
+		ULT[i] /= Texture[i].RealHeight * 2.0f;
+		LRS[i] /= Texture[i].RealWidth * 2.0f;
+		LRT[i] /= Texture[i].RealHeight * 2.0f;
+
+//		dbgprintf(0,0,"Tex%i: ULS:%4.2f, ULT:%4.2f, LRS:%4.2f, LRS:%4.2f", i, ULS[i], ULT[i], LRS[i], LRT[i]);
+	}
+
+	// RENDER!
 	if(Gfx.Update) RDP_UpdateGLStates();
 
 	glMatrixMode(GL_PROJECTION);
@@ -32,134 +97,34 @@ void gDP_TexRect(unsigned int w0, unsigned int w1, unsigned int w2, unsigned int
 		glColor4f(Gfx.BlendColor.R, Gfx.BlendColor.G, Gfx.BlendColor.B, Gfx.BlendColor.A);
 	}
 
-	Texture[0].IsTexRect = true;
-	Texture[1].IsTexRect = true;
-
-	RDP_InitLoadTexture();
-
-	float S0_0, T0_0, S1_0, T1_0;
-	float S0_1, T0_1, S1_1, T1_1;
-
-	RDP_CalcTextureSize(0);
-	RDP_CalcTextureSize(1);
-/*
-	dbgprintf(0,0,"TEXRECT!");
-	dbgprintf(0,0,"0-> w:%i h:%i", Texture[0].RealWidth, Texture[0].RealHeight);
-	dbgprintf(0,0,"1-> w:%i h:%i", Texture[1].RealWidth, Texture[1].RealHeight);
-*/
-	S0_0 = 0.0f;
-	T0_0 = 1.0f;
-	S1_0 = 0.0f;
-	T1_0 = 1.0f;
-	S0_1 = 0.0f;
-	T0_1 = 1.0f;
-	S1_1 = 0.0f;
-	T1_1 = 1.0f;
-/*
-	float ULS = _FIXED2FLOAT((short)_SHIFTR(w2, 16, 16), 5);
-	float ULT = _FIXED2FLOAT((short)_SHIFTR(w2,  0, 16), 5);
-	float DSDX = _FIXED2FLOAT((short)_SHIFTR(w3, 16, 16), 10);
-	float DTDY = _FIXED2FLOAT((short)_SHIFTR(w3,  0, 16), 10);
-
-	float LRS = ULS + (LRX - ULX - 1) * DSDX;
-	float LRT = ULT + (LRY - ULY - 1) * DTDY;
-
-	float Width = max(LRS, ULS) + DSDX;
-	float Height = max(LRT, ULT) + DTDY;
-
-	// 0
-	S0_0 = ULS * Texture[0].ShiftScaleS - _FIXED2FLOAT(Texture[0].ULS, 2);
-	T0_0 = ULT * Texture[0].ShiftScaleT - _FIXED2FLOAT(Texture[0].ULT, 2);
-	S1_0 = (LRS + 1.0f) * Texture[0].ShiftScaleS - _FIXED2FLOAT(Texture[0].ULS, 2);
-	T1_0 = (LRT + 1.0f) * Texture[0].ShiftScaleT - _FIXED2FLOAT(Texture[0].ULT, 2);
-	if(Texture[0].MaskS && (fmod(S0_0, Texture[0].RealWidth) == 0.0f) && !Texture[0].mirrors) {
-		S1_0 -= S0_0;
-		S0_0 = 0.0f;
-	}
-	if(Texture[0].MaskT && (fmod(T0_0, Texture[0].RealHeight) == 0.0f) && !Texture[0].mirrort) {
-		T1_0 -= T0_0;
-		T0_0 = 0.0f;
-	}
-	if(OpenGL.Ext_MultiTexture) glActiveTextureARB(GL_TEXTURE0_ARB);
-	if((S0_0 >= 0.0f) && (S1_0 <= Texture[0].RealWidth)) {
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	}
-	if((T0_0 >= 0.0f) && (T1_0 <= Texture[0].RealHeight)) {
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	}
-	S0_0 = (S0_0 * Texture[0].ScaleS) / Width;
-	T0_0 = (T0_0 * Texture[0].ScaleT) / Height;
-	S1_0 = (S1_0 * Texture[0].ScaleS) / Width;
-	T1_0 = (T1_0 * Texture[0].ScaleT) / Height;
-
-	if(isnan(S0_0)) S0_0 = 0.0f;
-	if(isnan(T0_0)) T0_0 = 0.0f;
-	if(isnan(S1_0) || S1_0 == 0.0f) S1_0 = 1.0f;
-	if(isnan(T1_0) || T1_0 == 0.0f) T1_0 = 1.0f;
-
-	// 1
-	if(OpenGL.Ext_MultiTexture) {
-		S0_1 = ULS * Texture[1].ShiftScaleS - _FIXED2FLOAT(Texture[1].ULS, 2);
-		T0_1 = ULT * Texture[1].ShiftScaleT - _FIXED2FLOAT(Texture[1].ULT, 2);
-		S1_1 = (LRS + 1.0f) * Texture[1].ShiftScaleS - _FIXED2FLOAT(Texture[1].ULS, 2);
-		T1_1 = (LRT + 1.0f) * Texture[1].ShiftScaleT - _FIXED2FLOAT(Texture[1].ULT, 2);
-		if(Texture[1].MaskS && (fmod(S0_1, Texture[1].RealWidth) == 0.0f) && !Texture[1].mirrors) {
-			S1_1 -= S0_1;
-			S0_1 = 0.0f;
-		}
-		if(Texture[1].MaskT && (fmod(T0_1, Texture[1].RealHeight) == 0.0f) && !Texture[1].mirrort) {
-			T1_1 -= T0_1;
-			T0_1 = 0.0f;
-		}
-		glActiveTextureARB(GL_TEXTURE1_ARB);
-		if((S0_1 >= 0.0f) && (S1_1 <= Texture[1].RealWidth)) {
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		}
-		if((T0_1 >= 0.0f) && (T1_1 <= Texture[1].RealHeight)) {
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		}
-		S0_1 = (S0_1 * Texture[1].ScaleS) / Width;
-		T0_1 = (T0_1 * Texture[1].ScaleT) / Height;
-		S1_1 = (S1_1 * Texture[1].ScaleS) / Width;
-		T1_1 = (T1_1 * Texture[1].ScaleT) / Height;
-
-		if(isnan(S0_1)) S0_1 = 0.0f;
-		if(isnan(T0_1)) T0_1 = 0.0f;
-		if(isnan(S1_1) || S1_1 == 0.0f) S1_1 = 1.0f;
-		if(isnan(T1_1) || T1_1 == 0.0f) T1_1 = 1.0f;
-	}
-*/
-	//dbgprintf(0,0,"%4.2f %4.2f %4.2f %4.2f", S0_0, T0_0, S1_0, T1_0);
-
-	// ->
-	if(OpenGL.Ext_MultiTexture) {
-		glBegin(GL_QUADS);
-			glMultiTexCoord2fARB(GL_TEXTURE0_ARB, S0_0, T0_0);
-			glMultiTexCoord2fARB(GL_TEXTURE1_ARB, S0_1, T0_1);
+	glBegin(GL_QUADS);
+		if(OpenGL.Ext_MultiTexture) {
+			glMultiTexCoord2fARB(GL_TEXTURE0_ARB, ULS[0], ULT[0]);
+			glMultiTexCoord2fARB(GL_TEXTURE1_ARB, ULS[1], ULT[1]);
 			glVertex2d(ULX, ULY);
-			glMultiTexCoord2fARB(GL_TEXTURE0_ARB, S1_0, T0_0);
-			glMultiTexCoord2fARB(GL_TEXTURE1_ARB, S1_1, T0_1);
+			glMultiTexCoord2fARB(GL_TEXTURE0_ARB, LRS[0], ULT[0]);
+			glMultiTexCoord2fARB(GL_TEXTURE1_ARB, LRS[1], ULT[1]);
 			glVertex2d(LRX, ULY);
-			glMultiTexCoord2fARB(GL_TEXTURE0_ARB, S1_0, T1_0);
-			glMultiTexCoord2fARB(GL_TEXTURE1_ARB, S1_1, T1_1);
+			glMultiTexCoord2fARB(GL_TEXTURE0_ARB, LRS[0], LRT[0]);
+			glMultiTexCoord2fARB(GL_TEXTURE1_ARB, LRS[1], LRT[1]);
 			glVertex2d(LRX, LRY);
-			glMultiTexCoord2fARB(GL_TEXTURE0_ARB, S0_0, T1_0);
-			glMultiTexCoord2fARB(GL_TEXTURE1_ARB, S0_1, T1_1);
+			glMultiTexCoord2fARB(GL_TEXTURE0_ARB, ULS[0], LRT[0]);
+			glMultiTexCoord2fARB(GL_TEXTURE1_ARB, ULS[1], LRT[1]);
 			glVertex2d(ULX, LRY);
-		glEnd();
-	} else {
-		glBegin(GL_QUADS);
-			glTexCoord2f(S0_0, T0_0); glVertex2d(ULX, ULY);
-			glTexCoord2f(S1_0, T0_0); glVertex2d(LRX, ULY);
-			glTexCoord2f(S1_0, T1_0); glVertex2d(LRX, LRY);
-			glTexCoord2f(S0_0, T1_0); glVertex2d(ULX, LRY);
-		glEnd();
-	}
+		} else {
+			glTexCoord2f(ULS[0], ULT[0]); glVertex2d(ULX, ULY);
+			glTexCoord2f(LRS[0], ULT[0]); glVertex2d(LRX, ULY);
+			glTexCoord2f(LRS[0], LRT[0]); glVertex2d(LRX, LRY);
+			glTexCoord2f(ULS[0], LRT[0]); glVertex2d(ULX, LRY);
+		}
+	glEnd();
 
 	glMatrixMode(GL_PROJECTION);
 	glPopMatrix();
 	glMatrixMode(GL_MODELVIEW);
 	glPopMatrix();
+
+//	dbgprintf(0,0,"TEXRECT done.\n\n");
 }
 /*
 void gDP_TexRect(unsigned int w0, unsigned int w1, unsigned int w2, unsigned int w3)
@@ -341,7 +306,7 @@ void gDP_SetTile(unsigned int w0, unsigned int w1)
 {
 //	if(((w1 & 0xFF000000) >> 24) == 0x07) return;
 
-	Texture[Gfx.CurrentTexture].Offset = TexAddr;
+	if(isMacro) Texture[Gfx.CurrentTexture].Offset = TexAddr;
 
 	Texture[Gfx.CurrentTexture].Format = (w0 & 0x00FF0000) >> 16;
 	Texture[Gfx.CurrentTexture].CMT = _SHIFTR(w1, 18, 2);
@@ -424,5 +389,6 @@ void gDP_SetCombine(unsigned int w0, unsigned int w1)
 
 void gDP_SetTImg(unsigned int w0, unsigned int w1)
 {
-	TexAddr = w1;
+	if(isMacro) TexAddr = w1;
+	else Texture[Gfx.CurrentTexture].Offset = w1;
 }

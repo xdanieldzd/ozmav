@@ -3,8 +3,8 @@
 void RDP_UnemulatedCmd()
 {
 	// simulate ENDDL to break out of DList
-	Gfx.DLStackPos--;
-	DListAddress = Gfx.DLStack[Gfx.DLStackPos];
+//	Gfx.DLStackPos--;
+//	DListAddress = Gfx.DLStack[Gfx.DLStackPos];
 }
 
 void RDP_G_TEXRECT()

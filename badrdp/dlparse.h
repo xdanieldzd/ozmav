@@ -10,6 +10,8 @@ extern unsigned int w0, w1;
 extern unsigned int wp0, wp1;
 extern unsigned int wn0, wn1;
 
+extern bool isMacro;
+
 extern unsigned int G_TEXTURE_ENABLE;
 extern unsigned int G_SHADING_SMOOTH;
 extern unsigned int G_CULL_FRONT;

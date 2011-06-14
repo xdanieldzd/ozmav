@@ -34,12 +34,16 @@ unsigned int RDP_Macro_DetectMacro(unsigned int Addr)
 				}
 				Offset += 8;
 			}
+			isMacro = true;
+
 			GfxMacros[i].Func();
 
 			Addr += GfxMacros[i].Len * 8;
 			return Addr;
 		}
 	}
+
+	isMacro = false;
 
 	return Addr;
 }

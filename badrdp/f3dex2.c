@@ -37,32 +37,11 @@ void RDP_F3DEX2_Init()
 
 void RDP_F3DEX2_VTX()
 {
-	unsigned int N = ((w0 >> 12) & 0xFF);
-
 	// crude hack to remove "bad" polygons on actors in zelda, due to crappy matrix support
-	if(((wn0 >> 24) == F3DEX2_CULLDL) || ((wn0 >> 24) == F3DEX2_MTX)) {
-/*		unsigned int Search, Mtx;
-		// go back up to 10 cmds to find MTX cmd
-		for(Search = DListAddress; Search > DListAddress - 0x50; Search -= 8) {
-			// is current search offset valid?
-			if(RDP_CheckAddressValidity(Search)) {
-				// get cmd from offset and check if its MTX w/ load from seg 0x0D
-				Mtx = Read32(RAM[Search >> 24].Data, (Search & 0x00FFFFFF));
-				if(Mtx == 0xDA380003) {
-					// get offset up to MTX w1
-					Search += 4;
-					// read MTX offset from its w1
-					Mtx = Read32(RAM[Search >> 24].Data, (Search & 0x00FFFFFF));
-					// call VTX/MTX combo function
-					gSP_VertexMtxHack(w1, N, (((w0 >> 1) & 0x7F) - N), Mtx);
-					DListAddress += 8;
-					return;
-				}
-			}
-		}*/
-	} else {
-		gSP_Vertex(w1, N, (((w0 >> 1) & 0x7F) - N));
-	}
+	if(Matrix.UseMatrixHack && (((wn0 >> 24) == F3DEX2_CULLDL) || ((wn0 >> 24) == F3DEX2_MTX))) return;
+
+	unsigned int N = ((w0 >> 12) & 0xFF);
+	gSP_Vertex(w1, N, (((w0 >> 1) & 0x7F) - N));
 }
 
 void RDP_F3DEX2_MODIFYVTX()
@@ -107,10 +86,10 @@ void RDP_F3DEX2_TRI2()
 
 void RDP_F3DEX2_QUAD()
 {
-	int Vtxs1[] = { ((w1 & 0xFF000000) >> 24) / 2, ((w1 & 0x00FF0000) >> 16) / 2, ((w1 & 0x0000FF00) >> 8) / 2 };
+	int Vtxs1[] = { ((w0 & 0x00FF0000) >> 16) / 2, ((w0 & 0x0000FF00) >> 8) / 2, (w0 & 0x000000FF) / 2 };
 	RDP_DrawTriangle(Vtxs1);
 
-	int Vtxs2[] = { ((w1 & 0xFF000000) >> 24) / 2, ((w1 & 0x0000FF00) >> 8) / 2, (w1 & 0x000000FF) / 2 };
+	int Vtxs2[] = { ((w1 & 0x00FF0000) >> 16) / 2, ((w1 & 0x0000FF00) >> 8) / 2, (w1 & 0x000000FF) / 2 };
 	RDP_DrawTriangle(Vtxs2);
 }
 
@@ -161,9 +140,12 @@ void RDP_F3DEX2_TEXTURE()
 
 void RDP_F3DEX2_POPMTX()
 {
-	glPopMatrix();
+	if(Matrix.UseMatrixHack == false) {
+		RDP_Matrix_ModelviewPop(w1 >> 6);
 
-//	RDP_Matrix_ModelviewPop(w1 >> 6);
+	} else {
+		glPopMatrix();
+	}
 }
 
 void RDP_F3DEX2_GEOMETRYMODE()
@@ -233,14 +215,13 @@ void RDP_F3DEX2_LOAD_UCODE()
 
 void RDP_F3DEX2_DL()
 {
-/*	if(!RDP_CheckAddressValidity(w1)) {
-		dbgprintf(0,0,"%s: %08X: %08X %08X", __FUNCTION__, DListAddress-8, w0, w1);
-		dbgprintf(0,0,"Invalid DList address %08X (physical %08X)", w1, RDP_GetPhysicalAddress(w1));
-		dbgprintf(0,0,"Segment %02X base is %08X", (w1 >> 24), RAM[(w1 >> 24)].SourceOffset);
-		dbgprintf(0,0,"Call would go to %08X in RAM", ((RAM[(w1 >> 24)].SourceOffset & 0x00FFFFFF) + (w1 & 0x00FFFFFF)));
+	if(!RDP_CheckAddressValidity(w1)) {
+/*		dbgprintf(2,0,"%s: %08X: %08X %08X", __FUNCTION__, DListAddress-8, w0, w1);
+		dbgprintf(2,0,"Invalid DList address %08X (physical %08X)", w1, RDP_GetPhysicalAddress(w1));
+		dbgprintf(2,0,"Segment %02X base is %08X", (w1 >> 24), RAM[(w1 >> 24)].SourceOffset);
+		dbgprintf(2,0,"Call would go to %08X in RAM", ((RAM[(w1 >> 24)].SourceOffset & 0x00FFFFFF) + (w1 & 0x00FFFFFF)));*/
 		return;
 	}
-*/
 
 	switch(_SHIFTR(w0, 16, 8)) {
 		case G_DL_NOPUSH: {

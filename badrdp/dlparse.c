@@ -1,7 +1,6 @@
 #include "globals.h"
 
 // ----------------------------------------
-
 RDPInstruction RDP_UcodeCmd[256];
 
 unsigned int DListAddress;
@@ -10,6 +9,8 @@ unsigned char Segment; unsigned int Offset;
 unsigned int wp0, wp1;
 unsigned int w0, w1;
 unsigned int wn0, wn1;
+
+bool isMacro = false;
 
 unsigned int G_TEXTURE_ENABLE;
 unsigned int G_SHADING_SMOOTH;
@@ -690,30 +691,26 @@ inline unsigned long RDP_PowOf(unsigned long dim)
 
 void RDP_InitLoadTexture()
 {
-/*	if(OpenGL.Ext_FragmentProgram && ((System.Options & BRDP_COMBINER) == 0)) {
-		glDisable(GL_FRAGMENT_PROGRAM_ARB);
-	}
-*/
 	if(OpenGL.Ext_MultiTexture) {
-		if(RDP_CheckAddressValidity(Texture[0].Offset)) {
+		if(Texture[0].Offset != 0x00) {
 			RDP_CalcTextureSize(0);
 			glEnable(GL_TEXTURE_2D);
 			glActiveTextureARB(GL_TEXTURE0_ARB);
 			glBindTexture(GL_TEXTURE_2D, RDP_CheckTextureCache(0));
 		}
 
-		if(Gfx.IsMultiTexture && RDP_CheckAddressValidity(Texture[1].Offset)) {
+		if(Gfx.IsMultiTexture && Texture[1].Offset != 0x00) {
 			RDP_CalcTextureSize(1);
 			glEnable(GL_TEXTURE_2D);
 			glActiveTextureARB(GL_TEXTURE1_ARB);
 			glBindTexture(GL_TEXTURE_2D, RDP_CheckTextureCache(1));
+		} else {
+			glActiveTextureARB(GL_TEXTURE1_ARB);
+			glDisable(GL_TEXTURE_2D);
+			glActiveTextureARB(GL_TEXTURE0_ARB);
 		}
-
-		glActiveTextureARB(GL_TEXTURE1_ARB);
-		glDisable(GL_TEXTURE_2D);
-		glActiveTextureARB(GL_TEXTURE0_ARB);
 	} else {
-		if(RDP_CheckAddressValidity(Texture[0].Offset)) {
+		if(Texture[0].Offset != 0x00) {
 			RDP_CalcTextureSize(0);
 			glEnable(GL_TEXTURE_2D);
 			glBindTexture(GL_TEXTURE_2D, RDP_CheckTextureCache(0));
@@ -842,7 +839,7 @@ GLuint RDP_LoadTexture(int TextureID)
 						TexOffset += 2;
 						GLTexPosition += 4;
 
-						if(TexOffset > SourceSize) break;
+						if(TexOffset >= SourceSize) break;
 					}
 					TexOffset += Texture[TextureID].LineSize * 4 - Texture[TextureID].Width;
 				}
@@ -876,6 +873,8 @@ GLuint RDP_LoadTexture(int TextureID)
 
 						TexOffset += 1;
 						GLTexPosition += 8;
+
+						if(TexOffset >= SourceSize) break;
 					}
 					TexOffset += Texture[TextureID].LineSize * 8 - (Texture[TextureID].Width / 2);
 				}
@@ -897,6 +896,8 @@ GLuint RDP_LoadTexture(int TextureID)
 
 						TexOffset += 1;
 						GLTexPosition += 4;
+
+						if(TexOffset >= SourceSize) break;
 					}
 					TexOffset += Texture[TextureID].LineSize * 8 - Texture[TextureID].Width;
 				}
@@ -924,6 +925,8 @@ GLuint RDP_LoadTexture(int TextureID)
 
 						TexOffset += 1;
 						GLTexPosition += 8;
+
+						if(TexOffset >= SourceSize) break;
 					}
 					TexOffset += Texture[TextureID].LineSize * 8 - (Texture[TextureID].Width / 2);
 				}
@@ -944,6 +947,8 @@ GLuint RDP_LoadTexture(int TextureID)
 
 						TexOffset += 1;
 						GLTexPosition += 4;
+
+						if(TexOffset >= SourceSize) break;
 					}
 					TexOffset += Texture[TextureID].LineSize * 8 - Texture[TextureID].Width;
 				}
@@ -959,6 +964,8 @@ GLuint RDP_LoadTexture(int TextureID)
 
 						TexOffset += 2;
 						GLTexPosition += 4;
+
+						if(TexOffset >= SourceSize) break;
 					}
 					TexOffset += Texture[TextureID].LineSize * 4 - Texture[TextureID].Width;
 				}
@@ -987,6 +994,8 @@ GLuint RDP_LoadTexture(int TextureID)
 
 						TexOffset += 1;
 						GLTexPosition += 8;
+
+						if(TexOffset >= SourceSize) break;
 					}
 					TexOffset += Texture[TextureID].LineSize * 8 - (Texture[TextureID].Width / 2);
 				}
@@ -1002,6 +1011,8 @@ GLuint RDP_LoadTexture(int TextureID)
 
 						TexOffset += 1;
 						GLTexPosition += 4;
+
+						if(TexOffset >= SourceSize) break;
 					}
 					TexOffset += Texture[TextureID].LineSize * 8 - Texture[TextureID].Width;
 				}
