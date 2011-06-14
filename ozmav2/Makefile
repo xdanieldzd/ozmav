@@ -44,7 +44,7 @@ ifeq ($(DBG),1)
   CFLAGS += -DDEBUG -g
   LDFLAGS += ../misaka/libMISAKA_debug.a ../badrdp/libbadRDP_debug.a
 else
-  CFLAGS += -O2
+  CFLAGS += -O3
   LDFLAGS += ../misaka/libMISAKA.a ../badrdp/libbadRDP.a
 endif
 

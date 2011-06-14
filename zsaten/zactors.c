@@ -266,7 +266,7 @@ void processActor()
 			}
 		}
 
-		vCurrentActor.actorScale = (scale != NULL) ? *scale : 0.01f;
+		vCurrentActor.actorScale = (scale != NULL) ? *scale : 2.0f;
 		vCurrentActor.offsetDList = (dlist != NULL) ? *dlist : 0;
 
 		scanAnimations(0x06);
@@ -343,7 +343,7 @@ void processActor()
 		}
 
 		scanBones(0x06);
-		vCurrentActor.actorScale = 0.01f;
+		vCurrentActor.actorScale = 2.00f;
 
 		dbgprintf(0, MSK_COLORTYPE_INFO, "scanned -> bones[0]:%08x, dlist:%08x, anim[0]:%08x, scale:%.2f\n",
 			vCurrentActor.offsetBoneSetup[0], vCurrentActor.offsetDList, vCurrentActor.offsetAnims[0], vCurrentActor.actorScale);

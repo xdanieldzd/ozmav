@@ -1,4 +1,5 @@
 PROJECT = libMISAKA
+TARGET = $(PROJECT).a
 
 # Environment
 CC = gcc
@@ -20,10 +21,8 @@ endif
 #Debug?
 ifeq ($(DBG),1)
   CFLAGS += -DDEBUG -ggdb3 -g
-  TARGET = $(PROJECT)_debug.a
 else
-  CFLAGS += -O2
-  TARGET = $(PROJECT).a
+  CFLAGS += -O3
 endif
 
 # Make

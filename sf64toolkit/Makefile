@@ -2,7 +2,7 @@ TARGET = sf64tk
 
 PARTS = main.o n64sums.o sf64.o
 CC = gcc
-CFLAGS = -Wall -O2 -U_FORTIFY_SOURCE
+CFLAGS = -Wall -O3 -U_FORTIFY_SOURCE
 LDFLAGS = -lcurses
 
 ifeq ($(PREFIX),)

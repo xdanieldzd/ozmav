@@ -23,6 +23,14 @@
 #define KEY_MOUSE_MODESWITCH		XK_F5&0xFF
 #define KEY_ACTOR_PREVIOUS			XK_KP_Subtract&0xFF
 #define KEY_ACTOR_NEXT				XK_KP_Add&0xFF
+#define VK_UP         XK_Up&0xFF
+#define VK_DOWN          XK_Down&0xFF
+#define VK_LEFT         XK_Left&0xFF
+#define VK_RIGHT          XK_Right&0xFF
+#define VK_TAB            XK_Tab&0xFF
+#define VK_SPACE                     XK_space&0xFF
+#define VK_CONTROL			XK_Control_L&0xFF
+#define VK_SHIFT			XK_Shift_L&0xFF
 #define KEY_GUI_TOGGLEHUD			XK_F12&0xFF
 
 int XInit(char * WndTitle, int Width, int Height);

@@ -46,7 +46,7 @@ LDFLAGS += ../misaka/libMISAKA.a ../badrdp/libbadRDP.a
 ifeq ($(DBG),1)
   CFLAGS += -DDEBUG -g
 else
-  CFLAGS += -O2
+  CFLAGS += -O3
 endif
 
 # Make

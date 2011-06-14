@@ -28,7 +28,7 @@ endif
 ifeq ($(DBG),1)
   CFLAGS += -DDEBUG -ggdb3 -g
 else
-  CFLAGS += -O2
+  CFLAGS += -O3
 endif
 
 # Make
