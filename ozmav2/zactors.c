@@ -396,9 +396,6 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 		zActor[ActorNumber].ProfileVStart = Read32(zGame.CodeBuffer, BaseOffset + 20);
 		zActor[ActorNumber].NameRStart = Read32(zGame.CodeBuffer, BaseOffset + 24);
 
-		// return if the actor is invalid
-		if(zActor[ActorNumber].VStart == 0x00) return;
-
 		// if game is not compressed...
 		if(!zGame.IsCompressed) {
 			// calculate where the actor name starts inside the code file
@@ -407,11 +404,12 @@ void zl_ProcessActor(int MapNumber, int CurrActor, int Type)
 			// and read the name out
 			unsigned char * Current = &zGame.CodeBuffer[zActor[ActorNumber].NameCStart];
 			Current += sprintf(zActor[ActorNumber].Name, "%s", Current);
-			dbgprintf(2, MSK_COLORTYPE_INFO, "-'%s'", zActor[ActorNumber].Name);
-			while(!*Current) Current++;
 
 			dbgprintf(2, MSK_COLORTYPE_INFO, "- Actor is called '%s'", zActor[ActorNumber].Name);
 		}
+
+		// return if the actor is invalid
+		if(zActor[ActorNumber].VStart == 0x00) return;
 
 		// get the actor's physical offsets via the DMA table
 		DMA Actor = zl_DMAVirtualToPhysical(zActor[ActorNumber].PStart, zActor[ActorNumber].PEnd);

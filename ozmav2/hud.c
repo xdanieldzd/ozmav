@@ -141,7 +141,7 @@ void hud_KillFont()
 	if(glIsList(zHUD.BaseDL)) glDeleteLists(zHUD.BaseDL, 256);
 }
 
-void hud_Print(GLint X, GLint Y, int W, int H, int Scale, float Vis, char * String, ...)
+void hud_Print(GLint X, GLint Y, int W, int H, int Scale, float Vis, bool Border, char * String, ...)
 {
 	// NOTES:
 	//  - if X or Y == -1, text appears at (window width/height - text width/height)
@@ -212,6 +212,7 @@ void hud_Print(GLint X, GLint Y, int W, int H, int Scale, float Vis, char * Stri
 		glEnable(GL_TEXTURE_2D);
 
 		// text
+		glPushMatrix();
 		glTranslated(3, 3, 0);
 		glEnable(GL_TEXTURE_2D);
 		glBindTexture(GL_TEXTURE_2D, zHUD.TexID);
@@ -263,6 +264,16 @@ void hud_Print(GLint X, GLint Y, int W, int H, int Scale, float Vis, char * Stri
 			glPopMatrix();
 		}
 		glDisable(GL_TEXTURE_2D);
+
+		glPopMatrix();
+
+		if(Border) {
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+			glColor4f(0.0f, 0.0f, 0.0f, Vis);
+			glRectd(0, 0, RectWidth, RectHeight);
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		}
+
 		glEnable(GL_ALPHA_TEST);
 		glDisable(GL_BLEND);
 

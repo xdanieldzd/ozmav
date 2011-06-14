@@ -117,7 +117,7 @@ void gl_DrawScene()
 	}
 	gl_DrawDoors();
 
-	gl_DrawHUD(StartMap, EndMap);
+	if(zROM.IsROMLoaded) gl_DrawHUD(StartMap, EndMap);
 }
 
 void gl_DrawMap(int MapNo)
@@ -230,7 +230,7 @@ void gl_DrawHUD(int StartMap, int EndMap)
 						Visibility = (Visibility > 1.0f) ? 1.0f : Visibility;
 
 						if(Visibility > 0.0f) {
-							hud_Print(ScreenCoords.X, ScreenCoords.Y, -1, -1, 1, Visibility,
+							hud_Print(ScreenCoords.X, ScreenCoords.Y, -1, -1, 1, Visibility, true,
 								"#%i: %s\n0x%04X/0x%04X",
 								Actor, zActor[zMapActor[Map][Actor].Number].Name, zMapActor[Map][Actor].Number, zMapActor[Map][Actor].Var);
 						}
@@ -269,11 +269,12 @@ void gl_DrawHUD(int StartMap, int EndMap)
 	}
 
 	hud_Print(
-		0, -1, zProgram.WindowWidth, -1, 1, 1.0f,
-		"%s",
-		zOptions.SceneName);
+		0, -1, zProgram.WindowWidth, -1, 1, 1.0f, true,
+		" ");
+		/*"%s",
+		zOptions.SceneName);*/
 	hud_Print(
-		zProgram.WindowWidth - 45, -1, 0, -1, 1, 1.0f,
+		zProgram.WindowWidth - 45, -1, 0, -1, 1, 1.0f, false,
 		"FPS: %i",
 		zProgram.LastFPS);
 }

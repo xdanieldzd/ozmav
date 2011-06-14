@@ -447,6 +447,8 @@ void zl_ClearAllSegments()
 	for(i = 0; i < 64; i++) {
 		RDP_ClearSegment(i);
 	}
+
+	RDP_ClearRDRAM();
 }
 
 void zl_ClearViewerStructures()

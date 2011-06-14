@@ -306,31 +306,33 @@ int DoMainKbdInput()
 			zProgram.Key[KEY_MAP_NEXT] = false;
 		}
 	} else {
-		__zHUDMenuEntry ActorMenu[] = {
-			{ "Name", NULL, -1, -1 },
-			{ "---", NULL, -1, -1 },
-			{ "Settings", NULL, -1, -1 },
-			{ "Number", (short*)&zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Number, 2, 3 },
-			{ "Variable", (short*)&zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Var, 2, 3 },
-			{ "Position", NULL, -1, -1 },
-			{ "X", (short*)&zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Pos.X, 2, 0 },
-			{ "Y", (short*)&zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Pos.Y, 2, 0 },
-			{ "Z", (short*)&zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Pos.Z, 2, 0 },
-			{ "Rotation", NULL, -1, -1 },
-			{ "X", (short*)&zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Rot.X, 2, 0 },
-			{ "Y", (short*)&zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Rot.Y, 2, 0 },
-			{ "Z", (short*)&zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Rot.Z, 2, 0 }
-		};
+		if(zROM.IsROMLoaded) {
+			__zHUDMenuEntry ActorMenu[] = {
+				{ "Name", NULL, -1, -1 },
+				{ "---", NULL, -1, -1 },
+				{ "Settings", NULL, -1, -1 },
+				{ "Number", (short*)&zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Number, 2, 3 },
+				{ "Variable", (short*)&zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Var, 2, 3 },
+				{ "Position", NULL, -1, -1 },
+				{ "X", (short*)&zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Pos.X, 2, 0 },
+				{ "Y", (short*)&zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Pos.Y, 2, 0 },
+				{ "Z", (short*)&zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Pos.Z, 2, 0 },
+				{ "Rotation", NULL, -1, -1 },
+				{ "X", (short*)&zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Rot.X, 2, 0 },
+				{ "Y", (short*)&zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Rot.Y, 2, 0 },
+				{ "Z", (short*)&zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Rot.Z, 2, 0 }
+			};
 
-		hudMenu_HandleInput(ActorMenu, ArraySize(ActorMenu));
+			hudMenu_HandleInput(ActorMenu, ArraySize(ActorMenu));
 
-		if(zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Number > zGame.ActorCount)
-			zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Number = zGame.ActorCount;
+			if(zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Number > zGame.ActorCount)
+				zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Number = zGame.ActorCount;
 
-		if(zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Number == 0)
-			zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Number = 1;
+			if(zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Number == 0)
+				zMapActor[zOptions.SelectedActorMap][zOptions.SelectedActor].Number = 1;
 
-		if((!zGame.IsCompressed) && (!zGame.GameType)) zl_ProcessActor(zOptions.SelectedActorMap, zOptions.SelectedActor, 0);
+			if((!zGame.IsCompressed) && (!zGame.GameType)) zl_ProcessActor(zOptions.SelectedActorMap, zOptions.SelectedActor, 0);
+		}
 	}
 
 	if(zProgram.Key[KEY_MOUSE_MODESWITCH]) {
