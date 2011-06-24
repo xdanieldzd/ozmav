@@ -55,7 +55,8 @@ int RDP_Dump_CreateMaterial(unsigned char * TextureData, unsigned char TexFormat
 	fprintf(System.FileWavefrontMtl, "Ka 0.2000 0.2000 0.2000\n");
 	fprintf(System.FileWavefrontMtl, "Kd 0.8000 0.8000 0.8000\n");
 	fprintf(System.FileWavefrontMtl, "illum 1\n");
-	fprintf(System.FileWavefrontMtl, "map_Ka %s\n", TextureFilename);
+	fprintf(System.FileWavefrontMtl, "map_Kd %s\n", TextureFilename); /* Explanation here 
+	http://blog.lexique-du-net.com/index.php?post/2009/07/24/AmbientDiffuseEmissive-and-specular-colorSome-examples */
 	fprintf(System.FileWavefrontMtl, "%s%s%s\n", (SMirror ? "#horz. mirror" : ""), (TMirror ? "/vert. mirror" : ""), (SMirror || TMirror ? "\n" : ""));
 
 	System.WavefrontObjMaterialCnt++;
