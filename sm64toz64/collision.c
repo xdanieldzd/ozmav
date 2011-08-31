@@ -47,7 +47,7 @@ void FixCollision(unsigned char * data, int vertOff, int TriOff, int TriCount)
                 nf[i] *= -1;
         }
         
-        dn = (int)((nf[0]/0x7FFF * p1[0]) + (nf[1]/0x7FFF * p1[1]) + (nf[2]/0x7FFF) * p1[2]) * -1;
+        dn = (int)( (nf[0] * p1[0] / 0x7FFF) + (nf[1] * p1[1] / 0x7FFF) + (nf[2] * p1[2] / 0x7FFF) ) * -1;
         
         if(dn < 0)
             dn+=0x10000;
