@@ -71,6 +71,13 @@ void RDP_Dump_SelectMaterial(int MatID)
 	fprintf(System.FileWavefrontObj, "usemtl material_%d\n", MatID);
 }
 
+void RDP_Dump_BeginGroup(unsigned int Address)
+{
+	if(!System.FileWavefrontObj || !System.FileWavefrontMtl || !System.ObjDumpingEnabled) return;
+
+	fprintf(System.FileWavefrontObj, "g DList_%08X\n", Address);
+}
+
 void RDP_Dump_DumpTriangle(__Vertex Vtx[], int VtxID[])
 {
 	if(!System.FileWavefrontObj || !System.FileWavefrontMtl || !System.ObjDumpingEnabled) return;

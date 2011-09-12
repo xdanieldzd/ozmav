@@ -414,6 +414,8 @@ void RDP_ParseDisplayList(unsigned int Address, int ResetStack)
 
 	if(OpenGL.Ext_FragmentProgram) glDisable(GL_FRAGMENT_PROGRAM_ARB);
 
+	RDP_Dump_BeginGroup(Address);
+
 	while(Gfx.DLStackPos >= 0) {
 		unsigned int OldAddr = DListAddress;
 		DListAddress = RDP_Macro_DetectMacro(DListAddress);
