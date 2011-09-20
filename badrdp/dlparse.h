@@ -11,6 +11,7 @@ extern unsigned int wp0, wp1;
 extern unsigned int wn0, wn1;
 
 extern bool isMacro;
+extern bool do_arb;
 
 extern unsigned int G_TEXTURE_ENABLE;
 extern unsigned int G_SHADING_SMOOTH;

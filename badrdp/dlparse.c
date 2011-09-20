@@ -11,6 +11,7 @@ unsigned int w0, w1;
 unsigned int wn0, wn1;
 
 bool isMacro = false;
+bool do_arb = true;
 
 unsigned int G_TEXTURE_ENABLE;
 unsigned int G_SHADING_SMOOTH;
@@ -34,7 +35,7 @@ PFNGLMULTITEXCOORD3FARBPROC			glMultiTexCoord3fARB = NULL;
 PFNGLMULTITEXCOORD4FARBPROC			glMultiTexCoord4fARB = NULL;
 PFNGLACTIVETEXTUREARBPROC			glActiveTextureARB = NULL;
 PFNGLCLIENTACTIVETEXTUREARBPROC		glClientActiveTextureARB = NULL;
-#endif
+#endif /* WIN32 */
 
 PFNGLGENPROGRAMSARBPROC				glGenProgramsARB = NULL;
 PFNGLBINDPROGRAMARBPROC				glBindProgramARB = NULL;
@@ -42,6 +43,7 @@ PFNGLDELETEPROGRAMSARBPROC			glDeleteProgramsARB = NULL;
 PFNGLPROGRAMSTRINGARBPROC			glProgramStringARB = NULL;
 PFNGLPROGRAMENVPARAMETER4FARBPROC	glProgramEnvParameter4fARB = NULL;
 PFNGLPROGRAMLOCALPARAMETER4FARBPROC	glProgramLocalParameter4fARB = NULL;
+
 
 __System System;
 __Matrix Matrix;
@@ -401,7 +403,7 @@ void RDP_ParseDisplayList(unsigned int Address, int ResetStack)
 		Gfx.DLStackPos = 0;
 
 		glDisable(GL_TEXTURE_2D);
-		if(OpenGL.Ext_MultiTexture) {
+		if(OpenGL.Ext_MultiTexture && do_arb) {
 			glActiveTextureARB(GL_TEXTURE0_ARB);
 			glDisable(GL_TEXTURE_2D);
 			glActiveTextureARB(GL_TEXTURE1_ARB);
@@ -469,7 +471,7 @@ void RDP_DrawTriangle(int Vtxs[])
 		if(isnan(Vertex[Vtxs[i]].RealT1)) Vertex[Vtxs[i]].RealT1 = 0.0f;
 
 		if(!(Gfx.GeometryMode & G_TEXTURE_GEN_LINEAR)) {
-			if(OpenGL.Ext_MultiTexture) {
+			if(OpenGL.Ext_MultiTexture && do_arb) {
 				glMultiTexCoord2fARB(GL_TEXTURE0_ARB, Vertex[Vtxs[i]].RealS0, Vertex[Vtxs[i]].RealT0);
 				glMultiTexCoord2fARB(GL_TEXTURE1_ARB, Vertex[Vtxs[i]].RealS1, Vertex[Vtxs[i]].RealT1);
 			} else {
@@ -693,7 +695,7 @@ inline unsigned long RDP_PowOf(unsigned long dim)
 
 void RDP_InitLoadTexture()
 {
-	if(OpenGL.Ext_MultiTexture) {
+	if(OpenGL.Ext_MultiTexture && do_arb) {
 		if(Texture[0].Offset != 0x00) {
 			RDP_CalcTextureSize(0);
 			glEnable(GL_TEXTURE_2D);
@@ -1109,3 +1111,16 @@ void RDP_ToggleMatrixHack()
 {
 	Matrix.UseMatrixHack ^= 1;
 }
+
+void
+RDP_DisableARB()
+{
+    do_arb = false;
+}
+
+void
+RDP_EnableARB()
+{
+    do_arb = true;
+}
+

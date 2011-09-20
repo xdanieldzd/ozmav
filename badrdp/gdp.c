@@ -1,5 +1,6 @@
 #include "globals.h"
 
+extern bool do_arb;
 static unsigned int TexAddr = 0;
 
 void gDP_TexRect(unsigned int w0, unsigned int w1, unsigned int w2, unsigned int w3)
@@ -361,7 +362,7 @@ void gDP_SetPrimColor(unsigned int w0, unsigned int w1)
 	Gfx.PrimColor.M = _SHIFTL(w0, 8, 8);
 	Gfx.PrimColor.L = _SHIFTL(w0, 0, 8) * 0.0039215689f;
 
-	if(OpenGL.Ext_FragmentProgram) {
+	if(OpenGL.Ext_FragmentProgram && do_arb) {
 		glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 1, Gfx.PrimColor.R, Gfx.PrimColor.G, Gfx.PrimColor.B, Gfx.PrimColor.A);
 		glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 2, Gfx.PrimColor.L, Gfx.PrimColor.L, Gfx.PrimColor.L, Gfx.PrimColor.L);
 	}

@@ -1,3 +1,6 @@
+#ifndef __BADRDP_H__
+ #define __BADRDP_H__
+
 #define MAX_SEGMENTS		16
 
 #ifndef MAX_PATH
@@ -62,3 +65,7 @@ extern void RDP_SetCycleType(unsigned int Type);
 extern void RDP_SetPrimColor(unsigned char R, unsigned char G, unsigned char B, unsigned char A);
 extern void RDP_SetEnvColor(unsigned char R, unsigned char G, unsigned char B, unsigned char A);
 extern void RDP_ToggleMatrixHack();
+extern void RDP_DisableARB();
+extern void RDP_EnableARB();
+
+#endif /* __BADRDP_H__ */

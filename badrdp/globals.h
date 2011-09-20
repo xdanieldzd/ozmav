@@ -3,6 +3,7 @@
 #include <string.h>
 #include <math.h>
 #include <stdarg.h>
+#include <GL/glew.h>
 #include <GL/gl.h>
 #include <GL/glext.h>
 
@@ -41,7 +42,7 @@ PFNGLMULTITEXCOORD3FARBPROC			glMultiTexCoord3fARB;
 PFNGLMULTITEXCOORD4FARBPROC			glMultiTexCoord4fARB;
 PFNGLACTIVETEXTUREARBPROC			glActiveTextureARB;
 PFNGLCLIENTACTIVETEXTUREARBPROC		glClientActiveTextureARB;
-#endif
+#endif /* WIN32 */
 
 PFNGLGENPROGRAMSARBPROC				glGenProgramsARB;
 PFNGLBINDPROGRAMARBPROC				glBindProgramARB;
