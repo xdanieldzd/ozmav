@@ -15,6 +15,7 @@ Ancient things, mostly in C, all jumbled together & probably not really worth lo
 **ozmav2**: N64 Zelda map viewer and editor, uses badrdp & misaka; the first one I made that got it kinda right
 
 **sf64toolkit**: Star Fox 64 file handling & level viewing tool, misaka again, but no badrdp this time; old, broken, buggy...
+* See also [mib_f8sm9c's new SF64 Toolkit project](https://github.com/mib-f8sm9c/NewSF64Toolkit)
 
 **sm64toz64**: Super Mario 64 to Zelda 64 level converter, see its readme for more details
 
